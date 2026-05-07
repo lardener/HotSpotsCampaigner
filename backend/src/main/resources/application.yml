@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: battletech-campaign-backend
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-client-id-here}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-client-secret-here}
+            scope:
+              - profile
+              - email
+            redirect-uri: "http://localhost:8080/login/oauth2/code/google"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://www.googleapis.com/oauth2/v4/token
+            user-info-uri: https://www.googleapis.com/oauth2/v1/userinfo
+            user-name-attribute: email
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+logging:
+  level:
+    root: INFO
+    com.hotspotscamp: DEBUG

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+target/
+*.class
+*.jar
+.DS_Store
+.env
+.env.local
+*.log
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
