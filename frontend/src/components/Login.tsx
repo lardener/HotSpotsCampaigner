@@ -2,7 +2,8 @@ import '../styles/login.css';
 
 export function Login() {
   const handleGoogleLogin = () => {
-    window.location.href = '/oauth2/authorization/google';
+    // Point to the backend server port to initiate the OAuth flow
+    window.location.href = 'http://localhost:8080/login/oauth2/authorization/google';
   };
 
   return (
