@@ -22,6 +22,10 @@ public class UserController {
 
     private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
+    public UserController() {
+        log.atError().log("loaded class UserController");
+    }
+
     @GetMapping("/profile")
     public Mono<UserProfile> getUserProfile() {
         return ReactiveSecurityContextHolder.getContext()
@@ -32,8 +36,10 @@ public class UserController {
                     Object principal = authentication.getPrincipal();
 
                     if (principal instanceof OAuth2User oAuth2User) {
-                        String email = oAuth2User.getAttribute("email") != null ? oAuth2User.getAttribute("email").toString() : "";
-                        String name = oAuth2User.getAttribute("name") != null ? oAuth2User.getAttribute("name").toString() : email;
+                        Object emailAttr = oAuth2User.getAttribute("email");
+                        Object nameAttr = oAuth2User.getAttribute("name");
+                        String email = emailAttr != null ? emailAttr.toString() : "";
+                        String name = nameAttr != null ? nameAttr.toString() : email;
                         log.debug("OAuth2 profile resolved: {}", email);
                         return new UserProfile(email, name);
                     } else {

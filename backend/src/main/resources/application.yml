@@ -16,8 +16,9 @@ spring:
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
-            token-uri: https://www.googleapis.com/oauth2/v4/token
-            user-info-uri: https://www.googleapis.com/oauth2/v1/userinfo
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
             user-name-attribute: email
 server:
   port: 8080

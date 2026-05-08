@@ -3,8 +3,8 @@ package com.hotspotscamp.api;
 import org.springframework.stereotype.Controller;
 
 /**
- * Redundant controller logic removed. Spring Security's OAuth2 filters handle
- * /login/oauth2/** automatically.
+ * OAuth2 controller for WebFlux. Spring Security handles OAuth2 login endpoints
+ * automatically when properly configured.
  */
 @Controller
 public class OAuthController {
