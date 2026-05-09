@@ -5,7 +5,10 @@ type Campaign {
     currentDate: String
     warchestPoints: Int
     reputations: [FactionReputation]
-    units: [MercenaryUnit]
+    managerId: ID!
+    participantUserIds: [ID]
+    participantUnitIds: [ID]
+    mercenaryUnits: [MercenaryUnit]
 }
 
 type FactionReputation {
@@ -17,18 +20,32 @@ type FactionReputation {
 type MercenaryUnit {
     id: ID!
     name: String!
-    mrbRating: String
-    funds: Float
-    dragoonRating: Float
-    assets: [CombatAsset]
+    ownerId: ID!
+    campaignId: ID
+    supportPoints: Int
+    reputation: Int
+    combatUnits: [CombatAsset]
+    personnel: [Personnel]
 }
 
 type CombatAsset {
     id: ID!
+    chassis: String!
     model: String!
     tonnage: Int
+    battleValue: Int
+    pointValue: Int
+    size: Int
     techBase: String
     status: String
+}
+
+type Personnel {
+    id: ID!
+    name: String!
+    specialization: String!
+    gunnery: Int!
+    piloting: Int!
 }
 
 type Query {
@@ -38,7 +55,7 @@ type Query {
 
 type Mutation {
     createCampaign(name: String!, theater: String!): Campaign
-    addAssetToUnit(unitId: ID!, model: String!, tonnage: Int!): CombatAsset
+    addAssetToUnit(unitId: ID!, chassis: String!, model: String!, tonnage: Int!): CombatAsset
     updateWarchest(campaignId: ID!, delta: Int!): Campaign
     adjustReputation(campaignId: ID!, faction: String!, delta: Int!): FactionReputation
 }
