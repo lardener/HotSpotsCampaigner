@@ -1,6 +1,13 @@
 spring:
   application:
     name: battletech-campaign-backend
+  r2dbc:
+    url: r2dbc:mysql://battletech-db:3306/${MYSQL_DATABASE}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    pool:
+      initial-size: 10
+      max-size: 20
   security:
     oauth2:
       client:

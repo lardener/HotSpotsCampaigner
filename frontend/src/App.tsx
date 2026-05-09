@@ -33,18 +33,24 @@ export function App() {
       });
   }, []);
 
+  const handleLoginRedirect = () => {
+    // Point to the backend server port to initiate the OAuth flow
+    window.location.href = 'http://localhost:8080/login/oauth2/authorization/google';
+  };
+
   const handleLogout = async () => {
     try {
-      // Send a POST request to the backend's logout endpoint
+      // Send a POST request to the backend's logout endpoint for the reactive security stack.
       const res = await fetch('http://localhost:8080/api/logout', {
         method: 'POST',
-        credentials: 'include' // Important to send session cookies
+        credentials: 'include'
       });
 
       if (res.ok) {
-        // Force a full page reload to the root to ensure all state is wiped 
-        // and the app returns to its initial unauthenticated state.
+        // Reload to clear the SPA state and return to the unauthenticated view.
         window.location.href = '/';
+      } else {
+        console.error('Logout failed with status:', res.status);
       }
     } catch (error) {
       console.error('Error during logout:', error);
@@ -91,7 +97,7 @@ export function App() {
               <section className="dashboard-section">
                 <h2 className="section-title">CAMPAIGN GENERATOR</h2>
                 <p className="restricted-text">Generator offline/limited. Login required for persistence and full unit database access.</p>
-                <button className="login-button">INITIALIZE SIMULATION</button>
+                <button onClick={handleLoginRedirect} className="login-button">INITIALIZE SIMULATION</button>
               </section>
             </div>
           )}
