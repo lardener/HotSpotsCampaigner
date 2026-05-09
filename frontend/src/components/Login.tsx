@@ -7,10 +7,8 @@ export function Login() {
   };
 
   return (
-    <div className="login-container">
-      <button onClick={handleGoogleLogin} className="google-login-btn">
-        Login with Google
-      </button>
-    </div>
+    <button onClick={handleGoogleLogin} className="login-button">
+      Login with Google
+    </button>
   );
 }

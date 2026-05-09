@@ -1,19 +1,28 @@
 .welcome-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    text-align: left;
+    border-left: 4px solid var(--bt-orange);
+    padding: 2rem;
+    background: rgba(31, 40, 51, 0.6);
+    backdrop-filter: blur(5px);
 }
 
-.welcome-container h1 {
-  color: white;
-  font-size: 3rem;
-  text-align: center;
-  margin: 0;
-  padding: 20px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+.welcome-title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin: 0;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    line-height: 0.9;
+}
+
+.welcome-subtitle {
+    color: var(--bt-orange);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+    display: block;
+    letter-spacing: 4px;
+    font-size: 0.9rem;
+    opacity: 0.8;
 }

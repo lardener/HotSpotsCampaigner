@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { App } from './App';
 
 describe('App', () => {
@@ -10,8 +10,19 @@ describe('App', () => {
   });
 
   it('should render welcome message when authenticated', async () => {
-    // Mock authenticated state
+    // Mock the global fetch to simulate a successful profile retrieval
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ email: 'commander@merc.net', name: 'Commander' })
+    });
+
     render(<App />);
-    // This will be tested through integration testing
+
+    // Wait for the authenticated state to be reflected in the UI
+    await waitFor(() => {
+      expect(screen.getByText(/Commander/i)).toBeInTheDocument();
+      expect(screen.getByText(/IDENTITY VERIFIED/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
+    });
   });
 });

@@ -1,24 +1,23 @@
 package com.hotspotscamp.config;
 
-import java.net.URI;
 import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizationRequestResolver;
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
-import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.web.server.ServerOAuth2AuthorizedClientRepository;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.HttpStatusServerEntryPoint;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.authentication.ServerAuthenticationFailureHandler;
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
-import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
 import org.springframework.security.web.server.authentication.logout.ServerLogoutSuccessHandler;
+import org.springframework.security.web.server.authentication.logout.WebSessionServerLogoutHandler;
 import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsConfigurationSource;
@@ -47,13 +46,14 @@ public class SecurityConfig {
                 )
                 .requestCache(cache -> cache.requestCache(NoOpServerRequestCache.getInstance())) // Disable saved requests
                 .oauth2Login(oauth2 -> oauth2
-                        .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
+                .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
                 .authenticationSuccessHandler(oauth2AuthenticationSuccessHandler())
                 .authenticationFailureHandler(oauth2AuthenticationFailureHandler())
                 .authorizedClientRepository(authorizedClientRepository)
                 )
                 .logout(logout -> logout
                 .logoutUrl("/api/logout")
+                .logoutHandler(new WebSessionServerLogoutHandler()) // Explicitly invalidate the WebSession
                 .logoutSuccessHandler(logoutSuccessHandler())
                 );
 
@@ -70,7 +70,7 @@ public class SecurityConfig {
 
     @Bean
     public ServerAuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
-        return new RedirectServerAuthenticationSuccessHandler("http://localhost:3000/welcome");
+        return new RedirectServerAuthenticationSuccessHandler("http://localhost:3000/");
     }
 
     @Bean
@@ -80,9 +80,11 @@ public class SecurityConfig {
 
     @Bean
     public ServerLogoutSuccessHandler logoutSuccessHandler() {
-        RedirectServerLogoutSuccessHandler handler = new RedirectServerLogoutSuccessHandler();
-        handler.setLogoutSuccessUrl(URI.create("http://localhost:3000"));
-        return handler;
+        // Return 200 OK instead of a redirect for better SPA integration
+        return (exchange, authentication) -> {
+            exchange.getExchange().getResponse().setStatusCode(HttpStatus.OK);
+            return exchange.getExchange().getResponse().setComplete();
+        };
     }
 
     @Bean

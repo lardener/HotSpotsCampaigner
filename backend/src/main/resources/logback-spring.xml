@@ -8,22 +8,14 @@
         <logger name="com.hotspotscamp" level="DEBUG"/>
         <logger name="org.springframework.web" level="INFO"/>
         <logger name="org.springframework.security" level="INFO"/>
-        
-        <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
-        </root>
     </springProfile>
 
     <!-- Production Profile -->
     <springProfile name="prod">
         <logger name="com.hotspotscamp" level="INFO"/>
-        
-        <root level="WARN">
-            <appender-ref ref="CONSOLE"/>
-        </root>
     </springProfile>
 
-    <!-- Default fallback if no profile is active -->
+    <!-- Main root logger: writes to CONSOLE (STDOUT), which is captured by Docker logs -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
