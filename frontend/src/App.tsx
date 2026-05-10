@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Login } from './components/Login';
 import { Welcome } from './components/Welcome';
 import './styles/index.css';
+import { RandomCampaignGenerator } from './components/RandomCampaignGenerator';
 import './styles/login.css';
 import './styles/welcome.css';
 
@@ -32,11 +33,6 @@ export function App() {
         setLoading(false);
       });
   }, []);
-
-  const handleLoginRedirect = () => {
-    // Point to the backend server port to initiate the OAuth flow
-    window.location.href = 'http://localhost:8080/login/oauth2/authorization/google';
-  };
 
   const handleLogout = async () => {
     try {
@@ -84,7 +80,10 @@ export function App() {
       <main className="main-content">
         <div className="main-panel">
           {user ? (
-            <Welcome userName={user.name} />
+            <>
+              <Welcome userName={user.name} />
+              <RandomCampaignGenerator user={user} />
+            </>
           ) : (
             <div className="unauthenticated-dashboard">
               <section className="dashboard-section">
@@ -96,8 +95,7 @@ export function App() {
               </section>
               <section className="dashboard-section">
                 <h2 className="section-title">CAMPAIGN GENERATOR</h2>
-                <p className="restricted-text">Generator offline/limited. Login required for persistence and full unit database access.</p>
-                <button onClick={handleLoginRedirect} className="login-button">INITIALIZE SIMULATION</button>
+                <RandomCampaignGenerator />
               </section>
             </div>
           )}

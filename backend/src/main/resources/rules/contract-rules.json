@@ -1,0 +1,52 @@
+{
+    "employerTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "entries": [
+            {
+                "roll": 2,
+                "type": "Corporate (Local)"
+            },
+            {
+                "roll": 3,
+                "type": "Noble (Local)"
+            },
+            {
+                "roll": 4,
+                "type": "Corporate (External)"
+            },
+            {
+                "roll": 5,
+                "type": "Minor Power"
+            },
+            {
+                "roll": 6,
+                "type": "Major Power"
+            },
+            {
+                "roll": 7,
+                "type": "Major Power"
+            },
+            {
+                "roll": 8,
+                "type": "Major Power"
+            },
+            {
+                "roll": 9,
+                "type": "Minor Power"
+            },
+            {
+                "roll": 10,
+                "type": "Noble (External)"
+            },
+            {
+                "roll": 11,
+                "type": "Corporate (Local)"
+            },
+            {
+                "roll": 12,
+                "type": "Other"
+            }
+        ]
+    }
+}

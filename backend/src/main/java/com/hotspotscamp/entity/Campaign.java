@@ -1,15 +1,15 @@
 package com.hotspotscamp.entity;
 
-import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Table;
-import lombok.Data;
-import lombok.Builder;
-import java.time.LocalDate;
 import java.util.UUID;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+
+import lombok.Builder;
+import lombok.Data;
+
 /**
- * Represents a Mercenary Campaign, specifically tailored for the Chaos Campaign
- * rules found in Hotspots: Hinterlands.
+ * Represents a theater of operations (e.g., The Hinterlands).
  */
 @Data
 @Builder
@@ -19,8 +19,6 @@ public class Campaign {
     @Id
     private UUID id;
     private String name;
-    private String theater; // e.g., "Hinterlands"
-    private LocalDate currentDate;
-    private Integer warchestPoints; // Used for tracks and repairs in Chaos Campaigns
-    private UUID managerId;
+    private UUID managerId; // The user managing this campaign
+    private String status; // e.g., "ACTIVE", "COMPLETED"
 }
