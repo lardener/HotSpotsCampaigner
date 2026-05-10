@@ -27,10 +27,15 @@ public class Contract {
 
     // Chaos Campaign Specific Multipliers
     private Double payRate;
+    private Integer payStep;
     private String salvageTerms; // e.g., Full, None, Shared
+    private Integer salvageStep;
     private String supportTerms; // How SP costs are shared
+    private Integer supportStep;
     private String transportTerms; // pg. 132
+    private Integer transportStep;
     private String commandRights; // pg. 133: Independent, Liaison, House
+    private Integer commandStep;
 
     private Integer lengthInMonths;
     private Integer trackCount; // pg. 134

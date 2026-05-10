@@ -1,6 +1,7 @@
 package com.hotspotscamp.api;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,6 +46,11 @@ public class CampaignController {
         return Mono.just(campaignService.getAvailableTrackTypes());
     }
 
+    @GetMapping("/metadata/resolved-steps")
+    public Mono<Map<Integer, Map<String, String>>> getResolvedSteps() {
+        return Mono.just(campaignService.getResolvedStepsTable());
+    }
+
     @GetMapping("/metadata/pay-rates")
     public Mono<List<String>> getPayRates() {
         return Mono.just(campaignService.getAvailablePayRates());
@@ -82,12 +88,18 @@ public class CampaignController {
             @RequestParam(required = false) String supportTerms,
             @RequestParam(required = false) String transportTerms,
             @RequestParam(required = false) String commandRights,
+            @RequestParam(required = false) Integer payStep,
+            @RequestParam(required = false) Integer salvageStep,
+            @RequestParam(required = false) Integer supportStep,
+            @RequestParam(required = false) Integer transportStep,
+            @RequestParam(required = false) Integer commandStep,
             @RequestParam(required = false) Integer lengthInMonths,
             @RequestParam(required = false) Integer trackCount) {
         return Mono.just(campaignService.generateProposal(employer, opponent, mission,
                 employerCategory, systemName, payRate, salvageTerms,
-                supportTerms, transportTerms, commandRights, lengthInMonths,
-                trackCount));
+                supportTerms, transportTerms, commandRights,
+                payStep, salvageStep, supportStep, transportStep, commandStep,
+                lengthInMonths, trackCount));
     }
 
     @PostMapping("/dobless")
@@ -102,6 +114,11 @@ public class CampaignController {
             @RequestParam(required = false) String supportTerms,
             @RequestParam(required = false) String transportTerms,
             @RequestParam(required = false) String commandRights,
+            @RequestParam(required = false) Integer payStep,
+            @RequestParam(required = false) Integer salvageStep,
+            @RequestParam(required = false) Integer supportStep,
+            @RequestParam(required = false) Integer transportStep,
+            @RequestParam(required = false) Integer commandStep,
             @RequestParam(required = false) Integer lengthInMonths,
             @RequestParam(required = false) Integer trackCount,
             @AuthenticationPrincipal OAuth2User principal) {
@@ -109,7 +126,8 @@ public class CampaignController {
         UUID managerId = UUID.fromString(principal.getAttribute("sub").toString());
         return campaignService.generateDoblessCampaign(managerId, employer, opponent, mission,
                 employerCategory, systemName, payRate, salvageTerms,
-                supportTerms, transportTerms, commandRights, lengthInMonths,
-                trackCount);
+                supportTerms, transportTerms, commandRights,
+                payStep, salvageStep, supportStep, transportStep, commandStep,
+                lengthInMonths, trackCount);
     }
 }

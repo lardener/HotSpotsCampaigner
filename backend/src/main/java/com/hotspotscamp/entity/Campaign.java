@@ -22,4 +22,6 @@ public class Campaign {
     private UUID managerId; // The user managing this campaign
     private String status; // e.g., "ACTIVE", "COMPLETED"
     private String systemName;
+    private Integer lengthInMonths;
+    private Integer trackCount;
 }

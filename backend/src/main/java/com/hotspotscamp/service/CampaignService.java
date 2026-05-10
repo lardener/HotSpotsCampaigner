@@ -197,6 +197,20 @@ public class CampaignService {
         return availableCommand;
     }
 
+    public Map<Integer, Map<String, String>> getResolvedStepsTable() {
+        Map<Integer, Map<String, String>> resolved = new HashMap<>();
+        for (Integer step : contractStepsTable.keySet()) {
+            Map<String, String> values = new HashMap<>();
+            values.put("payRate", resolveStepValue(step, "payRate"));
+            values.put("salvageRights", resolveStepValue(step, "salvageRights"));
+            values.put("supportRights", resolveStepValue(step, "supportRights"));
+            values.put("transportation", resolveStepValue(step, "transportation"));
+            values.put("commandRights", resolveStepValue(step, "commandRights"));
+            resolved.put(step, values);
+        }
+        return resolved;
+    }
+
     /**
      * Tracks are part of the campaign metadata in the proposal, not nested in
      * contracts.
@@ -210,8 +224,9 @@ public class CampaignService {
      */
     public CampaignProposal generateProposal(String employer, String opponent, String mission,
             String employerCategory, String systemName, Double payRate,
-            String salvageTerms, String supportTerms, String transportTerms,
-            String commandRights, Integer lengthInMonths,
+            String salvageTerms, String supportTerms, String transportTerms, String commandRights,
+            Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
+            Integer lengthInMonths,
             Integer trackCount) {
         Random rand = new Random();
 
@@ -254,6 +269,8 @@ public class CampaignService {
         Campaign campaign = Campaign.builder()
                 .name("DOBLESS OP: " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
+                .lengthInMonths(finalLength)
+                .trackCount(finalTracksCount)
                 .status("PREVIEW")
                 .build();
 
@@ -261,8 +278,9 @@ public class CampaignService {
         String previewRights = commandRights != null ? commandRights : "Liaison";
 
         Contract primaryContract = generateContract(finalEmp, empMission, employerCategory,
-                payRate, salvageTerms, supportTerms, transportTerms,
-                commandRights, finalLength, finalTracksCount, true, rand);
+                payRate, salvageTerms, supportTerms, transportTerms, commandRights,
+                payStep, salvageStep, supportStep, transportStep, commandStep,
+                finalLength, finalTracksCount, true, rand);
 
         // Determine Attacker/Defender role based on p. 135
         String primaryRole = determineUnitRole(empMission, rand);
@@ -270,6 +288,7 @@ public class CampaignService {
         // Opponent remains randomized to maintain conflict balance
         // but shares the same duration and track count as the theater
         Contract oppositionContract = generateContract(finalOpp, oppMission, "Minor Power",
+                null, null, null, null, null,
                 null, null, null, null, null, finalLength, finalTracksCount, false, rand);
 
         // Generate tracks at the campaign level
@@ -289,41 +308,47 @@ public class CampaignService {
     }
 
     private Contract generateContract(String faction, String type, String category,
-            Double payRate, String salvage, String support, String transport,
-            String rights, int length, int tracks, boolean isPrimary, Random rand) {
+            Double payRate, String salvage, String support, String transport, String rights,
+            Integer payStepIn, Integer salvageStepIn, Integer supportStepIn, Integer transportStepIn, Integer commandStepIn,
+            int length, int tracks, boolean isPrimary, Random rand) {
 
         String empType = category != null ? category : rollEmployerType(rand);
 
-        int payStep = calculateFinalStep("payRateTable", empType, type, rand);
-        int salvageStep = calculateFinalStep("salvageTable", empType, type, rand);
-        int supportStep = calculateFinalStep("supportTable", empType, type, rand);
-        int transportStep = calculateFinalStep("transportationTable", empType, type, rand);
-        int rightsStep = calculateFinalStep("commandRightsTable", empType, type, rand);
+        int payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", empType, type, rand);
+        int salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", empType, type, rand);
+        int supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", empType, type, rand);
+        int transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", empType, type, rand);
+        int rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", empType, type, rand);
 
-        String rawPayRate = resolveStepValue(payStep, "payRate");
-        Double resolvedPayRate = 1.0;
-        try {
-            String cleanPayRate = rawPayRate.replace("%", "").trim();
-            resolvedPayRate = Double.parseDouble(cleanPayRate);
-            if (rawPayRate.contains("%")) {
-                resolvedPayRate /= 100.0;
-            }
-        } catch (Exception e) {
-            resolvedPayRate = 1.0;
-        }
+        Double resolvedPayRate = parsePayRate(resolveStepValue(payStep, "payRate"));
 
         return Contract.builder()
                 .missionType(type)
                 .employerCategory(faction + ": " + empType)
                 .payRate(payRate != null ? payRate : resolvedPayRate)
+                .payStep(payStep)
                 .salvageTerms(salvage != null ? salvage : resolveStepValue(salvageStep, "salvageRights"))
+                .salvageStep(salvageStep)
                 .supportTerms(support != null ? support : resolveStepValue(supportStep, "supportRights"))
+                .supportStep(supportStep)
                 .transportTerms(transport != null ? transport : resolveStepValue(transportStep, "transportation"))
+                .transportStep(transportStep)
                 .commandRights(rights != null ? rights : resolveStepValue(rightsStep, "commandRights"))
+                .commandStep(rightsStep)
                 .primaryContract(isPrimary)
                 .lengthInMonths(length)
                 .trackCount(tracks)
                 .build();
+    }
+
+    private Double parsePayRate(String raw) {
+        try {
+            String clean = raw.replace("%", "").trim();
+            double val = Double.parseDouble(clean);
+            return raw.contains("%") ? val / 100.0 : val;
+        } catch (Exception e) {
+            return 1.0;
+        }
     }
 
     private String determineUnitRole(String missionType, Random rand) {
@@ -509,11 +534,13 @@ public class CampaignService {
     @Transactional
     public Mono<Campaign> generateDoblessCampaign(UUID managerId, String employer, String opponent, String mission,
             String employerCategory, String systemName, Double payRate,
-            String salvageTerms, String supportTerms, String transportTerms,
-            String commandRights, Integer lengthInMonths,
+            String salvageTerms, String supportTerms, String transportTerms, String commandRights,
+            Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
+            Integer lengthInMonths,
             Integer trackCount) {
         CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName,
                 payRate, salvageTerms, supportTerms, transportTerms, commandRights,
+                payStep, salvageStep, supportStep, transportStep, commandStep,
                 lengthInMonths, trackCount);
         Campaign campaign = proposal.campaign();
         campaign.setManagerId(managerId);

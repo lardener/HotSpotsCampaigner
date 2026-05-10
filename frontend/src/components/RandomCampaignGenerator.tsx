@@ -5,10 +5,15 @@ interface ContractPreview {
     missionType: string;
     primaryContract: boolean;
     payRate: number;
+    payStep: number;
     salvageTerms: string;
+    salvageStep: number;
     supportTerms: string;
+    supportStep: number;
     transportTerms: string;
+    transportStep: number;
     commandRights: string;
+    commandStep: number;
     lengthInMonths: number;
     trackCount: number;
 }
@@ -30,12 +35,8 @@ interface Props {
 
 export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
     const [missions, setMissions] = useState<string[]>([]);
-    const [payRates, setPayRates] = useState<string[]>([]);
+    const [resolvedSteps, setResolvedSteps] = useState<Record<number, any>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
-    const [salvageTypes, setSalvageTypes] = useState<string[]>([]);
-    const [supportTypes, setSupportTypes] = useState<string[]>([]);
-    const [transportTypes, setTransportTypes] = useState<string[]>([]);
-    const [commandTypes, setCommandTypes] = useState<string[]>([]);
 
     const [loading, setLoading] = useState(false);
     const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -45,22 +46,14 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         const fetchMetadata = async () => {
             const baseUrl = 'http://localhost:8080/api/campaigns/metadata';
             try {
-                const [missRes, trackRes, payRes, salvageRes, supportRes, transportRes, commandRes] = await Promise.all([
+                const [missRes, trackRes, stepRes] = await Promise.all([
                     fetch(`${baseUrl}/missions`, { credentials: 'include' }),
                     fetch(`${baseUrl}/track-types`, { credentials: 'include' }),
-                    fetch(`${baseUrl}/pay-rates`, { credentials: 'include' }),
-                    fetch(`${baseUrl}/salvage`, { credentials: 'include' }),
-                    fetch(`${baseUrl}/support`, { credentials: 'include' }),
-                    fetch(`${baseUrl}/transport`, { credentials: 'include' }),
-                    fetch(`${baseUrl}/command`, { credentials: 'include' })
+                    fetch(`${baseUrl}/resolved-steps`, { credentials: 'include' })
                 ]);
                 if (missRes.ok) setMissions(await missRes.json());
                 if (trackRes.ok) setTrackTypes(await trackRes.json());
-                if (payRes.ok) setPayRates(await payRes.json());
-                if (salvageRes.ok) setSalvageTypes(await salvageRes.json());
-                if (supportRes.ok) setSupportTypes(await supportRes.json());
-                if (transportRes.ok) setTransportTypes(await transportRes.json());
-                if (commandRes.ok) setCommandTypes(await commandRes.json());
+                if (stepRes.ok) setResolvedSteps(await stepRes.json());
             } catch (err) {
                 console.error("Failed to load generator metadata", err);
             }
@@ -88,6 +81,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
             supportTerms: primary.supportTerms,
             transportTerms: primary.transportTerms,
             commandRights: primary.commandRights,
+            payStep: primary.payStep.toString(),
+            salvageStep: primary.salvageStep.toString(),
+            supportStep: primary.supportStep.toString(),
+            transportStep: primary.transportStep.toString(),
+            commandStep: primary.commandStep.toString(),
             lengthInMonths: proposal.campaign.lengthInMonths.toString(),
             trackCount: proposal.campaign.trackCount.toString()
         });
@@ -153,6 +151,31 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         setProposal({ ...proposal, contracts: newContracts });
     };
 
+    const updateContractByStep = (contractIdx: number, termType: string, step: number) => {
+        if (!proposal || !resolvedSteps[step]) return;
+        const stepData = resolvedSteps[step];
+        const newContracts = [...proposal.contracts];
+        const c = newContracts[contractIdx];
+
+        if (termType === 'pay') {
+            c.payStep = step;
+            c.payRate = parseFloat(stepData.payRate.replace('%', '')) / 100;
+        } else if (termType === 'salvage') {
+            c.salvageStep = step;
+            c.salvageTerms = stepData.salvageRights;
+        } else if (termType === 'support') {
+            c.supportStep = step;
+            c.supportTerms = stepData.supportRights;
+        } else if (termType === 'transport') {
+            c.transportStep = step;
+            c.transportTerms = stepData.transportation;
+        } else if (termType === 'command') {
+            c.commandStep = step;
+            c.commandRights = stepData.commandRights;
+        }
+        setProposal({ ...proposal, contracts: newContracts });
+    };
+
     return (
         <section className="dashboard-section generator-panel">
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
@@ -203,30 +226,30 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                                     </select>
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                    <p><strong>PAY RATE:</strong>
-                                        <select value={Math.round(c.payRate * 100) + '%'} onChange={(e) => updateProposalContract(i, 'payRate', parseFloat(e.target.value.replace('%', '')) / 100)}>
-                                            {payRates.map(pr => <option key={pr} value={pr}>{pr}</option>)}
-                                        </select>
+                                    <p><strong>PAY STEP:</strong>
+                                        <select value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))}>
+                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                        </select> <span>({Math.round(c.payRate * 100)}%)</span>
                                     </p>
-                                    <p><strong>SALVAGE:</strong>
-                                        <select value={c.salvageTerms} onChange={(e) => updateProposalContract(i, 'salvageTerms', e.target.value)}>
-                                            {salvageTypes.map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                    <p><strong>SALVAGE STEP:</strong>
+                                        <select value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))}>
+                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                        </select> <span>({c.salvageTerms})</span>
                                     </p>
-                                    <p><strong>SUPPORT:</strong>
-                                        <select value={c.supportTerms} onChange={(e) => updateProposalContract(i, 'supportTerms', e.target.value)}>
-                                            {supportTypes.map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                    <p><strong>SUPPORT STEP:</strong>
+                                        <select value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))}>
+                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                        </select> <span>({c.supportTerms})</span>
                                     </p>
-                                    <p><strong>TRANSPORT:</strong>
-                                        <select value={c.transportTerms} onChange={(e) => updateProposalContract(i, 'transportTerms', e.target.value)}>
-                                            {transportTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                                        </select>
+                                    <p><strong>TRANSPORT STEP:</strong>
+                                        <select value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))}>
+                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                        </select> <span>({c.transportTerms})</span>
                                     </p>
-                                    <p><strong>COMMAND:</strong>
-                                        <select value={c.commandRights} onChange={(e) => updateProposalContract(i, 'commandRights', e.target.value)}>
-                                            {commandTypes.map(cmd => <option key={cmd} value={cmd}>{cmd}</option>)}
-                                        </select>
+                                    <p><strong>COMMAND STEP:</strong>
+                                        <select value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))}>
+                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                        </select> <span>({c.commandRights})</span>
                                     </p>
                                 </div>
                             </div>
