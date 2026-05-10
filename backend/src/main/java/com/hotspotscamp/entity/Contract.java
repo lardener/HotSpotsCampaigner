@@ -23,7 +23,6 @@ public class Contract {
     private UUID employerFactionId; // Links to CampaignFaction
     private String employerCategory; // pg. 131: Major Power, Minor Power, Corporate, Noble, etc.
     private String missionType; // e.g., Planetary Assault, Garrison Duty
-    private String systemName; // pg. 132
 
     // Chaos Campaign Specific Multipliers
     private Double warchestMultiplier;

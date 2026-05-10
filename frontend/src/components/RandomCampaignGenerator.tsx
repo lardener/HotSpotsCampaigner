@@ -10,7 +10,6 @@ const COMMAND_TYPES = ["Independent", "Liaison", "House"];
 interface ContractPreview {
     employerCategory: string;
     missionType: string;
-    systemName: string;
     warchestMultiplier: number;
     salvageTerms: string;
     supportTerms: string;
@@ -22,7 +21,7 @@ interface ContractPreview {
 }
 
 interface Proposal {
-    campaign: { name: string };
+    campaign: { name: string, systemName: string };
     contracts: ContractPreview[];
     tracks: string[];
 }
@@ -219,6 +218,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
             {proposal && (
                 <div className="proposal-view" style={{ marginTop: '30px' }}>
                     <h3 className="section-title">DOBLESS INTEL: {proposal.campaign.name}</h3>
+                    <p><strong>OPERATIONAL SYSTEM:</strong> {proposal.campaign.systemName}</p>
 
                     <div className="campaign-tracks" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(255,0,0,0.05)', border: '1px solid #c00' }}>
                         <strong>THEATER OPERATIONAL TRACKS</strong>
@@ -231,7 +231,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                         {proposal.contracts.map((c, i) => (
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
                                 <strong>CONTRACT OF MERCENARY EMPLOYMENT #{i + 1}</strong>
-                                <p><strong>EMPLOYER:</strong> {c.employerCategory} | <strong>SYSTEM:</strong> {c.systemName}</p>
+                                <p><strong>EMPLOYER:</strong> {c.employerCategory}</p>
                                 <p><strong>MISSION:</strong> {c.missionType}</p>
                                 <p><strong>PAYMENT:</strong> {c.paymentSp} SP | <strong>WARCHEST:</strong> {c.warchestMultiplier.toFixed(1)}x</p>
                                 <p><strong>SALVAGE:</strong> {c.salvageTerms} | <strong>SUPPORT:</strong> {c.supportTerms}</p>

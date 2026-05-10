@@ -21,4 +21,5 @@ public class Campaign {
     private String name;
     private UUID managerId; // The user managing this campaign
     private String status; // e.g., "ACTIVE", "COMPLETED"
+    private String systemName;
 }

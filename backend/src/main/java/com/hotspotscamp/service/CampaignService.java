@@ -2,6 +2,7 @@ package com.hotspotscamp.service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -37,6 +38,14 @@ public class CampaignService {
     private int employerDiceCount;
     private int employerDiceSides;
 
+    private Map<Integer, Map<Integer, String>> systemTable;
+    private int systemGroupDiceCount;
+    private int systemGroupDiceSides;
+    private int systemEntryDiceCount;
+    private int systemEntryDiceSides;
+
+    private Map<String, Object> missionTableData;
+
     private static final String[] FACTIONS = {"Alyina Consent", "Vesper Marches", "Tamar Pact", "Clan Hell's Horses", "Jade Falcon", "Belter Alliance"};
     private static final String[] MISSIONS = {"Expedition", "Raid", "Cadre Duty", "Extraction", "Planetary Assault", "Garrison", "Insurrection"};
     private static final String[] TRACK_TYPES = {"Probe", "Recon", "Flank", "Assault", "Defend", "Breakthrough", "Trial of Possession"};
@@ -57,6 +66,27 @@ public class CampaignService {
                         entry -> (Integer) entry.get("roll"),
                         entry -> (String) entry.get("type")
                 ));
+
+        Map<String, Object> sysData = (Map<String, Object>) data.get("systemTable");
+        systemGroupDiceCount = (Integer) sysData.get("groupDiceCount");
+        systemGroupDiceSides = (Integer) sysData.get("groupDiceSides");
+        systemEntryDiceCount = (Integer) sysData.get("entryDiceCount");
+        systemEntryDiceSides = (Integer) sysData.get("entryDiceSides");
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) sysData.get("groups");
+
+        systemTable = new HashMap<>();
+        for (Map<String, Object> group : groups) {
+            Integer groupRoll = (Integer) group.get("roll");
+            List<Map<String, Object>> entriesList = (List<Map<String, Object>>) group.get("entries");
+            Map<Integer, String> entryMap = entriesList.stream()
+                    .collect(Collectors.toMap(
+                            e -> (Integer) e.get("roll"),
+                            e -> (String) e.get("name")
+                    ));
+            systemTable.put(groupRoll, entryMap);
+        }
+
+        missionTableData = (Map<String, Object>) data.get("missionTable");
     }
 
     public List<String> getEmployerTypes() {
@@ -83,11 +113,42 @@ public class CampaignService {
 
         String finalEmp = (employer == null || employer.isEmpty()) ? getRandomFaction(null) : employer;
         String finalOpp = (opponent == null || opponent.isEmpty()) ? getRandomFaction(finalEmp) : opponent;
-        String empMission = (mission == null || mission.isEmpty()) ? getRandomMission() : mission;
-        String oppMission = getOpposingMissionType(empMission);
+
+        String empMission;
+        String oppMission;
+
+        if (mission == null || mission.isEmpty()) {
+            int diceCount = (Integer) missionTableData.get("diceCount");
+            int diceSides = (Integer) missionTableData.get("diceSides");
+            int roll = rollDice(diceCount, diceSides, rand);
+            List<Map<String, Object>> entries = (List<Map<String, Object>>) missionTableData.get("entries");
+
+            empMission = "Unknown Mission";
+            oppMission = "Unknown Opponent Mission";
+
+            for (Map<String, Object> entry : entries) {
+                int min = (Integer) entry.get("minRoll");
+                int max = (Integer) entry.get("maxRoll");
+                if (roll >= min && roll <= max) {
+                    empMission = resolveFromSubTable((Map<String, Object>) entry.get("primary"), rand);
+                    oppMission = resolveFromSubTable((Map<String, Object>) entry.get("opponent"), rand);
+                    break;
+                }
+            }
+        } else {
+            empMission = mission;
+            oppMission = (opponent == null || opponent.isEmpty()) ? getOpposingMissionType(empMission) : opponent;
+        }
+
+        if (opponent != null && !opponent.isEmpty()) {
+            oppMission = opponent;
+        }
+
+        String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
 
         Campaign campaign = Campaign.builder()
                 .name("DOBLESS OP: " + empMission.toUpperCase() + " [" + finalEmp + "]")
+                .systemName(finalSystemName)
                 .status("PREVIEW")
                 .build();
 
@@ -96,13 +157,13 @@ public class CampaignService {
         int finalTracksCount = trackCount != null ? trackCount : (finalLength / 2) + rand.nextInt(2);
         String finalRights = commandRights != null ? commandRights : List.of("Independent", "Liaison", "House").get(rand.nextInt(3));
 
-        Contract empContract = generateContract(empMission, employerCategory, systemName,
+        Contract empContract = generateContract(empMission, employerCategory,
                 warchestMultiplier, salvageTerms, supportTerms, transportTerms,
                 finalRights, paymentSp, finalLength, finalTracksCount, rand);
 
         // Opponent remains randomized to maintain conflict balance
         // but shares the same duration and track count as the theater
-        Contract oppContract = generateContract(oppMission, "Minor Power", null,
+        Contract oppContract = generateContract(oppMission, "Minor Power",
                 null, null, null, null, null, null, finalLength, finalTracksCount, rand);
 
         // Generate tracks at the campaign level
@@ -121,14 +182,13 @@ public class CampaignService {
         return new CampaignProposal(campaign, List.of(empContract, oppContract), tracksList);
     }
 
-    private Contract generateContract(String type, String category, String system,
+    private Contract generateContract(String type, String category,
             Double multiplier, String salvage, String support, String transport,
             String rights, Integer payment, int length, int tracks, Random rand) {
 
         return Contract.builder()
                 .missionType(type)
                 .employerCategory(category != null ? category : rollEmployerType(rand))
-                .systemName(system != null ? system : "System " + (rand.nextInt(900) + 100))
                 .warchestMultiplier(multiplier != null ? multiplier : 1.0 + (rand.nextInt(5) * 0.1))
                 .salvageTerms(salvage != null ? salvage : List.of("None", "Shared", "Exchange", "Full").get(rand.nextInt(4)))
                 .supportTerms(support != null ? support : (rand.nextBoolean() ? "Standard" : "Full"))
@@ -143,6 +203,28 @@ public class CampaignService {
     private String rollEmployerType(Random rand) {
         int roll = rollDice(employerDiceCount, employerDiceSides, rand);
         return employerTable.getOrDefault(roll, "Other");
+    }
+
+    private String rollSystemName(Random rand) {
+        int groupRoll = rollDice(systemGroupDiceCount, systemGroupDiceSides, rand);
+        int entryRoll = rollDice(systemEntryDiceCount, systemEntryDiceSides, rand);
+        return systemTable.getOrDefault(groupRoll, Map.of())
+                .getOrDefault(entryRoll, "Unknown System");
+    }
+
+    private String resolveFromSubTable(Map<String, Object> subTable, Random rand) {
+        int diceCount = (Integer) subTable.get("diceCount");
+        int diceSides = (Integer) subTable.get("diceSides");
+        int roll = rollDice(diceCount, diceSides, rand);
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) subTable.get("entries");
+        for (Map<String, Object> entry : entries) {
+            int min = (Integer) entry.get("minRoll");
+            int max = (Integer) entry.get("maxRoll");
+            if (roll >= min && roll <= max) {
+                return (String) entry.get("value");
+            }
+        }
+        return "Unknown";
     }
 
     private int rollDice(int count, int sides, Random rand) {
