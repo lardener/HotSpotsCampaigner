@@ -1,0 +1,110 @@
+{
+    "diceCount": 2,
+    "diceSides": 6,
+    "entries": [
+        {
+            "step": 1,
+            "payRate": "50%",
+            "supportRights": "None",
+            "transportation": "-",
+            "salvageRights": "None",
+            "commandRights": "-"
+        },
+        {
+            "step": 2,
+            "payRate": "55%",
+            "supportRights": "Straight/20%",
+            "transportation": "-",
+            "salvageRights": "-",
+            "commandRights": "-"
+        },
+        {
+            "step": 3,
+            "payRate": "60%",
+            "supportRights": "Straight/40%",
+            "transportation": "-",
+            "salvageRights": "Exchange",
+            "commandRights": "Integrated"
+        },
+        {
+            "step": 4,
+            "payRate": "70%",
+            "supportRights": "Straight/60%",
+            "transportation": "-",
+            "salvageRights": "10%",
+            "commandRights": "-"
+        },
+        {
+            "step": 5,
+            "payRate": "80%",
+            "supportRights": "Straight/80%",
+            "transportation": "0%",
+            "salvageRights": "20%",
+            "commandRights": "-"
+        },
+        {
+            "step": 6,
+            "payRate": "90%",
+            "supportRights": "Straight/100%",
+            "transportation": "25%",
+            "salvageRights": "30%",
+            "commandRights": "-"
+        },
+        {
+            "step": 7,
+            "payRate": "100%",
+            "supportRights": "Battle/10%",
+            "transportation": "50%",
+            "salvageRights": "40%",
+            "commandRights": "House"
+        },
+        {
+            "step": 8,
+            "payRate": "110%",
+            "supportRights": "Battle/20%",
+            "transportation": "75%",
+            "salvageRights": "50%",
+            "commandRights": "Liaison"
+        },
+        {
+            "step": 9,
+            "payRate": "120%",
+            "supportRights": "Battle/30%",
+            "transportation": "100%",
+            "salvageRights": "60%",
+            "commandRights": "-"
+        },
+        {
+            "step": 10,
+            "payRate": "130%",
+            "supportRights": "Battle/40%",
+            "transportation": "-",
+            "salvageRights": "70%",
+            "commandRights": "-"
+        },
+        {
+            "step": 11,
+            "payRate": "150%",
+            "supportRights": "Battle/50%",
+            "transportation": "-",
+            "salvageRights": "80%",
+            "commandRights": "Independent"
+        },
+        {
+            "step": 12,
+            "payRate": "175%",
+            "supportRights": "Battle/75%",
+            "transportation": "-",
+            "salvageRights": "90%",
+            "commandRights": "-"
+        },
+        {
+            "step": 13,
+            "payRate": "200%",
+            "supportRights": "Battle/100%",
+            "transportation": "-",
+            "salvageRights": "100%",
+            "commandRights": "-"
+        }
+    ]
+}

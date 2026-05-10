@@ -71,21 +71,18 @@ public class CampaignService {
     @PostConstruct
     public void init() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
-        InputStream is = new ClassPathResource("rules/contract-rules.json").getInputStream();
-        Map<String, Object> data = mapper.readValue(is, Map.class);
 
-        Map<String, Object> empData = (Map<String, Object>) data.get("employerTable");
+        Map<String, Object> empData = loadMap("employerTable.json", mapper);
         employerDiceCount = (Integer) empData.get("diceCount");
         employerDiceSides = (Integer) empData.get("diceSides");
         List<Map<String, Object>> entries = (List<Map<String, Object>>) empData.get("entries");
-
         employerTable = entries.stream()
                 .collect(Collectors.toMap(
                         entry -> (Integer) entry.get("roll"),
                         entry -> (String) entry.get("type")
                 ));
 
-        Map<String, Object> sysData = (Map<String, Object>) data.get("systemTable");
+        Map<String, Object> sysData = loadMap("systemTable.json", mapper);
         systemGroupDiceCount = (Integer) sysData.get("groupDiceCount");
         systemGroupDiceSides = (Integer) sysData.get("groupDiceSides");
         systemEntryDiceCount = (Integer) sysData.get("entryDiceCount");
@@ -104,19 +101,19 @@ public class CampaignService {
             systemTable.put(groupRoll, entryMap);
         }
 
-        missionTableData = (Map<String, Object>) data.get("missionTable");
+        missionTableData = loadMap("missionTable.json", mapper);
 
         // Load basic lists from config to avoid hardcoding book-specific data
-        availableFactions = (List<String>) data.getOrDefault("factions", List.of("Unknown Faction"));
-        availableMissions = (List<String>) data.getOrDefault("missions", List.of("Garrison"));
-        availableTrackTypes = (List<String>) data.getOrDefault("trackTypes", List.of("Assault"));
+        availableFactions = loadList("factions.json", mapper);
+        availableMissions = loadList("missions.json", mapper);
+        availableTrackTypes = loadList("trackTypes.json", mapper);
 
-        trackTableData = (Map<String, Object>) data.get("trackTable");
-        roleTableData = (Map<String, Object>) data.get("roleTable");
-        lengthOfContractTableData = (Map<String, Object>) data.get("lengthOfContractTable");
-        trackCountTableData = (Map<String, Object>) data.get("trackCountTable");
+        trackTableData = loadMap("trackTable.json", mapper);
+        roleTableData = loadMap("roleTable.json", mapper);
+        lengthOfContractTableData = loadMap("lengthOfContractTable.json", mapper);
+        trackCountTableData = loadMap("trackCountTable.json", mapper);
 
-        Map<String, Object> stepsData = (Map<String, Object>) data.get("contractStepsTable");
+        Map<String, Object> stepsData = loadMap("contractStepsTable.json", mapper);
         List<Map<String, Object>> stepEntries = (List<Map<String, Object>>) stepsData.get("entries");
         contractStepsTable = new HashMap<>();
         for (Map<String, Object> entry : stepEntries) {
@@ -139,16 +136,28 @@ public class CampaignService {
         // Load all contract sub-tables (Pay, Salvage, Support, Transport, Command)
         String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
         for (String key : tableKeys) {
-            Map<String, Object> tableData = (Map<String, Object>) data.get(key);
-            if (tableData != null) {
-                contractTables.put(key, new ContractTableConfig(
-                        (Integer) tableData.get("diceCount"),
-                        (Integer) tableData.get("diceSides"),
-                        (List<Map<String, Object>>) tableData.get("rollToStep"),
-                        (Map<String, Integer>) tableData.get("employerModifiers"),
-                        (Map<String, Integer>) tableData.get("missionModifiers")
-                ));
-            }
+            Map<String, Object> tableData = loadMap(key + ".json", mapper);
+            contractTables.put(key, new ContractTableConfig(
+                    (Integer) tableData.get("diceCount"),
+                    (Integer) tableData.get("diceSides"),
+                    (List<Map<String, Object>>) tableData.get("rollToStep"),
+                    (Map<String, Integer>) tableData.get("employerModifiers"),
+                    (Map<String, Integer>) tableData.get("missionModifiers")
+            ));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> loadMap(String fileName, ObjectMapper mapper) throws IOException {
+        try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
+            return mapper.readValue(is, Map.class);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> loadList(String fileName, ObjectMapper mapper) throws IOException {
+        try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
+            return mapper.readValue(is, List.class);
         }
     }
 

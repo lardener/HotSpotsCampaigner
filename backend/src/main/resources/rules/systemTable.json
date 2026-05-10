@@ -1,0 +1,182 @@
+{
+    "groupDiceCount": 1,
+    "groupDiceSides": 6,
+    "entryDiceCount": 1,
+    "entryDiceSides": 6,
+    "groups": [
+        {
+            "roll": 1,
+            "entries": [
+                {
+                    "roll": 1,
+                    "name": "Almotacen"
+                },
+                {
+                    "roll": 2,
+                    "name": "Alyina"
+                },
+                {
+                    "roll": 3,
+                    "name": "Antares"
+                },
+                {
+                    "roll": 4,
+                    "name": "Arcadia"
+                },
+                {
+                    "roll": 5,
+                    "name": "Borghese"
+                },
+                {
+                    "roll": 6,
+                    "name": "Butler"
+                }
+            ]
+        },
+        {
+            "roll": 2,
+            "entries": [
+                {
+                    "roll": 1,
+                    "name": "Chahar"
+                },
+                {
+                    "roll": 2,
+                    "name": "Colmar"
+                },
+                {
+                    "roll": 3,
+                    "name": "Domain"
+                },
+                {
+                    "roll": 4,
+                    "name": "Eckert"
+                },
+                {
+                    "roll": 5,
+                    "name": "Erellon"
+                },
+                {
+                    "roll": 6,
+                    "name": "Gorgon"
+                }
+            ]
+        },
+        {
+            "roll": 3,
+            "entries": [
+                {
+                    "roll": 1,
+                    "name": "Graus"
+                },
+                {
+                    "roll": 2,
+                    "name": "Heidelberg"
+                },
+                {
+                    "roll": 3,
+                    "name": "Hot Springs"
+                },
+                {
+                    "roll": 4,
+                    "name": "Kentyre"
+                },
+                {
+                    "roll": 5,
+                    "name": "Koniz"
+                },
+                {
+                    "roll": 6,
+                    "name": "La Grave"
+                }
+            ]
+        },
+        {
+            "roll": 4,
+            "entries": [
+                {
+                    "roll": 1,
+                    "name": "Madiun"
+                },
+                {
+                    "roll": 2,
+                    "name": "Malibu"
+                },
+                {
+                    "roll": 3,
+                    "name": "Meltz"
+                },
+                {
+                    "roll": 4,
+                    "name": "Nox"
+                },
+                {
+                    "roll": 5,
+                    "name": "Obeedull"
+                },
+                {
+                    "roll": 6,
+                    "name": "Parakoila"
+                }
+            ]
+        },
+        {
+            "roll": 5,
+            "entries": [
+                {
+                    "roll": 1,
+                    "name": "Quisqualis"
+                },
+                {
+                    "roll": 2,
+                    "name": "Ramsau"
+                },
+                {
+                    "roll": 3,
+                    "name": "Satalice"
+                },
+                {
+                    "roll": 4,
+                    "name": "Sudeten"
+                },
+                {
+                    "roll": 5,
+                    "name": "Tamar"
+                },
+                {
+                    "roll": 6,
+                    "name": "Tharkad"
+                }
+            ]
+        },
+        {
+            "roll": 6,
+            "entries": [
+                {
+                    "roll": 1,
+                    "name": "Tukayyid"
+                },
+                {
+                    "roll": 2,
+                    "name": "Twycross"
+                },
+                {
+                    "roll": 3,
+                    "name": "Verthandi"
+                },
+                {
+                    "roll": 4,
+                    "name": "Viper's Pit"
+                },
+                {
+                    "roll": 5,
+                    "name": "Waldorff"
+                },
+                {
+                    "roll": 6,
+                    "name": "Zanderij"
+                }
+            ]
+        }
+    ]
+}

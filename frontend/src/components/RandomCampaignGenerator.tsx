@@ -29,15 +29,7 @@ interface Props {
 }
 
 export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
-    const [employer, setEmployer] = useState('');
-    const [opponent, setOpponent] = useState('');
-    const [mission, setMission] = useState('');
-    const [employerCategory, setEmployerCategory] = useState('');
-    const [systemName, setSystemName] = useState('');
-
-    const [factions, setFactions] = useState<string[]>([]);
     const [missions, setMissions] = useState<string[]>([]);
-    const [employerTypes, setEmployerTypes] = useState<string[]>([]);
     const [payRates, setPayRates] = useState<string[]>([]);
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
     const [salvageTypes, setSalvageTypes] = useState<string[]>([]);
@@ -53,9 +45,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         const fetchMetadata = async () => {
             const baseUrl = 'http://localhost:8080/api/campaigns/metadata';
             try {
-                const [empRes, facRes, missRes, trackRes, payRes, salvageRes, supportRes, transportRes, commandRes] = await Promise.all([
-                    fetch(`${baseUrl}/employer-types`, { credentials: 'include' }),
-                    fetch(`${baseUrl}/factions`, { credentials: 'include' }),
+                const [missRes, trackRes, payRes, salvageRes, supportRes, transportRes, commandRes] = await Promise.all([
                     fetch(`${baseUrl}/missions`, { credentials: 'include' }),
                     fetch(`${baseUrl}/track-types`, { credentials: 'include' }),
                     fetch(`${baseUrl}/pay-rates`, { credentials: 'include' }),
@@ -64,8 +54,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     fetch(`${baseUrl}/transport`, { credentials: 'include' }),
                     fetch(`${baseUrl}/command`, { credentials: 'include' })
                 ]);
-                if (empRes.ok) setEmployerTypes(await empRes.json());
-                if (facRes.ok) setFactions(await facRes.json());
                 if (missRes.ok) setMissions(await missRes.json());
                 if (trackRes.ok) setTrackTypes(await trackRes.json());
                 if (payRes.ok) setPayRates(await payRes.json());
@@ -81,10 +69,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
     }, []);
 
     const getQueryParams = () => {
-        const params = new URLSearchParams({ employer, opponent, mission });
-        if (employerCategory) params.append('employerCategory', employerCategory);
-        if (systemName) params.append('systemName', systemName);
-        return params;
+        return new URLSearchParams();
     };
 
     const getSaveParams = () => {
@@ -172,45 +157,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         <section className="dashboard-section generator-panel">
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
             <p className="restricted-text">HINTERLANDS REGIONAL INTEL UPDATED</p>
-
-            <div className="generator-controls">
-                <div className="form-group">
-                    <label>FIXED EMPLOYER (OPTIONAL)</label>
-                    <select value={employer} onChange={(e) => setEmployer(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {factions.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>FIXED OPPONENT (OPTIONAL)</label>
-                    <select value={opponent} onChange={(e) => setOpponent(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {factions.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>MISSION TYPE (OPTIONAL)</label>
-                    <select value={mission} onChange={(e) => setMission(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {missions.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>EMPLOYER TYPE</label>
-                    <select value={employerCategory} onChange={(e) => setEmployerCategory(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {employerTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>SYSTEM NAME</label>
-                    <input type="text" value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="RANDOM" />
-                </div>
-            </div>
 
             <button
                 onClick={handlePreview}

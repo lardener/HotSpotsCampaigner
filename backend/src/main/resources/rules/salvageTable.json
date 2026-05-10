@@ -1,0 +1,44 @@
+{
+    "diceCount": 2,
+    "diceSides": 6,
+    "rollToStep": [
+        {
+            "minRoll": 2,
+            "maxRoll": 5,
+            "step": 4
+        },
+        {
+            "minRoll": 6,
+            "maxRoll": 7,
+            "step": 5
+        },
+        {
+            "minRoll": 8,
+            "maxRoll": 9,
+            "step": 6
+        },
+        {
+            "minRoll": 10,
+            "maxRoll": 11,
+            "step": 7
+        },
+        {
+            "minRoll": 12,
+            "maxRoll": 12,
+            "step": 8
+        }
+    ],
+    "employerModifiers": {
+        "Major Power": 2,
+        "Minor Power": 1,
+        "Noble (External)": 0,
+        "Corporate (External)": -1,
+        "Other": -2
+    },
+    "missionModifiers": {
+        "Invasion": 2,
+        "Planetary Assault": 2,
+        "Raid": 1,
+        "Garrison": -2
+    }
+}

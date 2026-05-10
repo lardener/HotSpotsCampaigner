@@ -1,0 +1,61 @@
+{
+    "diceCount": 1,
+    "diceSides": 6,
+    "missionModifiers": {
+        "Garrison": -2,
+        "Cadre Duty": -2,
+        "Raid": 1,
+        "Expedition": 1,
+        "Extraction": 1,
+        "Insurrection": 1,
+        "Planetary Assault": 2,
+        "Invasion": 2
+    },
+    "entries": [
+        {
+            "minRoll": -99,
+            "maxRoll": 0,
+            "value": 1
+        },
+        {
+            "minRoll": 1,
+            "maxRoll": 1,
+            "value": 2
+        },
+        {
+            "minRoll": 2,
+            "maxRoll": 2,
+            "value": 3
+        },
+        {
+            "minRoll": 3,
+            "maxRoll": 3,
+            "value": 4
+        },
+        {
+            "minRoll": 4,
+            "maxRoll": 4,
+            "value": 5
+        },
+        {
+            "minRoll": 5,
+            "maxRoll": 5,
+            "value": 6
+        },
+        {
+            "minRoll": 6,
+            "maxRoll": 6,
+            "value": 7
+        },
+        {
+            "minRoll": 7,
+            "maxRoll": 7,
+            "value": 8
+        },
+        {
+            "minRoll": 8,
+            "maxRoll": 99,
+            "value": 9
+        }
+    ]
+}

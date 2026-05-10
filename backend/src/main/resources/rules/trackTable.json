@@ -1,0 +1,41 @@
+{
+    "diceCount": 2,
+    "diceSides": 6,
+    "entries": [
+        {
+            "minRoll": 2,
+            "maxRoll": 2,
+            "value": "Probe"
+        },
+        {
+            "minRoll": 3,
+            "maxRoll": 3,
+            "value": "Recon"
+        },
+        {
+            "minRoll": 4,
+            "maxRoll": 4,
+            "value": "Flank"
+        },
+        {
+            "minRoll": 5,
+            "maxRoll": 9,
+            "value": "Standard"
+        },
+        {
+            "minRoll": 10,
+            "maxRoll": 10,
+            "value": "Breakthrough"
+        },
+        {
+            "minRoll": 11,
+            "maxRoll": 11,
+            "value": "Pursuit"
+        },
+        {
+            "minRoll": 12,
+            "maxRoll": 12,
+            "value": "Trial of Possession"
+        }
+    ]
+}

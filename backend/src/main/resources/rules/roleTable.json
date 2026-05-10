@@ -1,0 +1,16 @@
+{
+    "diceCount": 2,
+    "diceSides": 6,
+    "threshold": 7,
+    "attackerLabel": "Attacker",
+    "defenderLabel": "Defender",
+    "missionModifiers": {
+        "Invasion": 4,
+        "Planetary Assault": 4,
+        "Raid": 2,
+        "Expedition": 1,
+        "Garrison": -4,
+        "Cadre Duty": -4,
+        "Insurrection": 2
+    }
+}
