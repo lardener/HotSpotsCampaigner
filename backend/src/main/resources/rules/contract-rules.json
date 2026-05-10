@@ -406,6 +406,15 @@
         "diceSides": 6,
         "entries": [
             {
+                "step": 1,
+                "length": "-",
+                "payRate": "-",
+                "support": "-",
+                "transport": "0%",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
                 "step": 2,
                 "length": "-",
                 "payRate": "-",
@@ -503,7 +512,64 @@
                 "transport": "-",
                 "salvage": "Full",
                 "command": "-"
+            },
+            {
+                "step": 13,
+                "length": "-",
+                "payRate": "-",
+                "support": "-",
+                "transport": "100%",
+                "salvage": "-",
+                "command": "-"
             }
         ]
+    },
+    "transportationTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "rollToStep": [
+            {
+                "minRoll": 2,
+                "maxRoll": 5,
+                "step": 5
+            },
+            {
+                "minRoll": 6,
+                "maxRoll": 7,
+                "step": 6
+            },
+            {
+                "minRoll": 8,
+                "maxRoll": 9,
+                "step": 7
+            },
+            {
+                "minRoll": 10,
+                "maxRoll": 11,
+                "step": 8
+            },
+            {
+                "minRoll": 12,
+                "maxRoll": 12,
+                "step": 9
+            }
+        ],
+        "employerModifiers": {
+            "Major Power": 2,
+            "Minor Power": 1,
+            "Noble (External)": 0,
+            "Noble (Local)": 0,
+            "Corporate (External)": -1,
+            "Corporate (Local)": -1,
+            "Other": -2
+        },
+        "missionModifiers": {
+            "Invasion": 2,
+            "Planetary Assault": 2,
+            "Raid": 1,
+            "Expedition": 0,
+            "Garrison": -2,
+            "Cadre Duty": -2
+        }
     }
 }

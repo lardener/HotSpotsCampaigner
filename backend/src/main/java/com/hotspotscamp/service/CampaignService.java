@@ -50,6 +50,12 @@ public class CampaignService {
     private int stepsDiceCount;
     private int stepsDiceSides;
 
+    private int transDiceCount;
+    private int transDiceSides;
+    private List<Map<String, Object>> transRollToStep;
+    private Map<String, Integer> transEmpMods;
+    private Map<String, Integer> transMissionMods;
+
     private static final String[] FACTIONS = {"Alyina Consent", "Vesper Marches", "Tamar Pact", "Clan Hell's Horses", "Jade Falcon", "Belter Alliance"};
     private static final String[] MISSIONS = {"Expedition", "Raid", "Cadre Duty", "Extraction", "Planetary Assault", "Garrison", "Insurrection"};
     private static final String[] TRACK_TYPES = {"Probe", "Recon", "Flank", "Assault", "Defend", "Breakthrough", "Trial of Possession"};
@@ -108,6 +114,15 @@ public class CampaignService {
             values.put("command", (String) entry.get("command"));
             contractStepsTable.put(step, values);
         }
+
+        Map<String, Object> transData = (Map<String, Object>) data.get("transportationTable");
+        transDiceCount = (Integer) transData.get("diceCount");
+        transDiceSides = (Integer) transData.get("diceSides");
+
+        transRollToStep = (List<Map<String, Object>>) transData.get("rollToStep");
+
+        transEmpMods = (Map<String, Integer>) transData.get("employerModifiers");
+        transMissionMods = (Map<String, Integer>) transData.get("missionModifiers");
     }
 
     public List<String> getEmployerTypes() {
@@ -212,14 +227,41 @@ public class CampaignService {
         String stepPay = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "payRate");
         String stepSalvage = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "salvage");
         String stepSupport = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "support");
-        String stepTransport = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "transport");
         String stepRights = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "command");
 
         String empType = category != null ? category : rollEmployerType(rand);
 
+        // Hinterlands Transportation Logic: 
+        // 1. Roll 2D6 to get initial Step from table.
+        int transRoll = rollDice(transDiceCount, transDiceSides, rand);
+        int initialStep = 6; // Default to Step 6 (Roll 7)
+        for (Map<String, Object> range : transRollToStep) {
+            int min = (Integer) range.get("minRoll");
+            int max = (Integer) range.get("maxRoll");
+            if (transRoll >= min && transRoll <= max) {
+                initialStep = (Integer) range.get("step");
+                break;
+            }
+        }
+
+        // 2. Apply modifiers to the Step.
+        int empMod = transEmpMods.entrySet().stream()
+                .filter(e -> empType.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst().orElse(-2); // Default to "Other"
+
+        int missionMod = transMissionMods.entrySet().stream()
+                .filter(e -> type.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst().orElse(0); // Default to Expedition/Standard
+
+        // 3. Clamp final Step [1-13] and resolve value.
+        int finalTransStep = Math.max(1, Math.min(13, initialStep + empMod + missionMod));
+        String stepTransport = resolveStepValue(finalTransStep, "transport");
+
         return Contract.builder()
                 .missionType(type)
-                 .employerCategory(faction + ": " + empType)
+                .employerCategory(faction + ": " + empType)
                 .warchestMultiplier(multiplier != null ? multiplier : Double.parseDouble(stepPay))
                 .salvageTerms(salvage != null ? salvage : stepSalvage)
                 .supportTerms(support != null ? support : stepSupport)
