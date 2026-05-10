@@ -47,18 +47,26 @@ public class CampaignService {
     private Map<String, Object> missionTableData;
 
     private Map<Integer, Map<String, String>> contractStepsTable;
-    private int stepsDiceCount;
-    private int stepsDiceSides;
+    private Map<String, Object> trackTableData;
+    private Map<String, Object> roleTableData;
+    private Map<String, Object> lengthOfContractTableData;
+    private Map<String, Object> trackCountTableData;
 
-    private int transDiceCount;
-    private int transDiceSides;
-    private List<Map<String, Object>> transRollToStep;
-    private Map<String, Integer> transEmpMods;
-    private Map<String, Integer> transMissionMods;
+    private Map<String, ContractTableConfig> contractTables = new HashMap<>();
 
-    private static final String[] FACTIONS = {"Alyina Consent", "Vesper Marches", "Tamar Pact", "Clan Hell's Horses", "Jade Falcon", "Belter Alliance"};
-    private static final String[] MISSIONS = {"Expedition", "Raid", "Cadre Duty", "Extraction", "Planetary Assault", "Garrison", "Insurrection"};
-    private static final String[] TRACK_TYPES = {"Probe", "Recon", "Flank", "Assault", "Defend", "Breakthrough", "Trial of Possession"};
+    private record ContractTableConfig(int diceCount, int diceSides, List<Map<String, Object>> rollToStep,
+            Map<String, Integer> empMods, Map<String, Integer> missionMods) {
+
+    }
+
+    private List<String> availableFactions;
+    private List<String> availableMissions;
+    private List<String> availableTrackTypes;
+    private List<String> availablePayRates;
+    private List<String> availableSalvage;
+    private List<String> availableSupport;
+    private List<String> availableTransport;
+    private List<String> availableCommand;
 
     @PostConstruct
     public void init() throws IOException {
@@ -98,35 +106,86 @@ public class CampaignService {
 
         missionTableData = (Map<String, Object>) data.get("missionTable");
 
+        // Load basic lists from config to avoid hardcoding book-specific data
+        availableFactions = (List<String>) data.getOrDefault("factions", List.of("Unknown Faction"));
+        availableMissions = (List<String>) data.getOrDefault("missions", List.of("Garrison"));
+        availableTrackTypes = (List<String>) data.getOrDefault("trackTypes", List.of("Assault"));
+
+        trackTableData = (Map<String, Object>) data.get("trackTable");
+        roleTableData = (Map<String, Object>) data.get("roleTable");
+        lengthOfContractTableData = (Map<String, Object>) data.get("lengthOfContractTable");
+        trackCountTableData = (Map<String, Object>) data.get("trackCountTable");
+
         Map<String, Object> stepsData = (Map<String, Object>) data.get("contractStepsTable");
-        stepsDiceCount = (Integer) stepsData.get("diceCount");
-        stepsDiceSides = (Integer) stepsData.get("diceSides");
         List<Map<String, Object>> stepEntries = (List<Map<String, Object>>) stepsData.get("entries");
         contractStepsTable = new HashMap<>();
         for (Map<String, Object> entry : stepEntries) {
             Integer step = (Integer) entry.get("step");
             Map<String, String> values = new HashMap<>();
-            values.put("length", (String) entry.get("length"));
             values.put("payRate", (String) entry.get("payRate"));
-            values.put("support", (String) entry.get("support"));
-            values.put("transport", (String) entry.get("transport"));
-            values.put("salvage", (String) entry.get("salvage"));
-            values.put("command", (String) entry.get("command"));
+            values.put("supportRights", (String) entry.get("supportRights"));
+            values.put("transportation", (String) entry.get("transportation"));
+            values.put("salvageRights", (String) entry.get("salvageRights"));
+            values.put("commandRights", (String) entry.get("commandRights"));
             contractStepsTable.put(step, values);
         }
 
-        Map<String, Object> transData = (Map<String, Object>) data.get("transportationTable");
-        transDiceCount = (Integer) transData.get("diceCount");
-        transDiceSides = (Integer) transData.get("diceSides");
+        availablePayRates = stepEntries.stream().map(e -> (String) e.get("payRate")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
+        availableSalvage = stepEntries.stream().map(e -> (String) e.get("salvageRights")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
+        availableSupport = stepEntries.stream().map(e -> (String) e.get("supportRights")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
+        availableTransport = stepEntries.stream().map(e -> (String) e.get("transportation")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
+        availableCommand = stepEntries.stream().map(e -> (String) e.get("commandRights")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
 
-        transRollToStep = (List<Map<String, Object>>) transData.get("rollToStep");
-
-        transEmpMods = (Map<String, Integer>) transData.get("employerModifiers");
-        transMissionMods = (Map<String, Integer>) transData.get("missionModifiers");
+        // Load all contract sub-tables (Pay, Salvage, Support, Transport, Command)
+        String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
+        for (String key : tableKeys) {
+            Map<String, Object> tableData = (Map<String, Object>) data.get(key);
+            if (tableData != null) {
+                contractTables.put(key, new ContractTableConfig(
+                        (Integer) tableData.get("diceCount"),
+                        (Integer) tableData.get("diceSides"),
+                        (List<Map<String, Object>>) tableData.get("rollToStep"),
+                        (Map<String, Integer>) tableData.get("employerModifiers"),
+                        (Map<String, Integer>) tableData.get("missionModifiers")
+                ));
+            }
+        }
     }
 
     public List<String> getEmployerTypes() {
         return employerTable.values().stream().distinct().sorted().collect(Collectors.toList());
+    }
+
+    public List<String> getAvailableFactions() {
+        return availableFactions;
+    }
+
+    public List<String> getAvailableMissions() {
+        return availableMissions;
+    }
+
+    public List<String> getAvailableTrackTypes() {
+        return availableTrackTypes;
+    }
+
+    public List<String> getAvailablePayRates() {
+        return availablePayRates;
+    }
+
+    public List<String> getAvailableSalvage() {
+        return availableSalvage;
+    }
+
+    public List<String> getAvailableSupport() {
+        return availableSupport;
+    }
+
+    public List<String> getAvailableTransport() {
+        return availableTransport;
+    }
+
+    public List<String> getAvailableCommand() {
+        return availableCommand;
     }
 
     /**
@@ -141,9 +200,9 @@ public class CampaignService {
      * Generates the data for a campaign without saving it.
      */
     public CampaignProposal generateProposal(String employer, String opponent, String mission,
-            String employerCategory, String systemName, Double warchestMultiplier,
+            String employerCategory, String systemName, Double payRate,
             String salvageTerms, String supportTerms, String transportTerms,
-            String commandRights, Integer lengthInMonths, Integer paymentSp,
+            String commandRights, Integer lengthInMonths,
             Integer trackCount) {
         Random rand = new Random();
 
@@ -173,12 +232,13 @@ public class CampaignService {
             }
         } else {
             empMission = mission;
-            oppMission = (opponent == null || opponent.isEmpty()) ? getOpposingMissionType(empMission) : opponent;
+            oppMission = getOpposingMissionType(empMission);
         }
 
-        if (opponent != null && !opponent.isEmpty()) {
-            oppMission = opponent;
-        }
+        // Calculate duration and track count once for the campaign
+        // Default to 3 months if no specific length is requested
+        int finalLength = lengthInMonths != null ? lengthInMonths : rollLengthOfContract(empMission, rand);
+        int finalTracksCount = trackCount != null ? trackCount : rollTrackCount(empMission, rand);
 
         String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
 
@@ -188,89 +248,174 @@ public class CampaignService {
                 .status("PREVIEW")
                 .build();
 
-        // Calculate duration and track count once for the campaign
-        String stepLengthStr = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "length");
-        int rolledLength = Integer.parseInt(stepLengthStr.split(" ")[0]);
-        int finalLength = lengthInMonths != null ? lengthInMonths : rolledLength;
-        int finalTracksCount = trackCount != null ? trackCount : (finalLength / 2) + rand.nextInt(2);
-        String finalRights = commandRights != null ? commandRights : resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "command");
+        // Command rights are resolved per-contract below but can be overridden here
+        String previewRights = commandRights != null ? commandRights : "Liaison";
 
-        Contract empContract = generateContract(finalEmp, empMission, employerCategory,
-                warchestMultiplier, salvageTerms, supportTerms, transportTerms,
-                finalRights, paymentSp, finalLength, finalTracksCount, rand);
+        Contract primaryContract = generateContract(finalEmp, empMission, employerCategory,
+                payRate, salvageTerms, supportTerms, transportTerms,
+                commandRights, finalLength, finalTracksCount, true, rand);
+
+        // Determine Attacker/Defender role based on p. 135
+        String primaryRole = determineUnitRole(empMission, rand);
 
         // Opponent remains randomized to maintain conflict balance
         // but shares the same duration and track count as the theater
-        Contract oppContract = generateContract(finalOpp, oppMission, "Minor Power",
-                null, null, null, null, null, null, finalLength, finalTracksCount, rand);
+        Contract oppositionContract = generateContract(finalOpp, oppMission, "Minor Power",
+                null, null, null, null, null, finalLength, finalTracksCount, false, rand);
 
         // Generate tracks at the campaign level
         List<String> tracksList = new java.util.ArrayList<>();
         for (int i = 0; i < finalTracksCount; i++) {
-            String track = TRACK_TYPES[rand.nextInt(TRACK_TYPES.length)];
-            // Complications based on the primary employer's command rights
-            if ("House".equals(finalRights)) {
+            String track = rollTrackType(primaryRole, rand);
+            // Complications based on the actual resolved command rights of the primary contract
+            if ("House".equalsIgnoreCase(primaryContract.getCommandRights())) {
                 track += " (Forced Complication)";
-            } else if ("Liaison".equals(finalRights)) {
+            } else if ("Liaison".equalsIgnoreCase(primaryContract.getCommandRights())) {
                 track += " (Potential Complication)";
             }
             tracksList.add(track);
         }
 
-        return new CampaignProposal(campaign, List.of(empContract, oppContract), tracksList);
+        return new CampaignProposal(campaign, List.of(primaryContract, oppositionContract), tracksList);
     }
 
     private Contract generateContract(String faction, String type, String category,
-            Double multiplier, String salvage, String support, String transport,
-            String rights, Integer payment, int length, int tracks, Random rand) {
-
-        String stepPay = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "payRate");
-        String stepSalvage = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "salvage");
-        String stepSupport = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "support");
-        String stepRights = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "command");
+            Double payRate, String salvage, String support, String transport,
+            String rights, int length, int tracks, boolean isPrimary, Random rand) {
 
         String empType = category != null ? category : rollEmployerType(rand);
 
-        // Hinterlands Transportation Logic: 
-        // 1. Roll 2D6 to get initial Step from table.
-        int transRoll = rollDice(transDiceCount, transDiceSides, rand);
-        int initialStep = 6; // Default to Step 6 (Roll 7)
-        for (Map<String, Object> range : transRollToStep) {
+        int payStep = calculateFinalStep("payRateTable", empType, type, rand);
+        int salvageStep = calculateFinalStep("salvageTable", empType, type, rand);
+        int supportStep = calculateFinalStep("supportTable", empType, type, rand);
+        int transportStep = calculateFinalStep("transportationTable", empType, type, rand);
+        int rightsStep = calculateFinalStep("commandRightsTable", empType, type, rand);
+
+        String rawPayRate = resolveStepValue(payStep, "payRate");
+        Double resolvedPayRate = 1.0;
+        try {
+            String cleanPayRate = rawPayRate.replace("%", "").trim();
+            resolvedPayRate = Double.parseDouble(cleanPayRate);
+            if (rawPayRate.contains("%")) {
+                resolvedPayRate /= 100.0;
+            }
+        } catch (Exception e) {
+            resolvedPayRate = 1.0;
+        }
+
+        return Contract.builder()
+                .missionType(type)
+                .employerCategory(faction + ": " + empType)
+                .payRate(payRate != null ? payRate : resolvedPayRate)
+                .salvageTerms(salvage != null ? salvage : resolveStepValue(salvageStep, "salvageRights"))
+                .supportTerms(support != null ? support : resolveStepValue(supportStep, "supportRights"))
+                .transportTerms(transport != null ? transport : resolveStepValue(transportStep, "transportation"))
+                .commandRights(rights != null ? rights : resolveStepValue(rightsStep, "commandRights"))
+                .primaryContract(isPrimary)
+                .lengthInMonths(length)
+                .trackCount(tracks)
+                .build();
+    }
+
+    private String determineUnitRole(String missionType, Random rand) {
+        int diceCount = (Integer) roleTableData.get("diceCount");
+        int diceSides = (Integer) roleTableData.get("diceSides");
+        int threshold = (Integer) roleTableData.get("threshold");
+        Map<String, Integer> mods = (Map<String, Integer>) roleTableData.get("missionModifiers");
+
+        int roll = rollDice(diceCount, diceSides, rand);
+        int mod = mods.entrySet().stream()
+                .filter(e -> missionType.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(0);
+
+        return (roll + mod >= threshold)
+                ? (String) roleTableData.get("attackerLabel")
+                : (String) roleTableData.get("defenderLabel");
+    }
+
+    private int rollLengthOfContract(String missionType, Random rand) {
+        int diceCount = (Integer) lengthOfContractTableData.get("diceCount");
+        int diceSides = (Integer) lengthOfContractTableData.get("diceSides");
+        Map<String, Integer> mods = (Map<String, Integer>) lengthOfContractTableData.get("missionModifiers");
+
+        int roll = rollDice(diceCount, diceSides, rand);
+        int mod = mods.entrySet().stream()
+                .filter(e -> missionType.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(0);
+
+        int finalRoll = roll + mod;
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) lengthOfContractTableData.get("entries");
+        return entries.stream()
+                .filter(entry -> finalRoll >= (Integer) entry.get("minRoll") && finalRoll <= (Integer) entry.get("maxRoll"))
+                .map(entry -> (Integer) entry.get("value"))
+                .findFirst().orElse(3); // Default to 3 months if no match
+    }
+
+    private int rollTrackCount(String missionType, Random rand) {
+        int diceCount = (Integer) trackCountTableData.get("diceCount");
+        int diceSides = (Integer) trackCountTableData.get("diceSides");
+        Map<String, Integer> mods = (Map<String, Integer>) trackCountTableData.get("missionModifiers");
+
+        int roll = rollDice(diceCount, diceSides, rand);
+        int mod = mods.entrySet().stream()
+                .filter(e -> missionType.contains(e.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(0);
+
+        return Math.max(1, roll + mod);
+    }
+
+    private String rollTrackType(String role, Random rand) {
+        int diceCount = (Integer) trackTableData.get("diceCount");
+        int diceSides = (Integer) trackTableData.get("diceSides");
+        int roll = rollDice(diceCount, diceSides, rand);
+
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) trackTableData.get("entries");
+        String baseTrack = "Assault";
+
+        for (Map<String, Object> entry : entries) {
+            int min = (Integer) entry.get("minRoll");
+            int max = (Integer) entry.get("maxRoll");
+            if (roll >= min && roll <= max) {
+                baseTrack = (String) entry.get("value");
+                break;
+            }
+        }
+
+        if ("Standard".equals(baseTrack)) {
+            return "Attacker".equalsIgnoreCase(role) ? "Assault" : "Defend";
+        }
+
+        return baseTrack;
+    }
+
+    private int calculateFinalStep(String tableKey, String empType, String missionType, Random rand) {
+        ContractTableConfig config = contractTables.get(tableKey);
+        if (config == null) {
+            return 7; // Safety default
+        }
+        int roll = rollDice(config.diceCount, config.diceSides, rand);
+        int initialStep = 6;
+        for (Map<String, Object> range : config.rollToStep) {
             int min = (Integer) range.get("minRoll");
             int max = (Integer) range.get("maxRoll");
-            if (transRoll >= min && transRoll <= max) {
+            if (roll >= min && roll <= max) {
                 initialStep = (Integer) range.get("step");
                 break;
             }
         }
 
-        // 2. Apply modifiers to the Step.
-        int empMod = transEmpMods.entrySet().stream()
-                .filter(e -> empType.contains(e.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst().orElse(-2); // Default to "Other"
+        int empMod = config.empMods.entrySet().stream()
+                .filter(e -> empType.contains(e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
+        int missionMod = config.missionMods.entrySet().stream()
+                .filter(e -> missionType.contains(e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
 
-        int missionMod = transMissionMods.entrySet().stream()
-                .filter(e -> type.contains(e.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst().orElse(0); // Default to Expedition/Standard
-
-        // 3. Clamp final Step [1-13] and resolve value.
-        int finalTransStep = Math.max(1, Math.min(13, initialStep + empMod + missionMod));
-        String stepTransport = resolveStepValue(finalTransStep, "transport");
-
-        return Contract.builder()
-                .missionType(type)
-                .employerCategory(faction + ": " + empType)
-                .warchestMultiplier(multiplier != null ? multiplier : Double.parseDouble(stepPay))
-                .salvageTerms(salvage != null ? salvage : stepSalvage)
-                .supportTerms(support != null ? support : stepSupport)
-                .transportTerms(transport != null ? transport : stepTransport)
-                .commandRights(rights != null ? rights : stepRights)
-                .paymentSp(payment != null ? payment : 300 + rand.nextInt(500))
-                .lengthInMonths(length)
-                .trackCount(tracks)
-                .build();
+        return Math.max(1, Math.min(13, initialStep + empMod + missionMod));
     }
 
     private String rollEmployerType(Random rand) {
@@ -354,32 +499,32 @@ public class CampaignService {
      */
     @Transactional
     public Mono<Campaign> generateDoblessCampaign(UUID managerId, String employer, String opponent, String mission,
-            String employerCategory, String systemName, Double warchestMultiplier,
+            String employerCategory, String systemName, Double payRate,
             String salvageTerms, String supportTerms, String transportTerms,
-            String commandRights, Integer lengthInMonths, Integer paymentSp,
+            String commandRights, Integer lengthInMonths,
             Integer trackCount) {
         CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName,
-                warchestMultiplier, salvageTerms, supportTerms, transportTerms, commandRights,
-                lengthInMonths, paymentSp, trackCount);
+                payRate, salvageTerms, supportTerms, transportTerms, commandRights,
+                lengthInMonths, trackCount);
         Campaign campaign = proposal.campaign();
         campaign.setManagerId(managerId);
         campaign.setStatus("ACTIVE");
 
         // The faction names were determined during proposal generation and prepended to the employerCategory
-        final String finalEmp = proposal.contracts().get(0).getEmployerCategory().split(": ")[0];
-        final String finalOpp = proposal.contracts().get(1).getEmployerCategory().split(": ")[0];
+        final String primaryEmployerName = proposal.contracts().get(0).getEmployerCategory().split(": ")[0];
+        final String oppositionEmployerName = proposal.contracts().get(1).getEmployerCategory().split(": ")[0];
 
         return campaignRepository.save(campaign)
                 .flatMap(savedCampaign -> {
                     CampaignFaction empFaction = CampaignFaction.builder()
                             .campaignId(savedCampaign.getId())
-                            .factionName(finalEmp)
+                            .factionName(primaryEmployerName)
                             .offersContracts(true)
                             .build();
 
                     CampaignFaction oppFaction = CampaignFaction.builder()
                             .campaignId(savedCampaign.getId())
-                            .factionName(finalOpp)
+                            .factionName(oppositionEmployerName)
                             .offersContracts(true) // Per Hinterlands, both sides often hire mercs
                             .build();
 
@@ -400,15 +545,23 @@ public class CampaignService {
     }
 
     private String getRandomFaction(String exclude) {
+        if (availableFactions == null || availableFactions.isEmpty()) {
+            return "Unknown Faction";
+        }
+        // If there's only one faction available, we can't exclude it without looping forever
+        if (availableFactions.size() <= 1) {
+            return availableFactions.get(0);
+        }
+
         Random rand = new Random();
         String selected;
         do {
-            selected = FACTIONS[rand.nextInt(FACTIONS.length)];
+            selected = availableFactions.get(rand.nextInt(availableFactions.size()));
         } while (selected.equals(exclude));
         return selected;
     }
 
     private String getRandomMission() {
-        return MISSIONS[new Random().nextInt(MISSIONS.length)];
+        return availableMissions.get(new Random().nextInt(availableMissions.size()));
     }
 }

@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
 
-const FACTIONS = ["Alyina Consent", "Vesper Marches", "Tamar Pact", "Clan Hell's Horses", "Jade Falcon", "Belter Alliance"];
-const MISSIONS = ["Expedition", "Raid", "Cadre Duty", "Extraction", "Planetary Assault", "Garrison", "Insurrection"];
-const SUPPORT_TYPES = ["Standard", "Full"];
-const TRANSPORT_TYPES = ["Employer Provided", "Mercenary Provided"];
-const SALVAGE_TYPES = ["None", "Shared", "Exchange", "Full"];
-const COMMAND_TYPES = ["Independent", "Liaison", "House"];
-
 interface ContractPreview {
     employerCategory: string;
     missionType: string;
-    warchestMultiplier: number;
+    primaryContract: boolean;
+    payRate: number;
     salvageTerms: string;
     supportTerms: string;
     transportTerms: string;
     commandRights: string;
-    paymentSp: number;
     lengthInMonths: number;
     trackCount: number;
 }
 
 interface Proposal {
-    campaign: { name: string, systemName: string };
+    campaign: {
+        name: string,
+        systemName: string,
+        lengthInMonths: number,
+        trackCount: number
+    };
     contracts: ContractPreview[];
     tracks: string[];
 }
@@ -36,41 +34,78 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
     const [mission, setMission] = useState('');
     const [employerCategory, setEmployerCategory] = useState('');
     const [systemName, setSystemName] = useState('');
-    const [warchestMultiplier, setWarchestMultiplier] = useState('');
-    const [salvageTerms, setSalvageTerms] = useState('');
-    const [supportTerms, setSupportTerms] = useState('');
-    const [transportTerms, setTransportTerms] = useState('');
-    const [commandRights, setCommandRights] = useState('');
-    const [lengthInMonths, setLengthInMonths] = useState('');
-    const [paymentSp, setPaymentSp] = useState('');
-    const [trackCount, setTrackCount] = useState('');
 
+    const [factions, setFactions] = useState<string[]>([]);
+    const [missions, setMissions] = useState<string[]>([]);
     const [employerTypes, setEmployerTypes] = useState<string[]>([]);
+    const [payRates, setPayRates] = useState<string[]>([]);
+    const [trackTypes, setTrackTypes] = useState<string[]>([]);
+    const [salvageTypes, setSalvageTypes] = useState<string[]>([]);
+    const [supportTypes, setSupportTypes] = useState<string[]>([]);
+    const [transportTypes, setTransportTypes] = useState<string[]>([]);
+    const [commandTypes, setCommandTypes] = useState<string[]>([]);
+
     const [loading, setLoading] = useState(false);
     const [proposal, setProposal] = useState<Proposal | null>(null);
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        fetch('http://localhost:8080/api/campaigns/metadata/employer-types', {
-            credentials: 'include'
-        })
-            .then(res => res.json())
-            .then(data => setEmployerTypes(data))
-            .catch(err => console.error("Failed to load employer types", err));
+        const fetchMetadata = async () => {
+            const baseUrl = 'http://localhost:8080/api/campaigns/metadata';
+            try {
+                const [empRes, facRes, missRes, trackRes, payRes, salvageRes, supportRes, transportRes, commandRes] = await Promise.all([
+                    fetch(`${baseUrl}/employer-types`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/factions`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/missions`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/track-types`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/pay-rates`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/salvage`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/support`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/transport`, { credentials: 'include' }),
+                    fetch(`${baseUrl}/command`, { credentials: 'include' })
+                ]);
+                if (empRes.ok) setEmployerTypes(await empRes.json());
+                if (facRes.ok) setFactions(await facRes.json());
+                if (missRes.ok) setMissions(await missRes.json());
+                if (trackRes.ok) setTrackTypes(await trackRes.json());
+                if (payRes.ok) setPayRates(await payRes.json());
+                if (salvageRes.ok) setSalvageTypes(await salvageRes.json());
+                if (supportRes.ok) setSupportTypes(await supportRes.json());
+                if (transportRes.ok) setTransportTypes(await transportRes.json());
+                if (commandRes.ok) setCommandTypes(await commandRes.json());
+            } catch (err) {
+                console.error("Failed to load generator metadata", err);
+            }
+        };
+        fetchMetadata();
     }, []);
 
     const getQueryParams = () => {
         const params = new URLSearchParams({ employer, opponent, mission });
         if (employerCategory) params.append('employerCategory', employerCategory);
         if (systemName) params.append('systemName', systemName);
-        if (warchestMultiplier) params.append('warchestMultiplier', warchestMultiplier);
-        if (salvageTerms) params.append('salvageTerms', salvageTerms);
-        if (supportTerms) params.append('supportTerms', supportTerms);
-        if (transportTerms) params.append('transportTerms', transportTerms);
-        if (commandRights) params.append('commandRights', commandRights);
-        if (lengthInMonths) params.append('lengthInMonths', lengthInMonths);
-        if (paymentSp) params.append('paymentSp', paymentSp);
-        if (trackCount) params.append('trackCount', trackCount);
+        return params;
+    };
+
+    const getSaveParams = () => {
+        if (!proposal) return new URLSearchParams();
+        const primary = proposal.contracts[0];
+        const opponent = proposal.contracts[1];
+
+        const params = new URLSearchParams({
+            employer: primary.employerCategory.split(': ')[0],
+            opponent: opponent.employerCategory.split(': ')[0],
+            mission: primary.missionType,
+            employerCategory: primary.employerCategory.split(': ')[1],
+            systemName: proposal.campaign.systemName,
+            payRate: primary.payRate.toString(),
+            salvageTerms: primary.salvageTerms,
+            supportTerms: primary.supportTerms,
+            transportTerms: primary.transportTerms,
+            commandRights: primary.commandRights,
+            lengthInMonths: proposal.campaign.lengthInMonths.toString(),
+            trackCount: proposal.campaign.trackCount.toString()
+        });
         return params;
     };
 
@@ -96,7 +131,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
     const handleSave = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/campaigns/dobless?${getQueryParams().toString()}`, {
+            const response = await fetch(`http://localhost:8080/api/campaigns/dobless?${getSaveParams().toString()}`, {
                 method: 'POST',
                 credentials: 'include'
             });
@@ -110,6 +145,29 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         }
     };
 
+    const updateProposalCampaign = (field: keyof Proposal['campaign'], value: string | number) => {
+        if (!proposal) return;
+        setProposal({
+            ...proposal,
+            campaign: { ...proposal.campaign, [field]: value }
+        });
+    };
+
+    const updateProposalTrack = (index: number, value: string) => {
+        if (!proposal) return;
+        const newTracks = [...proposal.tracks];
+        newTracks[index] = value;
+        setProposal({ ...proposal, tracks: newTracks });
+    };
+
+    const updateProposalContract = (index: number, field: keyof ContractPreview, value: string | number) => {
+        if (!proposal) return;
+        const newContracts = [...proposal.contracts];
+        // @ts-ignore - dynamic key assignment
+        newContracts[index][field] = value;
+        setProposal({ ...proposal, contracts: newContracts });
+    };
+
     return (
         <section className="dashboard-section generator-panel">
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
@@ -120,7 +178,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     <label>FIXED EMPLOYER (OPTIONAL)</label>
                     <select value={employer} onChange={(e) => setEmployer(e.target.value)}>
                         <option value="">[ RANDOMIZE ]</option>
-                        {FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                        {factions.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                 </div>
 
@@ -128,7 +186,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     <label>FIXED OPPONENT (OPTIONAL)</label>
                     <select value={opponent} onChange={(e) => setOpponent(e.target.value)}>
                         <option value="">[ RANDOMIZE ]</option>
-                        {FACTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                        {factions.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                 </div>
 
@@ -136,7 +194,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     <label>MISSION TYPE (OPTIONAL)</label>
                     <select value={mission} onChange={(e) => setMission(e.target.value)}>
                         <option value="">[ RANDOMIZE ]</option>
-                        {MISSIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                        {missions.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                 </div>
 
@@ -152,58 +210,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     <label>SYSTEM NAME</label>
                     <input type="text" value={systemName} onChange={(e) => setSystemName(e.target.value)} placeholder="RANDOM" />
                 </div>
-
-                <div className="form-group">
-                    <label>WARCHEST MULTIPLIER</label>
-                    <input type="number" step="0.1" value={warchestMultiplier} onChange={(e) => setWarchestMultiplier(e.target.value)} placeholder="RANDOM" />
-                </div>
-
-                <div className="form-group">
-                    <label>SALVAGE TERMS</label>
-                    <select value={salvageTerms} onChange={(e) => setSalvageTerms(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {SALVAGE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>SUPPORT TERMS</label>
-                    <select value={supportTerms} onChange={(e) => setSupportTerms(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {SUPPORT_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>TRANSPORTATION</label>
-                    <select value={transportTerms} onChange={(e) => setTransportTerms(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {TRANSPORT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>COMMAND RIGHTS</label>
-                    <select value={commandRights} onChange={(e) => setCommandRights(e.target.value)}>
-                        <option value="">[ RANDOMIZE ]</option>
-                        {COMMAND_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                </div>
-
-                <div className="form-group">
-                    <label>LENGTH (MONTHS)</label>
-                    <input type="number" value={lengthInMonths} onChange={(e) => setLengthInMonths(e.target.value)} placeholder="RANDOM" />
-                </div>
-
-                <div className="form-group">
-                    <label>BASE PAY (SP)</label>
-                    <input type="number" value={paymentSp} onChange={(e) => setPaymentSp(e.target.value)} placeholder="RANDOM" />
-                </div>
-
-                <div className="form-group">
-                    <label>EXPECTED TRACKS</label>
-                    <input type="number" value={trackCount} onChange={(e) => setTrackCount(e.target.value)} placeholder="RANDOM" />
-                </div>
             </div>
 
             <button
@@ -217,26 +223,66 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
 
             {proposal && (
                 <div className="proposal-view" style={{ marginTop: '30px' }}>
-                    <h3 className="section-title">DOBLESS INTEL: {proposal.campaign.name}</h3>
-                    <p><strong>OPERATIONAL SYSTEM:</strong> {proposal.campaign.systemName}</p>
+                    <div className="campaign-summary-header" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.1)', borderLeft: '4px solid #c00' }}>
+                        <h3 className="section-title">DOBLESS INTEL: {proposal.campaign.name}</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                            <div><strong>SYSTEM:</strong> <input type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} style={{ width: '100%' }} /></div>
+                            <div><strong>DURATION:</strong> <input type="number" value={proposal.campaign.lengthInMonths} onChange={(e) => updateProposalCampaign('lengthInMonths', parseInt(e.target.value))} style={{ width: '60px' }} /> MO</div>
+                            <div><strong>TRACKS:</strong> <input type="number" value={proposal.campaign.trackCount} onChange={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value))} style={{ width: '60px' }} /></div>
+                        </div>
+                    </div>
 
                     <div className="campaign-tracks" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(255,0,0,0.05)', border: '1px solid #c00' }}>
                         <strong>THEATER OPERATIONAL TRACKS</strong>
                         <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
-                            {proposal.tracks.map((t, idx) => <div key={idx}>TRACK {idx + 1}: {t}</div>)}
+                            {proposal.tracks.map((t, idx) => (
+                                <div key={idx} style={{ marginBottom: '5px' }}>
+                                    TRACK {idx + 1}:
+                                    <select value={t} onChange={(e) => updateProposalTrack(idx, e.target.value)} style={{ marginLeft: '10px' }}>
+                                        {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
+                                    </select>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
                     <div className="contract-grid">
                         {proposal.contracts.map((c, i) => (
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
-                                <strong>CONTRACT OF MERCENARY EMPLOYMENT #{i + 1}</strong>
+                                <strong>{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</strong>
                                 <p><strong>EMPLOYER:</strong> {c.employerCategory}</p>
-                                <p><strong>MISSION:</strong> {c.missionType}</p>
-                                <p><strong>PAYMENT:</strong> {c.paymentSp} SP | <strong>WARCHEST:</strong> {c.warchestMultiplier.toFixed(1)}x</p>
-                                <p><strong>SALVAGE:</strong> {c.salvageTerms} | <strong>SUPPORT:</strong> {c.supportTerms}</p>
-                                <p><strong>TRANSPORT:</strong> {c.transportTerms} | <strong>COMMAND:</strong> {c.commandRights}</p>
-                                <p><strong>DURATION:</strong> {c.lengthInMonths} MONTHS | <strong>EXPECTED TRACKS:</strong> {c.trackCount}</p>
+                                <p><strong>MISSION:</strong>
+                                    <select value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)}>
+                                        {missions.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
+                                </p>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <p><strong>PAY RATE:</strong>
+                                        <select value={Math.round(c.payRate * 100) + '%'} onChange={(e) => updateProposalContract(i, 'payRate', parseFloat(e.target.value.replace('%', '')) / 100)}>
+                                            {payRates.map(pr => <option key={pr} value={pr}>{pr}</option>)}
+                                        </select>
+                                    </p>
+                                    <p><strong>SALVAGE:</strong>
+                                        <select value={c.salvageTerms} onChange={(e) => updateProposalContract(i, 'salvageTerms', e.target.value)}>
+                                            {salvageTypes.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </p>
+                                    <p><strong>SUPPORT:</strong>
+                                        <select value={c.supportTerms} onChange={(e) => updateProposalContract(i, 'supportTerms', e.target.value)}>
+                                            {supportTypes.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </p>
+                                    <p><strong>TRANSPORT:</strong>
+                                        <select value={c.transportTerms} onChange={(e) => updateProposalContract(i, 'transportTerms', e.target.value)}>
+                                            {transportTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </p>
+                                    <p><strong>COMMAND:</strong>
+                                        <select value={c.commandRights} onChange={(e) => updateProposalContract(i, 'commandRights', e.target.value)}>
+                                            {commandTypes.map(cmd => <option key={cmd} value={cmd}>{cmd}</option>)}
+                                        </select>
+                                    </p>
+                                </div>
                             </div>
                         ))}
                     </div>

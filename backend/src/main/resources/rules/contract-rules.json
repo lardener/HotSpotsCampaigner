@@ -1,4 +1,30 @@
 {
+    "factions": [
+        "Alyina Consent",
+        "Vesper Marches",
+        "Tamar Pact",
+        "Clan Hell's Horses",
+        "Jade Falcon",
+        "Belter Alliance"
+    ],
+    "missions": [
+        "Expedition",
+        "Raid",
+        "Cadre Duty",
+        "Extraction",
+        "Planetary Assault",
+        "Garrison",
+        "Insurrection"
+    ],
+    "trackTypes": [
+        "Probe",
+        "Recon",
+        "Flank",
+        "Assault",
+        "Defend",
+        "Breakthrough",
+        "Trial of Possession"
+    ],
     "employerTable": {
         "diceCount": 2,
         "diceSides": 6,
@@ -407,120 +433,107 @@
         "entries": [
             {
                 "step": 1,
-                "length": "-",
-                "payRate": "-",
-                "support": "-",
-                "transport": "0%",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "50%",
+                "supportRights": "None",
+                "transportation": "-",
+                "salvageRights": "None",
+                "commandRights": "-"
             },
             {
                 "step": 2,
-                "length": "-",
-                "payRate": "-",
-                "support": "-",
-                "transport": "-",
-                "salvage": "-",
-                "command": "House"
+                "payRate": "55%",
+                "supportRights": "Straight/20%",
+                "transportation": "-",
+                "salvageRights": "-",
+                "commandRights": "-"
             },
             {
                 "step": 3,
-                "length": "-",
-                "payRate": "-",
-                "support": "-",
-                "transport": "0%",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "60%",
+                "supportRights": "Straight/40%",
+                "transportation": "-",
+                "salvageRights": "Exchange",
+                "commandRights": "Integrated"
             },
             {
                 "step": 4,
-                "length": "3 months",
-                "payRate": "-",
-                "support": "-",
-                "transport": "-",
-                "salvage": "None",
-                "command": "-"
+                "payRate": "70%",
+                "supportRights": "Straight/60%",
+                "transportation": "-",
+                "salvageRights": "10%",
+                "commandRights": "-"
             },
             {
                 "step": 5,
-                "length": "-",
-                "payRate": "0.8",
-                "support": "-",
-                "transport": "-",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "80%",
+                "supportRights": "Straight/80%",
+                "transportation": "0%",
+                "salvageRights": "20%",
+                "commandRights": "-"
             },
             {
                 "step": 6,
-                "length": "-",
-                "payRate": "-",
-                "support": "Standard",
-                "transport": "-",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "90%",
+                "supportRights": "Straight/100%",
+                "transportation": "25%",
+                "salvageRights": "30%",
+                "commandRights": "-"
             },
             {
                 "step": 7,
-                "length": "3 months",
-                "payRate": "1.0",
-                "support": "Standard",
-                "transport": "50%",
-                "salvage": "Shared",
-                "command": "Liaison"
+                "payRate": "100%",
+                "supportRights": "Battle/10%",
+                "transportation": "50%",
+                "salvageRights": "40%",
+                "commandRights": "House"
             },
             {
                 "step": 8,
-                "length": "-",
-                "payRate": "-",
-                "support": "-",
-                "transport": "-",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "110%",
+                "supportRights": "Battle/20%",
+                "transportation": "75%",
+                "salvageRights": "50%",
+                "commandRights": "Liaison"
             },
             {
                 "step": 9,
-                "length": "6 months",
-                "payRate": "1.2",
-                "support": "-",
-                "transport": "100%",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "120%",
+                "supportRights": "Battle/30%",
+                "transportation": "100%",
+                "salvageRights": "60%",
+                "commandRights": "-"
             },
             {
                 "step": 10,
-                "length": "-",
-                "payRate": "-",
-                "support": "-",
-                "transport": "-",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "130%",
+                "supportRights": "Battle/40%",
+                "transportation": "-",
+                "salvageRights": "70%",
+                "commandRights": "-"
             },
             {
                 "step": 11,
-                "length": "-",
-                "payRate": "1.5",
-                "support": "Full",
-                "transport": "-",
-                "salvage": "Exchange",
-                "command": "Independent"
+                "payRate": "150%",
+                "supportRights": "Battle/50%",
+                "transportation": "-",
+                "salvageRights": "80%",
+                "commandRights": "Independent"
             },
             {
                 "step": 12,
-                "length": "9 months",
-                "payRate": "2.0",
-                "support": "-",
-                "transport": "-",
-                "salvage": "Full",
-                "command": "-"
+                "payRate": "175%",
+                "supportRights": "Battle/75%",
+                "transportation": "-",
+                "salvageRights": "90%",
+                "commandRights": "-"
             },
             {
                 "step": 13,
-                "length": "-",
-                "payRate": "-",
-                "support": "-",
-                "transport": "100%",
-                "salvage": "-",
-                "command": "-"
+                "payRate": "200%",
+                "supportRights": "Battle/100%",
+                "transportation": "-",
+                "salvageRights": "100%",
+                "commandRights": "-"
             }
         ]
     },
@@ -571,5 +584,303 @@
             "Garrison": -2,
             "Cadre Duty": -2
         }
+    },
+    "payRateTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "rollToStep": [
+            {
+                "minRoll": 2,
+                "maxRoll": 5,
+                "step": 5
+            },
+            {
+                "minRoll": 6,
+                "maxRoll": 7,
+                "step": 6
+            },
+            {
+                "minRoll": 8,
+                "maxRoll": 9,
+                "step": 7
+            },
+            {
+                "minRoll": 10,
+                "maxRoll": 11,
+                "step": 8
+            },
+            {
+                "minRoll": 12,
+                "maxRoll": 12,
+                "step": 9
+            }
+        ],
+        "employerModifiers": {
+            "Major Power": 2,
+            "Minor Power": 1,
+            "Noble (External)": 0,
+            "Corporate (External)": -1,
+            "Other": -2
+        },
+        "missionModifiers": {
+            "Invasion": 2,
+            "Planetary Assault": 2,
+            "Raid": 1,
+            "Garrison": -2
+        }
+    },
+    "salvageTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "rollToStep": [
+            {
+                "minRoll": 2,
+                "maxRoll": 5,
+                "step": 4
+            },
+            {
+                "minRoll": 6,
+                "maxRoll": 7,
+                "step": 5
+            },
+            {
+                "minRoll": 8,
+                "maxRoll": 9,
+                "step": 6
+            },
+            {
+                "minRoll": 10,
+                "maxRoll": 11,
+                "step": 7
+            },
+            {
+                "minRoll": 12,
+                "maxRoll": 12,
+                "step": 8
+            }
+        ],
+        "employerModifiers": {
+            "Major Power": 2,
+            "Minor Power": 1,
+            "Noble (External)": 0,
+            "Corporate (External)": -1,
+            "Other": -2
+        },
+        "missionModifiers": {
+            "Invasion": 2,
+            "Planetary Assault": 2,
+            "Raid": 1,
+            "Garrison": -2
+        }
+    },
+    "supportTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "rollToStep": [
+            {
+                "minRoll": 2,
+                "maxRoll": 5,
+                "step": 5
+            },
+            {
+                "minRoll": 6,
+                "maxRoll": 7,
+                "step": 6
+            },
+            {
+                "minRoll": 8,
+                "maxRoll": 9,
+                "step": 7
+            },
+            {
+                "minRoll": 10,
+                "maxRoll": 11,
+                "step": 8
+            },
+            {
+                "minRoll": 12,
+                "maxRoll": 12,
+                "step": 9
+            }
+        ],
+        "employerModifiers": {
+            "Major Power": 2,
+            "Minor Power": 1,
+            "Noble (External)": 0,
+            "Corporate (External)": -1,
+            "Other": -2
+        },
+        "missionModifiers": {
+            "Invasion": 2,
+            "Planetary Assault": 2,
+            "Raid": 1,
+            "Garrison": -2
+        }
+    },
+    "commandRightsTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "rollToStep": [
+            {
+                "minRoll": 2,
+                "maxRoll": 5,
+                "step": 2
+            },
+            {
+                "minRoll": 6,
+                "maxRoll": 9,
+                "step": 7
+            },
+            {
+                "minRoll": 10,
+                "maxRoll": 12,
+                "step": 11
+            }
+        ],
+        "employerModifiers": {
+            "Major Power": -2,
+            "Minor Power": -1,
+            "Noble (External)": 0,
+            "Corporate (External)": 1,
+            "Other": 0
+        },
+        "missionModifiers": {
+            "Garrison": 2,
+            "Cadre Duty": 2,
+            "Raid": 1,
+            "Invasion": 0
+        }
+    },
+    "trackTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "entries": [
+            {
+                "minRoll": 2,
+                "maxRoll": 2,
+                "value": "Probe"
+            },
+            {
+                "minRoll": 3,
+                "maxRoll": 3,
+                "value": "Recon"
+            },
+            {
+                "minRoll": 4,
+                "maxRoll": 4,
+                "value": "Flank"
+            },
+            {
+                "minRoll": 5,
+                "maxRoll": 9,
+                "value": "Standard"
+            },
+            {
+                "minRoll": 10,
+                "maxRoll": 10,
+                "value": "Breakthrough"
+            },
+            {
+                "minRoll": 11,
+                "maxRoll": 11,
+                "value": "Pursuit"
+            },
+            {
+                "minRoll": 12,
+                "maxRoll": 12,
+                "value": "Trial of Possession"
+            }
+        ]
+    },
+    "roleTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "threshold": 7,
+        "attackerLabel": "Attacker",
+        "defenderLabel": "Defender",
+        "missionModifiers": {
+            "Invasion": 4,
+            "Planetary Assault": 4,
+            "Raid": 2,
+            "Expedition": 1,
+            "Garrison": -4,
+            "Cadre Duty": -4,
+            "Insurrection": 2
+        }
+    },
+    "trackCountTable": {
+        "diceCount": 1,
+        "diceSides": 6,
+        "missionModifiers": {
+            "Garrison": 0,
+            "Cadre Duty": 0,
+            "Raid": 1,
+            "Expedition": 1,
+            "Extraction": 1,
+            "Insurrection": 1,
+            "Planetary Assault": 2,
+            "Invasion": 2
+        }
+    },
+    "lengthOfContractTable": {
+        "diceCount": 1,
+        "diceSides": 6,
+        "missionModifiers": {
+            "Garrison": -2,
+            "Cadre Duty": -2,
+            "Raid": 1,
+            "Expedition": 1,
+            "Extraction": 1,
+            "Insurrection": 1,
+            "Planetary Assault": 2,
+            "Invasion": 2
+        },
+        "entries": [
+            {
+                "minRoll": -99,
+                "maxRoll": 0,
+                "value": 1
+            },
+            {
+                "minRoll": 1,
+                "maxRoll": 1,
+                "value": 2
+            },
+            {
+                "minRoll": 2,
+                "maxRoll": 2,
+                "value": 3
+            },
+            {
+                "minRoll": 3,
+                "maxRoll": 3,
+                "value": 4
+            },
+            {
+                "minRoll": 4,
+                "maxRoll": 4,
+                "value": 5
+            },
+            {
+                "minRoll": 5,
+                "maxRoll": 5,
+                "value": 6
+            },
+            {
+                "minRoll": 6,
+                "maxRoll": 6,
+                "value": 7
+            },
+            {
+                "minRoll": 7,
+                "maxRoll": 7,
+                "value": 8
+            },
+            {
+                "minRoll": 8,
+                "maxRoll": 99,
+                "value": 9
+            }
+        ]
     }
 }

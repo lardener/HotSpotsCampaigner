@@ -22,16 +22,16 @@ public class Contract {
     private UUID campaignId;
     private UUID employerFactionId; // Links to CampaignFaction
     private String employerCategory; // pg. 131: Major Power, Minor Power, Corporate, Noble, etc.
+    private Boolean primaryContract; // True for primary, False for opposition
     private String missionType; // e.g., Planetary Assault, Garrison Duty
 
     // Chaos Campaign Specific Multipliers
-    private Double warchestMultiplier;
+    private Double payRate;
     private String salvageTerms; // e.g., Full, None, Shared
     private String supportTerms; // How SP costs are shared
     private String transportTerms; // pg. 132
     private String commandRights; // pg. 133: Independent, Liaison, House
 
     private Integer lengthInMonths;
-    private Integer paymentSp; // Base SP reward
     private Integer trackCount; // pg. 134
 }
