@@ -46,6 +46,10 @@ public class CampaignService {
 
     private Map<String, Object> missionTableData;
 
+    private Map<Integer, Map<String, String>> contractStepsTable;
+    private int stepsDiceCount;
+    private int stepsDiceSides;
+
     private static final String[] FACTIONS = {"Alyina Consent", "Vesper Marches", "Tamar Pact", "Clan Hell's Horses", "Jade Falcon", "Belter Alliance"};
     private static final String[] MISSIONS = {"Expedition", "Raid", "Cadre Duty", "Extraction", "Planetary Assault", "Garrison", "Insurrection"};
     private static final String[] TRACK_TYPES = {"Probe", "Recon", "Flank", "Assault", "Defend", "Breakthrough", "Trial of Possession"};
@@ -87,6 +91,23 @@ public class CampaignService {
         }
 
         missionTableData = (Map<String, Object>) data.get("missionTable");
+
+        Map<String, Object> stepsData = (Map<String, Object>) data.get("contractStepsTable");
+        stepsDiceCount = (Integer) stepsData.get("diceCount");
+        stepsDiceSides = (Integer) stepsData.get("diceSides");
+        List<Map<String, Object>> stepEntries = (List<Map<String, Object>>) stepsData.get("entries");
+        contractStepsTable = new HashMap<>();
+        for (Map<String, Object> entry : stepEntries) {
+            Integer step = (Integer) entry.get("step");
+            Map<String, String> values = new HashMap<>();
+            values.put("length", (String) entry.get("length"));
+            values.put("payRate", (String) entry.get("payRate"));
+            values.put("support", (String) entry.get("support"));
+            values.put("transport", (String) entry.get("transport"));
+            values.put("salvage", (String) entry.get("salvage"));
+            values.put("command", (String) entry.get("command"));
+            contractStepsTable.put(step, values);
+        }
     }
 
     public List<String> getEmployerTypes() {
@@ -153,17 +174,19 @@ public class CampaignService {
                 .build();
 
         // Calculate duration and track count once for the campaign
-        int finalLength = lengthInMonths != null ? lengthInMonths : rand.nextInt(6) + 3;
+        String stepLengthStr = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "length");
+        int rolledLength = Integer.parseInt(stepLengthStr.split(" ")[0]);
+        int finalLength = lengthInMonths != null ? lengthInMonths : rolledLength;
         int finalTracksCount = trackCount != null ? trackCount : (finalLength / 2) + rand.nextInt(2);
-        String finalRights = commandRights != null ? commandRights : List.of("Independent", "Liaison", "House").get(rand.nextInt(3));
+        String finalRights = commandRights != null ? commandRights : resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "command");
 
-        Contract empContract = generateContract(empMission, employerCategory,
+        Contract empContract = generateContract(finalEmp, empMission, employerCategory,
                 warchestMultiplier, salvageTerms, supportTerms, transportTerms,
                 finalRights, paymentSp, finalLength, finalTracksCount, rand);
 
         // Opponent remains randomized to maintain conflict balance
         // but shares the same duration and track count as the theater
-        Contract oppContract = generateContract(oppMission, "Minor Power",
+        Contract oppContract = generateContract(finalOpp, oppMission, "Minor Power",
                 null, null, null, null, null, null, finalLength, finalTracksCount, rand);
 
         // Generate tracks at the campaign level
@@ -182,18 +205,26 @@ public class CampaignService {
         return new CampaignProposal(campaign, List.of(empContract, oppContract), tracksList);
     }
 
-    private Contract generateContract(String type, String category,
+    private Contract generateContract(String faction, String type, String category,
             Double multiplier, String salvage, String support, String transport,
             String rights, Integer payment, int length, int tracks, Random rand) {
 
+        String stepPay = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "payRate");
+        String stepSalvage = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "salvage");
+        String stepSupport = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "support");
+        String stepTransport = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "transport");
+        String stepRights = resolveStepValue(rollDice(stepsDiceCount, stepsDiceSides, rand), "command");
+
+        String empType = category != null ? category : rollEmployerType(rand);
+
         return Contract.builder()
                 .missionType(type)
-                .employerCategory(category != null ? category : rollEmployerType(rand))
-                .warchestMultiplier(multiplier != null ? multiplier : 1.0 + (rand.nextInt(5) * 0.1))
-                .salvageTerms(salvage != null ? salvage : List.of("None", "Shared", "Exchange", "Full").get(rand.nextInt(4)))
-                .supportTerms(support != null ? support : (rand.nextBoolean() ? "Standard" : "Full"))
-                .transportTerms(transport != null ? transport : (rand.nextBoolean() ? "Employer Provided" : "Mercenary Provided"))
-                .commandRights(rights != null ? rights : List.of("Independent", "Liaison", "House").get(rand.nextInt(3)))
+                 .employerCategory(faction + ": " + empType)
+                .warchestMultiplier(multiplier != null ? multiplier : Double.parseDouble(stepPay))
+                .salvageTerms(salvage != null ? salvage : stepSalvage)
+                .supportTerms(support != null ? support : stepSupport)
+                .transportTerms(transport != null ? transport : stepTransport)
+                .commandRights(rights != null ? rights : stepRights)
                 .paymentSp(payment != null ? payment : 300 + rand.nextInt(500))
                 .lengthInMonths(length)
                 .trackCount(tracks)
@@ -210,6 +241,30 @@ public class CampaignService {
         int entryRoll = rollDice(systemEntryDiceCount, systemEntryDiceSides, rand);
         return systemTable.getOrDefault(groupRoll, Map.of())
                 .getOrDefault(entryRoll, "Unknown System");
+    }
+
+    private String resolveStepValue(int step, String column) {
+        Map<String, String> entry = contractStepsTable.get(step);
+        if (entry == null) {
+            return "-";
+        }
+        String value = entry.get(column);
+        if (value == null || !"-".equals(value)) {
+            return value;
+        }
+
+        int currentStep = step;
+        while ("-".equals(value)) {
+            if (currentStep < 7) {
+                currentStep++;
+            } else if (currentStep > 7) {
+                currentStep--;
+            } else {
+                break;
+            }
+            value = contractStepsTable.get(currentStep).get(column);
+        }
+        return value;
     }
 
     private String resolveFromSubTable(Map<String, Object> subTable, Random rand) {
@@ -268,8 +323,9 @@ public class CampaignService {
         campaign.setManagerId(managerId);
         campaign.setStatus("ACTIVE");
 
-        final String finalEmp = employer != null ? employer : "Unknown Employer";
-        final String finalOpp = opponent != null ? opponent : "Unknown Opponent";
+        // The faction names were determined during proposal generation and prepended to the employerCategory
+        final String finalEmp = proposal.contracts().get(0).getEmployerCategory().split(": ")[0];
+        final String finalOpp = proposal.contracts().get(1).getEmployerCategory().split(": ")[0];
 
         return campaignRepository.save(campaign)
                 .flatMap(savedCampaign -> {

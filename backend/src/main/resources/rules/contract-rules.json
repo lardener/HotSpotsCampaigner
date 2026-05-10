@@ -400,5 +400,110 @@
                 }
             }
         ]
+    },
+    "contractStepsTable": {
+        "diceCount": 2,
+        "diceSides": 6,
+        "entries": [
+            {
+                "step": 2,
+                "length": "-",
+                "payRate": "-",
+                "support": "-",
+                "transport": "-",
+                "salvage": "-",
+                "command": "House"
+            },
+            {
+                "step": 3,
+                "length": "-",
+                "payRate": "-",
+                "support": "-",
+                "transport": "0%",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
+                "step": 4,
+                "length": "3 months",
+                "payRate": "-",
+                "support": "-",
+                "transport": "-",
+                "salvage": "None",
+                "command": "-"
+            },
+            {
+                "step": 5,
+                "length": "-",
+                "payRate": "0.8",
+                "support": "-",
+                "transport": "-",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
+                "step": 6,
+                "length": "-",
+                "payRate": "-",
+                "support": "Standard",
+                "transport": "-",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
+                "step": 7,
+                "length": "3 months",
+                "payRate": "1.0",
+                "support": "Standard",
+                "transport": "50%",
+                "salvage": "Shared",
+                "command": "Liaison"
+            },
+            {
+                "step": 8,
+                "length": "-",
+                "payRate": "-",
+                "support": "-",
+                "transport": "-",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
+                "step": 9,
+                "length": "6 months",
+                "payRate": "1.2",
+                "support": "-",
+                "transport": "100%",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
+                "step": 10,
+                "length": "-",
+                "payRate": "-",
+                "support": "-",
+                "transport": "-",
+                "salvage": "-",
+                "command": "-"
+            },
+            {
+                "step": 11,
+                "length": "-",
+                "payRate": "1.5",
+                "support": "Full",
+                "transport": "-",
+                "salvage": "Exchange",
+                "command": "Independent"
+            },
+            {
+                "step": 12,
+                "length": "9 months",
+                "payRate": "2.0",
+                "support": "-",
+                "transport": "-",
+                "salvage": "Full",
+                "command": "-"
+            }
+        ]
     }
 }
