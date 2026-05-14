@@ -9,6 +9,8 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ import reactor.core.publisher.Mono;
 @Service
 @RequiredArgsConstructor
 public class CampaignService {
+
+    private static final Logger log = LoggerFactory.getLogger(CampaignService.class);
 
     private final CampaignRepository campaignRepository;
     private final CampaignFactionRepository campaignFactionRepository;
@@ -106,9 +110,17 @@ public class CampaignService {
         // Load basic lists from config to avoid hardcoding book-specific data
         availableFactions = loadList("factions.json", mapper);
         availableMissions = loadList("missions.json", mapper);
-        availableTrackTypes = loadList("trackTypes.json", mapper);
 
         trackTableData = loadMap("trackTable.json", mapper);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> trackGroups = (List<Map<String, Object>>) trackTableData.get("groups");
+        availableTrackTypes = trackGroups.stream()
+                .flatMap(g -> ((List<Map<String, Object>>) g.get("entries")).stream())
+                .map(e -> (String) e.get("value"))
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
         roleTableData = loadMap("roleTable.json", mapper);
         lengthOfContractTableData = loadMap("lengthOfContractTable.json", mapper);
         trackCountTableData = loadMap("trackCountTable.json", mapper);
@@ -256,7 +268,7 @@ public class CampaignService {
             }
         } else {
             empMission = mission;
-            oppMission = getOpposingMissionType(empMission);
+            oppMission = getOpposingMissionType(empMission, rand);
         }
 
         // Calculate duration and track count once for the campaign
@@ -266,6 +278,7 @@ public class CampaignService {
 
         String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
 
+        // Ensure the campaign name and primary contract mission type are derived from the same empMission string
         Campaign campaign = Campaign.builder()
                 .name("DOBLESS OP: " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
@@ -294,7 +307,7 @@ public class CampaignService {
         // Generate tracks at the campaign level
         List<String> tracksList = new java.util.ArrayList<>();
         for (int i = 0; i < finalTracksCount; i++) {
-            String track = rollTrackType(primaryRole, rand);
+            String track = rollTrackType(primaryRole, empMission, rand);
             // Complications based on the actual resolved command rights of the primary contract
             if ("House".equalsIgnoreCase(primaryContract.getCommandRights())) {
                 track += " (Forced Complication)";
@@ -351,6 +364,18 @@ public class CampaignService {
         }
     }
 
+    /**
+     * Helper to perform fuzzy mission matching against JSON keys.
+     */
+    private boolean missionMatches(String missionType, String target) {
+        if (missionType == null || target == null) {
+            return false;
+        }
+        String mt = missionType.toLowerCase();
+        String t = target.toLowerCase();
+        return mt.equals(t) || mt.contains(t) || t.contains(mt);
+    }
+
     private String determineUnitRole(String missionType, Random rand) {
         int diceCount = (Integer) roleTableData.get("diceCount");
         int diceSides = (Integer) roleTableData.get("diceSides");
@@ -359,7 +384,7 @@ public class CampaignService {
 
         int roll = rollDice(diceCount, diceSides, rand);
         int mod = mods.entrySet().stream()
-                .filter(e -> missionType.contains(e.getKey()))
+                .filter(e -> missionMatches(missionType, e.getKey()))
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(0);
@@ -376,7 +401,7 @@ public class CampaignService {
 
         int roll = rollDice(diceCount, diceSides, rand);
         int mod = mods.entrySet().stream()
-                .filter(e -> missionType.contains(e.getKey()))
+                .filter(e -> missionMatches(missionType, e.getKey()))
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(0);
@@ -396,7 +421,7 @@ public class CampaignService {
 
         int roll = rollDice(diceCount, diceSides, rand);
         int mod = mods.entrySet().stream()
-                .filter(e -> missionType.contains(e.getKey()))
+                .filter(e -> missionMatches(missionType, e.getKey()))
                 .map(Map.Entry::getValue)
                 .findFirst()
                 .orElse(0);
@@ -404,13 +429,54 @@ public class CampaignService {
         return Math.max(1, roll + mod);
     }
 
-    private String rollTrackType(String role, Random rand) {
+    /**
+     * Generates a list of tracks based on mission type and command rights.
+     * Used when the theater operational scope is expanded.
+     */
+    public List<String> generateTracks(String missionType, String commandRights, int count) {
+        Random rand = new Random();
+        String role = determineUnitRole(missionType, rand);
+        List<String> tracksList = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < count; i++) {
+            String track = rollTrackType(role, missionType, rand);
+            
+            if ("House".equalsIgnoreCase(commandRights)) {
+                track += " (Forced Complication)";
+            } else if ("Liaison".equalsIgnoreCase(commandRights)) {
+                track += " (Potential Complication)";
+            }
+            tracksList.add(track);
+        }
+        
+        return tracksList;
+    }
+
+    private String rollTrackType(String role, String missionType, Random rand) {
+        log.debug("Rolling track type for role: {}, mission: {}", role, missionType);
         int diceCount = (Integer) trackTableData.get("diceCount");
         int diceSides = (Integer) trackTableData.get("diceSides");
         int roll = rollDice(diceCount, diceSides, rand);
 
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) trackTableData.get("entries");
-        String baseTrack = "Assault";
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) trackTableData.get("groups");
+
+        Map<String, Object> selectedGroup = groups.stream()
+                .filter(g -> ((List<String>) g.get("missions")).stream()
+                .anyMatch(m -> missionMatches(missionType, m)))
+                .findFirst()
+                .orElseGet(() -> groups.stream()
+                .filter(g -> ((List<String>) g.get("missions")).contains("Default"))
+                .findFirst()
+                .orElse(groups.get(0)));
+
+        log.debug("Selected track group for mission '{}': {}", missionType, selectedGroup.get("missions"));
+
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) selectedGroup.get("entries");
+        log.debug("Track entries for selected group: {}", entries.size());
+
+        // Initialize baseTrack with the first entry as a safer default than a hardcoded "Assault"
+        String baseTrack = entries.get(0).get("value").toString();
 
         for (Map<String, Object> entry : entries) {
             int min = (Integer) entry.get("minRoll");
@@ -420,11 +486,7 @@ public class CampaignService {
                 break;
             }
         }
-
-        if ("Standard".equals(baseTrack)) {
-            return "Attacker".equalsIgnoreCase(role) ? "Assault" : "Defend";
-        }
-
+        log.debug("Final track type for mission '{}': {}", missionType, baseTrack);
         return baseTrack;
     }
 
@@ -445,9 +507,9 @@ public class CampaignService {
         }
 
         int empMod = config.empMods.entrySet().stream()
-                .filter(e -> empType.contains(e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
+                .filter(e -> empType.toLowerCase().contains(e.getKey().toLowerCase())).map(Map.Entry::getValue).findFirst().orElse(0);
         int missionMod = config.missionMods.entrySet().stream()
-                .filter(e -> missionType.contains(e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
+                .filter(e -> missionMatches(missionType, e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
 
         return Math.max(1, Math.min(13, initialStep + empMod + missionMod));
     }
@@ -511,21 +573,26 @@ public class CampaignService {
         return sum;
     }
 
-    private String getOpposingMissionType(String employerMission) {
-        return switch (employerMission) {
-            case "Raid" ->
-                "Defense";
-            case "Planetary Assault" ->
-                "Defense";
-            case "Expedition" ->
-                "Recon";
-            case "Extraction" ->
-                "Interdiction";
-            case "Insurrection" ->
-                "Counter-Insurrection";
-            default ->
-                "Garrison";
-        };
+    /**
+     * Resolves the opposing mission type by finding the entry in
+     * missionTable.json that corresponds to the provided primary mission type.
+     */
+    @SuppressWarnings("unchecked")
+    private String getOpposingMissionType(String employerMission, Random rand) {
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) missionTableData.get("entries");
+        for (Map<String, Object> entry : entries) {
+            Map<String, Object> primary = (Map<String, Object>) entry.get("primary");
+            List<Map<String, Object>> subEntries = (List<Map<String, Object>>) primary.get("entries");
+
+            boolean matchFound = subEntries.stream()
+                    .anyMatch(se -> missionMatches(employerMission, (String) se.get("value")));
+
+            if (matchFound) {
+                return resolveFromSubTable((Map<String, Object>) entry.get("opponent"), rand);
+            }
+        }
+        // Fallback if the specific mission type isn't mapped to a table entry
+        return "Garrison";
     }
 
     /**

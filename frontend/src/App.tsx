@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Login } from './components/Login';
 import { Welcome } from './components/Welcome';
+import * as campaignApi from './services/campaignApi';
 import './styles/index.css';
 import { RandomCampaignGenerator } from './components/RandomCampaignGenerator';
 import './styles/login.css';
@@ -14,40 +15,28 @@ interface UserProfile {
 export function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if the user is already logged in by fetching their profile
-    fetch('http://localhost:8080/api/user/profile', {
-      credentials: 'include'
-    })
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error('Not authenticated');
-      })
-      .then((data: UserProfile) => {
+    const loadProfile = async () => {
+      try {
+        const data = await campaignApi.getProfile();
         setUser(data);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch (error) {
         setUser(null);
+        setAuthError('Unable to verify session at this time.');
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    loadProfile();
   }, []);
 
   const handleLogout = async () => {
     try {
-      // Send a POST request to the backend's logout endpoint for the reactive security stack.
-      const res = await fetch('http://localhost:8080/api/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (res.ok) {
-        // Reload to clear the SPA state and return to the unauthenticated view.
-        window.location.href = '/';
-      } else {
-        console.error('Logout failed with status:', res.status);
-      }
+      await campaignApi.logout();
+      window.location.href = '/';
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -86,6 +75,7 @@ export function App() {
             </>
           ) : (
             <div className="unauthenticated-dashboard">
+              {authError && <div className="error-message" style={{ marginBottom: '16px' }}>{authError}</div>}
               <section className="dashboard-section">
                 <h2 className="section-title">ACTIVE CAMPAIGNS</h2>
                 <div className="campaign-summary-list">

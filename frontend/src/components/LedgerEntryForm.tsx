@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createLedgerEntry } from '../services/ledgerApi';
 
 interface LedgerEntryFormProps {
     detachmentId: string;
@@ -9,29 +10,21 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ detachmentId, 
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState<number>(0);
     const [loading, setLoading] = useState(false);
+    const [submissionError, setSubmissionError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setSubmissionError(null);
 
         try {
-            const response = await fetch(`http://localhost:8080/api/ledger/${detachmentId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description, amount }),
-                credentials: 'include',
-            });
-
-            if (response.ok) {
-                setDescription('');
-                setAmount(0);
-                onEntryAdded();
-            } else {
-                const err = await response.text();
-                alert(`Failed to add entry: ${err}`);
-            }
+            await createLedgerEntry(detachmentId, { description, amount });
+            setDescription('');
+            setAmount(0);
+            onEntryAdded();
         } catch (error) {
             console.error('Error adding ledger entry:', error);
+            setSubmissionError('Failed to add ledger entry. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -63,6 +56,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ detachmentId, 
                     />
                     <small>Use negative values for costs</small>
                 </div>
+                {submissionError && <div className="error-message" style={{ marginBottom: '16px' }}>{submissionError}</div>}
                 <button type="submit" disabled={loading} className="login-button">
                     {loading ? 'PROCESSING...' : 'COMMIT TRANSACTION'}
                 </button>

@@ -76,6 +76,14 @@ public class CampaignController {
         return Mono.just(campaignService.getAvailableCommand());
     }
 
+    @GetMapping("/metadata/generate-tracks")
+    public Mono<List<String>> generateTracks(
+            @RequestParam String mission,
+            @RequestParam String commandRights,
+            @RequestParam Integer count) {
+        return Mono.just(campaignService.generateTracks(mission, commandRights, count));
+    }
+
     @GetMapping("/dobless/preview")
     public Mono<CampaignProposal> previewCampaign(
             @RequestParam(required = false) String employer,
