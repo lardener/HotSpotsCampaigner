@@ -69,7 +69,7 @@
                     {
                         "minRoll": 2,
                         "maxRoll": 4,
-                        "value": "Expedition: Standard Expedition"
+                        "value": "Expedition"
                     },
                     {
                         "minRoll": 5,
@@ -105,12 +105,12 @@
                     {
                         "minRoll": 2,
                         "maxRoll": 7,
-                        "value": "Expedition: Standard Expedition"
+                        "value": "Expedition"
                     },
                     {
                         "minRoll": 8,
                         "maxRoll": 10,
-                        "value": "Garrison: Standard Garrison"
+                        "value": "Garrison"
                     },
                     {
                         "minRoll": 11,
@@ -146,12 +146,12 @@
                     {
                         "minRoll": 2,
                         "maxRoll": 4,
-                        "value": "Expedition: Standard Expedition"
+                        "value": "Expedition"
                     },
                     {
                         "minRoll": 5,
                         "maxRoll": 8,
-                        "value": "Garrison: Standard Garrison"
+                        "value": "Garrison"
                     },
                     {
                         "minRoll": 9,

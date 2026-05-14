@@ -55,7 +55,8 @@ describe('RandomCampaignGenerator', () => {
     });
 
     it('loads metadata and renders the generator', async () => {
-        vi.spyOn(campaignApi, 'getMissions').mockResolvedValue(['Raid']);
+        // Use type assertion as any since the underlying campaignApi.getMissions type may still be string[]
+        vi.spyOn(campaignApi, 'getMissions').mockResolvedValue({ primary: ['Raid'], opponent: ['Garrison'] } as any);
         vi.spyOn(campaignApi, 'getTrackTypes').mockResolvedValue(['High Pass', 'River Crossing']);
         vi.spyOn(campaignApi, 'getResolvedSteps').mockResolvedValue({ '1': { payRate: '100%', salvageRights: 'None', supportRights: 'None', transportation: 'None', commandRights: 'None' } });
 
@@ -79,7 +80,7 @@ describe('RandomCampaignGenerator', () => {
     });
 
     it('generates a campaign preview when preview button is clicked', async () => {
-        vi.spyOn(campaignApi, 'getMissions').mockResolvedValue(['Raid']);
+        vi.spyOn(campaignApi, 'getMissions').mockResolvedValue({ primary: ['Raid'], opponent: ['Garrison'] } as any);
         vi.spyOn(campaignApi, 'getTrackTypes').mockResolvedValue(['High Pass', 'River Crossing']);
         vi.spyOn(campaignApi, 'getResolvedSteps').mockResolvedValue({ '1': { payRate: '100%', salvageRights: 'None', supportRights: 'None', transportation: 'None', commandRights: 'None' } });
         const previewMock = vi.spyOn(campaignApi, 'previewCampaign').mockResolvedValue(mockProposal);
@@ -98,7 +99,7 @@ describe('RandomCampaignGenerator', () => {
     });
 
     it('displays an error message when preview fails', async () => {
-        vi.spyOn(campaignApi, 'getMissions').mockResolvedValue(['Raid']);
+        vi.spyOn(campaignApi, 'getMissions').mockResolvedValue({ primary: ['Raid'], opponent: ['Garrison'] } as any);
         vi.spyOn(campaignApi, 'getTrackTypes').mockResolvedValue(['High Pass', 'River Crossing']);
         vi.spyOn(campaignApi, 'getResolvedSteps').mockResolvedValue({ '1': { payRate: '100%', salvageRights: 'None', supportRights: 'None', transportation: 'None', commandRights: 'None' } });
         vi.spyOn(campaignApi, 'previewCampaign').mockRejectedValue(new Error('Server error'));

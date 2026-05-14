@@ -35,7 +35,8 @@ interface Props {
 }
 
 export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
-    const [missions, setMissions] = useState<string[]>([]);
+    const [primaryMissions, setPrimaryMissions] = useState<string[]>([]);
+    const [opponentMissions, setOpponentMissions] = useState<string[]>([]);
     const [resolvedSteps, setResolvedSteps] = useState<Record<string, any>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
 
@@ -57,7 +58,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     campaignApi.getTrackTypes(),
                     campaignApi.getResolvedSteps()
                 ]);
-                setMissions(missionsData);
+                setPrimaryMissions((missionsData as any).primary);
+                setOpponentMissions((missionsData as any).opponent);
                 setTrackTypes(trackTypesData);
                 setResolvedSteps(stepsData);
             } catch (err) {
@@ -286,7 +288,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                                 <p><strong>EMPLOYER:</strong> {c.employerCategory}</p>
                                 <p><strong>MISSION:</strong>
                                     <select value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)}>
-                                        {missions.map(m => <option key={m} value={m}>{m}</option>)}
+                                        {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

@@ -37,7 +37,7 @@ public class CampaignController {
     }
 
     @GetMapping("/metadata/missions")
-    public Mono<List<String>> getMissions() {
+    public Mono<Map<String, List<String>>> getMissions() {
         return Mono.just(campaignService.getAvailableMissions());
     }
 

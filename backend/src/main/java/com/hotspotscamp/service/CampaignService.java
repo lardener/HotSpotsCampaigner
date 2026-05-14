@@ -64,7 +64,8 @@ public class CampaignService {
     }
 
     private List<String> availableFactions;
-    private List<String> availableMissions;
+    private List<String> availablePrimaryMissions;
+    private List<String> availableOpponentMissions;
     private List<String> availableTrackTypes;
     private List<String> availablePayRates;
     private List<String> availableSalvage;
@@ -109,7 +110,27 @@ public class CampaignService {
 
         // Load basic lists from config to avoid hardcoding book-specific data
         availableFactions = loadList("factions.json", mapper);
-        availableMissions = loadList("missions.json", mapper);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> missionEntries = (List<Map<String, Object>>) missionTableData.get("entries");
+        availablePrimaryMissions = missionEntries.stream()
+                .flatMap(entry -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> primary = (Map<String, Object>) entry.get("primary");
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> subEntries = (List<Map<String, Object>>) primary.get("entries");
+                    return subEntries.stream().map(e -> (String) e.get("value"));
+                })
+                .distinct().sorted().collect(Collectors.toList());
+
+        availableOpponentMissions = missionEntries.stream()
+                .flatMap(entry -> {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> opponent = (Map<String, Object>) entry.get("opponent");
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> subEntries = (List<Map<String, Object>>) opponent.get("entries");
+                    return subEntries.stream().map(e -> (String) e.get("value"));
+                })
+                .distinct().sorted().collect(Collectors.toList());
 
         trackTableData = loadMap("trackTable.json", mapper);
         @SuppressWarnings("unchecked")
@@ -181,8 +202,11 @@ public class CampaignService {
         return availableFactions;
     }
 
-    public List<String> getAvailableMissions() {
-        return availableMissions;
+    public Map<String, List<String>> getAvailableMissions() {
+        return Map.of(
+                "primary", availablePrimaryMissions,
+                "opponent", availableOpponentMissions
+        );
     }
 
     public List<String> getAvailableTrackTypes() {
@@ -677,6 +701,6 @@ public class CampaignService {
     }
 
     private String getRandomMission() {
-        return availableMissions.get(new Random().nextInt(availableMissions.size()));
+        return availablePrimaryMissions.get(new Random().nextInt(availablePrimaryMissions.size()));
     }
 }

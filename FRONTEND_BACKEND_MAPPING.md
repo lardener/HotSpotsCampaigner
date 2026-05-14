@@ -18,8 +18,9 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 - **Frontend Field**: `missionType` select in contract sections
 - **Frontend Component**: `RandomCampaignGenerator.tsx`, line ~265
 - **Backend Endpoint**: `GET /api/campaigns/metadata/missions`
-- **Source JSON**: `missions.json`
-- **Data Format**: `string[]` (e.g., `["Expedition", "Raid", "Cadre Duty", "Extraction", "Planetary Assault", "Garrison", "Insurrection"]`)
+- **Source JSON**: `missionTable.json`
+- **Data Format**: `{ primary: string[], opponent: string[] }`
+- **Example**: `{ "primary": ["Raid", "Invasion"], "opponent": ["Garrison", "Cadre Duty"] }`
 - **Service Function**: `campaignApi.getMissions()`
 - **State Variable**: `missions`
 - **Load Trigger**: Component mount (useEffect)
@@ -74,7 +75,7 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 
 | Endpoint | Returns | Source JSON | Currently Used |
 |----------|---------|-------------|-----------------|
-| `GET /api/campaigns/metadata/missions` | `string[]` | `missions.json` | ✅ Yes |
+| `GET /api/campaigns/metadata/missions` | `Map<String, List<String>>` | `missionTable.json` | ✅ Yes |
 | `GET /api/campaigns/metadata/track-types` | `string[]` | `trackTable.json` | ✅ Yes |
 | `GET /api/campaigns/metadata/resolved-steps` | `Record<int, Map<string, string>>` | `contractStepsTable.json` | ✅ Yes |
 | `GET /api/campaigns/metadata/employer-types` | `string[]` | `employerTable.json` (distinct values) | ❌ No |

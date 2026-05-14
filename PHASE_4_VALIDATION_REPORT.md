@@ -15,18 +15,11 @@ May 12, 2026, 21:42 UTC-6
 
 ### 1. ✅ GET /api/campaigns/metadata/missions
 **Status**: PASS
-**Response Type**: `string[]`
+**Response Type**: `Map<String, List<String>>`
 **Data Returned**:
 ```json
-[
-  "Expedition",
-  "Raid",
-  "Cadre Duty",
-  "Extraction",
-  "Planetary Assault",
-  "Garrison",
-  "Insurrection"
-]
+{"primary": ["Expedition", "Raid", ...], "opponent": ["Garrison", "Cadre Duty", ...]}
+
 ```
 **Count**: 7 missions
 **Source JSON**: `missions.json`
@@ -36,7 +29,7 @@ May 12, 2026, 21:42 UTC-6
 - State variable: `missions`
 - Usage: Mission type selector in contracts
 
-**Validation**: ✅ Data structure matches TypeScript interface `string[]`
+**Validation**: ✅ Data structure matches `Map<String, List<String>>`
 
 ---
 
