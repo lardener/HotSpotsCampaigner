@@ -141,9 +141,13 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         const updatedCampaign = { ...proposal.campaign, [field]: value };
         let updatedTracks = [...proposal.tracks];
 
-        if (field === 'trackCount') {
+        if (field === 'trackCount' || field === 'lengthInMonths') {
             const newCount = Number(value);
             const currentCount = proposal.tracks.length;
+
+            // Per Hinterlands p. 134, contract length and track count are coupled.
+            updatedCampaign.trackCount = newCount;
+            updatedCampaign.lengthInMonths = newCount;
 
             if (newCount < currentCount) {
                 // Delete from the end

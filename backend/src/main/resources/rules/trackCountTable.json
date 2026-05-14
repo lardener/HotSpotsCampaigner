@@ -1,14 +1,103 @@
 {
-    "diceCount": 1,
+    "diceCount": 2,
     "diceSides": 6,
-    "missionModifiers": {
-        "Garrison": 0,
-        "Cadre Duty": 0,
-        "Raid": 1,
-        "Expedition": 1,
-        "Extraction": 1,
-        "Insurrection": 1,
-        "Planetary Assault": 2,
-        "Invasion": 2
-    }
+    "groups": [
+        {
+            "missions": [
+                "Raid",
+                "Expedition",
+                "Extraction",
+                "Insurrection"
+            ],
+            "entries": [
+                {
+                    "minRoll": -99,
+                    "maxRoll": 8,
+                    "value": 1
+                },
+                {
+                    "minRoll": 9,
+                    "maxRoll": 11,
+                    "value": 2
+                },
+                {
+                    "minRoll": 12,
+                    "maxRoll": 99,
+                    "value": 3
+                }
+            ]
+        },
+        {
+            "missions": [
+                "Garrison",
+                "Retainer",
+                "Cadre Duty"
+            ],
+            "entries": [
+                {
+                    "minRoll": -99,
+                    "maxRoll": 4,
+                    "value": 0
+                },
+                {
+                    "minRoll": 5,
+                    "maxRoll": 6,
+                    "value": 1
+                },
+                {
+                    "minRoll": 7,
+                    "maxRoll": 8,
+                    "value": 2
+                },
+                {
+                    "minRoll": 9,
+                    "maxRoll": 9,
+                    "value": 3
+                },
+                {
+                    "minRoll": 10,
+                    "maxRoll": 11,
+                    "value": 4
+                },
+                {
+                    "minRoll": 12,
+                    "maxRoll": 99,
+                    "value": 5
+                }
+            ]
+        },
+        {
+            "missions": [
+                "Invasion",
+                "Planetary Assault"
+            ],
+            "entries": [
+                {
+                    "minRoll": -99,
+                    "maxRoll": 5,
+                    "value": 2
+                },
+                {
+                    "minRoll": 6,
+                    "maxRoll": 7,
+                    "value": 3
+                },
+                {
+                    "minRoll": 8,
+                    "maxRoll": 9,
+                    "value": 4
+                },
+                {
+                    "minRoll": 10,
+                    "maxRoll": 11,
+                    "value": 5
+                },
+                {
+                    "minRoll": 12,
+                    "maxRoll": 99,
+                    "value": 6
+                }
+            ]
+        }
+    ]
 }

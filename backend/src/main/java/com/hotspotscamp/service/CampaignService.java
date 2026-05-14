@@ -271,10 +271,10 @@ public class CampaignService {
             oppMission = getOpposingMissionType(empMission, rand);
         }
 
-        // Calculate duration and track count once for the campaign
-        // Default to 3 months if no specific length is requested
-        int finalLength = lengthInMonths != null ? lengthInMonths : rollLengthOfContract(empMission, rand);
+        // Calculate track count and duration for the campaign.
+        // Per Hinterlands p. 134, the length of the contract in months is equal to the number of tracks.
         int finalTracksCount = trackCount != null ? trackCount : rollTrackCount(empMission, rand);
+        int finalLength = lengthInMonths != null ? lengthInMonths : finalTracksCount;
 
         String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
 
@@ -417,30 +417,42 @@ public class CampaignService {
     private int rollTrackCount(String missionType, Random rand) {
         int diceCount = (Integer) trackCountTableData.get("diceCount");
         int diceSides = (Integer) trackCountTableData.get("diceSides");
-        Map<String, Integer> mods = (Map<String, Integer>) trackCountTableData.get("missionModifiers");
-
         int roll = rollDice(diceCount, diceSides, rand);
-        int mod = mods.entrySet().stream()
-                .filter(e -> missionMatches(missionType, e.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst()
-                .orElse(0);
 
-        return Math.max(1, roll + mod);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> groups = (List<Map<String, Object>>) trackCountTableData.get("groups");
+
+        Map<String, Object> selectedGroup = groups.stream()
+                .filter(g -> ((List<String>) g.get("missions")).stream()
+                .anyMatch(m -> missionMatches(missionType, m)))
+                .findFirst()
+                .orElse(groups.get(0)); // Default to Raid/Expedition logic
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> entries = (List<Map<String, Object>>) selectedGroup.get("entries");
+        for (Map<String, Object> entry : entries) {
+            int min = (Integer) entry.get("minRoll");
+            int max = (Integer) entry.get("maxRoll");
+            if (roll >= min && roll <= max) {
+                return (Integer) entry.get("value");
+            }
+        }
+
+        return 1;
     }
 
     /**
-     * Generates a list of tracks based on mission type and command rights.
-     * Used when the theater operational scope is expanded.
+     * Generates a list of tracks based on mission type and command rights. Used
+     * when the theater operational scope is expanded.
      */
     public List<String> generateTracks(String missionType, String commandRights, int count) {
         Random rand = new Random();
         String role = determineUnitRole(missionType, rand);
         List<String> tracksList = new java.util.ArrayList<>();
-        
+
         for (int i = 0; i < count; i++) {
             String track = rollTrackType(role, missionType, rand);
-            
+
             if ("House".equalsIgnoreCase(commandRights)) {
                 track += " (Forced Complication)";
             } else if ("Liaison".equalsIgnoreCase(commandRights)) {
@@ -448,7 +460,7 @@ public class CampaignService {
             }
             tracksList.add(track);
         }
-        
+
         return tracksList;
     }
 
