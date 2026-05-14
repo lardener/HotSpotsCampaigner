@@ -15,7 +15,7 @@ interface UserProfile {
 export function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -24,7 +24,8 @@ export function App() {
         setUser(data);
       } catch (error) {
         setUser(null);
-        setAuthError('Unable to verify session at this time.');
+        // Suppress error on initial load as 401 is expected for unauthenticated visitors
+        console.debug('No active session detected');
       } finally {
         setLoading(false);
       }

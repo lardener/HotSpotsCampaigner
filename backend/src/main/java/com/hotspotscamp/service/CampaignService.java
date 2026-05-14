@@ -9,6 +9,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -73,6 +74,10 @@ public class CampaignService {
     private List<String> availableTransport;
     private List<String> availableCommand;
 
+    private Map<String, List<String>> factionOrganizations;
+    private List<String> corporateSuffixes;
+    private List<String> noblePrefixes;
+
     @PostConstruct
     public void init() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
@@ -112,13 +117,20 @@ public class CampaignService {
         availableFactions = loadList("factions.json", mapper);
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> missionEntries = (List<Map<String, Object>>) missionTableData.get("entries");
+        if (missionEntries == null) {
+            missionEntries = java.util.Collections.emptyList();
+        }
+
         availablePrimaryMissions = missionEntries.stream()
                 .flatMap(entry -> {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> primary = (Map<String, Object>) entry.get("primary");
+                    if (primary == null) {
+                        return java.util.stream.Stream.empty();
+                    }
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> subEntries = (List<Map<String, Object>>) primary.get("entries");
-                    return subEntries.stream().map(e -> (String) e.get("value"));
+                    return subEntries == null ? java.util.stream.Stream.empty() : subEntries.stream().map(e -> (String) e.get("value"));
                 })
                 .distinct().sorted().collect(Collectors.toList());
 
@@ -126,9 +138,12 @@ public class CampaignService {
                 .flatMap(entry -> {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> opponent = (Map<String, Object>) entry.get("opponent");
+                    if (opponent == null) {
+                        return java.util.stream.Stream.empty();
+                    }
                     @SuppressWarnings("unchecked")
                     List<Map<String, Object>> subEntries = (List<Map<String, Object>>) opponent.get("entries");
-                    return subEntries.stream().map(e -> (String) e.get("value"));
+                    return subEntries == null ? java.util.stream.Stream.empty() : subEntries.stream().map(e -> (String) e.get("value"));
                 })
                 .distinct().sorted().collect(Collectors.toList());
 
@@ -166,6 +181,12 @@ public class CampaignService {
         availableTransport = stepEntries.stream().map(e -> (String) e.get("transportation")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
         availableCommand = stepEntries.stream().map(e -> (String) e.get("commandRights")).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
 
+        Map<String, List<String>> orgData = loadMapTyped("factionOrganizations.json", mapper, new TypeReference<Map<String, List<String>>>() {
+        });
+        factionOrganizations = orgData;
+        corporateSuffixes = loadList("corporateSuffixes.json", mapper);
+        noblePrefixes = loadList("noblePrefixes.json", mapper);
+
         // Load all contract sub-tables (Pay, Salvage, Support, Transport, Command)
         String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
         for (String key : tableKeys) {
@@ -182,15 +203,21 @@ public class CampaignService {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> loadMap(String fileName, ObjectMapper mapper) throws IOException {
+        return loadMapTyped(fileName, mapper, new TypeReference<Map<String, Object>>() {
+        });
+    }
+
+    private <T> T loadMapTyped(String fileName, ObjectMapper mapper, TypeReference<T> typeReference) throws IOException {
         try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
-            return mapper.readValue(is, Map.class);
+            return mapper.readValue(is, typeReference);
         }
     }
 
     @SuppressWarnings("unchecked")
     private List<String> loadList(String fileName, ObjectMapper mapper) throws IOException {
         try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
-            return mapper.readValue(is, List.class);
+            return mapper.readValue(is, new TypeReference<List<String>>() {
+            });
         }
     }
 
@@ -317,7 +344,7 @@ public class CampaignService {
         Contract primaryContract = generateContract(finalEmp, empMission, employerCategory,
                 payRate, salvageTerms, supportTerms, transportTerms, commandRights,
                 payStep, salvageStep, supportStep, transportStep, commandStep,
-                finalLength, finalTracksCount, true, rand);
+                finalLength, finalTracksCount, true, finalSystemName, rand);
 
         // Determine Attacker/Defender role based on p. 135
         String primaryRole = determineUnitRole(empMission, rand);
@@ -326,7 +353,7 @@ public class CampaignService {
         // but shares the same duration and track count as the theater
         Contract oppositionContract = generateContract(finalOpp, oppMission, "Minor Power",
                 null, null, null, null, null,
-                null, null, null, null, null, finalLength, finalTracksCount, false, rand);
+                null, null, null, null, null, finalLength, finalTracksCount, false, finalSystemName, rand);
 
         // Generate tracks at the campaign level
         List<String> tracksList = new java.util.ArrayList<>();
@@ -347,7 +374,7 @@ public class CampaignService {
     private Contract generateContract(String faction, String type, String category,
             Double payRate, String salvage, String support, String transport, String rights,
             Integer payStepIn, Integer salvageStepIn, Integer supportStepIn, Integer transportStepIn, Integer commandStepIn,
-            int length, int tracks, boolean isPrimary, Random rand) {
+            int length, int tracks, boolean isPrimary, String system, Random rand) {
 
         String empType = category != null ? category : rollEmployerType(rand);
 
@@ -359,9 +386,21 @@ public class CampaignService {
 
         Double resolvedPayRate = parsePayRate(resolveStepValue(payStep, "payRate"));
 
+        String finalOrgName;
+        String finalEmpType;
+
+        // If category already includes an organization name (format "Org (Type)"), extract them to avoid double nesting during save
+        if (empType.contains(" (") && empType.endsWith(")")) {
+            finalOrgName = empType.substring(0, empType.indexOf(" ("));
+            finalEmpType = empType.substring(empType.indexOf(" (") + 2, empType.length() - 1);
+        } else {
+            finalOrgName = getPlausibleOrganization(faction, empType, system, rand);
+            finalEmpType = empType;
+        }
+
         return Contract.builder()
                 .missionType(type)
-                .employerCategory(faction + ": " + empType)
+                .employerCategory(faction + ": " + finalOrgName + " (" + finalEmpType + ")")
                 .payRate(payRate != null ? payRate : resolvedPayRate)
                 .payStep(payStep)
                 .salvageTerms(salvage != null ? salvage : resolveStepValue(salvageStep, "salvageRights"))
@@ -376,6 +415,27 @@ public class CampaignService {
                 .lengthInMonths(length)
                 .trackCount(tracks)
                 .build();
+    }
+
+    private String getPlausibleOrganization(String faction, String empType, String system, Random rand) {
+        List<String> factionOrgs = factionOrganizations.entrySet().stream()
+                .filter(e -> faction.toLowerCase().contains(e.getKey().toLowerCase()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(factionOrganizations.get("Minor Power"));
+
+        String baseOrg = factionOrgs.get(rand.nextInt(factionOrgs.size()));
+
+        // Refine name based on employer type
+        if ("Corporate".equalsIgnoreCase(empType)) {
+            return baseOrg + " " + corporateSuffixes.get(rand.nextInt(corporateSuffixes.size()));
+        } else if ("Noble".equalsIgnoreCase(empType)) {
+            return noblePrefixes.get(rand.nextInt(noblePrefixes.size())) + " of " + system;
+        } else if ("Government".equalsIgnoreCase(empType) || "Local Government".equalsIgnoreCase(empType)) {
+            return system + " Planetary Council (" + baseOrg + ")";
+        }
+
+        return baseOrg;
     }
 
     private Double parsePayRate(String raw) {
@@ -542,8 +602,10 @@ public class CampaignService {
             }
         }
 
+        final String finalEmpType = empType != null ? empType.toLowerCase() : "";
+
         int empMod = config.empMods.entrySet().stream()
-                .filter(e -> empType.toLowerCase().contains(e.getKey().toLowerCase())).map(Map.Entry::getValue).findFirst().orElse(0);
+                .filter(e -> finalEmpType.contains(e.getKey().toLowerCase())).map(Map.Entry::getValue).findFirst().orElse(0);
         int missionMod = config.missionMods.entrySet().stream()
                 .filter(e -> missionMatches(missionType, e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
 

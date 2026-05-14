@@ -58,8 +58,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     campaignApi.getTrackTypes(),
                     campaignApi.getResolvedSteps()
                 ]);
-                setPrimaryMissions((missionsData as any).primary);
-                setOpponentMissions((missionsData as any).opponent);
+                setPrimaryMissions((missionsData as any)?.primary || []);
+                setOpponentMissions((missionsData as any)?.opponent || []);
                 setTrackTypes(trackTypesData);
                 setResolvedSteps(stepsData);
             } catch (err) {
