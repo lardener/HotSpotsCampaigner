@@ -42,7 +42,7 @@ public class CampaignServiceTest {
         Method generateContractMethod = CampaignService.class.getDeclaredMethod("generateContract",
                 String.class, String.class, String.class, Double.class, String.class, String.class, String.class,
                 String.class, Integer.class, Integer.class, Integer.class, Integer.class, Integer.class,
-                int.class, int.class, boolean.class, String.class, Random.class);
+                int.class, boolean.class, String.class, Random.class);
         generateContractMethod.setAccessible(true);
 
         // CASE 1: High Modifiers (Major Power + Invasion)
@@ -59,7 +59,7 @@ public class CampaignServiceTest {
 
         // Calculation: Step 9 + 2 (Major Power) + 2 (Invasion) = Step 13 -> 100%
         Contract highContract = (Contract) generateContractMethod.invoke(campaignService,
-                "Tamar Pact", "Invasion", "Major Power", null, null, null, null, null, null, null, null, null, null, 3, 2, true, "Alyina", mockRand1);
+                "Tamar Pact", "Invasion", "Major Power", null, null, null, null, null, null, null, null, null, null, 2, true, "Alyina", mockRand1);
         assertEquals("100%", highContract.getTransportTerms());
 
         // CASE 2: Low Modifiers (Corporate + Garrison)
@@ -72,7 +72,7 @@ public class CampaignServiceTest {
 
         // Calculation: Step 5 - 1 (Corp) - 2 (Garrison) = Step 2 -> resolves to Step 3 -> 0%
         Contract lowContract = (Contract) generateContractMethod.invoke(campaignService,
-                "Vesper Marches", "Garrison", "Corporate (Local)", null, null, null, null, null, null, null, null, null, null, 3, 2, true, "Vesper", mockRand2);
+                "Vesper Marches", "Garrison", "Corporate (Local)", null, null, null, null, null, null, null, null, null, null, 2, true, "Vesper", mockRand2);
         assertEquals("0%", lowContract.getTransportTerms());
     }
 }

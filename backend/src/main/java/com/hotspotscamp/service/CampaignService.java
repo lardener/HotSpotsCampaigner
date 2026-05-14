@@ -54,7 +54,6 @@ public class CampaignService {
     private Map<Integer, Map<String, String>> contractStepsTable;
     private Map<String, Object> trackTableData;
     private Map<String, Object> roleTableData;
-    private Map<String, Object> lengthOfContractTableData;
     private Map<String, Object> trackCountTableData;
 
     private Map<String, ContractTableConfig> contractTables = new HashMap<>();
@@ -158,7 +157,6 @@ public class CampaignService {
                 .collect(Collectors.toList());
 
         roleTableData = loadMap("roleTable.json", mapper);
-        lengthOfContractTableData = loadMap("lengthOfContractTable.json", mapper);
         trackCountTableData = loadMap("trackCountTable.json", mapper);
 
         Map<String, Object> stepsData = loadMap("contractStepsTable.json", mapper);
@@ -191,12 +189,18 @@ public class CampaignService {
         String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
         for (String key : tableKeys) {
             Map<String, Object> tableData = loadMap(key + ".json", mapper);
+
+            @SuppressWarnings("unchecked")
+            Map<String, Integer> empMods = (Map<String, Integer>) tableData.get("employerModifiers");
+            @SuppressWarnings("unchecked")
+            Map<String, Integer> missionMods = (Map<String, Integer>) tableData.get("missionModifiers");
+
             contractTables.put(key, new ContractTableConfig(
                     (Integer) tableData.get("diceCount"),
                     (Integer) tableData.get("diceSides"),
-                    (List<Map<String, Object>>) tableData.get("rollToStep"),
-                    (Map<String, Integer>) tableData.get("employerModifiers"),
-                    (Map<String, Integer>) tableData.get("missionModifiers")
+                    (List<Map<String, Object>>) (tableData.get("rollToStep") != null ? tableData.get("rollToStep") : java.util.Collections.emptyList()),
+                    empMods != null ? empMods : java.util.Collections.emptyMap(),
+                    missionMods != null ? missionMods : java.util.Collections.emptyMap()
             ));
         }
     }
@@ -289,7 +293,6 @@ public class CampaignService {
             String employerCategory, String systemName, Double payRate,
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
-            Integer lengthInMonths,
             Integer trackCount) {
         Random rand = new Random();
 
@@ -325,7 +328,6 @@ public class CampaignService {
         // Calculate track count and duration for the campaign.
         // Per Hinterlands p. 134, the length of the contract in months is equal to the number of tracks.
         int finalTracksCount = trackCount != null ? trackCount : rollTrackCount(empMission, rand);
-        int finalLength = lengthInMonths != null ? lengthInMonths : finalTracksCount;
 
         String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
 
@@ -333,7 +335,6 @@ public class CampaignService {
         Campaign campaign = Campaign.builder()
                 .name("DOBLESS OP: " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
-                .lengthInMonths(finalLength)
                 .trackCount(finalTracksCount)
                 .status("PREVIEW")
                 .build();
@@ -342,9 +343,9 @@ public class CampaignService {
         String previewRights = commandRights != null ? commandRights : "Liaison";
 
         Contract primaryContract = generateContract(finalEmp, empMission, employerCategory,
-                payRate, salvageTerms, supportTerms, transportTerms, commandRights,
-                payStep, salvageStep, supportStep, transportStep, commandStep,
-                finalLength, finalTracksCount, true, finalSystemName, rand);
+                payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep, salvageStep,
+                supportStep, transportStep, commandStep, finalTracksCount, true,
+                finalSystemName, rand);
 
         // Determine Attacker/Defender role based on p. 135
         String primaryRole = determineUnitRole(empMission, rand);
@@ -352,8 +353,8 @@ public class CampaignService {
         // Opponent remains randomized to maintain conflict balance
         // but shares the same duration and track count as the theater
         Contract oppositionContract = generateContract(finalOpp, oppMission, "Minor Power",
-                null, null, null, null, null,
-                null, null, null, null, null, finalLength, finalTracksCount, false, finalSystemName, rand);
+                null, null, null, null, null, null, null, null, null, null,
+                finalTracksCount, false, finalSystemName, rand);
 
         // Generate tracks at the campaign level
         List<String> tracksList = new java.util.ArrayList<>();
@@ -374,7 +375,7 @@ public class CampaignService {
     private Contract generateContract(String faction, String type, String category,
             Double payRate, String salvage, String support, String transport, String rights,
             Integer payStepIn, Integer salvageStepIn, Integer supportStepIn, Integer transportStepIn, Integer commandStepIn,
-            int length, int tracks, boolean isPrimary, String system, Random rand) {
+            int tracks, boolean isPrimary, String system, Random rand) {
 
         String empType = category != null ? category : rollEmployerType(rand);
 
@@ -412,7 +413,6 @@ public class CampaignService {
                 .commandRights(rights != null ? rights : resolveStepValue(rightsStep, "commandRights"))
                 .commandStep(rightsStep)
                 .primaryContract(isPrimary)
-                .lengthInMonths(length)
                 .trackCount(tracks)
                 .build();
     }
@@ -476,26 +476,6 @@ public class CampaignService {
         return (roll + mod >= threshold)
                 ? (String) roleTableData.get("attackerLabel")
                 : (String) roleTableData.get("defenderLabel");
-    }
-
-    private int rollLengthOfContract(String missionType, Random rand) {
-        int diceCount = (Integer) lengthOfContractTableData.get("diceCount");
-        int diceSides = (Integer) lengthOfContractTableData.get("diceSides");
-        Map<String, Integer> mods = (Map<String, Integer>) lengthOfContractTableData.get("missionModifiers");
-
-        int roll = rollDice(diceCount, diceSides, rand);
-        int mod = mods.entrySet().stream()
-                .filter(e -> missionMatches(missionType, e.getKey()))
-                .map(Map.Entry::getValue)
-                .findFirst()
-                .orElse(0);
-
-        int finalRoll = roll + mod;
-        List<Map<String, Object>> entries = (List<Map<String, Object>>) lengthOfContractTableData.get("entries");
-        return entries.stream()
-                .filter(entry -> finalRoll >= (Integer) entry.get("minRoll") && finalRoll <= (Integer) entry.get("maxRoll"))
-                .map(entry -> (Integer) entry.get("value"))
-                .findFirst().orElse(3); // Default to 3 months if no match
     }
 
     private int rollTrackCount(String missionType, Random rand) {
@@ -701,29 +681,33 @@ public class CampaignService {
             String employerCategory, String systemName, Double payRate,
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
-            Integer lengthInMonths,
             Integer trackCount) {
         CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName,
                 payRate, salvageTerms, supportTerms, transportTerms, commandRights,
                 payStep, salvageStep, supportStep, transportStep, commandStep,
-                lengthInMonths, trackCount);
+                trackCount);
         Campaign campaign = proposal.campaign();
+        if (campaign.getId() == null) {
+            campaign.setId(UUID.randomUUID());
+        }
         campaign.setManagerId(managerId);
         campaign.setStatus("ACTIVE");
 
         // The faction names were determined during proposal generation and prepended to the employerCategory
-        final String primaryEmployerName = proposal.contracts().get(0).getEmployerCategory().split(": ")[0];
-        final String oppositionEmployerName = proposal.contracts().get(1).getEmployerCategory().split(": ")[0];
+        final String primaryEmployerName = proposal.contracts().get(0).getEmployerCategory().split(": ", 2)[0];
+        final String oppositionEmployerName = proposal.contracts().get(1).getEmployerCategory().split(": ", 2)[0];
 
         return campaignRepository.save(campaign)
                 .flatMap(savedCampaign -> {
                     CampaignFaction empFaction = CampaignFaction.builder()
+                            .id(UUID.randomUUID())
                             .campaignId(savedCampaign.getId())
                             .factionName(primaryEmployerName)
                             .offersContracts(true)
                             .build();
 
                     CampaignFaction oppFaction = CampaignFaction.builder()
+                            .id(UUID.randomUUID())
                             .campaignId(savedCampaign.getId())
                             .factionName(oppositionEmployerName)
                             .offersContracts(true) // Per Hinterlands, both sides often hire mercs
@@ -736,6 +720,9 @@ public class CampaignService {
                                         .zipWith(Flux.fromIterable(factions))
                                         .flatMap(tuple -> {
                                             Contract c = tuple.getT1();
+                                            if (c.getId() == null) {
+                                                c.setId(UUID.randomUUID());
+                                            }
                                             c.setCampaignId(savedCampaign.getId());
                                             c.setEmployerFactionId(tuple.getT2().getId());
                                             return contractRepository.save(c);

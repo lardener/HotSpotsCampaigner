@@ -15,7 +15,6 @@ interface ContractPreview {
     transportStep: number;
     commandRights: string;
     commandStep: number;
-    lengthInMonths: number;
     trackCount: number;
 }
 
@@ -23,7 +22,6 @@ interface Proposal {
     campaign: {
         name: string,
         systemName: string,
-        lengthInMonths: number,
         trackCount: number
     };
     contracts: ContractPreview[];
@@ -58,7 +56,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                     campaignApi.getTrackTypes(),
                     campaignApi.getResolvedSteps()
                 ]);
-                setPrimaryMissions((missionsData as any)?.primary || []);
+                const parsedMissionsData = missionsData as any;
+                setPrimaryMissions(parsedMissionsData?.primary || []);
                 setOpponentMissions((missionsData as any)?.opponent || []);
                 setTrackTypes(trackTypesData);
                 setResolvedSteps(stepsData);
@@ -84,11 +83,16 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         const primary = proposal.contracts[0];
         const opponent = proposal.contracts[1];
 
+        // Parse the combined string to extract faction and category for backend compatibility
+        const primaryParts = primary.employerCategory.split(': ');
+        const employerFaction = primaryParts[0];
+        const employerCategorySuffix = primaryParts.length > 1 ? primaryParts.slice(1).join(': ') : primaryParts[0];
+
         return {
-            employer: primary.employerCategory.split(': ')[0],
+            employer: employerFaction,
             opponent: opponent.employerCategory.split(': ')[0],
             mission: primary.missionType,
-            employerCategory: primary.employerCategory.split(': ')[1],
+            employerCategory: employerCategorySuffix,
             systemName: proposal.campaign.systemName,
             payRate: primary.payRate.toString(),
             salvageTerms: primary.salvageTerms,
@@ -100,7 +104,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
             supportStep: primary.supportStep,
             transportStep: primary.transportStep,
             commandStep: primary.commandStep,
-            lengthInMonths: proposal.campaign.lengthInMonths,
             trackCount: proposal.campaign.trackCount
         };
     };
@@ -143,13 +146,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
         const updatedCampaign = { ...proposal.campaign, [field]: value };
         let updatedTracks = [...proposal.tracks];
 
-        if (field === 'trackCount' || field === 'lengthInMonths') {
+        if (field === 'trackCount') {
             const newCount = Number(value);
             const currentCount = proposal.tracks.length;
 
-            // Per Hinterlands p. 134, contract length and track count are coupled.
-            updatedCampaign.trackCount = newCount;
-            updatedCampaign.lengthInMonths = newCount;
+            updatedCampaign.trackCount = newCount; // Track count is the source of truth
 
             if (newCount < currentCount) {
                 // Delete from the end
@@ -197,14 +198,18 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
     const updateProposalContract = (index: number, field: keyof ContractPreview, value: string | number) => {
         if (!proposal) return;
         const newContracts = [...proposal.contracts];
-        // @ts-ignore - dynamic key assignment
-        newContracts[index][field] = value;
+        const contractToUpdate = newContracts[index];
+        (contractToUpdate as any)[field] = value;
 
         // If the primary contract mission changes, update the campaign name to match
         let updatedCampaign = { ...proposal.campaign };
-        if (index === 0 && field === 'missionType') {
-            const employerName = newContracts[0].employerCategory.split(': ')[0];
-            updatedCampaign.name = `DOBLESS OP: ${String(value).toUpperCase()} [${employerName}]`;
+        if (index === 0 && (field === 'missionType' || field === 'employerCategory')) {
+            const mission = field === 'missionType' ? String(value) : contractToUpdate.missionType;
+            const employerStr = field === 'employerCategory' ? String(value) : contractToUpdate.employerCategory;
+            const employerParts = employerStr.split(': ');
+            const employerFaction = employerParts[0];
+
+            updatedCampaign.name = `DOBLESS OP: ${mission.toUpperCase()} [${employerFaction}]`;
         }
 
         setProposal({
@@ -261,7 +266,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                         <h3 className="section-title">DOBLESS INTEL: {proposal.campaign.name}</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                             <div><strong>SYSTEM:</strong> <input type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} style={{ width: '100%' }} /></div>
-                            <div><strong>DURATION:</strong> <input type="number" value={proposal.campaign.lengthInMonths} onChange={(e) => updateProposalCampaign('lengthInMonths', parseInt(e.target.value))} style={{ width: '60px' }} /> MO</div>
                             <div><strong>TRACKS:</strong> <input type="number" value={proposal.campaign.trackCount} onChange={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value))} style={{ width: '60px' }} /></div>
                         </div>
                     </div>
@@ -285,7 +289,14 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
                         {proposal.contracts.map((c, i) => (
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
                                 <strong>{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</strong>
-                                <p><strong>EMPLOYER:</strong> {c.employerCategory}</p>
+                                <p><strong>EMPLOYER:</strong>
+                                    <input
+                                        type="text"
+                                        value={c.employerCategory}
+                                        onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
+                                        style={{ width: 'calc(100% - 110px)', marginLeft: '10px' }}
+                                    />
+                                </p>
                                 <p><strong>MISSION:</strong>
                                     <select value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)}>
                                         {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}

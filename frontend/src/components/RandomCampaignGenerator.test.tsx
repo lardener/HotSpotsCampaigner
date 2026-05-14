@@ -8,7 +8,6 @@ describe('RandomCampaignGenerator', () => {
         campaign: {
             name: 'DOBLESS OP: RAID [Alyina]',
             systemName: 'Alyina',
-            lengthInMonths: 6,
             trackCount: 2,
         },
         contracts: [
@@ -26,7 +25,6 @@ describe('RandomCampaignGenerator', () => {
                 transportStep: 1,
                 commandRights: 'None',
                 commandStep: 1,
-                lengthInMonths: 6,
                 trackCount: 2,
             },
             {
@@ -43,7 +41,6 @@ describe('RandomCampaignGenerator', () => {
                 transportStep: 1,
                 commandRights: 'None',
                 commandStep: 1,
-                lengthInMonths: 6,
                 trackCount: 2,
             },
         ],

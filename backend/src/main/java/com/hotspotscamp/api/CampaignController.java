@@ -1,5 +1,6 @@
 package com.hotspotscamp.api;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -101,13 +102,12 @@ public class CampaignController {
             @RequestParam(required = false) Integer supportStep,
             @RequestParam(required = false) Integer transportStep,
             @RequestParam(required = false) Integer commandStep,
-            @RequestParam(required = false) Integer lengthInMonths,
             @RequestParam(required = false) Integer trackCount) {
         return Mono.just(campaignService.generateProposal(employer, opponent, mission,
                 employerCategory, systemName, payRate, salvageTerms,
                 supportTerms, transportTerms, commandRights,
                 payStep, salvageStep, supportStep, transportStep, commandStep,
-                lengthInMonths, trackCount));
+                trackCount));
     }
 
     @PostMapping("/dobless")
@@ -127,15 +127,16 @@ public class CampaignController {
             @RequestParam(required = false) Integer supportStep,
             @RequestParam(required = false) Integer transportStep,
             @RequestParam(required = false) Integer commandStep,
-            @RequestParam(required = false) Integer lengthInMonths,
             @RequestParam(required = false) Integer trackCount,
             @AuthenticationPrincipal OAuth2User principal) {
 
-        UUID managerId = UUID.fromString(principal.getAttribute("sub").toString());
+        // Google OAuth 'sub' is a numeric string, not a UUID. 
+        // We generate a deterministic UUID based on the subject string.
+        UUID managerId = UUID.nameUUIDFromBytes(principal.getAttribute("sub").toString().getBytes(StandardCharsets.UTF_8));
         return campaignService.generateDoblessCampaign(managerId, employer, opponent, mission,
                 employerCategory, systemName, payRate, salvageTerms,
                 supportTerms, transportTerms, commandRights,
                 payStep, salvageStep, supportStep, transportStep, commandStep,
-                lengthInMonths, trackCount);
+                trackCount);
     }
 }

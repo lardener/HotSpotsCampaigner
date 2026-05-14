@@ -14,7 +14,6 @@ export interface ContractPreview {
     transportStep: number;
     commandRights: string;
     commandStep: number;
-    lengthInMonths: number;
     trackCount: number;
 }
 
@@ -22,7 +21,6 @@ export interface CampaignProposal {
     campaign: {
         name: string;
         systemName: string;
-        lengthInMonths: number;
         trackCount: number;
     };
     contracts: ContractPreview[];

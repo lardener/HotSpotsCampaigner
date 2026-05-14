@@ -106,9 +106,9 @@ May 12, 2026, 21:42 UTC-6
 **Status**: PASS
 **Response Type**: `CampaignProposal`
 **Data Returned**: Complete campaign preview with:
-- `campaign`: { name, systemName, lengthInMonths, trackCount }
+- `campaign`: { name, systemName, trackCount }
 - `contracts`: Array of 2 ContractPreview objects (primary + opposition)
-- `tracks`: Array of track names
+- `tracks`: Array of track names (lengthInMonths is now derived from trackCount)
 
 **Sample Response Structure**:
 ```json
@@ -118,8 +118,7 @@ May 12, 2026, 21:42 UTC-6
     "name": "DOBLESS OP: RAID [Jade Falcon]",
     "managerId": null,
     "status": "PREVIEW",
-    "systemName": "Chahar",
-    "lengthInMonths": 3,
+    "systemName": "Chahar",    
     "trackCount": 5
   },
   "contracts": [
@@ -140,7 +139,6 @@ May 12, 2026, 21:42 UTC-6
       "transportStep": 10,
       "commandRights": "House",
       "commandStep": 6,
-      "lengthInMonths": 3,
       "trackCount": 5
     }
   ],

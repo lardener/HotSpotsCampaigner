@@ -3,10 +3,15 @@ package com.hotspotscamp.entity;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Represents the "MERCENARY FORCE RECORD SHEET". High-level state of the entire
@@ -14,19 +19,35 @@ import lombok.Data;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table("mercenary_commands")
-public class MercenaryCommand {
+public class MercenaryCommand implements Persistable<UUID> {
 
     @Id
     private UUID id;
+    @Column("`name`")
     private String name;
+    @Column("`owner_id`")
     private UUID ownerId; // Belongs to a user
+    @Column("`campaign_id`")
     private UUID campaignId; // Participates in 0-1 campaigns
+    @Column("`total_support_points`")
     private Integer totalSupportPoints; // Derived from ledger entries
 
     /**
      * Reputation starts at 1 per Hinterlands rules.
      */
     @Builder.Default
+    @Column("`reputation`")
     private Integer reputation = 1;
+
+    @Transient
+    @Builder.Default
+    private boolean isNew = true;
+
+    @Override
+    public boolean isNew() {
+        return isNew || id == null;
+    }
 }
