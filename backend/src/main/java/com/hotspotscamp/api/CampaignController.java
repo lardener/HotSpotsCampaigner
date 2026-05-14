@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.service.CampaignService;
+import com.hotspotscamp.service.CampaignService.ActiveCampaignPage;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,13 @@ import reactor.core.publisher.Mono;
 public class CampaignController {
 
     private final CampaignService campaignService;
+
+    @GetMapping("/active")
+    public Mono<ActiveCampaignPage> getActiveCampaigns(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return campaignService.getActiveCampaigns(page, size);
+    }
 
     @GetMapping("/metadata/employer-types")
     public Mono<List<String>> getEmployerTypes() {
@@ -129,6 +137,10 @@ public class CampaignController {
             @RequestParam(required = false) Integer commandStep,
             @RequestParam(required = false) Integer trackCount,
             @AuthenticationPrincipal OAuth2User principal) {
+
+        if (principal == null) {
+            return Mono.error(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required"));
+        }
 
         // Google OAuth 'sub' is a numeric string, not a UUID. 
         // We generate a deterministic UUID based on the subject string.

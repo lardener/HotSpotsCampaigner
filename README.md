@@ -34,6 +34,22 @@ This is a TDD-first walking skeleton for the Battletech Campaign Manager—a mul
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8080
 
+> The MySQL data is persisted in a named Docker volume (`mysql_data`) so the database is not destroyed when the container is recreated. Use `docker compose down -v` only if you want to remove the stored data.
+
+#### Docker volume management
+- Inspect available volumes:
+  ```bash
+  docker volume ls
+  ```
+- Inspect the Battletech volume:
+  ```bash
+  docker volume inspect battletech_mysql_data
+  ```
+- Remove the persisted database data intentionally:
+  ```bash
+  docker compose down -v
+  ```
+
 ### Local Development (No Docker)
 
 **Backend Setup**:

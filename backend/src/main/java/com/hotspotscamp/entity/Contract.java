@@ -26,40 +26,40 @@ public class Contract implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("`campaign_id`")
+    @Column("campaign_id")
     private UUID campaignId;
-    @Column("`employer_faction_id`")
+    @Column("employer_faction_id")
     private UUID employerFactionId; // Links to CampaignFaction
-    @Column("`employer_category`")
+    @Column("employer_category")
     private String employerCategory; // pg. 131: Major Power, Minor Power, Corporate, Noble, etc.
-    @Column("`primary_contract`")
+    @Column("primary_contract")
     private Boolean primaryContract; // True for primary, False for opposition
-    @Column("`mission_type`")
+    @Column("mission_type")
     private String missionType; // e.g., Planetary Assault, Garrison Duty
 
     // Chaos Campaign Specific Multipliers
-    @Column("`pay_rate`")
+    @Column("pay_rate")
     private Double payRate;
-    @Column("`pay_step`")
+    @Column("pay_step")
     private Integer payStep;
-    @Column("`salvage_terms`")
+    @Column("salvage_terms")
     private String salvageTerms; // e.g., Full, None, Shared
-    @Column("`salvage_step`")
+    @Column("salvage_step")
     private Integer salvageStep;
-    @Column("`support_terms`")
+    @Column("support_terms")
     private String supportTerms; // How SP costs are shared
-    @Column("`support_step`")
+    @Column("support_step")
     private Integer supportStep;
-    @Column("`transport_terms`")
+    @Column("transport_terms")
     private String transportTerms; // pg. 132
-    @Column("`transport_step`")
+    @Column("transport_step")
     private Integer transportStep;
-    @Column("`command_rights`")
+    @Column("command_rights")
     private String commandRights; // pg. 133: Independent, Liaison, House
-    @Column("`command_step`")
+    @Column("command_step")
     private Integer commandStep;
 
-    @Column("`track_count`")
+    @Column("track_count")
     private Integer trackCount; // pg. 134
 
     @Transient

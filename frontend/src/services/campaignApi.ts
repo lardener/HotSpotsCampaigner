@@ -27,6 +27,21 @@ export interface CampaignProposal {
     tracks: string[];
 }
 
+export interface ActiveCampaignSummary {
+    id: string;
+    name: string;
+    systemName: string;
+    trackCount: number;
+    primaryEmployer: string;
+    secondaryEmployer: string;
+}
+
+export interface ActiveCampaignPage {
+    content: ActiveCampaignSummary[];
+    totalElements: number;
+    totalPages: number;
+}
+
 export interface ResolvedStep {
     payRate: string;
     salvageRights: string;
@@ -42,8 +57,13 @@ export interface Profile {
     name: string;
 }
 
-export const getMissions = async (): Promise<string[]> => {
-    return fetchJson<string[]>('/api/campaigns/metadata/missions');
+export const getActiveCampaigns = async (page: number = 0, size: number = 10): Promise<ActiveCampaignPage> => {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    return fetchJson<ActiveCampaignPage>(`/api/campaigns/active?${query.toString()}`);
+};
+
+export const getMissions = async (): Promise<{ primary: string[], opponent: string[] }> => {
+    return fetchJson<{ primary: string[], opponent: string[] }>('/api/campaigns/metadata/missions');
 };
 
 export const getTrackTypes = async (): Promise<string[]> => {

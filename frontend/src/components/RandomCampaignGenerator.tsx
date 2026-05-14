@@ -30,9 +30,10 @@ interface Proposal {
 
 interface Props {
     user?: { name: string };
+    onSaveSuccess?: () => void;
 }
 
-export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
+export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [primaryMissions, setPrimaryMissions] = useState<string[]>([]);
     const [opponentMissions, setOpponentMissions] = useState<string[]>([]);
     const [resolvedSteps, setResolvedSteps] = useState<Record<string, any>>({});
@@ -131,7 +132,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user }) => {
 
         try {
             await campaignApi.saveCampaign(getSaveParams());
-            setSaved(true);
+            setProposal(null);
+            setSaved(false);
+            if (onSaveSuccess) {
+                onSaveSuccess();
+            }
         } catch (error) {
             console.error('Dobless save failed', error);
             setSaveError('Failed to save the campaign. Please confirm your session and try again.');

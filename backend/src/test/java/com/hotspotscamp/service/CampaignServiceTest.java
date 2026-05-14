@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
+import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,13 +27,15 @@ public class CampaignServiceTest {
     @Mock
     private CampaignFactionRepository campaignFactionRepository;
     @Mock
+    private CampaignTrackRepository campaignTrackRepository;
+    @Mock
     private ContractRepository contractRepository;
 
     private CampaignService campaignService;
 
     @BeforeEach
     void setUp() throws IOException {
-        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, contractRepository);
+        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository);
         campaignService.init();
     }
 

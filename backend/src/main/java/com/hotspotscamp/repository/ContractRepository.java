@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 
 import com.hotspotscamp.entity.Contract;
 
+import reactor.core.publisher.Flux;
+
 @Repository
 public interface ContractRepository extends ReactiveCrudRepository<Contract, UUID> {
+    Flux<Contract> findAllByCampaignId(UUID campaignId);
 }

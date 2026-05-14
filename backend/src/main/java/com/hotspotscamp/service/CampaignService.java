@@ -19,9 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
+import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
+import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -37,6 +39,7 @@ public class CampaignService {
 
     private final CampaignRepository campaignRepository;
     private final CampaignFactionRepository campaignFactionRepository;
+    private final CampaignTrackRepository campaignTrackRepository;
     private final ContractRepository contractRepository;
 
     private Map<Integer, String> employerTable;
@@ -284,6 +287,53 @@ public class CampaignService {
      */
     public record CampaignProposal(Campaign campaign, List<Contract> contracts, List<String> tracks) {
 
+    }
+
+    public record ActiveCampaignSummary(
+            UUID id,
+            String name,
+            String systemName,
+            Integer trackCount,
+            String primaryEmployer,
+            String secondaryEmployer
+            ) {
+
+    }
+
+    public record ActiveCampaignPage(List<ActiveCampaignSummary> content, long totalElements, int totalPages) {
+
+    }
+
+    public Mono<ActiveCampaignPage> getActiveCampaigns(int page, int size) {
+        log.debug("Fetching active campaigns - page: {}, size: {}", page, size);
+        int offset = page * size;
+        return campaignRepository.countByStatus("ACTIVE")
+                .doOnNext(total -> log.debug("Total active campaigns count: {}", total))
+                .flatMap(total -> campaignRepository.findAllByStatus("ACTIVE", size, offset)
+                .doOnNext(c -> log.debug("Processing campaign: {} (ID: {})", c.getName(), c.getId()))
+                .flatMap(c -> contractRepository.findAllByCampaignId(c.getId())
+                .collectList()
+                .doOnNext(contracts -> log.debug("Found {} contracts for campaign ID: {}", contracts.size(), c.getId()))
+                .map(contracts -> {
+                    String primary = contracts.stream()
+                            .filter(contract -> Boolean.TRUE.equals(contract.getPrimaryContract()))
+                            .map(Contract::getEmployerCategory).findFirst().orElse("Unknown");
+                    log.debug("Primary employer for campaign ID {}: {}", c.getId(), primary);
+                    String secondary = contracts.stream()
+                            .filter(contract -> Boolean.FALSE.equals(contract.getPrimaryContract()))
+                            .map(Contract::getEmployerCategory).findFirst().orElse("Unknown");
+                    log.debug("Oppponent employer for campaign ID {}: {}", c.getId(), secondary);
+                    String campaignName = c.getName() != null ? c.getName() : "Unknown Campaign";
+                    String systemName = c.getSystemName() != null ? c.getSystemName() : "Unknown System";
+                    Integer trackCount = c.getTrackCount() != null ? c.getTrackCount() : 0;
+                    return new ActiveCampaignSummary(c.getId(), campaignName, systemName, trackCount, primary, secondary);
+                }))
+                .collectList()
+                .map(list -> {
+                    int totalPages = (int) Math.ceil((double) total / size);
+                    log.debug("Returning page of active campaigns - count: {}, total: {}, pages: {}", list.size(), total, totalPages);
+                    return new ActiveCampaignPage(list, total, totalPages);
+                }));
     }
 
     /**
@@ -716,7 +766,7 @@ public class CampaignService {
                     return campaignFactionRepository.saveAll(List.of(empFaction, oppFaction))
                             .collectList()
                             .flatMap(factions -> {
-                                return Flux.fromIterable(proposal.contracts())
+                                Flux<Contract> contractFlux = Flux.fromIterable(proposal.contracts())
                                         .zipWith(Flux.fromIterable(factions))
                                         .flatMap(tuple -> {
                                             Contract c = tuple.getT1();
@@ -726,8 +776,21 @@ public class CampaignService {
                                             c.setCampaignId(savedCampaign.getId());
                                             c.setEmployerFactionId(tuple.getT2().getId());
                                             return contractRepository.save(c);
-                                        })
-                                        .then(Mono.just(savedCampaign));
+                                        });
+
+                                Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks())
+                                        .index()
+                                        .flatMap(tuple -> {
+                                            CampaignTrack track = CampaignTrack.builder()
+                                                    .id(UUID.randomUUID())
+                                                    .campaignId(savedCampaign.getId())
+                                                    .trackName(tuple.getT2())
+                                                    .sequenceOrder(tuple.getT1().intValue())
+                                                    .build();
+                                            return campaignTrackRepository.save(track);
+                                        });
+
+                                return Flux.merge(contractFlux, trackFlux).then(Mono.just(savedCampaign));
                             });
                 });
     }

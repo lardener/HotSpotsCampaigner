@@ -32,6 +32,9 @@ services:
     container_name: battletech-db
     ports:
       - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     networks:
       - battletech-network
 
@@ -50,3 +53,7 @@ services:
 networks:
   battletech-network:
     driver: bridge
+
+volumes:
+  mysql_data:
+    name: battletech_mysql_data

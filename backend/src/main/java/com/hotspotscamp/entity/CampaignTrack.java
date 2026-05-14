@@ -13,28 +13,24 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Represents a theater of operations (e.g., The Hinterlands).
- */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("campaigns")
-public class Campaign implements Persistable<UUID> {
+@Table("campaign_tracks")
+public class CampaignTrack implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("name")
-    private String name;
-    @Column("manager_id")
-    private UUID managerId; // The user managing this campaign
-    @Column("status")
-    private String status; // e.g., "ACTIVE", "COMPLETED"
-    @Column("system_name")
-    private String systemName;
-    @Column("track_count")
-    private Integer trackCount;
+
+    @Column("campaign_id")
+    private UUID campaignId;
+
+    @Column("track_name")
+    private String trackName;
+
+    @Column("sequence_order")
+    private Integer sequenceOrder;
 
     @Transient
     @Builder.Default
