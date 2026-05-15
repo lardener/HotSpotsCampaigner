@@ -1,6 +1,5 @@
 package com.hotspotscamp.api;
 
-import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
@@ -145,9 +144,8 @@ public class CampaignController {
             return Mono.error(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED, "Authentication required"));
         }
 
-        // Google OAuth 'sub' is a numeric string, not a UUID. 
-        // We generate a deterministic UUID based on the subject string.
-        UUID managerId = UUID.nameUUIDFromBytes(principal.getAttribute("sub").toString().getBytes(StandardCharsets.UTF_8));
+        // Google OAuth 'sub' is a numeric string, not a UUID. Use it directly as a String.
+        String managerId = principal.getAttribute("sub").toString();
         return campaignService.generateDoblessCampaign(managerId, employer, opponent, mission,
                 employerCategory, systemName, payRate, salvageTerms,
                 supportTerms, transportTerms, commandRights,
@@ -160,8 +158,8 @@ public class CampaignController {
         if (principal == null) {
             return reactor.core.publisher.Flux.empty();
         }
-        // Deterministic UUID based on the Google 'sub' string (Principal name)
-        UUID managerId = UUID.nameUUIDFromBytes(principal.getName().getBytes(StandardCharsets.UTF_8));
+        // Use the principal's name (which is the 'sub' for OAuth2) directly as the managerId String
+        String managerId = principal.getName();
         return campaignService.getManagedCampaigns(managerId);
     }
 

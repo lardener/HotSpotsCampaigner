@@ -55,44 +55,46 @@ const DroppableZone: React.FC<{ id: string; title: string; children: React.React
 
 type ViewMode = 'ORGANIZATION' | 'OPERATIONS';
 
-export const ForceDashboard: React.FC<{ commandId: string }> = ({ commandId }) => {
+export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMode }> = ({ commandId, initialMode = 'ORGANIZATION' }) => {
     const [units, setUnits] = useState<forceApi.CombatUnit[]>([]);
     const [pilots, setPilots] = useState<forceApi.Pilot[]>([]);
     const [detachments, setDetachments] = useState<forceApi.Detachment[]>([]);
     const [managedCampaigns, setManagedCampaigns] = useState<forceApi.CampaignSummary[]>([]);
     const [participatingCampaigns, setParticipatingCampaigns] = useState<forceApi.CampaignSummary[]>([]);
-    const [viewMode, setViewMode] = useState<ViewMode>('ORGANIZATION');
+    const [viewMode, setViewMode] = useState<ViewMode>(initialMode);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                // Explicitly type the result of Promise.all to ensure proper destructuring
-                const [assets, dets, managed, participating] = await Promise.all([
-                    forceApi.getAssets(commandId),
-                    forceApi.getDetachments(commandId),
-                    forceApi.getManagedCampaigns(),
-                    forceApi.getParticipatingCampaigns(commandId)
-                ]) as [
-                        forceApi.CommandAssetsResponse,
-                        forceApi.Detachment[],
-                        forceApi.CampaignSummary[],
-                        forceApi.CampaignSummary[]
-                    ];
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // Explicitly type the result of Promise.all to ensure proper destructuring
+            const [assets, dets, managed, participating] = await Promise.all([
+                forceApi.getAssets(commandId),
+                forceApi.getDetachments(commandId),
+                forceApi.getManagedCampaigns(),
+                forceApi.getParticipatingCampaigns(commandId)
+            ]) as [
+                    forceApi.CommandAssetsResponse,
+                    forceApi.Detachment[],
+                    forceApi.CampaignSummary[],
+                    forceApi.CampaignSummary[]
+                ];
 
-                setUnits(assets.units);
-                setPilots(assets.pilots);
-                setDetachments(dets);
-                setManagedCampaigns(managed);
-                setParticipatingCampaigns(participating);
-            } catch (err) {
-                console.error("Failed to load force data", err);
-            } finally {
-                setLoading(false);
-            }
-        };
+            setUnits(assets.units);
+            setPilots(assets.pilots);
+            setDetachments(dets);
+            setManagedCampaigns(managed);
+            setParticipatingCampaigns(participating);
+        } catch (err) {
+            console.error("Failed to load force data", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         loadData();
-    }, [commandId]);
+    }, [commandId, viewMode]);
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -113,6 +115,33 @@ export const ForceDashboard: React.FC<{ commandId: string }> = ({ commandId }) =
         } catch (err) {
             alert("Assignment failed: Asset may already be deployed.");
         }
+    };
+
+    const handleAddUnit = async () => {
+        const model = prompt("Enter Unit Model (e.g., Shadow Hawk SHD-2H):");
+        if (!model) return;
+        try {
+            await forceApi.addUnit(commandId, {
+                model,
+                tonnage: 55,
+                status: 'OPERATIONAL'
+            } as forceApi.CombatUnit);
+            loadData();
+        } catch (err) { alert("Procurement failed."); }
+    };
+
+    const handleHirePilot = async () => {
+        const name = prompt("Enter Pilot Name:");
+        if (!name) return;
+        try {
+            await forceApi.hirePilot(commandId, {
+                name,
+                gunnery: 4,
+                piloting: 5,
+                status: 'ACTIVE'
+            } as forceApi.Pilot);
+            loadData();
+        } catch (err) { alert("Contracting failed."); }
     };
 
     if (loading) return <div className="loading">INITIALIZING TACTICAL LINK...</div>;
@@ -145,7 +174,10 @@ export const ForceDashboard: React.FC<{ commandId: string }> = ({ commandId }) =
                         {/* ASSET POOL (Unassigned) */}
                         <DroppableZone id="pool" title="RESERVE POOL">
                             <div className="asset-group">
-                                <h4>COMBAT UNITS</h4>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <h4>COMBAT UNITS</h4>
+                                    <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.6rem' }}>+</button>
+                                </div>
                                 {units.filter(u => !u.detachmentId).map(u => (
                                     <DraggableAsset
                                         key={u.id}
@@ -157,7 +189,10 @@ export const ForceDashboard: React.FC<{ commandId: string }> = ({ commandId }) =
                                 ))}
                             </div>
                             <div className="asset-group">
-                                <h4>PILOT BARRACKS</h4>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <h4>PILOT BARRACKS</h4>
+                                    <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.6rem' }}>+</button>
+                                </div>
                                 {pilots.filter(p => !p.detachmentId).map(p => (
                                     <DraggableAsset
                                         key={p.id}

@@ -1,6 +1,5 @@
 package com.hotspotscamp.api;
 
-import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.UUID;
 
@@ -35,20 +34,20 @@ public class AssetController {
     }
 
     @PostMapping("/{commandId}/units")
-    public Mono<CombatUnit> addCombatUnit(@PathVariable UUID commandId, @RequestBody CombatUnit unit, Principal principal) {
-        UUID userId = UUID.nameUUIDFromBytes(principal.getName().getBytes(StandardCharsets.UTF_8));
+    public Mono<CombatUnit> addCombatUnit(@PathVariable UUID commandId, @RequestBody CombatUnit unit, Principal principal) { // NOSONAR
+        String userId = principal.getName();
         return mercenaryCommandService.addCombatUnit(commandId, unit, userId);
     }
 
     @PostMapping("/{commandId}/pilots")
-    public Mono<Pilot> hirePilot(@PathVariable UUID commandId, @RequestBody Pilot pilot, Principal principal) {
-        UUID userId = UUID.nameUUIDFromBytes(principal.getName().getBytes(StandardCharsets.UTF_8));
+    public Mono<Pilot> hirePilot(@PathVariable UUID commandId, @RequestBody Pilot pilot, Principal principal) { // NOSONAR
+        String userId = principal.getName();
         return mercenaryCommandService.hirePilot(commandId, pilot, userId);
     }
 
     @PostMapping("/assets/assign")
-    public Mono<Void> assignAsset(@RequestBody AssignAssetRequest request, Principal principal) {
-        UUID userId = UUID.nameUUIDFromBytes(principal.getName().getBytes(StandardCharsets.UTF_8));
+    public Mono<Void> assignAsset(@RequestBody AssignAssetRequest request, Principal principal) { // NOSONAR
+        String userId = principal.getName();
         return mercenaryCommandService.assignAssetToDetachment(
                 request.assetType(), request.assetId(), request.detachmentId(), userId);
     }

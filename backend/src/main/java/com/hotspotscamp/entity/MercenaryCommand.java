@@ -28,8 +28,8 @@ public class MercenaryCommand implements Persistable<UUID> {
     private UUID id;
     @Column("`name`")
     private String name;
-    @Column("`owner_id`")
-    private UUID ownerId; // Belongs to a user
+    @Column("`owner_id`") // Belongs to a user
+    private String ownerId;
     @Column("`campaign_id`")
     private UUID campaignId; // Participates in 0-1 campaigns
     @Column("`total_support_points`")

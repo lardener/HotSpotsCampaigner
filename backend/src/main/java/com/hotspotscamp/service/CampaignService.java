@@ -341,7 +341,7 @@ public class CampaignService {
     /**
      * Fetches campaigns where the user is the designated Campaign Manager.
      */
-    public Flux<ActiveCampaignSummary> getManagedCampaigns(UUID managerId) {
+    public Flux<ActiveCampaignSummary> getManagedCampaigns(String managerId) {
         return campaignRepository.findAllByManagerId(managerId)
                 .flatMap(this::mapToSummary);
     }
@@ -773,7 +773,7 @@ public class CampaignService {
      * Persists a generated campaign to the database.
      */
     @Transactional
-    public Mono<Campaign> generateDoblessCampaign(UUID managerId, String employer, String opponent, String mission,
+    public Mono<Campaign> generateDoblessCampaign(String managerId, String employer, String opponent, String mission,
             String employerCategory, String systemName, Double payRate,
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,

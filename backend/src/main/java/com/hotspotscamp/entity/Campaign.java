@@ -27,8 +27,8 @@ public class Campaign implements Persistable<UUID> {
     private UUID id;
     @Column("name")
     private String name;
-    @Column("manager_id")
-    private UUID managerId; // The user managing this campaign
+    @Column("manager_id") // The user managing this campaign
+    private String managerId;
     @Column("status")
     private String status; // e.g., "ACTIVE", "COMPLETED"
     @Column("system_name")

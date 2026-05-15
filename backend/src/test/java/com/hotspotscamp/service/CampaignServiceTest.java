@@ -118,7 +118,7 @@ public class CampaignServiceTest {
 
     @Test
     void testGenerateDoblessCampaignPersistence() {
-        UUID managerId = UUID.randomUUID();
+        String managerId = "TestUser";
 
         when(campaignRepository.save(any(Campaign.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));
         when(campaignFactionRepository.saveAll(any(Iterable.class))).thenAnswer(i -> Flux.fromIterable(i.getArgument(0)));

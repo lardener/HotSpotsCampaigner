@@ -78,7 +78,9 @@ CREATE TABLE mercenary_commands (
     `owner_id` VARCHAR(36),
     `campaign_id` VARCHAR(36),
     `total_support_points` INT DEFAULT 0,
-    `reputation` INT DEFAULT 1
+    `reputation` INT DEFAULT 1,
+    `experience_level` VARCHAR(50),
+    `commanding_officer` VARCHAR(255)
 );
 
 -- Create detachments table (Detachment.java)

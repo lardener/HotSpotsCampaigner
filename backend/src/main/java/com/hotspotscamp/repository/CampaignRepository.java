@@ -20,5 +20,5 @@ public interface CampaignRepository extends ReactiveCrudRepository<Campaign, UUI
     @Query("SELECT COUNT(*) FROM campaigns WHERE `status` = :status")
     Mono<Long> countByStatus(String status);
 
-    Flux<Campaign> findAllByManagerId(UUID managerId);
+    Flux<Campaign> findAllByManagerId(String managerId);
 }

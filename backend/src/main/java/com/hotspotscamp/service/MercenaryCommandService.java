@@ -44,6 +44,29 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Establishes a new mercenary command. Modeled on the initial setup of the
+     * Mercenary Force Record Sheet.
+     */
+    @Transactional
+    public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
+        command.setId(UUID.randomUUID());
+        // ownerId is now a String in the MercenaryCommand entity
+        command.setOwnerId(userId);
+
+        // Initial SP setup (Hinterlands default is often 1000 for a starting force)
+        if (command.getTotalSupportPoints() == null) {
+            command.setTotalSupportPoints(1000);
+        }
+
+        // Initial Reputation setup
+        if (command.getReputation() == null) {
+            command.setReputation(1);
+        }
+
+        return commandRepository.save(command);
+    }
+
+    /**
      * Recalculates and updates the Command's total Support Points (SP) by
      * summing all ledger entries across all its detachments. This ensures the
      * Command state matches the "MERCENARY CONTRACT RECORD SHEET" history.
@@ -66,7 +89,7 @@ public class MercenaryCommandService {
      * assigned elsewhere.
      */
     @Transactional
-    public Mono<Void> assignAssetToDetachment(String assetType, UUID assetId, UUID detachmentId, UUID userId) {
+    public Mono<Void> assignAssetToDetachment(String assetType, UUID assetId, UUID detachmentId, String userId) {
         String table = assetType.equalsIgnoreCase("UNIT") ? "combat_units" : "pilots";
 
         return databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id")
@@ -76,7 +99,7 @@ public class MercenaryCommandService {
                 .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
                 .flatMap(commandId -> commandRepository.findById(commandId)
                 .flatMap(cmd -> {
-                    if (!cmd.getOwnerId().equals(userId)) {
+                    if (!cmd.getOwnerId().toString().equals(userId)) {
                         return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
                     }
 
@@ -108,7 +131,7 @@ public class MercenaryCommandService {
      * Deletes a detachment and returns all assets to the command pool.
      */
     @Transactional
-    public Mono<Void> deleteDetachment(UUID detachmentId, UUID userId) {
+    public Mono<Void> deleteDetachment(UUID detachmentId, String userId) {
         return isAuthorizedToEditLedger(detachmentId, userId)
                 .flatMap(isAuthorized -> {
                     if (!isAuthorized) {
@@ -144,10 +167,10 @@ public class MercenaryCommandService {
      * Adds a new combat unit to the command's reserve pool.
      */
     @Transactional
-    public Mono<CombatUnit> addCombatUnit(UUID commandId, CombatUnit unit, UUID userId) {
+    public Mono<CombatUnit> addCombatUnit(UUID commandId, CombatUnit unit, String userId) {
         return commandRepository.findById(commandId)
                 .flatMap(cmd -> {
-                    if (!cmd.getOwnerId().equals(userId)) {
+                    if (!cmd.getOwnerId().toString().equals(userId)) {
                         return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
                     }
                     unit.setId(UUID.randomUUID());
@@ -165,10 +188,10 @@ public class MercenaryCommandService {
      * Hires a new pilot into the command's reserve pool.
      */
     @Transactional
-    public Mono<Pilot> hirePilot(UUID commandId, Pilot pilot, UUID userId) {
+    public Mono<Pilot> hirePilot(UUID commandId, Pilot pilot, String userId) {
         return commandRepository.findById(commandId)
                 .flatMap(cmd -> {
-                    if (!cmd.getOwnerId().equals(userId)) {
+                    if (!cmd.getOwnerId().toString().equals(userId)) {
                         return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
                     }
                     pilot.setId(UUID.randomUUID());
@@ -198,7 +221,7 @@ public class MercenaryCommandService {
      * command owner or the campaign manager.
      */
     @Transactional
-    public Mono<LedgerEntry> addLedgerEntry(UUID detachmentId, LedgerEntry entry, UUID userId) {
+    public Mono<LedgerEntry> addLedgerEntry(UUID detachmentId, LedgerEntry entry, String userId) {
         return isAuthorizedToEditLedger(detachmentId, userId)
                 .flatMap(isAuthorized -> {
                     if (!isAuthorized) {
@@ -219,18 +242,18 @@ public class MercenaryCommandService {
      * MercenaryCommand. 2. User manages the Campaign the detachment is
      * contracted to.
      */
-    private Mono<Boolean> isAuthorizedToEditLedger(UUID detachmentId, UUID userId) {
+    private Mono<Boolean> isAuthorizedToEditLedger(UUID detachmentId, String userId) {
         return detachmentRepository.findById(detachmentId)
                 .flatMap(detachment -> {
                     // Check if user is Command Owner
                     Mono<Boolean> isOwner = commandRepository.findById(detachment.getMercenaryCommandId())
-                            .map(cmd -> cmd.getOwnerId().equals(userId))
+                            .map(cmd -> cmd.getOwnerId().toString().equals(userId))
                             .defaultIfEmpty(false);
 
                     // Check if user is Campaign Manager
                     Mono<Boolean> isManager = contractRepository.findById(detachment.getContractId())
                             .flatMap(contract -> campaignRepository.findById(contract.getCampaignId()))
-                            .map(campaign -> campaign.getManagerId().equals(userId))
+                            .map(campaign -> campaign.getManagerId().toString().equals(userId))
                             .defaultIfEmpty(false);
 
                     return Mono.zip(isOwner, isManager).map(tuple -> tuple.getT1() || tuple.getT2());

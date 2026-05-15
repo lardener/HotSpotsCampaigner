@@ -22,7 +22,7 @@ public class DetachmentController {
 
     @DeleteMapping("/{detachmentId}")
     public Mono<Void> deleteDetachment(@PathVariable UUID detachmentId, Principal principal) {
-        UUID userId = UUID.fromString(principal.getName());
+        String userId = principal.getName();
         return mercenaryCommandService.deleteDetachment(detachmentId, userId);
     }
 }

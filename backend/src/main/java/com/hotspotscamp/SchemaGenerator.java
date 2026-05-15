@@ -91,7 +91,9 @@ public class SchemaGenerator {
         sql.append("    `owner_id` VARCHAR(36),\n");
         sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `total_support_points` INT DEFAULT 0,\n");
-        sql.append("    `reputation` INT DEFAULT 1\n");
+        sql.append("    `reputation` INT DEFAULT 1,\n");
+        sql.append("    `experience_level` VARCHAR(50),\n");
+        sql.append("    `commanding_officer` VARCHAR(255)\n");
         sql.append(");\n\n");
 
         sql.append("-- Create detachments table (Detachment.java)\n");

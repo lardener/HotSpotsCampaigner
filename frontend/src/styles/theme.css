@@ -1,0 +1,110 @@
+:root {
+    --red-primary: #c00;
+    --bg-dark: #0a0a0a;
+    --panel-bg: #151515;
+    --border-dim: #333;
+    --text-main: #e0e0e0;
+    --text-muted: #888;
+}
+
+.terminal-text {
+    font-family: 'Courier New', Courier, monospace;
+    color: var(--red-primary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px rgba(204, 0, 0, 0.3);
+}
+
+.status-bar {
+    background: #111;
+    padding: 6px 15px;
+    border-left: 4px solid var(--red-primary);
+    font-size: 0.8rem;
+    font-family: monospace;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.force-dashboard-layout {
+    color: var(--text-main);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.tactical-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-dim);
+    padding: 15px;
+    position: relative;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.zone-header {
+    font-size: 0.85rem;
+    color: var(--red-primary);
+    margin-bottom: 15px;
+    border-bottom: 1px solid #222;
+    padding-bottom: 5px;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.asset-card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: grab;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.asset-card:hover {
+    border-color: var(--red-primary);
+    background: #222;
+}
+
+.asset-type {
+    font-size: 0.6rem;
+    color: var(--red-primary);
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.asset-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.asset-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.drop-zone.active {
+    border: 1px dashed var(--red-primary);
+    background: rgba(204, 0, 0, 0.03);
+}
+
+.mode-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: var(--text-muted);
+    padding: 5px 12px;
+    font-family: monospace;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.mode-btn:hover,
+.mode-btn.active {
+    border-color: var(--red-primary);
+    color: #fff;
+    background: rgba(204, 0, 0, 0.1);
+}
