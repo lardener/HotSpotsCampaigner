@@ -67,7 +67,15 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 
 ### 2. LedgerEntryForm Component
 
-**No drop-down fields** — only text input for description and number input for Support Points amount.
+- **Endpoint**: `POST /api/ledger/{detachmentId}`
+- **Process**: Submitting a transaction triggers `MercenaryCommandService.syncTotalSupportPoints()`, which aggregates all ledger entries for the parent command to update the force-wide SP total.
+
+### 3. ActiveCampaigns Dashboard (App.tsx)
+
+- **Endpoint**: `GET /api/campaigns/active`
+- **Parameters**: `page`, `size` (Default: 5 per page)
+- **Data Transformation**: The backend joins `Campaign` and `Contract` data to provide `ActiveCampaignSummary` objects.
+- **Refresh Trigger**: The `onSaveSuccess` callback in the Generator triggers a dashboard reload.
 
 ---
 
@@ -85,9 +93,16 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 | `GET /api/campaigns/metadata/support` | `string[]` | `contractStepsTable.json` (distinct supportRights values) | ❌ No |
 | `GET /api/campaigns/metadata/transport` | `string[]` | `contractStepsTable.json` (distinct transportation values) | ❌ No |
 | `GET /api/campaigns/metadata/command` | `string[]` | `contractStepsTable.json` (distinct commandRights values) | ❌ No |
+| `GET /api/campaigns/active` | `ActiveCampaignPage` | DB (Campaigns + Contracts) | ✅ Yes |
+| `GET /api/campaigns/managed` | `ActiveCampaignSummary[]` | DB (Campaigns) | ✅ Yes |
+| `GET /api/campaigns/participating/{commandId}` | `ActiveCampaignSummary[]` | DB (Campaigns via Detachments) | ✅ Yes |
 | `GET /api/campaigns/dobless/preview` | `CampaignProposal` | Multiple tables | ✅ Yes (no drop-down, but preview) |
 | `POST /api/campaigns/dobless` | `Campaign` | Multiple tables | ✅ Yes (save) |
+| `GET /api/commands/{commandId}/assets` | `CommandAssetsResponse` | DB (Units + Pilots) | ✅ Yes |
+| `POST /api/commands/{commandId}/units` | `CombatUnit` | N/A | ✅ Yes |
+| `POST /api/commands/{commandId}/pilots` | `Pilot` | N/A | ✅ Yes |
 | `POST /api/ledger/{detachmentId}` | void | N/A | ✅ Yes (form submit) |
+| `DELETE /api/detachments/{detachmentId}` | void | N/A | ✅ Yes |
 | `GET /api/user/profile` | `Profile` | N/A | ✅ Yes (auth) |
 | `POST /api/logout` | void | N/A | ✅ Yes (logout) |
 

@@ -24,6 +24,7 @@ import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.repository.DetachmentRepository;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -40,12 +41,14 @@ public class CampaignServiceTest {
     private CampaignTrackRepository campaignTrackRepository;
     @Mock
     private ContractRepository contractRepository;
+    @Mock
+    private DetachmentRepository detachmentRepository;
 
     private CampaignService campaignService;
 
     @BeforeEach
     void setUp() throws IOException {
-        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository);
+        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository, detachmentRepository);
         campaignService.init();
     }
 

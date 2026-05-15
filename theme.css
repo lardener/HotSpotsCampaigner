@@ -1,0 +1,69 @@
+:root {
+    /* Flechs-inspired Tactical Palette */
+    --terminal-bg: #0a0b0b;
+    --terminal-green: #50fa7b;
+    --terminal-amber: #ffb86c;
+    --terminal-border: #282a36;
+    --terminal-header: #44475a;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+body {
+    background-color: var(--terminal-bg);
+    color: var(--terminal-green);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tactical-panel {
+    border: 1px solid var(--terminal-green);
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 10px rgba(80, 250, 123, 0.2);
+    padding: 1rem;
+    position: relative;
+}
+
+.tactical-panel::before {
+    content: "REF: " attr(data-id);
+    position: absolute;
+    top: -10px;
+    left: 10px;
+    background: var(--terminal-bg);
+    padding: 0 5px;
+    font-size: 0.7rem;
+}
+
+.drop-zone {
+    border: 2px dashed var(--terminal-header);
+    min-height: 100px;
+    transition: all 0.2s ease;
+}
+
+.drop-zone.active {
+    border-color: var(--terminal-amber);
+    background: rgba(255, 184, 108, 0.1);
+}
+
+.mode-switcher {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--terminal-border);
+    padding-bottom: 1rem;
+}
+
+.mode-btn {
+    background: transparent;
+    color: var(--terminal-green);
+    border: 1px solid var(--terminal-green);
+    padding: 0.5rem 1.5rem;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+    background: var(--terminal-green);
+    color: var(--terminal-bg);
+}

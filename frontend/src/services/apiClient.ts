@@ -29,3 +29,15 @@ export async function fetchVoid(path: string, options: RequestInit = {}): Promis
         throw new Error(errorText || `Request failed with status ${response.status}`);
     }
 }
+
+const apiClient = {
+    get: <T>(path: string) => fetchJson<T>(path),
+    post: <T>(path: string, body?: any) =>
+        fetchJson<T>(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        }),
+};
+
+export default apiClient;

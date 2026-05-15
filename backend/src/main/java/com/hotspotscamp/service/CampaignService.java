@@ -24,6 +24,7 @@ import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
+import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.ContractRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -41,6 +42,7 @@ public class CampaignService {
     private final CampaignFactionRepository campaignFactionRepository;
     private final CampaignTrackRepository campaignTrackRepository;
     private final ContractRepository contractRepository;
+    private final DetachmentRepository detachmentRepository;
 
     private Map<Integer, String> employerTable;
     private int employerDiceCount;
@@ -334,6 +336,50 @@ public class CampaignService {
                     log.debug("Returning page of active campaigns - count: {}, total: {}, pages: {}", list.size(), total, totalPages);
                     return new ActiveCampaignPage(list, total, totalPages);
                 }));
+    }
+
+    /**
+     * Fetches campaigns where the user is the designated Campaign Manager.
+     */
+    public Flux<ActiveCampaignSummary> getManagedCampaigns(UUID managerId) {
+        return campaignRepository.findAllByManagerId(managerId)
+                .flatMap(this::mapToSummary);
+    }
+
+    /**
+     * Fetches campaigns that the Mercenary Command is currently participating
+     * in via its detachments.
+     */
+    public Flux<ActiveCampaignSummary> getParticipatingCampaigns(UUID commandId) {
+        return detachmentRepository.findAllByMercenaryCommandId(commandId)
+                .flatMap(det -> contractRepository.findById(det.getContractId()))
+                .map(Contract::getCampaignId)
+                .distinct()
+                .flatMap(campaignRepository::findById)
+                .flatMap(this::mapToSummary);
+    }
+
+    private Mono<ActiveCampaignSummary> mapToSummary(Campaign c) {
+        return contractRepository.findAllByCampaignId(c.getId())
+                .collectList()
+                .map(contracts -> createSummary(c, contracts));
+    }
+
+    private ActiveCampaignSummary createSummary(Campaign c, List<Contract> contracts) {
+        String primary = contracts.stream()
+                .filter(contract -> Boolean.TRUE.equals(contract.getPrimaryContract()))
+                .map(Contract::getEmployerCategory).findFirst().orElse("Unknown");
+        String secondary = contracts.stream()
+                .filter(contract -> Boolean.FALSE.equals(contract.getPrimaryContract()))
+                .map(Contract::getEmployerCategory).findFirst().orElse("Unknown");
+        return new ActiveCampaignSummary(
+                c.getId(),
+                c.getName(),
+                c.getSystemName(),
+                c.getTrackCount(),
+                primary,
+                secondary
+        );
     }
 
     /**

@@ -1,12 +1,15 @@
 # Walking Skeleton: Battletech Campaign Manager
 
-This is a TDD-first walking skeleton for the Battletech Campaign Manager—a multi-tenant SaaS platform for managing Mercenaries campaigns.
+This is a TDD-first project for the Battletech Campaign Manager—a multi-tenant SaaS platform for managing Mercenaries campaigns using Chaos Campaign and Hinterlands rules.
 
 ## Features
 
 - ✅ Google OAuth2 login
 - ✅ User profile display
 - ✅ Welcome message centered on screen
+- ✅ **Random Campaign Generator**: Procedural generation of theater tracks, missions, and contracts based on Hinterlands rules.
+- ✅ **Ledger & SP Tracking**: Full Support Point (SP) lifecycle management with automated command-level synchronization.
+- ✅ **Active Deployment Dashboard**: Real-time view of ongoing mercenary contracts and sector intelligence.
 - ✅ Docker containerization for local deployment
 - ✅ Test-driven development approach
 
@@ -91,26 +94,30 @@ npm test
 ├── backend/                  # Spring Boot 3 GraphQL backend
 │   ├── src/main/java/com/hotspotscamp/
 │   │   ├── BattletechCampaignApplication.java
+│   │   ├── SchemaGenerator.java      # MySQL Schema utility
 │   │   ├── api/
+│   │   │   ├── CampaignController.java
+│   │   │   ├── LedgerController.java
 │   │   │   └── UserController.java
 │   │   ├── config/
-│   │   │   └── SecurityConfig.java
-│   │   └── entity/
-│   │       └── UserProfile.java
+│   │   │   └── SecurityConfig.java   # Reactive Security
+│   │   ├── entity/                   # R2DBC Entities (Campaign, Contract, Ledger, etc.)
+│   │   ├── repository/               # Reactive R2DBC Repositories
+│   │   └── service/                  # Business Logic (Campaign Generation, Ledger Sync)
 │   ├── src/test/java/com/hotspotscamp/api/
 │   │   └── UserControllerTest.java
 │   └── pom.xml
 ├── frontend/                 # React + TypeScript frontend
 │   ├── src/
 │   │   ├── App.tsx
-│   │   ├── components/
-│   │   │   ├── Login.tsx
-│   │   │   ├── Welcome.tsx
-│   │   │   └── Welcome.test.tsx
+│   │   ├── components/               # UI Components
+│   │   │   ├── LedgerEntryForm.tsx
+│   │   │   ├── RandomCampaignGenerator.tsx
+│   │   │   └── Welcome.tsx
+│   │   ├── services/                 # API Clients (campaignApi, ledgerApi)
 │   │   ├── styles/
 │   │   │   ├── index.css
-│   │   │   ├── login.css
-│   │   │   └── welcome.css
+│   │   │   └── ...
 │   │   └── main.tsx
 │   ├── index.html
 │   ├── package.json
@@ -128,9 +135,9 @@ npm test
 ## Architecture
 
 ### Backend (Spring Boot 3)
-- **Spring WebFlux** for reactive, non-blocking I/O
+- **Spring WebFlux** for high-concurrency, reactive, non-blocking I/O
 - **Spring Security** with OAuth2 for Google login
-- **JWT** token handling (ready for future implementation)
+- **Spring Data R2DBC** for reactive SQL persistence (MySQL)
 - **Testable controller layer** with full security context
 
 ### Frontend (React + TypeScript)
@@ -148,11 +155,10 @@ npm test
 
 From this walking skeleton, you can:
 
-1. **Add GraphQL API** — Extend the backend with Spring GraphQL
+1. **GraphQL Migration** — Transition REST endpoints to Spring GraphQL for flexible queries.
 2. **Event Sourcing** — Implement event store with PostgreSQL
-3. **Campaign CRUD** — Create, read, update delete campaign operations
 4. **Kafka Integration** — Add event streaming for multi-service architecture
-5. **Database** — Add PostgreSQL for users and campaign metadata
+5. **PostgreSQL Move** — Migrate from MySQL to PostgreSQL for advanced JSONB support.
 6. **S3 Integration** — Implement campaign snapshot storage
 7. **JavaFX Desktop App** — Build local campaign viewer
 

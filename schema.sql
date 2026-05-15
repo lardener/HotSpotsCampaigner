@@ -8,8 +8,8 @@ DROP TABLE IF EXISTS ledger_entries;
 DROP TABLE IF EXISTS detachments;
 DROP TABLE IF EXISTS mercenary_commands;
 DROP TABLE IF EXISTS contracts;
-DROP TABLE IF EXISTS combat_assets;
-DROP TABLE IF EXISTS personnel;
+DROP TABLE IF EXISTS combat_units;
+DROP TABLE IF EXISTS pilots;
 DROP TABLE IF EXISTS faction_reputations;
 DROP TABLE IF EXISTS campaign_factions;
 DROP TABLE IF EXISTS campaign_tracks;
@@ -100,34 +100,30 @@ CREATE TABLE ledger_entries (
     CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE
 );
 
--- Create combat_assets table (CombatAsset.java)
-CREATE TABLE combat_assets (
+-- Create combat_units table (CombatUnit.java)
+CREATE TABLE combat_units (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
-    `mercenary_command_id` VARCHAR(36) NOT NULL,
+    `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
-    `chassis` VARCHAR(255),
     `model` VARCHAR(255),
+    `type` VARCHAR(255),
     `tonnage` INT,
-    `battle_value` INT,
-    `point_value` INT,
-    `size` INT,
-    `tech_base` VARCHAR(255),
     `status` VARCHAR(255),
-    CONSTRAINT fk_combat_asset_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
-    CONSTRAINT fk_combat_asset_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
+    CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
+    CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
 );
 
--- Create personnel table (Personnel.java)
-CREATE TABLE personnel (
+-- Create pilots table (Pilot.java)
+CREATE TABLE pilots (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
-    `mercenary_command_id` VARCHAR(36) NOT NULL,
+    `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
     `name` VARCHAR(255),
-    `specialization` VARCHAR(255),
     `gunnery` INT,
     `piloting` INT,
-    CONSTRAINT fk_personnel_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
-    CONSTRAINT fk_personnel_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
+    `status` VARCHAR(255),
+    CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
 );
 
 -- Create faction_reputations table (FactionReputation.java)

@@ -22,8 +22,8 @@ public class SchemaGenerator {
         sql.append("DROP TABLE IF EXISTS detachments;\n");
         sql.append("DROP TABLE IF EXISTS mercenary_commands;\n");
         sql.append("DROP TABLE IF EXISTS contracts;\n");
-        sql.append("DROP TABLE IF EXISTS combat_assets;\n");
-        sql.append("DROP TABLE IF EXISTS personnel;\n");
+        sql.append("DROP TABLE IF EXISTS combat_units;\n");
+        sql.append("DROP TABLE IF EXISTS pilots;\n");
         sql.append("DROP TABLE IF EXISTS faction_reputations;\n");
         sql.append("DROP TABLE IF EXISTS campaign_factions;\n");
         sql.append("DROP TABLE IF EXISTS campaign_tracks;\n");
@@ -114,34 +114,30 @@ public class SchemaGenerator {
         sql.append("    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
-        sql.append("-- Create combat_assets table (CombatAsset.java)\n");
-        sql.append("CREATE TABLE combat_assets (\n");
+        sql.append("-- Create combat_units table (CombatUnit.java)\n");
+        sql.append("CREATE TABLE combat_units (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
-        sql.append("    `mercenary_command_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `command_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `detachment_id` VARCHAR(36),\n");
-        sql.append("    `chassis` VARCHAR(255),\n");
         sql.append("    `model` VARCHAR(255),\n");
+        sql.append("    `type` VARCHAR(255),\n");
         sql.append("    `tonnage` INT,\n");
-        sql.append("    `battle_value` INT,\n");
-        sql.append("    `point_value` INT,\n");
-        sql.append("    `size` INT,\n");
-        sql.append("    `tech_base` VARCHAR(255),\n");
         sql.append("    `status` VARCHAR(255),\n");
-        sql.append("    CONSTRAINT fk_combat_asset_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
-        sql.append("    CONSTRAINT fk_combat_asset_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
+        sql.append("    CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
+        sql.append("    CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");
 
-        sql.append("-- Create personnel table (Personnel.java)\n");
-        sql.append("CREATE TABLE personnel (\n");
+        sql.append("-- Create pilots table (Pilot.java)\n");
+        sql.append("CREATE TABLE pilots (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
-        sql.append("    `mercenary_command_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `command_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `detachment_id` VARCHAR(36),\n");
         sql.append("    `name` VARCHAR(255),\n");
-        sql.append("    `specialization` VARCHAR(255),\n");
         sql.append("    `gunnery` INT,\n");
         sql.append("    `piloting` INT,\n");
-        sql.append("    CONSTRAINT fk_personnel_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
-        sql.append("    CONSTRAINT fk_personnel_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
+        sql.append("    `status` VARCHAR(255),\n");
+        sql.append("    CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
+        sql.append("    CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");
 
         sql.append("-- Create faction_reputations table (FactionReputation.java)\n");

@@ -1,18 +1,24 @@
 package com.hotspotscamp.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
+import com.hotspotscamp.entity.Pilot;
 import com.hotspotscamp.repository.CampaignRepository;
+import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
+import com.hotspotscamp.repository.PilotRepository;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
@@ -26,6 +32,16 @@ public class MercenaryCommandService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final CampaignRepository campaignRepository;
     private final ContractRepository contractRepository;
+    private final CombatUnitRepository combatUnitRepository;
+    private final PilotRepository pilotRepository;
+    private final DatabaseClient databaseClient;
+
+    /**
+     * DTO for returning all assets belonging to a command.
+     */
+    public record CommandAssetsResponse(List<CombatUnit> units, List<Pilot> pilots) {
+
+    }
 
     /**
      * Recalculates and updates the Command's total Support Points (SP) by
@@ -43,6 +59,138 @@ public class MercenaryCommandService {
                     command.setTotalSupportPoints(totalSp);
                     return commandRepository.save(command);
                 }));
+    }
+
+    /**
+     * Assigns a unit or pilot to a detachment. Ensures the asset is not already
+     * assigned elsewhere.
+     */
+    @Transactional
+    public Mono<Void> assignAssetToDetachment(String assetType, UUID assetId, UUID detachmentId, UUID userId) {
+        String table = assetType.equalsIgnoreCase("UNIT") ? "combat_units" : "pilots";
+
+        return databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id")
+                .bind("id", assetId)
+                .map((row, metadata) -> row.get("command_id", UUID.class))
+                .one()
+                .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
+                .flatMap(commandId -> commandRepository.findById(commandId)
+                .flatMap(cmd -> {
+                    if (!cmd.getOwnerId().equals(userId)) {
+                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+                    }
+
+                    if (detachmentId != null) {
+                        return detachmentRepository.findById(detachmentId)
+                                .switchIfEmpty(Mono.error(new RuntimeException("Detachment not found")))
+                                .flatMap(det -> {
+                                    if (!det.getMercenaryCommandId().equals(cmd.getId())) {
+                                        return Mono.error(new RuntimeException("Access Denied: Detachment belongs to another command."));
+                                    }
+                                    return Mono.just(true);
+                                });
+                    }
+                    return Mono.just(true);
+                })
+                .flatMap(authorized -> {
+                    var spec = databaseClient.sql("UPDATE " + table + " SET detachment_id = :detId WHERE id = :id")
+                            .bind("id", assetId);
+                    if (detachmentId == null) {
+                        spec = spec.bindNull("detId", UUID.class);
+                    } else {
+                        spec = spec.bind("detId", detachmentId);
+                    }
+                    return spec.fetch().rowsUpdated().then();
+                }));
+    }
+
+    /**
+     * Deletes a detachment and returns all assets to the command pool.
+     */
+    @Transactional
+    public Mono<Void> deleteDetachment(UUID detachmentId, UUID userId) {
+        return isAuthorizedToEditLedger(detachmentId, userId)
+                .flatMap(isAuthorized -> {
+                    if (!isAuthorized) {
+                        return Mono.error(new RuntimeException("Access Denied: You are not authorized to delete this detachment."));
+                    }
+                    return detachmentRepository.findById(detachmentId)
+                            .flatMap(detachment -> {
+                                UUID commandId = detachment.getMercenaryCommandId();
+                                return Mono.when(
+                                        databaseClient.sql("UPDATE combat_units SET detachment_id = NULL WHERE detachment_id = :id")
+                                                .bind("id", detachmentId).then(),
+                                        databaseClient.sql("UPDATE pilots SET detachment_id = NULL WHERE detachment_id = :id")
+                                                .bind("id", detachmentId).then(),
+                                        databaseClient.sql("DELETE FROM ledger_entries WHERE detachment_id = :id")
+                                                .bind("id", detachmentId).then(),
+                                        detachmentRepository.deleteById(detachmentId)
+                                ).then(syncTotalSupportPoints(commandId)).then();
+                            });
+                });
+    }
+
+    /**
+     * Fetches all units and pilots for a given command.
+     */
+    public Mono<CommandAssetsResponse> getAssetsByCommandId(UUID commandId) {
+        return Mono.zip(
+                combatUnitRepository.findAllByCommandId(commandId).collectList(),
+                pilotRepository.findAllByCommandId(commandId).collectList()
+        ).map(tuple -> new CommandAssetsResponse(tuple.getT1(), tuple.getT2()));
+    }
+
+    /**
+     * Adds a new combat unit to the command's reserve pool.
+     */
+    @Transactional
+    public Mono<CombatUnit> addCombatUnit(UUID commandId, CombatUnit unit, UUID userId) {
+        return commandRepository.findById(commandId)
+                .flatMap(cmd -> {
+                    if (!cmd.getOwnerId().equals(userId)) {
+                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+                    }
+                    unit.setId(UUID.randomUUID());
+                    unit.setCommandId(commandId);
+                    unit.setDetachmentId(null); // Ensure it starts in the pool
+                    if (unit.getStatus() == null) {
+                        unit.setStatus("OPERATIONAL");
+                    }
+
+                    return combatUnitRepository.save(unit);
+                });
+    }
+
+    /**
+     * Hires a new pilot into the command's reserve pool.
+     */
+    @Transactional
+    public Mono<Pilot> hirePilot(UUID commandId, Pilot pilot, UUID userId) {
+        return commandRepository.findById(commandId)
+                .flatMap(cmd -> {
+                    if (!cmd.getOwnerId().equals(userId)) {
+                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+                    }
+                    pilot.setId(UUID.randomUUID());
+                    pilot.setCommandId(commandId);
+                    pilot.setDetachmentId(null); // Ensure they start in the barracks
+                    if (pilot.getStatus() == null) {
+                        pilot.setStatus("ACTIVE");
+                    }
+
+                    return pilotRepository.save(pilot);
+                });
+    }
+
+    /**
+     * Reputation logic: success/failure updates the parent command.
+     */
+    public Mono<Void> updateReputation(UUID commandId, int modifier) {
+        return commandRepository.findById(commandId)
+                .flatMap(cmd -> {
+                    cmd.setReputation(Math.max(0, cmd.getReputation() + modifier));
+                    return commandRepository.save(cmd);
+                }).then();
     }
 
     /**

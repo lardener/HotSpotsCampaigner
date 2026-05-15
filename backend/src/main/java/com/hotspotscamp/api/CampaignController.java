@@ -1,6 +1,7 @@
 package com.hotspotscamp.api;
 
 import java.nio.charset.StandardCharsets;
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -8,6 +9,7 @@ import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.ActiveCampaignPage;
+import com.hotspotscamp.service.CampaignService.ActiveCampaignSummary;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 
 import lombok.RequiredArgsConstructor;
@@ -150,5 +153,20 @@ public class CampaignController {
                 supportTerms, transportTerms, commandRights,
                 payStep, salvageStep, supportStep, transportStep, commandStep,
                 trackCount);
+    }
+
+    @GetMapping("/managed")
+    public reactor.core.publisher.Flux<ActiveCampaignSummary> getManagedCampaigns(Principal principal) {
+        if (principal == null) {
+            return reactor.core.publisher.Flux.empty();
+        }
+        // Deterministic UUID based on the Google 'sub' string (Principal name)
+        UUID managerId = UUID.nameUUIDFromBytes(principal.getName().getBytes(StandardCharsets.UTF_8));
+        return campaignService.getManagedCampaigns(managerId);
+    }
+
+    @GetMapping("/participating/{commandId}")
+    public reactor.core.publisher.Flux<ActiveCampaignSummary> getParticipatingCampaigns(@PathVariable UUID commandId) {
+        return campaignService.getParticipatingCampaigns(commandId);
     }
 }
