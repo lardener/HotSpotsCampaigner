@@ -58,6 +58,12 @@ export const getAssets = (commandId: string): Promise<CommandAssetsResponse> =>
 export const getCommands = (): Promise<any[]> =>
     apiClient.get<any[]>(`/api/commands`);
 
+export const deleteCommand = (commandId: string, force: boolean = false): Promise<void> =>
+    apiClient.delete(`/api/commands/${commandId}?force=${force}`);
+
+export const deleteDetachment = (detachmentId: string): Promise<void> =>
+    apiClient.delete(`/api/commands/detachments/${detachmentId}`);
+
 export const createCommand = (command: Partial<MercenaryCommand>): Promise<MercenaryCommand> =>
     apiClient.post<MercenaryCommand>(`/api/commands`, command);
 

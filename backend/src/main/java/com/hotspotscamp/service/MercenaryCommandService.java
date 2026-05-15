@@ -20,7 +20,6 @@ import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
-import com.hotspotscamp.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -37,7 +36,6 @@ public class MercenaryCommandService {
     private final ContractRepository contractRepository;
     private final CombatUnitRepository combatUnitRepository;
     private final PilotRepository pilotRepository;
-    private final UserRepository userRepository;
     private final UserService userService;
     private final DatabaseClient databaseClient;
 
@@ -57,6 +55,30 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Deletes a mercenary command. If it has active campaign participations
+     * (detachments), requires the force flag.
+     */
+    @Transactional
+    public Mono<Void> deleteCommand(UUID commandId, String userId, boolean force) {
+        return userService.resolveOrCreateUser(userId)
+                .flatMap(user -> commandRepository.findById(commandId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Command not found")))
+                .flatMap(cmd -> {
+                    if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+                    }
+
+                    return detachmentRepository.findAllByMercenaryCommandId(commandId).collectList()
+                            .flatMap(detachments -> {
+                                if (!detachments.isEmpty() && !force) {
+                                    return Mono.error(new RuntimeException("WARNING_ACTIVE_CAMPAIGN"));
+                                }
+                                return commandRepository.delete(cmd);
+                            });
+                }));
+    }
+
+    /**
      * Establishes a new mercenary command. Modeled on the initial setup of the
      * Mercenary Force Record Sheet.
      */
@@ -67,14 +89,23 @@ public class MercenaryCommandService {
                     command.setId(UUID.randomUUID());
                     command.setOwnerId(user.getId().toString());
 
+                    // Set Commanding Officer from user profile if not provided
+                    if (command.getCommandingOfficer() == null || command.getCommandingOfficer().isEmpty()) {
+                        String fallback = user.getDisplayName() != null ? user.getDisplayName() : "Senior Commander";
+                        command.setCommandingOfficer(fallback);
+                    }
+
                     // Initial SP setup (Hinterlands default is often 1000 for a starting force)
                     if (command.getTotalSupportPoints() == null) {
                         command.setTotalSupportPoints(1000);
                     }
 
-                    // Initial Reputation setup
+                    // Initial Reputation and Experience setup
                     if (command.getReputation() == null) {
                         command.setReputation(1);
+                    }
+                    if (command.getExperienceLevel() == null) {
+                        command.setExperienceLevel("Green");
                     }
 
                     return commandRepository.save(command);

@@ -26,20 +26,27 @@ public class MercenaryCommand implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("`name`")
+    @Column("name")
     private String name;
-    @Column("`owner_id`") // Belongs to a user
+    @Column("owner_id") // Belongs to a user
     private String ownerId;
-    @Column("`campaign_id`")
+    @Column("campaign_id")
     private UUID campaignId; // Participates in 0-1 campaigns
-    @Column("`total_support_points`")
+    @Column("total_support_points")
     private Integer totalSupportPoints; // Derived from ledger entries
+
+    @Builder.Default
+    @Column("experience_level")
+    private String experienceLevel = "Green";
+
+    @Column("commanding_officer")
+    private String commandingOfficer;
 
     /**
      * Reputation starts at 1 per Hinterlands rules.
      */
     @Builder.Default
-    @Column("`reputation`")
+    @Column("reputation")
     private Integer reputation = 1;
 
     @Transient

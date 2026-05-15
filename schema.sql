@@ -110,7 +110,7 @@ CREATE TABLE detachments (
     `mercenary_command_id` VARCHAR(36) NOT NULL,
     `contract_id` VARCHAR(36) NOT NULL,
     `name` VARCHAR(255),
-    CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id),
+    CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_detachment_contract FOREIGN KEY (contract_id) REFERENCES contracts(id)
 );
 

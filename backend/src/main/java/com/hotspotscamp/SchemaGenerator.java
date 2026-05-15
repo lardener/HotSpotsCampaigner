@@ -123,7 +123,7 @@ public class SchemaGenerator {
         sql.append("    `mercenary_command_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `contract_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `name` VARCHAR(255),\n");
-        sql.append("    CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id),\n");
+        sql.append("    CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_detachment_contract FOREIGN KEY (contract_id) REFERENCES contracts(id)\n");
         sql.append(");\n\n");
 

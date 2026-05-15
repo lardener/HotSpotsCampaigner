@@ -17,7 +17,9 @@ export async function fetchJson<T>(path: string, options: RequestInit = {}): Pro
     const response = await fetch(buildApiUrl(path), { credentials: 'include', ...options });
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `Request failed with status ${response.status}`);
+        const error = new Error(errorText || `Request failed with status ${response.status}`);
+        (error as any).status = response.status;
+        throw error;
     }
     return (await response.json()) as T;
 }
@@ -26,7 +28,9 @@ export async function fetchVoid(path: string, options: RequestInit = {}): Promis
     const response = await fetch(buildApiUrl(path), { credentials: 'include', ...options });
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || `Request failed with status ${response.status}`);
+        const error = new Error(errorText || `Request failed with status ${response.status}`);
+        (error as any).status = response.status;
+        throw error;
     }
 }
 
@@ -38,6 +42,7 @@ const apiClient = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         }),
+    delete: (path: string) => fetchVoid(path, { method: 'DELETE' }),
 };
 
 export default apiClient;

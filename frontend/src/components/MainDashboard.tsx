@@ -20,6 +20,29 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     const [loading, setLoading] = useState(false);
     const [isCreatingCommand, setIsCreatingCommand] = useState(false);
 
+    const handleDeleteCommand = async (commandId: string, force = false) => {
+        if (!force && !window.confirm("ARE YOU SURE YOU WANT TO SCRAP THIS COMMAND? THIS ACTION IS IRREVERSIBLE.")) {
+            return;
+        }
+
+        try {
+            await forceApi.deleteCommand(commandId, force);
+            if (selectedCommandId === commandId) {
+                setSelectedCommandId(null);
+            }
+            fetchCommands();
+        } catch (err: any) {
+            if (err.status === 409) {
+                if (window.confirm("WARNING: THIS COMMAND HAS ACTIVE DETACHMENTS IN ONGOING CAMPAIGNS. DELETING WILL FORCE THEIR WITHDRAWAL. PROCEED?")) {
+                    handleDeleteCommand(commandId, true);
+                }
+            } else {
+                console.error("Failed to delete command", err);
+                alert("COMMUNICATIONS FAILURE: UNABLE TO SCRAP COMMAND.");
+            }
+        }
+    };
+
     const fetchCommands = async () => {
         setLoading(true);
         try {
@@ -168,6 +191,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                                 onClick={(e) => { e.stopPropagation(); }}
                                             >
                                                 UNIT PROFILE
+                                            </button>
+                                            <button
+                                                className="mode-btn"
+                                                style={{ marginLeft: 'auto', border: '1px solid #c00', color: '#c00' }}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteCommand(cmd.id); }}
+                                            >
+                                                SCRAP UNIT
                                             </button>
                                         </div>
                                     )}
