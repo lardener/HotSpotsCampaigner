@@ -383,7 +383,7 @@ public class CampaignService {
 
         // Ensure the campaign name and primary contract mission type are derived from the same empMission string
         Campaign campaign = Campaign.builder()
-                .name("DOBLESS OP: " + empMission.toUpperCase() + " [" + finalEmp + "]")
+                .name(finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
                 .trackCount(finalTracksCount)
                 .status("PREVIEW")

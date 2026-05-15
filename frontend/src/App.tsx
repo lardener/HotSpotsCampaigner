@@ -40,7 +40,7 @@ export function App() {
       }
 
       try {
-        campaignList = await campaignApi.getActiveCampaigns(0, 10);
+        campaignList = await campaignApi.getActiveCampaigns(0, 5);
         setActiveCampaigns(campaignList.content);
         setTotalPages(campaignList.totalPages);
       } catch (error) {
@@ -57,7 +57,7 @@ export function App() {
     const fetchPage = async () => {
       setListLoading(true);
       try {
-        const campaignList = await campaignApi.getActiveCampaigns(page, 10);
+        const campaignList = await campaignApi.getActiveCampaigns(page, 5);
         setActiveCampaigns(campaignList.content);
         setTotalPages(campaignList.totalPages);
       } catch (err) {

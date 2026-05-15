@@ -45,6 +45,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [proposal, setProposal] = useState<Proposal | null>(null);
+    const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
     const [saved, setSaved] = useState(false);
 
     useEffect(() => {
@@ -113,6 +114,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         setLoading(true);
         setSaved(false);
         setPreviewError(null);
+        setIsNameManuallyEdited(false);
 
         try {
             const params = getQueryParams();
@@ -148,7 +150,18 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const updateProposalCampaign = async (field: keyof Proposal['campaign'], value: string | number) => {
         if (!proposal) return;
 
+        if (field === 'name') {
+            setIsNameManuallyEdited(true);
+        }
+
         const updatedCampaign = { ...proposal.campaign, [field]: value };
+
+        if (field === 'systemName' && !isNameManuallyEdited) {
+            const primary = proposal.contracts[0];
+            const employerFaction = primary.employerCategory.split(': ')[0];
+            updatedCampaign.name = `${String(value).toUpperCase()}: OP ${primary.missionType.toUpperCase()} [${employerFaction}]`;
+        }
+
         let updatedTracks = [...proposal.tracks];
 
         if (field === 'trackCount') {
@@ -208,13 +221,13 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
 
         // If the primary contract mission changes, update the campaign name to match
         let updatedCampaign = { ...proposal.campaign };
-        if (index === 0 && (field === 'missionType' || field === 'employerCategory')) {
+        if (!isNameManuallyEdited && index === 0 && (field === 'missionType' || field === 'employerCategory')) {
             const mission = field === 'missionType' ? String(value) : contractToUpdate.missionType;
             const employerStr = field === 'employerCategory' ? String(value) : contractToUpdate.employerCategory;
             const employerParts = employerStr.split(': ');
             const employerFaction = employerParts[0];
 
-            updatedCampaign.name = `DOBLESS OP: ${mission.toUpperCase()} [${employerFaction}]`;
+            updatedCampaign.name = `${updatedCampaign.systemName.toUpperCase()}: OP ${mission.toUpperCase()} [${employerFaction}]`;
         }
 
         setProposal({
@@ -268,7 +281,23 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             {proposal && (
                 <div className="proposal-view" style={{ marginTop: '30px' }}>
                     <div className="campaign-summary-header" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.1)', borderLeft: '4px solid #c00' }}>
-                        <h3 className="section-title">DOBLESS INTEL: {proposal.campaign.name}</h3>
+                        <h3 className="section-title">
+                            DOBLESS INTEL:
+                            <input
+                                type="text"
+                                value={proposal.campaign.name}
+                                onChange={(e) => updateProposalCampaign('name', e.target.value)}
+                                style={{
+                                    marginLeft: '10px',
+                                    width: '60%',
+                                    fontSize: '0.9em',
+                                    color: '#c00',
+                                    backgroundColor: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid #c00',
+                                    padding: '2px 8px'
+                                }}
+                            />
+                        </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                             <div><strong>SYSTEM:</strong> <input type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} style={{ width: '100%' }} /></div>
                             <div><strong>TRACKS:</strong> <input type="number" value={proposal.campaign.trackCount} onChange={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value))} style={{ width: '60px' }} /></div>

@@ -57,7 +57,7 @@ export interface Profile {
     name: string;
 }
 
-export const getActiveCampaigns = async (page: number = 0, size: number = 10): Promise<ActiveCampaignPage> => {
+export const getActiveCampaigns = async (page: number = 0, size: number = 5): Promise<ActiveCampaignPage> => {
     const query = new URLSearchParams({ page: String(page), size: String(size) });
     return fetchJson<ActiveCampaignPage>(`/api/campaigns/active?${query.toString()}`);
 };

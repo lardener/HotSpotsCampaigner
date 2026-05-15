@@ -77,4 +77,46 @@ describe('RandomCampaignGenerator', () => {
             expect(screen.getByText('AUTHENTICATION REQUIRED TO PERSIST CAMPAIGN DATA')).toBeInTheDocument();
         });
     });
+
+    it('does not regenerate campaign name if manually edited', async () => {
+        const mockProposal = {
+            campaign: { name: 'SOLARIS: OP RAID [DAVION]', systemName: 'Solaris', trackCount: 2 },
+            contracts: [
+                { 
+                    primaryContract: true, 
+                    employerCategory: 'House: Davion', 
+                    missionType: 'Raid',
+                    payRate: 1.0, payStep: 7, salvageTerms: 'None', salvageStep: 7,
+                    supportTerms: 'None', supportStep: 7, transportTerms: 'None', transportStep: 7,
+                    commandRights: 'None', commandStep: 7, trackCount: 2
+                },
+                { 
+                    primaryContract: false, 
+                    employerCategory: 'House: Kurita', 
+                    missionType: 'Garrison',
+                    payRate: 1.0, payStep: 7, salvageTerms: 'None', salvageStep: 7,
+                    supportTerms: 'None', supportStep: 7, transportTerms: 'None', transportStep: 7,
+                    commandRights: 'None', commandStep: 7, trackCount: 2
+                }
+            ],
+            tracks: ['Assault', 'Battle']
+        };
+
+        (campaignApi.getMissions as any).mockResolvedValue({ primary: ['Raid', 'Invasion'], opponent: ['Garrison'] });
+        (campaignApi.previewCampaign as any).mockResolvedValue(mockProposal);
+
+        render(<RandomCampaignGenerator user={{ name: 'Commander' }} />);
+        fireEvent.click(screen.getByText('GENERATE CONTRACT OFFERS'));
+
+        await waitFor(() => screen.getByDisplayValue('SOLARIS: OP RAID [DAVION]'));
+
+        const nameInput = screen.getByDisplayValue('SOLARIS: OP RAID [DAVION]');
+        fireEvent.change(nameInput, { target: { value: 'Custom Name' } });
+
+        // Change mission type - should normally trigger name change
+        const missionSelect = screen.getByDisplayValue('Raid');
+        fireEvent.change(missionSelect, { target: { value: 'Invasion' } });
+
+        expect(screen.getByDisplayValue('Custom Name')).toBeInTheDocument();
+    });
 });

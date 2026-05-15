@@ -104,7 +104,7 @@ public class CampaignServiceTest {
         when(campaignRepository.findAllByStatus(anyString(), anyInt(), anyInt())).thenReturn(Flux.just(campaign));
         when(contractRepository.findAllByCampaignId(campaignId)).thenReturn(Flux.empty());
 
-        StepVerifier.create(campaignService.getActiveCampaigns(0, 10))
+        StepVerifier.create(campaignService.getActiveCampaigns(0, 5))
                 .assertNext(page -> {
                     assertEquals(1, page.content().size());
                     assertEquals("Test Campaign", page.content().get(0).name());

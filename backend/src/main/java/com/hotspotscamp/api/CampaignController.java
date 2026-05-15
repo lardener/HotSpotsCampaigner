@@ -31,7 +31,7 @@ public class CampaignController {
     @GetMapping("/active")
     public Mono<ActiveCampaignPage> getActiveCampaigns(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "5") int size) {
         return campaignService.getActiveCampaigns(page, size);
     }
 
