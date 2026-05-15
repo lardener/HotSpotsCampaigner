@@ -121,16 +121,77 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 return (
                     <div className="container">
                         <header className="dashboard-header">
-                            <h1 className="terminal-text">FORCE ORGANIZATION</h1>
+                            <h1 className="terminal-text">MERCENARY REGISTRY</h1>
                         </header>
-                        {selectedCommandId ? (
-                            <ForceDashboard commandId={selectedCommandId} initialMode="ORGANIZATION" />
-                        ) : (
-                            <div className="placeholder-content">
-                                <p>No commands found. Create your first mercenary unit to begin.</p>
-                                <button className="login-button" onClick={() => setIsCreatingCommand(true)}>ESTABLISH NEW COMMAND</button>
+                        <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
+                            {commands.map(cmd => (
+                                <div
+                                    key={cmd.id}
+                                    className={`dashboard-section ${selectedCommandId === cmd.id ? 'active-command-panel' : ''}`}
+                                    onClick={() => setSelectedCommandId(cmd.id)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        border: selectedCommandId === cmd.id ? '2px solid #c00' : '1px solid #444',
+                                        transition: 'all 0.2s ease-in-out',
+                                        backgroundColor: selectedCommandId === cmd.id ? 'rgba(192, 0, 0, 0.05)' : 'transparent',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h3 className="section-title" style={{ margin: 0 }}>{cmd.name || 'UNNAMED UNIT'}</h3>
+                                        {selectedCommandId === cmd.id && <span className="restricted-text" style={{ color: '#c00' }}>[ ACTIVE COMMAND ]</span>}
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMANDING OFFICER</span> {cmd.commandingOfficer || 'UNKNOWN'}</div>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SUPPORT POINTS</span> {cmd.totalSupportPoints || 0}</div>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div>
+                                    </div>
+
+                                    {selectedCommandId === cmd.id && (
+                                        <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px', display: 'flex', gap: '10px' }}>
+                                            <button
+                                                className="mode-btn"
+                                                onClick={(e) => { e.stopPropagation(); setActiveTab('my-campaigns'); }}
+                                            >
+                                                VIEW OPERATIONS
+                                            </button>
+                                            <button
+                                                className="mode-btn"
+                                                onClick={(e) => { e.stopPropagation(); setActiveTab('ledger'); }}
+                                            >
+                                                OPEN LEDGER
+                                            </button>
+                                            <button
+                                                className="mode-btn"
+                                                style={{ opacity: 0.6 }}
+                                                onClick={(e) => { e.stopPropagation(); }}
+                                            >
+                                                UNIT PROFILE
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+
+                            <div
+                                className="dashboard-section"
+                                onClick={() => setIsCreatingCommand(true)}
+                                style={{
+                                    cursor: 'pointer',
+                                    border: '1px dashed #666',
+                                    textAlign: 'center',
+                                    padding: '30px',
+                                    opacity: 0.7,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <h3 className="terminal-text" style={{ margin: 0 }}>+ ESTABLISH NEW MERCENARY COMMAND</h3>
                             </div>
-                        )}
+                        </div>
                     </div>
                 );
             case 'ledger':

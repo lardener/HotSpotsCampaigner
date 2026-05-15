@@ -1,11 +1,13 @@
 package com.hotspotscamp.api;
 
+import java.security.Principal;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +17,7 @@ import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.service.MercenaryCommandService;
 
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -23,6 +26,11 @@ import reactor.core.publisher.Mono;
 public class MercenaryCommandController {
 
     private final MercenaryCommandService mercenaryCommandService;
+
+    @GetMapping
+    public Flux<MercenaryCommand> getMyCommands(Principal principal) {
+        return mercenaryCommandService.getCommandsByUser(principal.getName());
+    }
 
     @PostMapping
     public Mono<ResponseEntity<MercenaryCommand>> createCommand(

@@ -47,6 +47,7 @@ public class CampaignService {
     private final ContractRepository contractRepository;
     private final DetachmentRepository detachmentRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     private Map<Integer, String> employerTable;
     private int employerDiceCount;
@@ -774,25 +775,6 @@ public class CampaignService {
     }
 
     /**
-     * Resolves an external identity (Google Sub or UUID string) to an internal
-     * User entity. If the user is authenticated via Google but has no record,
-     * one is created.
-     */
-    private Mono<User> resolveOrCreateUser(String identity) {
-        return userRepository.findByExternalId(identity)
-                .switchIfEmpty(Mono.defer(() -> {
-                    try {
-                        return userRepository.findById(UUID.fromString(identity));
-                    } catch (IllegalArgumentException e) {
-                        return Mono.empty();
-                    }
-                }))
-                .switchIfEmpty(userRepository.save(User.builder()
-                        .id(UUID.randomUUID()).externalId(identity)
-                        .role("ROLE_AUTHENTICATED").isNew(true).build()));
-    }
-
-    /**
      * Persists a generated campaign to the database.
      */
     @Transactional
@@ -802,7 +784,7 @@ public class CampaignService {
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
             Integer trackCount) {
 
-        return resolveOrCreateUser(managerId)
+        return userService.resolveOrCreateUser(managerId)
                 .flatMap(user -> {
                     if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
                         return Mono.error(new org.springframework.web.server.ResponseStatusException(

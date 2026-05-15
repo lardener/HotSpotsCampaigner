@@ -116,6 +116,7 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 | `POST /api/auth/invite/login` | `User` | DB (app_users) | 🆕 Planned |
 | `GET /api/campaigns/dobless/preview` | `CampaignProposal` | Multiple tables | ✅ Yes (no drop-down, but preview) |
 | `POST /api/campaigns/dobless` | `Campaign` | Multiple tables | ✅ Yes (save) |
+| `GET /api/commands` | `MercenaryCommand[]` | DB (mercenary_commands) | ✅ Yes |
 | `GET /api/commands/{commandId}/assets` | `CommandAssetsResponse` | DB (Units + Pilots) | ✅ Yes |
 | `POST /api/commands/{commandId}/units` | `CombatUnit` | N/A | ✅ Yes |
 | `POST /api/commands/{commandId}/pilots` | `Pilot` | N/A | ✅ Yes |

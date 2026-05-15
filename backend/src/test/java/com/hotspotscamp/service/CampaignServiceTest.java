@@ -47,12 +47,14 @@ public class CampaignServiceTest {
     private DetachmentRepository detachmentRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private UserService userService;
 
     private CampaignService campaignService;
 
     @BeforeEach
     void setUp() throws IOException {
-        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository, detachmentRepository, userRepository);
+        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository, detachmentRepository, userRepository, userService);
         campaignService.init();
     }
 
@@ -130,8 +132,7 @@ public class CampaignServiceTest {
                 .role("ROLE_AUTHENTICATED")
                 .build();
 
-        when(userRepository.findByExternalId(managerId)).thenReturn(Mono.empty());
-        when(userRepository.findById(managerUuid)).thenReturn(Mono.just(mockUser));
+        when(userService.resolveOrCreateUser(managerId)).thenReturn(Mono.just(mockUser));
         when(campaignRepository.save(any(Campaign.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));
         when(campaignFactionRepository.saveAll(any(Iterable.class))).thenAnswer(i -> Flux.fromIterable(i.getArgument(0)));
         when(contractRepository.save(any(Contract.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));

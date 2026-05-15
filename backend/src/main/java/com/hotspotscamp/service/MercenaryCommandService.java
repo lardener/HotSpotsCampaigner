@@ -23,6 +23,7 @@ import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -37,6 +38,7 @@ public class MercenaryCommandService {
     private final CombatUnitRepository combatUnitRepository;
     private final PilotRepository pilotRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
     private final DatabaseClient databaseClient;
 
     /**
@@ -47,22 +49,11 @@ public class MercenaryCommandService {
     }
 
     /**
-     * Resolves an external identity (Google Sub or UUID string) to an internal
-     * User entity. If the user is authenticated via Google but has no record,
-     * one is created.
+     * Fetches all mercenary commands belonging to the current user.
      */
-    private Mono<User> resolveOrCreateUser(String identity) {
-        return userRepository.findByExternalId(identity)
-                .switchIfEmpty(Mono.defer(() -> {
-                    try {
-                        return userRepository.findById(UUID.fromString(identity));
-                    } catch (IllegalArgumentException e) {
-                        return Mono.empty();
-                    }
-                }))
-                .switchIfEmpty(userRepository.save(User.builder()
-                        .id(UUID.randomUUID()).externalId(identity)
-                        .role("ROLE_AUTHENTICATED").isNew(true).build()));
+    public Flux<MercenaryCommand> getCommandsByUser(String userId) {
+        return userService.resolveOrCreateUser(userId)
+                .flatMapMany(user -> commandRepository.findAllByOwnerId(user.getId().toString()));
     }
 
     /**
@@ -71,7 +62,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
-        return resolveOrCreateUser(userId)
+        return userService.resolveOrCreateUser(userId)
                 .flatMap(user -> {
                     command.setId(UUID.randomUUID());
                     command.setOwnerId(user.getId().toString());
@@ -122,8 +113,8 @@ public class MercenaryCommandService {
                 .one()
                 .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
                 .flatMap(commandId -> commandRepository.findById(commandId)
-                .flatMap(cmd -> resolveOrCreateUser(userId).flatMap(user -> {
-            if (!cmd.getOwnerId().toString().equals(userId)) {
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
                 return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
             }
 
@@ -193,19 +184,19 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<CombatUnit> addCombatUnit(UUID commandId, CombatUnit unit, String userId) {
         return commandRepository.findById(commandId)
-                .flatMap(cmd -> {
-                    if (!cmd.getOwnerId().toString().equals(userId)) {
-                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
-                    }
-                    unit.setId(UUID.randomUUID());
-                    unit.setCommandId(commandId);
-                    unit.setDetachmentId(null); // Ensure it starts in the pool
-                    if (unit.getStatus() == null) {
-                        unit.setStatus("OPERATIONAL");
-                    }
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+            }
+            unit.setId(UUID.randomUUID());
+            unit.setCommandId(commandId);
+            unit.setDetachmentId(null); // Ensure it starts in the pool
+            if (unit.getStatus() == null) {
+                unit.setStatus("OPERATIONAL");
+            }
 
-                    return combatUnitRepository.save(unit);
-                });
+            return combatUnitRepository.save(unit);
+        }));
     }
 
     /**
@@ -214,19 +205,19 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Pilot> hirePilot(UUID commandId, Pilot pilot, String userId) {
         return commandRepository.findById(commandId)
-                .flatMap(cmd -> {
-                    if (!cmd.getOwnerId().toString().equals(userId)) {
-                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
-                    }
-                    pilot.setId(UUID.randomUUID());
-                    pilot.setCommandId(commandId);
-                    pilot.setDetachmentId(null); // Ensure they start in the barracks
-                    if (pilot.getStatus() == null) {
-                        pilot.setStatus("ACTIVE");
-                    }
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+            }
+            pilot.setId(UUID.randomUUID());
+            pilot.setCommandId(commandId);
+            pilot.setDetachmentId(null); // Ensure they start in the barracks
+            if (pilot.getStatus() == null) {
+                pilot.setStatus("ACTIVE");
+            }
 
-                    return pilotRepository.save(pilot);
-                });
+            return pilotRepository.save(pilot);
+        }));
     }
 
     /**
@@ -267,7 +258,7 @@ public class MercenaryCommandService {
      * contracted to.
      */
     private Mono<Boolean> isAuthorizedToEditLedger(UUID detachmentId, String userId) {
-        return resolveOrCreateUser(userId).flatMap(user -> {
+        return userService.resolveOrCreateUser(userId).flatMap(user -> {
             String internalId = user.getId().toString();
             return detachmentRepository.findById(detachmentId)
                     .flatMap(detachment -> {
