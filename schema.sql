@@ -1,19 +1,21 @@
 -- HotSpots Campaigner Database Schema
 -- Generated for MySQL / R2DBC Compatibility
 
+USE `BT_Campaigner`;
+
 SET FOREIGN_KEY_CHECKS = 0;
 
--- Drop existing tables in reverse order of dependency
-DROP TABLE IF EXISTS ledger_entries;
-DROP TABLE IF EXISTS detachments;
-DROP TABLE IF EXISTS mercenary_commands;
-DROP TABLE IF EXISTS contracts;
-DROP TABLE IF EXISTS combat_units;
-DROP TABLE IF EXISTS pilots;
-DROP TABLE IF EXISTS faction_reputations;
-DROP TABLE IF EXISTS campaign_factions;
-DROP TABLE IF EXISTS campaign_tracks;
-DROP TABLE IF EXISTS campaigns;
+SET SESSION group_concat_max_len = 1000000;
+-- Dynamic drop of all tables in the current schema to ensure a clean slate
+SET @tables = NULL;
+SELECT GROUP_CONCAT('`', table_name, '`') INTO @tables
+  FROM information_schema.tables
+  WHERE table_schema = DATABASE();
+
+SET @tables = IF(@tables IS NOT NULL, CONCAT('DROP TABLE IF EXISTS ', @tables), 'SELECT "No tables to drop"');
+PREPARE stmt FROM @tables;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS = 1;
 

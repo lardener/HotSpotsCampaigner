@@ -15,19 +15,20 @@ public class SchemaGenerator {
         sql.append("-- HotSpots Campaigner Database Schema\n");
         sql.append("-- Generated for MySQL / R2DBC Compatibility\n\n");
 
+        sql.append("USE `BT_Campaigner`;\n\n");
+
         sql.append("SET FOREIGN_KEY_CHECKS = 0;\n\n");
 
-        sql.append("-- Drop existing tables in reverse order of dependency\n");
-        sql.append("DROP TABLE IF EXISTS ledger_entries;\n");
-        sql.append("DROP TABLE IF EXISTS detachments;\n");
-        sql.append("DROP TABLE IF EXISTS mercenary_commands;\n");
-        sql.append("DROP TABLE IF EXISTS contracts;\n");
-        sql.append("DROP TABLE IF EXISTS combat_units;\n");
-        sql.append("DROP TABLE IF EXISTS pilots;\n");
-        sql.append("DROP TABLE IF EXISTS faction_reputations;\n");
-        sql.append("DROP TABLE IF EXISTS campaign_factions;\n");
-        sql.append("DROP TABLE IF EXISTS campaign_tracks;\n");
-        sql.append("DROP TABLE IF EXISTS campaigns;\n\n");
+        sql.append("SET SESSION group_concat_max_len = 1000000;\n");
+        sql.append("-- Dynamic drop of all tables in the current schema to ensure a clean slate\n");
+        sql.append("SET @tables = NULL;\n");
+        sql.append("SELECT GROUP_CONCAT('`', table_name, '`') INTO @tables\n");
+        sql.append("  FROM information_schema.tables\n");
+        sql.append("  WHERE table_schema = DATABASE();\n\n");
+        sql.append("SET @tables = IF(@tables IS NOT NULL, CONCAT('DROP TABLE IF EXISTS ', @tables), 'SELECT \"No tables to drop\"');\n");
+        sql.append("PREPARE stmt FROM @tables;\n");
+        sql.append("EXECUTE stmt;\n");
+        sql.append("DEALLOCATE PREPARE stmt;\n\n");
 
         sql.append("SET FOREIGN_KEY_CHECKS = 1;\n\n");
 
