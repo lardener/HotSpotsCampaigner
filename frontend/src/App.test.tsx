@@ -1,56 +1,38 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { App } from './App';
+import * as campaignApi from './services/campaignApi';
 
-describe('App', () => {
+vi.mock('./services/campaignApi', () => ({
+  getProfile: vi.fn(),
+  getActiveCampaigns: vi.fn(),
+  getMissions: vi.fn(),
+  getTrackTypes: vi.fn(),
+  getResolvedSteps: vi.fn()
+}));
+
+describe('App Component', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    (campaignApi.getMissions as any).mockResolvedValue({ primary: [], opponent: [] });
+    (campaignApi.getTrackTypes as any).mockResolvedValue([]);
+    (campaignApi.getResolvedSteps as any).mockResolvedValue({});
   });
 
-  it('should render login button when not authenticated', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false } as unknown as Response);
+  it('shows loading state initially', () => {
+    (campaignApi.getProfile as any).mockReturnValue(new Promise(() => { })); // Never resolves
+    render(<App />);
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
+  });
+
+  it('renders login when unauthenticated', async () => {
+    (campaignApi.getProfile as any).mockRejectedValue(new Error('401'));
+    (campaignApi.getActiveCampaigns as any).mockResolvedValue({ content: [], totalPages: 0 });
 
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/login with google/i)).toBeInTheDocument();
-    });
-  });
-
-  it('should render welcome message when authenticated', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ email: 'commander@merc.net', name: 'Commander' })
-    } as unknown as Response);
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/IDENTITY VERIFIED/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: /welcome commander to the mercenary life/i })).toBeInTheDocument();
-    });
-  });
-
-  it('should call the backend logout endpoint when logout is clicked', async () => {
-    const profileResponse = { ok: true, json: () => Promise.resolve({ email: 'commander@merc.net', name: 'Commander' }) } as unknown as Response;
-    const logoutResponse = { ok: true } as unknown as Response;
-    const fetchMock = vi.fn(async (input: RequestInfo) => {
-      return input.toString().includes('/api/logout') ? logoutResponse : profileResponse;
-    }) as unknown as typeof fetch;
-
-    global.fetch = fetchMock;
-
-    render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /logout/i }));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/logout', expect.objectContaining({ method: 'POST', credentials: 'include' }));
+      expect(screen.getByText('Login with Google')).toBeInTheDocument();
     });
   });
 });

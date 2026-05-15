@@ -3,21 +3,31 @@ package com.hotspotscamp.service;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Random;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 public class CampaignServiceTest {
@@ -77,5 +87,55 @@ public class CampaignServiceTest {
         Contract lowContract = (Contract) generateContractMethod.invoke(campaignService,
                 "Vesper Marches", "Garrison", "Corporate (Local)", null, null, null, null, null, null, null, null, null, null, 2, true, "Vesper", mockRand2);
         assertEquals("0%", lowContract.getTransportTerms());
+    }
+
+    @Test
+    void testGetActiveCampaignsPagination() {
+        UUID campaignId = UUID.randomUUID();
+        Campaign campaign = Campaign.builder()
+                .id(campaignId)
+                .name("Test Campaign")
+                .status("ACTIVE")
+                .systemName("Terra")
+                .trackCount(5)
+                .build();
+
+        when(campaignRepository.countByStatus("ACTIVE")).thenReturn(Mono.just(1L));
+        when(campaignRepository.findAllByStatus(anyString(), anyInt(), anyInt())).thenReturn(Flux.just(campaign));
+        when(contractRepository.findAllByCampaignId(campaignId)).thenReturn(Flux.empty());
+
+        StepVerifier.create(campaignService.getActiveCampaigns(0, 10))
+                .assertNext(page -> {
+                    assertEquals(1, page.content().size());
+                    assertEquals("Test Campaign", page.content().get(0).name());
+                    assertEquals(1, page.totalPages());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void testGenerateDoblessCampaignPersistence() {
+        UUID managerId = UUID.randomUUID();
+
+        when(campaignRepository.save(any(Campaign.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));
+        when(campaignFactionRepository.saveAll(any(Iterable.class))).thenAnswer(i -> Flux.fromIterable(i.getArgument(0)));
+        when(contractRepository.save(any(Contract.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));
+        when(campaignTrackRepository.save(any())).thenAnswer(i -> Mono.just(i.getArgument(0)));
+
+        Mono<Campaign> result = campaignService.generateDoblessCampaign(
+                managerId, "Davion", "Kurita", "Raid",
+                "Major Power", "New Avalon", null,
+                null, null, null, null,
+                null, null, null, null, null,
+                5
+        );
+
+        StepVerifier.create(result)
+                .assertNext(campaign -> {
+                    assertNotNull(campaign.getId());
+                    assertEquals("ACTIVE", campaign.getStatus());
+                    assertEquals(managerId, campaign.getManagerId());
+                })
+                .verifyComplete();
     }
 }
