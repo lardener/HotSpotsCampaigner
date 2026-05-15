@@ -4,14 +4,32 @@ This is a TDD-first project for the Battletech Campaign Manager—a multi-tenant
 
 ## Features
 
-- ✅ Google OAuth2 login
-- ✅ User profile display
-- ✅ Welcome message centered on screen
-- ✅ **Random Campaign Generator**: Procedural generation of theater tracks, missions, and contracts based on Hinterlands rules.
-- ✅ **Ledger & SP Tracking**: Full Support Point (SP) lifecycle management with automated command-level synchronization.
-- ✅ **Active Deployment Dashboard**: Real-time view of ongoing mercenary contracts and sector intelligence.
-- ✅ Docker containerization for local deployment
-- ✅ Test-driven development approach
+ ✅ **Unified Identity System**: Support for both Google OAuth2 and "Invite-as-Identity" key-based access.
+ ✅ **Invitation System**: Campaign Managers can generate secure tokens to invite players without requiring passwords or emails.
+ ✅ **Role-Based Access Control (RBAC)**: Distinction between `ROLE_AUTHENTICATED` (Managers) and `ROLE_INVITED` (Players).
+
+## Invitation & Login System
+
+The application uses an **"Invite-as-Identity"** model. Users exist in the `app_users` table with specific roles that determine their capabilities.
+
+### User Roles
+1.  **ROLE_AUTHENTICATED**: Logged in via Google OAuth. These users can act as Campaign Managers, create new campaigns, and generate invitation keys.
+2.  **ROLE_INVITED**: Logged in via a Campaign Key. These users can participate in specific campaigns and manage their mercenary commands but cannot create or persist new campaigns.
+
+### How to Invite a User (For Managers)
+1.  **Log in** via Google to gain `ROLE_AUTHENTICATED` status.
+2.  **Create a Campaign**: Use the "New Campaign" generator and save it.
+3.  **Generate Token**: In the Campaign Management view, click "Generate Invite Key".
+4.  **Share**: Copy the generated 12-character alphanumeric token (or the direct join link) and send it to your player (e.g., via Discord or Signal).
+
+### How to Login as an Invited User (For Players)
+1.  **Access the Site**: Navigate to the landing page.
+2.  **Enter Key**: In the "Join Campaign" field, paste the token provided by your Manager.
+3.  **Set Callsign**: Provide a display name (Callsign) to identify your mercenary command.
+4.  **Join**: The system creates a transient session linked to that token. Your identity is stored as an `app_user` with `ROLE_INVITED`. 
+5.  **Persistence**: Your session is maintained via a long-lived token in your browser. If you switch devices, simply re-enter the original Invite Key.
+
+---
 
 ## Quick Start
 

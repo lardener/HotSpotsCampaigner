@@ -20,11 +20,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.Contract;
+import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
+import com.hotspotscamp.repository.UserRepository;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,12 +45,14 @@ public class CampaignServiceTest {
     private ContractRepository contractRepository;
     @Mock
     private DetachmentRepository detachmentRepository;
+    @Mock
+    private UserRepository userRepository;
 
     private CampaignService campaignService;
 
     @BeforeEach
     void setUp() throws IOException {
-        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository, detachmentRepository);
+        campaignService = new CampaignService(campaignRepository, campaignFactionRepository, campaignTrackRepository, contractRepository, detachmentRepository, userRepository);
         campaignService.init();
     }
 
@@ -118,8 +122,16 @@ public class CampaignServiceTest {
 
     @Test
     void testGenerateDoblessCampaignPersistence() {
-        String managerId = "TestUser";
+        UUID managerUuid = UUID.randomUUID();
+        String managerId = managerUuid.toString();
 
+        User mockUser = User.builder()
+                .id(managerUuid)
+                .role("ROLE_AUTHENTICATED")
+                .build();
+
+        when(userRepository.findByExternalId(managerId)).thenReturn(Mono.empty());
+        when(userRepository.findById(managerUuid)).thenReturn(Mono.just(mockUser));
         when(campaignRepository.save(any(Campaign.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));
         when(campaignFactionRepository.saveAll(any(Iterable.class))).thenAnswer(i -> Flux.fromIterable(i.getArgument(0)));
         when(contractRepository.save(any(Contract.class))).thenAnswer(i -> Mono.just(i.getArgument(0)));
@@ -137,7 +149,7 @@ public class CampaignServiceTest {
                 .assertNext(campaign -> {
                     assertNotNull(campaign.getId());
                     assertEquals("ACTIVE", campaign.getStatus());
-                    assertEquals(managerId, campaign.getManagerId());
+                    assertEquals(mockUser.getId().toString(), campaign.getManagerId());
                 })
                 .verifyComplete();
     }

@@ -79,6 +79,22 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 
 ---
 
+## Frontend Drop-down Fields
+... [Existing content] ...
+### 4. Identity & Invitation System
+
+- **Invite Token Generation**:
+  - **Frontend Action**: Click "Generate Key" in Campaign View.
+  - **Backend Endpoint**: `POST /api/campaigns/{campaignId}/invites`
+  - **Source Table**: `campaign_invites`
+
+- **Invite Login**:
+  - **Frontend Action**: Submit token on Landing Page.
+  - **Backend Endpoint**: `POST /api/auth/invite/login?token=XYZ`
+  - **Logic**: Validates token -> Creates/Retrieves `User` with `ROLE_INVITED` -> Returns session token.
+
+---
+
 ## Backend API Endpoints (All Available)
 
 | Endpoint | Returns | Source JSON | Currently Used |
@@ -96,6 +112,8 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 | `GET /api/campaigns/active` | `ActiveCampaignPage` | DB (Campaigns + Contracts) | ✅ Yes |
 | `GET /api/campaigns/managed` | `ActiveCampaignSummary[]` | DB (Campaigns) | ✅ Yes |
 | `GET /api/campaigns/participating/{commandId}` | `ActiveCampaignSummary[]` | DB (Campaigns via Detachments) | ✅ Yes |
+| `POST /api/campaigns/{campaignId}/invites` | `CampaignInvite` | DB (campaign_invites) | 🆕 Planned |
+| `POST /api/auth/invite/login` | `User` | DB (app_users) | 🆕 Planned |
 | `GET /api/campaigns/dobless/preview` | `CampaignProposal` | Multiple tables | ✅ Yes (no drop-down, but preview) |
 | `POST /api/campaigns/dobless` | `Campaign` | Multiple tables | ✅ Yes (save) |
 | `GET /api/commands/{commandId}/assets` | `CommandAssetsResponse` | DB (Units + Pilots) | ✅ Yes |

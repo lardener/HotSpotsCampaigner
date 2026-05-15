@@ -21,11 +21,14 @@ import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Contract;
+import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.repository.UserRepository;
+import com.hotspotscamp.service.CampaignService.CampaignProposal;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +46,7 @@ public class CampaignService {
     private final CampaignTrackRepository campaignTrackRepository;
     private final ContractRepository contractRepository;
     private final DetachmentRepository detachmentRepository;
+    private final UserRepository userRepository;
 
     private Map<Integer, String> employerTable;
     private int employerDiceCount;
@@ -770,6 +774,25 @@ public class CampaignService {
     }
 
     /**
+     * Resolves an external identity (Google Sub or UUID string) to an internal
+     * User entity. If the user is authenticated via Google but has no record,
+     * one is created.
+     */
+    private Mono<User> resolveOrCreateUser(String identity) {
+        return userRepository.findByExternalId(identity)
+                .switchIfEmpty(Mono.defer(() -> {
+                    try {
+                        return userRepository.findById(UUID.fromString(identity));
+                    } catch (IllegalArgumentException e) {
+                        return Mono.empty();
+                    }
+                }))
+                .switchIfEmpty(userRepository.save(User.builder()
+                        .id(UUID.randomUUID()).externalId(identity)
+                        .role("ROLE_AUTHENTICATED").isNew(true).build()));
+    }
+
+    /**
      * Persists a generated campaign to the database.
      */
     @Transactional
@@ -778,65 +801,74 @@ public class CampaignService {
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
             Integer trackCount) {
-        CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName,
-                payRate, salvageTerms, supportTerms, transportTerms, commandRights,
-                payStep, salvageStep, supportStep, transportStep, commandStep,
-                trackCount);
-        Campaign campaign = proposal.campaign();
-        if (campaign.getId() == null) {
-            campaign.setId(UUID.randomUUID());
-        }
-        campaign.setManagerId(managerId);
-        campaign.setStatus("ACTIVE");
 
-        // The faction names were determined during proposal generation and prepended to the employerCategory
-        final String primaryEmployerName = proposal.contracts().get(0).getEmployerCategory().split(": ", 2)[0];
-        final String oppositionEmployerName = proposal.contracts().get(1).getEmployerCategory().split(": ", 2)[0];
+        return resolveOrCreateUser(managerId)
+                .flatMap(user -> {
+                    if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
+                        return Mono.error(new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.FORBIDDEN, "Only Managers can create campaigns"));
+                    }
 
-        return campaignRepository.save(campaign)
-                .flatMap(savedCampaign -> {
-                    CampaignFaction empFaction = CampaignFaction.builder()
-                            .id(UUID.randomUUID())
-                            .campaignId(savedCampaign.getId())
-                            .factionName(primaryEmployerName)
-                            .offersContracts(true)
-                            .build();
+                    CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName,
+                            payRate, salvageTerms, supportTerms, transportTerms, commandRights,
+                            payStep, salvageStep, supportStep, transportStep, commandStep,
+                            trackCount);
+                    Campaign campaign = proposal.campaign();
+                    if (campaign.getId() == null) {
+                        campaign.setId(UUID.randomUUID());
+                    }
+                    campaign.setManagerId(user.getId().toString());
+                    campaign.setStatus("ACTIVE");
 
-                    CampaignFaction oppFaction = CampaignFaction.builder()
-                            .id(UUID.randomUUID())
-                            .campaignId(savedCampaign.getId())
-                            .factionName(oppositionEmployerName)
-                            .offersContracts(true) // Per Hinterlands, both sides often hire mercs
-                            .build();
+                    // The faction names were determined during proposal generation and prepended to the employerCategory
+                    final String primaryEmployerName = proposal.contracts().get(0).getEmployerCategory().split(": ", 2)[0];
+                    final String oppositionEmployerName = proposal.contracts().get(1).getEmployerCategory().split(": ", 2)[0];
 
-                    return campaignFactionRepository.saveAll(List.of(empFaction, oppFaction))
-                            .collectList()
-                            .flatMap(factions -> {
-                                Flux<Contract> contractFlux = Flux.fromIterable(proposal.contracts())
-                                        .zipWith(Flux.fromIterable(factions))
-                                        .flatMap(tuple -> {
-                                            Contract c = tuple.getT1();
-                                            if (c.getId() == null) {
-                                                c.setId(UUID.randomUUID());
-                                            }
-                                            c.setCampaignId(savedCampaign.getId());
-                                            c.setEmployerFactionId(tuple.getT2().getId());
-                                            return contractRepository.save(c);
+                    return campaignRepository.save(campaign)
+                            .flatMap(savedCampaign -> {
+                                CampaignFaction empFaction = CampaignFaction.builder()
+                                        .id(UUID.randomUUID())
+                                        .campaignId(savedCampaign.getId())
+                                        .factionName(primaryEmployerName)
+                                        .offersContracts(true)
+                                        .build();
+
+                                CampaignFaction oppFaction = CampaignFaction.builder()
+                                        .id(UUID.randomUUID())
+                                        .campaignId(savedCampaign.getId())
+                                        .factionName(oppositionEmployerName)
+                                        .offersContracts(true) // Per Hinterlands, both sides often hire mercs
+                                        .build();
+
+                                return campaignFactionRepository.saveAll(List.of(empFaction, oppFaction))
+                                        .collectList()
+                                        .flatMap(factions -> {
+                                            Flux<Contract> contractFlux = Flux.fromIterable(proposal.contracts())
+                                                    .zipWith(Flux.fromIterable(factions))
+                                                    .flatMap(tuple -> {
+                                                        Contract c = tuple.getT1();
+                                                        if (c.getId() == null) {
+                                                            c.setId(UUID.randomUUID());
+                                                        }
+                                                        c.setCampaignId(savedCampaign.getId());
+                                                        c.setEmployerFactionId(tuple.getT2().getId());
+                                                        return contractRepository.save(c);
+                                                    });
+
+                                            Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks())
+                                                    .index()
+                                                    .flatMap(tuple -> {
+                                                        CampaignTrack track = CampaignTrack.builder()
+                                                                .id(UUID.randomUUID())
+                                                                .campaignId(savedCampaign.getId())
+                                                                .trackName(tuple.getT2())
+                                                                .sequenceOrder(tuple.getT1().intValue())
+                                                                .build();
+                                                        return campaignTrackRepository.save(track);
+                                                    });
+
+                                            return Flux.merge(contractFlux, trackFlux).then(Mono.just(savedCampaign));
                                         });
-
-                                Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks())
-                                        .index()
-                                        .flatMap(tuple -> {
-                                            CampaignTrack track = CampaignTrack.builder()
-                                                    .id(UUID.randomUUID())
-                                                    .campaignId(savedCampaign.getId())
-                                                    .trackName(tuple.getT2())
-                                                    .sequenceOrder(tuple.getT1().intValue())
-                                                    .build();
-                                            return campaignTrackRepository.save(track);
-                                        });
-
-                                return Flux.merge(contractFlux, trackFlux).then(Mono.just(savedCampaign));
                             });
                 });
     }

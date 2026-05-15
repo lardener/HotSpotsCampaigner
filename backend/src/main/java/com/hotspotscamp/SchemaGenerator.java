@@ -32,14 +32,34 @@ public class SchemaGenerator {
 
         sql.append("SET FOREIGN_KEY_CHECKS = 1;\n\n");
 
+        sql.append("-- Create app_users table (User.java)\n");
+        sql.append("CREATE TABLE app_users (\n");
+        sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
+        sql.append("    `external_id` VARCHAR(255) UNIQUE,\n");
+        sql.append("    `display_name` VARCHAR(255),\n");
+        sql.append("    `email` VARCHAR(255),\n");
+        sql.append("    `role` VARCHAR(50)\n");
+        sql.append(");\n\n");
+
         sql.append("-- Create campaigns table (Campaign.java)\n");
         sql.append("CREATE TABLE campaigns (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    `name` VARCHAR(255),\n");
-        sql.append("    `manager_id` VARCHAR(36),\n");
+        sql.append("    `manager_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `status` VARCHAR(50),\n");
         sql.append("    `system_name` VARCHAR(255),\n");
-        sql.append("    `track_count` INT\n");
+        sql.append("    `track_count` INT,\n");
+        sql.append("    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)\n");
+        sql.append(");\n\n");
+
+        sql.append("-- Create campaign_invites table (CampaignInvite.java)\n");
+        sql.append("CREATE TABLE campaign_invites (\n");
+        sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
+        sql.append("    campaign_id VARCHAR(36) NOT NULL,\n");
+        sql.append("    `token` VARCHAR(255) UNIQUE,\n");
+        sql.append("    `expires_at` DATETIME,\n");
+        sql.append("    `used` BOOLEAN DEFAULT FALSE,\n");
+        sql.append("    CONSTRAINT fk_invite_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
         sql.append("-- Create campaign_tracks table (CampaignTrack.java)\n");
@@ -88,12 +108,13 @@ public class SchemaGenerator {
         sql.append("CREATE TABLE mercenary_commands (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    `name` VARCHAR(255),\n");
-        sql.append("    `owner_id` VARCHAR(36),\n");
+        sql.append("    `owner_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `total_support_points` INT DEFAULT 0,\n");
         sql.append("    `reputation` INT DEFAULT 1,\n");
         sql.append("    `experience_level` VARCHAR(50),\n");
-        sql.append("    `commanding_officer` VARCHAR(255)\n");
+        sql.append("    `commanding_officer` VARCHAR(255),\n");
+        sql.append("    CONSTRAINT fk_command_owner FOREIGN KEY (owner_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 
         sql.append("-- Create detachments table (Detachment.java)\n");

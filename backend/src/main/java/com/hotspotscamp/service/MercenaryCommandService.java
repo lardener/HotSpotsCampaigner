@@ -12,6 +12,7 @@ import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.ContractRepository;
@@ -19,6 +20,7 @@ import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
+import com.hotspotscamp.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
@@ -34,6 +36,7 @@ public class MercenaryCommandService {
     private final ContractRepository contractRepository;
     private final CombatUnitRepository combatUnitRepository;
     private final PilotRepository pilotRepository;
+    private final UserRepository userRepository;
     private final DatabaseClient databaseClient;
 
     /**
@@ -44,26 +47,47 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Resolves an external identity (Google Sub or UUID string) to an internal
+     * User entity. If the user is authenticated via Google but has no record,
+     * one is created.
+     */
+    private Mono<User> resolveOrCreateUser(String identity) {
+        return userRepository.findByExternalId(identity)
+                .switchIfEmpty(Mono.defer(() -> {
+                    try {
+                        return userRepository.findById(UUID.fromString(identity));
+                    } catch (IllegalArgumentException e) {
+                        return Mono.empty();
+                    }
+                }))
+                .switchIfEmpty(userRepository.save(User.builder()
+                        .id(UUID.randomUUID()).externalId(identity)
+                        .role("ROLE_AUTHENTICATED").isNew(true).build()));
+    }
+
+    /**
      * Establishes a new mercenary command. Modeled on the initial setup of the
      * Mercenary Force Record Sheet.
      */
     @Transactional
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
-        command.setId(UUID.randomUUID());
-        // ownerId is now a String in the MercenaryCommand entity
-        command.setOwnerId(userId);
+        return resolveOrCreateUser(userId)
+                .flatMap(user -> {
+                    command.setId(UUID.randomUUID());
+                    command.setOwnerId(user.getId().toString());
 
-        // Initial SP setup (Hinterlands default is often 1000 for a starting force)
-        if (command.getTotalSupportPoints() == null) {
-            command.setTotalSupportPoints(1000);
-        }
+                    // Initial SP setup (Hinterlands default is often 1000 for a starting force)
+                    if (command.getTotalSupportPoints() == null) {
+                        command.setTotalSupportPoints(1000);
+                    }
 
-        // Initial Reputation setup
-        if (command.getReputation() == null) {
-            command.setReputation(1);
-        }
+                    // Initial Reputation setup
+                    if (command.getReputation() == null) {
+                        command.setReputation(1);
+                    }
 
-        return commandRepository.save(command);
+                    return commandRepository.save(command);
+                });
     }
 
     /**
@@ -98,23 +122,23 @@ public class MercenaryCommandService {
                 .one()
                 .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
                 .flatMap(commandId -> commandRepository.findById(commandId)
-                .flatMap(cmd -> {
-                    if (!cmd.getOwnerId().toString().equals(userId)) {
-                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
-                    }
+                .flatMap(cmd -> resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().toString().equals(userId)) {
+                return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+            }
 
-                    if (detachmentId != null) {
-                        return detachmentRepository.findById(detachmentId)
-                                .switchIfEmpty(Mono.error(new RuntimeException("Detachment not found")))
-                                .flatMap(det -> {
-                                    if (!det.getMercenaryCommandId().equals(cmd.getId())) {
-                                        return Mono.error(new RuntimeException("Access Denied: Detachment belongs to another command."));
-                                    }
-                                    return Mono.just(true);
-                                });
-                    }
-                    return Mono.just(true);
-                })
+            if (detachmentId != null) {
+                return detachmentRepository.findById(detachmentId)
+                        .switchIfEmpty(Mono.error(new RuntimeException("Detachment not found")))
+                        .flatMap(det -> {
+                            if (!det.getMercenaryCommandId().equals(cmd.getId())) {
+                                return Mono.error(new RuntimeException("Access Denied: Detachment belongs to another command."));
+                            }
+                            return Mono.just(true);
+                        });
+            }
+            return Mono.just(true);
+        }))
                 .flatMap(authorized -> {
                     var spec = databaseClient.sql("UPDATE " + table + " SET detachment_id = :detId WHERE id = :id")
                             .bind("id", assetId);
@@ -243,21 +267,24 @@ public class MercenaryCommandService {
      * contracted to.
      */
     private Mono<Boolean> isAuthorizedToEditLedger(UUID detachmentId, String userId) {
-        return detachmentRepository.findById(detachmentId)
-                .flatMap(detachment -> {
-                    // Check if user is Command Owner
-                    Mono<Boolean> isOwner = commandRepository.findById(detachment.getMercenaryCommandId())
-                            .map(cmd -> cmd.getOwnerId().toString().equals(userId))
-                            .defaultIfEmpty(false);
+        return resolveOrCreateUser(userId).flatMap(user -> {
+            String internalId = user.getId().toString();
+            return detachmentRepository.findById(detachmentId)
+                    .flatMap(detachment -> {
+                        // Check if user is Command Owner
+                        Mono<Boolean> isOwner = commandRepository.findById(detachment.getMercenaryCommandId())
+                                .map(cmd -> cmd.getOwnerId().equals(internalId))
+                                .defaultIfEmpty(false);
 
-                    // Check if user is Campaign Manager
-                    Mono<Boolean> isManager = contractRepository.findById(detachment.getContractId())
-                            .flatMap(contract -> campaignRepository.findById(contract.getCampaignId()))
-                            .map(campaign -> campaign.getManagerId().toString().equals(userId))
-                            .defaultIfEmpty(false);
+                        // Check if user is Campaign Manager
+                        Mono<Boolean> isManager = contractRepository.findById(detachment.getContractId())
+                                .flatMap(contract -> campaignRepository.findById(contract.getCampaignId()))
+                                .map(campaign -> campaign.getManagerId().equals(internalId) || campaign.getManagerId().equals(userId))
+                                .defaultIfEmpty(false);
 
-                    return Mono.zip(isOwner, isManager).map(tuple -> tuple.getT1() || tuple.getT2());
-                })
-                .defaultIfEmpty(false);
+                        return Mono.zip(isOwner, isManager).map(tuple -> tuple.getT1() || tuple.getT2());
+                    })
+                    .defaultIfEmpty(false);
+        });
     }
 }

@@ -19,14 +19,34 @@ DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- Create app_users table (User.java)
+CREATE TABLE app_users (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `external_id` VARCHAR(255) UNIQUE,
+    `display_name` VARCHAR(255),
+    `email` VARCHAR(255),
+    `role` VARCHAR(50)
+);
+
 -- Create campaigns table (Campaign.java)
 CREATE TABLE campaigns (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
-    `manager_id` VARCHAR(36),
+    `manager_id` VARCHAR(36) NOT NULL,
     `status` VARCHAR(50),
     `system_name` VARCHAR(255),
-    `track_count` INT
+    `track_count` INT,
+    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)
+);
+
+-- Create campaign_invites table (CampaignInvite.java)
+CREATE TABLE campaign_invites (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    campaign_id VARCHAR(36) NOT NULL,
+    `token` VARCHAR(255) UNIQUE,
+    `expires_at` DATETIME,
+    `used` BOOLEAN DEFAULT FALSE,
+    CONSTRAINT fk_invite_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
 
 -- Create campaign_tracks table (CampaignTrack.java)
@@ -75,12 +95,13 @@ CREATE TABLE contracts (
 CREATE TABLE mercenary_commands (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
-    `owner_id` VARCHAR(36),
+    `owner_id` VARCHAR(36) NOT NULL,
     `campaign_id` VARCHAR(36),
     `total_support_points` INT DEFAULT 0,
     `reputation` INT DEFAULT 1,
     `experience_level` VARCHAR(50),
-    `commanding_officer` VARCHAR(255)
+    `commanding_officer` VARCHAR(255),
+    CONSTRAINT fk_command_owner FOREIGN KEY (owner_id) REFERENCES app_users(id)
 );
 
 -- Create detachments table (Detachment.java)

@@ -134,8 +134,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
 
         try {
             await campaignApi.saveCampaign(getSaveParams());
-            setProposal(null);
-            setSaved(false);
+            setSaved(true);
+            setTimeout(() => setProposal(null), 2000); // Allow user to see success state
             if (onSaveSuccess) {
                 onSaveSuccess();
             }
