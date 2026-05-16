@@ -36,6 +36,14 @@ export interface CampaignSummary {
     secondaryEmployer: string;
 }
 
+export interface LedgerEntry {
+    id?: string;
+    detachmentId: string;
+    amount: number;
+    shortDescription: string;
+    timestamp?: string;
+}
+
 export interface MercenaryCommand {
     id: string;
     name: string;
@@ -64,11 +72,23 @@ export const deleteCommand = (commandId: string, force: boolean = false): Promis
 export const deleteDetachment = (detachmentId: string): Promise<void> =>
     apiClient.delete(`/api/commands/detachments/${detachmentId}`);
 
+export const deleteUnit = (unitId: string): Promise<void> =>
+    apiClient.delete(`/api/commands/units/${unitId}`);
+
+export const deletePilot = (pilotId: string): Promise<void> =>
+    apiClient.delete(`/api/commands/pilots/${pilotId}`);
+
 export const createCommand = (command: Partial<MercenaryCommand>): Promise<MercenaryCommand> =>
     apiClient.post<MercenaryCommand>(`/api/commands`, command);
 
+export const createDetachment = (commandId: string, contractId: string, name: string): Promise<Detachment> =>
+    apiClient.post<Detachment>(`/api/commands/${commandId}/detachments?contractId=${contractId}&name=${encodeURIComponent(name)}`);
+
 export const getDetachments = (commandId: string): Promise<Detachment[]> =>
     apiClient.get<Detachment[]>(`/api/commands/${commandId}/detachments`);
+
+export const addLedgerEntry = (detachmentId: string, entry: Partial<LedgerEntry>): Promise<LedgerEntry> =>
+    apiClient.post<LedgerEntry>(`/api/commands/ledger/${detachmentId}`, entry);
 
 export const assignAsset = (assetType: 'UNIT' | 'PILOT', assetId: string, detachmentId: string | null) =>
     apiClient.post(`/api/commands/assets/assign`, { assetType, assetId, detachmentId });

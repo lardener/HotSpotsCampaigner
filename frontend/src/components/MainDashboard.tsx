@@ -1,12 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { gql } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { Sidebar, TabType } from './Sidebar';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
 import { RandomCampaignGenerator } from './RandomCampaignGenerator';
 import { Welcome } from './Welcome';
 import { ForceDashboard } from './ForceDashboard';
 import { LedgerDashboard } from './LedgerDashboard';
-import * as forceApi from '../services/forceApi';
 import { CreateCommandForm } from './CreateCommandForm';
+import { UnitProfile } from './UnitProfile';
+
+const GET_MY_COMMANDS = gql`
+  query GetMyCommands {
+    myCommands {
+      id
+      name
+      totalSupportPoints
+      reputation
+      experienceLevel
+      commandingOfficer
+    }
+  }
+`;
+
+const DELETE_COMMAND = gql`
+  mutation DeleteCommand($commandId: ID!, $force: Boolean) {
+    deleteCommand(commandId: $commandId, force: $force)
+  }
+`;
+
+interface GetMyCommandsData {
+    myCommands: {
+        id: string;
+        name: string;
+        totalSupportPoints: number;
+        reputation: number;
+        experienceLevel: string;
+        commandingOfficer: string;
+    }[];
+}
 
 interface MainDashboardProps {
     user: { name: string; id: string } | null;
@@ -17,8 +49,30 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     const [activeTab, setActiveTab] = useState<TabType>('my-campaigns');
     const [commands, setCommands] = useState<any[]>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
     const [isCreatingCommand, setIsCreatingCommand] = useState(false);
+
+    const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
+        skip: !user,
+        fetchPolicy: 'network-only' // Ensure we don't just hit the cache after a save
+    });
+
+    // Add logging to catch the specific reason for the "COMMUNICATIONS BREAKDOWN"
+    useEffect(() => {
+        if (error) {
+            console.error("GraphQL Registry Error:", error);
+        }
+    }, [error]);
+
+    const [deleteCommand] = useMutation(DELETE_COMMAND);
+
+    useEffect(() => {
+        if (data?.myCommands) {
+            setCommands([...data.myCommands]); // Force a fresh reference
+            if (data.myCommands.length > 0 && !selectedCommandId) {
+                setSelectedCommandId(data.myCommands[0].id);
+            }
+        }
+    }, [data, selectedCommandId]);
 
     const handleDeleteCommand = async (commandId: string, force = false) => {
         if (!force && !window.confirm("ARE YOU SURE YOU WANT TO SCRAP THIS COMMAND? THIS ACTION IS IRREVERSIBLE.")) {
@@ -26,13 +80,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         }
 
         try {
-            await forceApi.deleteCommand(commandId, force);
+            await deleteCommand({ variables: { commandId, force } });
             if (selectedCommandId === commandId) {
                 setSelectedCommandId(null);
             }
             fetchCommands();
         } catch (err: any) {
-            if (err.status === 409) {
+            // GraphQL errors are handled differently; we look for specific message or extension
+            if (err.message?.includes("WARNING_ACTIVE_CAMPAIGN")) {
                 if (window.confirm("WARNING: THIS COMMAND HAS ACTIVE DETACHMENTS IN ONGOING CAMPAIGNS. DELETING WILL FORCE THEIR WITHDRAWAL. PROCEED?")) {
                     handleDeleteCommand(commandId, true);
                 }
@@ -44,26 +99,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     };
 
     const fetchCommands = async () => {
-        setLoading(true);
         try {
-            // Assuming forceApi.getCommands exists to fetch user's mercenary units
-            const data = await forceApi.getCommands();
-            setCommands(data);
-            if (data.length > 0 && !selectedCommandId) {
-                setSelectedCommandId(data[0].id);
+            const result = await refetch();
+            if (result.data?.myCommands) {
+                setCommands([...result.data.myCommands]);
             }
         } catch (err) {
-            console.error("Failed to load commands", err);
-        } finally {
-            setLoading(false);
+            console.error("Manual refetch failed:", err);
         }
     };
-
-    useEffect(() => {
-        if (user) {
-            fetchCommands();
-        }
-    }, [user]);
 
     // If not authenticated, only show the public theater list
     if (!user) {
@@ -87,7 +131,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     }
 
     const renderTabContent = () => {
-        if (loading) return <div className="loading-intel">SYNCHRONIZING COMMS...</div>;
+        if (loading && commands.length === 0) {
+            return <div className="loading-intel">SYNCHRONIZING WITH MERCENARY REGISTRY...</div>;
+        }
+
+        if (error) {
+            return <div className="placeholder-content" style={{ color: '#c00' }}>
+                <h2>COMMUNICATIONS BREAKDOWN</h2>
+                <p>Unable to retrieve registry data. Please verify your connection.</p>
+            </div>;
+        }
 
         if (isCreatingCommand) {
             return (
@@ -111,7 +164,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
             return (
                 <div className="placeholder-content">
                     <h2>NO MERCENARY COMMAND DETECTED</h2>
-                    <p>Register your command to begin operations.</p>
+                    <p>Register your unit with the Mercenary Review and Bonding Commission.</p>
                     <button className="login-button" onClick={() => setIsCreatingCommand(true)}>CREATE COMMAND</button>
                 </div>
             );
@@ -187,8 +240,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                             </button>
                                             <button
                                                 className="mode-btn"
-                                                style={{ opacity: 0.6 }}
-                                                onClick={(e) => { e.stopPropagation(); }}
+                                                onClick={(e) => { e.stopPropagation(); setActiveTab('unit-profile'); }}
                                             >
                                                 UNIT PROFILE
                                             </button>
@@ -227,6 +279,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
             case 'ledger':
                 return selectedCommandId ? (
                     <LedgerDashboard commandId={selectedCommandId} />
+                ) : null;
+            case 'unit-profile':
+                return selectedCommandId ? (
+                    <UnitProfile commandId={selectedCommandId} />
                 ) : null;
             case 'public-campaigns':
                 return <ActiveCampaignsList />;

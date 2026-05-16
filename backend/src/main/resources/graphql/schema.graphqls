@@ -1,0 +1,153 @@
+type Query {
+    myCommands: [MercenaryCommand]
+    activeCampaigns(page: Int, size: Int): [Campaign]
+    getCommand(id: ID!): MercenaryCommand
+    campaignMetadata: CampaignMetadata
+}
+
+type CampaignMetadata {
+    missions: MissionMetadata
+    trackTypes: [String]
+    resolvedSteps: [ResolvedStepEntry]
+}
+
+type MissionMetadata {
+    primary: [String]
+    opponent: [String]
+}
+
+type ResolvedStepEntry {
+    step: Int
+    values: ResolvedStepValues
+}
+
+type ResolvedStepValues {
+    payRate: String
+    salvageRights: String
+    supportRights: String
+    transportation: String
+    commandRights: String
+}
+
+type Subscription {
+    ledgerUpdated(commandId: ID!): MercenaryCommand
+}
+
+type Mutation {
+    # Command Management
+    establishCommand(name: String!, commandingOfficer: String): MercenaryCommand
+    deleteCommand(commandId: ID!, force: Boolean): Boolean
+    
+    # Campaign Management
+    previewCampaign(input: CampaignInput!): CampaignProposal
+    createCampaign(input: CampaignInput!): Campaign
+    
+    # Asset Management
+    addUnitToForce(commandId: ID!, model: String!, tonnage: Int!, type: String): CombatUnit
+    deleteUnit(unitId: ID!): Boolean
+    hirePilot(commandId: ID!, name: String!, gunnery: Int!, piloting: Int!): Pilot
+    deletePilot(pilotId: ID!): Boolean
+
+    # Ledger & Detachments
+    createDetachment(commandId: ID!, contractId: ID!, name: String!): Detachment
+    deleteDetachment(detachmentId: ID!): Boolean
+    addLedgerEntry(detachmentId: ID!, amount: Int!, description: String!): LedgerEntry
+}
+
+type MercenaryCommand {
+    id: ID!
+    name: String
+    ownerId: String
+    totalSupportPoints: Int
+    reputation: Int
+    experienceLevel: String
+    commandingOfficer: String
+    units: [CombatUnit]
+    pilots: [Pilot]
+}
+
+type CombatUnit {
+    id: ID!
+    model: String
+    type: String
+    tonnage: Int
+    status: String
+}
+
+type Pilot {
+    id: ID!
+    name: String
+    gunnery: Int
+    piloting: Int
+    status: String
+}
+
+type Detachment {
+    id: ID!
+    name: String
+    mercenaryCommandId: ID
+    contractId: ID
+}
+
+type LedgerEntry {
+    id: ID!
+    detachmentId: ID
+    amount: Int
+    description: String
+    timestamp: String
+    runningTotal: Int
+}
+
+input CampaignInput {
+    employer: String
+    opponent: String
+    mission: String
+    employerCategory: String
+    systemName: String
+    payRate: Float
+    salvageTerms: String
+    supportTerms: String
+    transportTerms: String
+    commandRights: String
+    payStep: Int
+    salvageStep: Int
+    supportStep: Int
+    transportStep: Int
+    commandStep: Int
+    trackCount: Int
+}
+
+type CampaignProposal {
+    campaign: Campaign
+    contracts: [Contract]
+    tracks: [String]
+}
+
+type Contract {
+    id: ID
+    employerCategory: String
+    missionType: String
+    payRate: Float
+    payStep: Int
+    salvageTerms: String
+    salvageStep: Int
+    supportTerms: String
+    supportStep: Int
+    transportTerms: String
+    transportStep: Int
+    commandRights: String
+    commandStep: Int
+    primaryContract: Boolean
+    trackCount: Int
+}
+
+type Campaign {
+    id: ID!
+    name: String
+    systemName: String
+    status: String
+    trackCount: Int
+    managerId: String
+    primaryEmployer: String
+    secondaryEmployer: String
+}

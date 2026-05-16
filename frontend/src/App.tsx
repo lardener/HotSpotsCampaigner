@@ -1,50 +1,81 @@
-import { useEffect, useState } from 'react';
-import * as campaignApi from './services/campaignApi';
+import { useState, useEffect } from 'react';
+import { ApolloClient, InMemoryCache, HttpLink, split } from '@apollo/client';
+import { getMainDefinition } from '@apollo/client/utilities';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { ApolloProvider } from '@apollo/client/react';
+import { createClient } from 'graphql-ws';
 import { MainDashboard } from './components/MainDashboard';
+import * as campaignApi from './services/campaignApi';
 import './styles/index.css';
 
-interface UserProfile {
-  name: string;
-  id: string; // Using email or unique ID for the command context
-}
+const httpLink = new HttpLink({
+  uri: 'http://localhost:8080/graphql',
+  // Critical for OAuth2/Session cookie support
+  credentials: 'include',
+});
+
+const wsLink = new GraphQLWsLink(createClient({
+  url: 'ws://localhost:8080/graphql',
+}));
+
+// 1. Initialize split link to handle both HTTP and WebSocket transports
+const splitLink = split(
+  ({ query }) => {
+    const definition = getMainDefinition(query);
+    return (
+      definition.kind === 'OperationDefinition' &&
+      definition.operation === 'subscription'
+    );
+  },
+  wsLink,
+  httpLink,
+);
+
+const client = new ApolloClient({
+  link: splitLink,
+  cache: new InMemoryCache(),
+});
 
 export function App() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<{ name: string; id: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        const profile = await campaignApi.getProfile();
-        // Map the profile to include an ID if it's missing, using email as the unique key
-        setUser({
-          name: profile.name,
-          id: profile.email || (profile as any).id || 'unknown'
-        });
-      } catch (error) {
-        console.log("Not authenticated or server unreachable.");
-        setUser(null);
-      } finally {
+    // Check for an existing session on mount
+    campaignApi.getProfile()
+      .then(profile => {
+        // Map backend response (name, email) to user state
+        setUser({ name: profile.name, id: profile.email });
         setLoading(false);
-      }
-    };
-    initApp();
+      })
+      .catch(() => {
+        setUser(null);
+        setLoading(false);
+      });
   }, []);
 
   const handleLogout = async () => {
     try {
       await campaignApi.logout();
-      setUser(null);
-    } catch (error) {
-      console.error('Error during logout:', error);
-      // Fallback for session expiry
-      window.location.href = '/';
+    } catch (err) {
+      console.error("Logout sequence failed:", err);
     }
+    window.location.href = '/';
   };
 
   if (loading) {
-    return <div className="loading-container terminal-text">ESTABLISHING TACTICAL UPLINK...</div>;
+    return (
+      <div className="loading-intel" style={{ textAlign: 'center', marginTop: '20%' }}>
+        <h2>INITIALIZING NEURAL LINK...</h2>
+        <p className="terminal-text">SYNCHRONIZING WITH COMSTAR RELAY</p>
+      </div>
+    );
   }
 
-  return <MainDashboard user={user} onLogout={handleLogout} />;
+  return (
+    // 3. Provide the client to your component tree
+    <ApolloProvider client={client}>
+      <MainDashboard user={user} onLogout={handleLogout} />
+    </ApolloProvider>
+  );
 }

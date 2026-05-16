@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hotspotscamp.entity.MercenaryCommand;
+import com.hotspotscamp.entity.Detachment;
+import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.service.MercenaryCommandService;
 
 import lombok.RequiredArgsConstructor;
@@ -66,6 +68,40 @@ public class MercenaryCommandController {
             Principal principal) {
         return mercenaryCommandService.deleteDetachment(detachmentId, principal.getName())
                 .then(Mono.just(ResponseEntity.noContent().<Void>build()))
+                .onErrorResume(e -> {
+                    if (e.getMessage() != null && e.getMessage().contains("Access Denied")) {
+                        return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+                    }
+                    return Mono.error(e);
+                });
+    }
+
+    @PostMapping("/{commandId}/detachments")
+    public Mono<Detachment> createDetachment(
+            @PathVariable UUID commandId,
+            @RequestParam UUID contractId,
+            @RequestParam String name,
+            Principal principal) {
+        return mercenaryCommandService.createDetachment(commandId, contractId, name, principal.getName());
+    }
+
+    @DeleteMapping("/units/{unitId}")
+    public Mono<Void> deleteUnit(@PathVariable UUID unitId, Principal principal) {
+        return mercenaryCommandService.deleteCombatUnit(unitId, principal.getName());
+    }
+
+    @DeleteMapping("/pilots/{pilotId}")
+    public Mono<Void> deletePilot(@PathVariable UUID pilotId, Principal principal) {
+        return mercenaryCommandService.deletePilot(pilotId, principal.getName());
+    }
+
+    @PostMapping("/ledger/{detachmentId}")
+    public Mono<ResponseEntity<LedgerEntry>> addLedgerEntry(
+            @PathVariable UUID detachmentId,
+            @RequestBody LedgerEntry entry,
+            Principal principal) {
+        return mercenaryCommandService.addLedgerEntry(detachmentId, entry, principal.getName())
+                .map(saved -> new ResponseEntity<>(saved, HttpStatus.CREATED))
                 .onErrorResume(e -> {
                     if (e.getMessage() != null && e.getMessage().contains("Access Denied")) {
                         return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build());

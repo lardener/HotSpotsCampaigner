@@ -9,10 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.hotspotscamp.entity.CombatUnit;
+import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
-import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.ContractRepository;
@@ -24,6 +24,7 @@ import com.hotspotscamp.repository.PilotRepository;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,11 @@ public class MercenaryCommandService {
     private final PilotRepository pilotRepository;
     private final UserService userService;
     private final DatabaseClient databaseClient;
+
+    /**
+     * Reactive sink for broadcasting command updates to subscribers.
+     */
+    private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
 
     /**
      * DTO for returning all assets belonging to a command.
@@ -113,6 +119,55 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Creates a new detachment for a command under a specific contract.
+     */
+    @Transactional
+    public Mono<Detachment> createDetachment(UUID commandId, UUID contractId, String name, String userId) {
+        return commandRepository.findById(commandId)
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied"));
+            }
+            Detachment det = new Detachment();
+            det.setId(UUID.randomUUID());
+            det.setMercenaryCommandId(commandId);
+            det.setContractId(contractId);
+            det.setName(name);
+            return detachmentRepository.save(det);
+        }));
+    }
+
+    /**
+     * Removes a combat unit from the command entirely.
+     */
+    @Transactional
+    public Mono<Void> deleteCombatUnit(UUID unitId, String userId) {
+        return combatUnitRepository.findById(unitId)
+                .flatMap(unit -> commandRepository.findById(unit.getCommandId())
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied"));
+            }
+            return combatUnitRepository.delete(unit);
+        })));
+    }
+
+    /**
+     * Removes a pilot from the command entirely.
+     */
+    @Transactional
+    public Mono<Void> deletePilot(UUID pilotId, String userId) {
+        return pilotRepository.findById(pilotId)
+                .flatMap(pilot -> commandRepository.findById(pilot.getCommandId())
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied"));
+            }
+            return pilotRepository.delete(pilot);
+        })));
+    }
+
+    /**
      * Recalculates and updates the Command's total Support Points (SP) by
      * summing all ledger entries across all its detachments. This ensures the
      * Command state matches the "MERCENARY CONTRACT RECORD SHEET" history.
@@ -126,8 +181,17 @@ public class MercenaryCommandService {
                 .flatMap(totalSp -> commandRepository.findById(commandId)
                 .flatMap(command -> {
                     command.setTotalSupportPoints(totalSp);
-                    return commandRepository.save(command);
+                    return commandRepository.save(command)
+                            .doOnNext(saved -> commandSink.tryEmitNext(saved));
                 }));
+    }
+
+    /**
+     * Returns a stream of updates for a specific command.
+     */
+    public Flux<MercenaryCommand> getCommandUpdates(UUID commandId) {
+        return commandSink.asFlux()
+                .filter(cmd -> cmd.getId().equals(commandId));
     }
 
     /**

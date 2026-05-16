@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for now, or configure properly for SPA
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
                 .authorizeExchange(exchanges -> exchanges
+                .pathMatchers("/graphql", "/graphql/**").authenticated() // Match base and sub-paths
                 .pathMatchers("/api/user/profile").authenticated() // Protect profile endpoint
                 .pathMatchers("/login/oauth2/**").permitAll() // Allow OAuth2 initiation and callback
                 .anyExchange().permitAll() // Allow all other requests for now (e.g., static resources)
@@ -99,5 +100,4 @@ public class SecurityConfig {
         return source;
     }
 
-    
 }

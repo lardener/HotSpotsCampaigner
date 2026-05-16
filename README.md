@@ -7,6 +7,7 @@ This is a TDD-first project for the Battletech Campaign Manager—a multi-tenant
  ✅ **Unified Identity System**: Support for both Google OAuth2 and "Invite-as-Identity" key-based access.
  ✅ **Invitation System**: Campaign Managers can generate secure tokens to invite players without requiring passwords or emails.
  ✅ **Role-Based Access Control (RBAC)**: Distinction between `ROLE_AUTHENTICATED` (Managers) and `ROLE_INVITED` (Players).
+ ✅ **GraphQL API**: High-performance data fetching and real-time ledger updates via Spring GraphQL and Apollo Client.
 
 ## Invitation & Login System
 
@@ -161,7 +162,7 @@ npm test
 ### Frontend (React + TypeScript)
 - **Vite** for fast development and optimized builds
 - **Vitest** for component testing
-- **Apollo Client** ready (for future GraphQL integration)
+- **Apollo Client** for reactive data fetching and real-time subscriptions
 - **CSS-based responsive layout** with centered welcome message
 
 ### Deployment
@@ -173,12 +174,10 @@ npm test
 
 From this walking skeleton, you can:
 
-1. **GraphQL Migration** — Transition REST endpoints to Spring GraphQL for flexible queries.
-2. **Event Sourcing** — Implement event store with PostgreSQL
-4. **Kafka Integration** — Add event streaming for multi-service architecture
-5. **PostgreSQL Move** — Migrate from MySQL to PostgreSQL for advanced JSONB support.
-6. **S3 Integration** — Implement campaign snapshot storage
-7. **JavaFX Desktop App** — Build local campaign viewer
+1. **Event Sourcing** — Implement event store with MySQL.
+2. **Kafka Integration** — Add event streaming for multi-service architecture.
+3. **S3 Integration** — Implement campaign snapshot storage.
+4. **JavaFX Desktop App** — Build local campaign viewer.
 
 ## Testing Strategy
 
