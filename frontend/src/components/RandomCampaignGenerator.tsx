@@ -48,6 +48,28 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
     const [saved, setSaved] = useState(false);
 
+    const getQueryParams = () => {
+        return {} as Record<string, string | number | undefined>;
+    };
+
+    const handlePreview = async () => {
+        setLoading(true);
+        setSaved(false);
+        setPreviewError(null);
+        setIsNameManuallyEdited(false);
+
+        try {
+            const params = getQueryParams();
+            const data = await campaignApi.previewCampaign(params);
+            setProposal(data);
+        } catch (error) {
+            console.error('Dobless preview failed', error);
+            setPreviewError('Failed to generate campaign preview. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const fetchMetadata = async () => {
             setMetadataLoading(true);
@@ -63,6 +85,9 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                 setOpponentMissions((missionsData as any)?.opponent || []);
                 setTrackTypes(trackTypesData);
                 setResolvedSteps(stepsData);
+
+                // Automatically trigger the first preview once metadata is ready
+                await handlePreview();
             } catch (err) {
                 console.error('Failed to load generator metadata', err);
                 setMetadataError('Failed to load campaign metadata. Please refresh the page or try again later.');
@@ -72,10 +97,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         };
         fetchMetadata();
     }, []);
-
-    const getQueryParams = () => {
-        return {} as Record<string, string | number | undefined>;
-    };
 
     const getSaveParams = () => {
         if (!proposal) {
@@ -108,24 +129,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             commandStep: primary.commandStep,
             trackCount: proposal.campaign.trackCount
         };
-    };
-
-    const handlePreview = async () => {
-        setLoading(true);
-        setSaved(false);
-        setPreviewError(null);
-        setIsNameManuallyEdited(false);
-
-        try {
-            const params = getQueryParams();
-            const data = await campaignApi.previewCampaign(params);
-            setProposal(data);
-        } catch (error) {
-            console.error('Dobless preview failed', error);
-            setPreviewError('Failed to generate campaign preview. Please try again.');
-        } finally {
-            setLoading(false);
-        }
     };
 
     const handleSave = async () => {
