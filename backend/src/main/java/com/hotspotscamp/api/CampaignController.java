@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +21,7 @@ import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.ActiveCampaignPage;
 import com.hotspotscamp.service.CampaignService.ActiveCampaignSummary;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
+import com.hotspotscamp.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
@@ -28,7 +31,10 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class CampaignController {
 
+    private static final Logger log = LoggerFactory.getLogger(CampaignController.class);
+
     private final CampaignService campaignService;
+    private final UserService userService;
 
     @GetMapping("/active")
     public Mono<ActiveCampaignPage> getActiveCampaigns(
@@ -155,12 +161,13 @@ public class CampaignController {
 
     @GetMapping("/managed")
     public reactor.core.publisher.Flux<ActiveCampaignSummary> getManagedCampaigns(Principal principal) {
+        log.info("[REST] getManagedCampaigns request received. Principal: {}", principal != null ? principal.getName() : "NULL");
         if (principal == null) {
             return reactor.core.publisher.Flux.empty();
         }
-        // Use the principal's name (which is the 'sub' for OAuth2) directly as the managerId String
-        String managerId = principal.getName();
-        return campaignService.getManagedCampaigns(managerId);
+        // Resolve the external identity to the internal UUID used in the manager_id column
+        return userService.resolveOrCreateUser(principal.getName())
+                .flatMapMany(user -> campaignService.getManagedCampaigns(user.getId().toString()));
     }
 
     @GetMapping("/participating/{commandId}")

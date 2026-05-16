@@ -2,6 +2,8 @@ type Query {
     myCommands: [MercenaryCommand]
     activeCampaigns(page: Int, size: Int): [Campaign]
     getCommand(id: ID!): MercenaryCommand
+    managedCampaigns(status: String): [Campaign]
+    previewCampaign(input: CampaignInput!): CampaignProposal
     campaignMetadata: CampaignMetadata
 }
 
@@ -39,7 +41,6 @@ type Mutation {
     deleteCommand(commandId: ID!, force: Boolean): Boolean
     
     # Campaign Management
-    previewCampaign(input: CampaignInput!): CampaignProposal
     createCampaign(input: CampaignInput!): Campaign
     
     # Asset Management

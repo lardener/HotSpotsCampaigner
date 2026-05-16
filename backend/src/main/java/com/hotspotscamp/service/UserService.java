@@ -1,16 +1,22 @@
 package com.hotspotscamp.service;
 
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
 
@@ -20,11 +26,15 @@ public class UserService {
      * one is created.
      */
     public Mono<User> resolveOrCreateUser(String identity) {
+        log.info("[AUTH] Attempting to resolve identity: {}", identity);
         return userRepository.findByExternalId(identity)
+                .doOnNext(u -> log.info("[AUTH] Found User via External ID: {} (UUID: {})", identity, u.getId()))
                 .switchIfEmpty(Mono.defer(() -> {
+                    log.info("[AUTH] Identity not found in external_id, checking internal UUIDs for: {}", identity);
                     try {
                         return userRepository.findById(UUID.fromString(identity));
                     } catch (IllegalArgumentException e) {
+                        log.warn("[AUTH] Identity '{}' is not a valid UUID format.", identity);
                         return Mono.empty();
                     }
                 }))

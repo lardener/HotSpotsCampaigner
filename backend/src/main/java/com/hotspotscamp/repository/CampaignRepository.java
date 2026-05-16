@@ -21,4 +21,7 @@ public interface CampaignRepository extends ReactiveCrudRepository<Campaign, UUI
     Mono<Long> countByStatus(String status);
 
     Flux<Campaign> findAllByManagerId(String managerId);
+
+    Flux<Campaign> findAllByManagerIdAndStatus(String managerId, String status);
+
 }

@@ -1,25 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import * as campaignApi from '../services/campaignApi';
+import React from 'react';
+import { gql } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
+
+const GET_ACTIVE_CAMPAIGNS = gql`
+  query GetActiveCampaigns($page: Int, $size: Int) {
+    activeCampaigns(page: $page, size: $size) {
+      id
+      name
+      systemName
+      status
+      trackCount
+      primaryEmployer
+      secondaryEmployer
+    }
+  }
+`;
+
+interface ActiveCampaignsData {
+    activeCampaigns: {
+        id: string;
+        name: string;
+        systemName: string;
+        status: string;
+        trackCount: number;
+        primaryEmployer: string;
+        secondaryEmployer: string;
+    }[];
+}
 
 export const ActiveCampaignsList: React.FC = () => {
-    const [campaigns, setCampaigns] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchCampaigns = async () => {
-            try {
-                const data = await campaignApi.getActiveCampaigns(0, 10);
-                setCampaigns(data.content);
-            } catch (err) {
-                console.error("Failed to fetch theater intel", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCampaigns();
-    }, []);
+    const { loading, error, data } = useQuery<ActiveCampaignsData>(GET_ACTIVE_CAMPAIGNS, {
+        variables: { page: 0, size: 10 }
+    });
 
     if (loading) return <div className="loading-intel">DECRYPTING THEATER INTEL...</div>;
+
+    if (error) return (
+        <div className="error-message">COMMUNICATIONS FAILURE: UNABLE TO ACCESS THEATER DATA.</div>
+    );
+
+    const campaigns = data?.activeCampaigns || [];
 
     return (
         <section className="active-campaigns-container">
@@ -36,7 +56,7 @@ export const ActiveCampaignsList: React.FC = () => {
                 ) : (
                     campaigns.map(c => (
                         <div key={c.id} className="campaign-card" style={{ border: '1px solid #333', padding: '15px', marginBottom: '15px', background: 'rgba(0,0,0,0.2)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <h3>{c.name}</h3>
                                 <span className="status-tag" style={{ color: '#c00' }}>ACTIVE</span>
                             </div>

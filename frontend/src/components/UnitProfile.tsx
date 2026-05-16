@@ -1,17 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import * as forceApi from '../services/forceApi';
-import { CombatUnit, Pilot, Detachment, MercenaryCommand, CommandAssetsResponse, CampaignSummary } from '../services/forceApi';
+import React, { useState } from 'react';
+import { gql } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client/react';
+
+const GET_UNIT_DOSSIER = gql`
+  query GetUnitDossier($commandId: ID!) {
+    getCommand(id: $commandId) {
+      id
+      name
+      totalSupportPoints
+      reputation
+      experienceLevel
+      commandingOfficer
+      units {
+        id
+        model
+        type
+        tonnage
+        status
+      }
+      pilots {
+        id
+        name
+        gunnery
+        piloting
+        status
+      }
+    }
+    managedCampaigns(status: "ACTIVE") {
+      id
+      name
+    }
+  }
+`;
+
+const CREATE_DETACHMENT = gql`
+  mutation CreateDetachment($commandId: ID!, $contractId: ID!, $name: String!) {
+    createDetachment(commandId: $commandId, contractId: $contractId, name: $name) {
+      id
+      name
+    }
+  }
+`;
+
+const ADD_LEDGER_ENTRY = gql`
+  mutation AddLedgerEntry($detachmentId: ID!, $amount: Int!, $description: String!) {
+    addLedgerEntry(detachmentId: $detachmentId, amount: $amount, description: $description) {
+      id
+    }
+  }
+`;
+
+const HIRE_PILOT = gql`
+  mutation HirePilot($commandId: ID!, $name: String!, $gunnery: Int!, $piloting: Int!) {
+    hirePilot(commandId: $commandId, name: $name, gunnery: $gunnery, piloting: $piloting) {
+      id
+    }
+  }
+`;
+
+const ADD_UNIT = gql`
+  mutation AddUnit($commandId: ID!, $model: String!, $tonnage: Int!, $type: String) {
+    addUnitToForce(commandId: $commandId, model: $model, tonnage: $tonnage, type: $type) {
+      id
+    }
+  }
+`;
+
+interface CombatUnit {
+    id: string;
+    model: string;
+    type: string;
+    tonnage: number;
+    status: string;
+    detachmentId?: string | null;
+}
+
+interface Pilot {
+    id: string;
+    name: string;
+    gunnery: number;
+    piloting: number;
+    status: string;
+    detachmentId?: string | null;
+}
+
+interface ManagedCampaign {
+    id: string;
+    name: string;
+}
+
+type Detachment = any; // Placeholder, as detachments are not yet fully typed from GraphQL
+
+interface UnitDossierData {
+    getCommand: {
+        id: string;
+        name: string;
+        totalSupportPoints: number;
+        reputation: number;
+        experienceLevel: string;
+        commandingOfficer: string;
+        units: CombatUnit[];
+        pilots: Pilot[];
+    };
+    managedCampaigns: ManagedCampaign[];
+}
 
 interface UnitProfileProps {
     commandId: string;
 }
 
 export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
-    const [command, setCommand] = useState<MercenaryCommand | null>(null);
-    const [assets, setAssets] = useState<CommandAssetsResponse | null>(null);
-    const [detachments, setDetachments] = useState<Detachment[]>([]);
-    const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
     // Form states
@@ -20,51 +118,33 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     const [ledgerAmount, setLedgerAmount] = useState<number>(0);
     const [ledgerDesc, setLedgerDesc] = useState('');
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [cmds, assetsData, dets, caps] = await Promise.all([
-                forceApi.getCommands(),
-                forceApi.getAssets(commandId),
-                forceApi.getDetachments(commandId),
-                forceApi.getParticipatingCampaigns(commandId)
-            ]);
-            const currentCmd = cmds.find(c => c.id === commandId);
-            if (currentCmd) setCommand(currentCmd);
-            setAssets(assetsData);
-            setDetachments(dets);
-            setCampaigns(caps);
-        } catch (err) {
-            console.error("Failed to load unit profile", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { loading, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
+        variables: { commandId }
+    });
 
-    useEffect(() => {
-        fetchData();
-    }, [commandId]);
+    const [createDetachment] = useMutation(CREATE_DETACHMENT);
+    const [addLedger] = useMutation(ADD_LEDGER_ENTRY);
+    const [addUnit] = useMutation(ADD_UNIT);
+    const [hirePilot] = useMutation(HIRE_PILOT);
 
     const handleMoveAsset = async (type: 'UNIT' | 'PILOT', id: string, targetDetachmentId: string | null) => {
-        try {
-            await forceApi.assignAsset(type, id, targetDetachmentId);
-            fetchData();
-        } catch (err) {
-            alert("Failed to move asset.");
-        }
+        // Note: Mutation for moving assets still needs to be implemented in schema/controller
+        alert(`Asset movement for ${type}:${id} to ${targetDetachmentId || 'pool'} requires 'assignAsset' mutation implementation.`);
     };
 
     const handleAddUnit = async () => {
         const model = prompt("Enter Unit Model (e.g. Archer ARC-2R):");
         if (!model) return;
         try {
-            await forceApi.addUnit(commandId, {
-                model,
-                type: 'BattleMech',
-                tonnage: 70,
-                status: 'OPERATIONAL'
-            } as CombatUnit);
-            fetchData();
+            await addUnit({
+                variables: {
+                    commandId,
+                    model,
+                    tonnage: 70,
+                    type: 'MECH'
+                }
+            });
+            refetch();
         } catch (err) { alert("Failed to add unit."); }
     };
 
@@ -72,63 +152,73 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
         const name = prompt("Enter Pilot Name:");
         if (!name) return;
         try {
-            await forceApi.hirePilot(commandId, {
-                name,
-                gunnery: 4,
-                piloting: 5,
-                status: 'ACTIVE'
-            } as Pilot);
-            fetchData();
+            await hirePilot({
+                variables: {
+                    commandId,
+                    name,
+                    gunnery: 4,
+                    piloting: 5
+                }
+            });
+            refetch();
         } catch (err) { alert("Failed to hire pilot."); }
     };
 
     const handleDeleteAsset = async (type: 'UNIT' | 'PILOT', id: string) => {
         if (!window.confirm(`Are you sure you want to remove this ${type.toLowerCase()}?`)) return;
-        try {
-            if (type === 'UNIT') await forceApi.deleteUnit(id);
-            else await forceApi.deletePilot(id);
-            fetchData();
-        } catch (err) { alert("Failed to delete asset."); }
+        // Requires deleteUnit/deletePilot mutation calls.
+        alert(`Deletion of ${type}:${id} logic is pending.`);
     };
 
     const handleCreateDetachment = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newDetachmentName || !selectedContractId) return;
         try {
-            await forceApi.createDetachment(commandId, selectedContractId, newDetachmentName);
+            await createDetachment({
+                variables: {
+                    commandId,
+                    contractId: selectedContractId,
+                    name: newDetachmentName
+                }
+            });
             setNewDetachmentName('');
-            fetchData();
+            refetch();
         } catch (err) { alert("Failed to create detachment."); }
     };
 
     const handleDeleteDetachment = async (id: string) => {
         if (!window.confirm("Delete detachment? Assets will return to pool.")) return;
-        try {
-            await forceApi.deleteDetachment(id);
-            if (selectedDetachmentId === id) setSelectedDetachmentId(null);
-            fetchData();
-        } catch (err) { alert("Failed to delete detachment."); }
+        // Requires deleteDetachment mutation call
+        alert(`Detachment deletion for ${id} logic is pending.`);
     };
 
     const handleAddLedger = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDetachmentId || ledgerAmount === 0) return;
         try {
-            await forceApi.addLedgerEntry(selectedDetachmentId, {
-                amount: ledgerAmount,
-                shortDescription: ledgerDesc
+            await addLedger({
+                variables: {
+                    detachmentId: selectedDetachmentId,
+                    amount: ledgerAmount,
+                    description: ledgerDesc
+                }
             });
             setLedgerAmount(0);
             setLedgerDesc('');
-            fetchData();
+            refetch();
         } catch (err) { alert("Failed to add ledger entry."); }
     };
 
     if (loading) return <div className="loading-intel">RETRIEVING UNIT DOSSIER...</div>;
-    if (!command) return <div>Command not found.</div>;
+    const command = data?.getCommand;
+    if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
 
-    const filteredUnits = assets?.units.filter(u => u.detachmentId === selectedDetachmentId) || [];
-    const filteredPilots = assets?.pilots.filter(p => p.detachmentId === selectedDetachmentId) || [];
+    // Placeholder for detachments logic - needs to be added to GraphQL query
+    const detachments: Detachment[] = []; // This will need to be populated from GraphQL later
+    const campaigns: ManagedCampaign[] = data?.managedCampaigns || [];
+
+    const filteredUnits: CombatUnit[] = command.units.filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId);
+    const filteredPilots: Pilot[] = command.pilots.filter((p: Pilot) => p.status === 'ACTIVE'); // Simplified for now
 
     return (
         <div className="container unit-profile">
@@ -179,7 +269,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                             onChange={e => setSelectedContractId(e.target.value)}
                             style={{ width: '100%', marginTop: '5px' }}
                         >
-                            <option value="">Select Contract</option>
+                            <option value="">SELECT CAMPAIGN</option>
                             {campaigns.map(cap => (
                                 <optgroup key={cap.id} label={cap.name}>
                                     <option value={cap.id}>Primary Contract</option>
@@ -235,7 +325,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                 </thead>
                                 <tbody>
                                     {filteredUnits.map(u => (
-                                        <tr key={u.id} style={{ fontSize: '0.9rem', borderBottom: '1px solid #222' }}>
+                                        <tr key={u.id} style={{ fontSize: '0.9rem', borderBottom: '1px solid #222', verticalAlign: 'top' }}>
                                             <td style={{ padding: '8px 0' }}>{u.model}</td>
                                             <td>{u.tonnage}</td>
                                             <td>
@@ -274,7 +364,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                 </thead>
                                 <tbody>
                                     {filteredPilots.map(p => (
-                                        <tr key={p.id} style={{ fontSize: '0.9rem', borderBottom: '1px solid #222' }}>
+                                        <tr key={p.id} style={{ fontSize: '0.9rem', borderBottom: '1px solid #222', verticalAlign: 'top' }}>
                                             <td style={{ padding: '8px 0' }}>{p.name}</td>
                                             <td>{p.gunnery}/{p.piloting}</td>
                                             <td>

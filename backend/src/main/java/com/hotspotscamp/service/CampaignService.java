@@ -347,8 +347,11 @@ public class CampaignService {
      * Fetches campaigns where the user is the designated Campaign Manager.
      */
     public Flux<ActiveCampaignSummary> getManagedCampaigns(String managerId) {
+        log.info("[MONITOR] getManagedCampaigns triggered for managerId: {}", managerId);
         return campaignRepository.findAllByManagerId(managerId)
-                .flatMap(this::mapToSummary);
+                .doOnNext(c -> log.info("[MONITOR] Found managed campaign: {} (ID: {})", c.getName(), c.getId()))
+                .flatMap(this::mapToSummary)
+                .doOnComplete(() -> log.info("[MONITOR] Flux stream completed for managerId: {}", managerId));
     }
 
     /**
@@ -356,6 +359,7 @@ public class CampaignService {
      * in via its detachments.
      */
     public Flux<ActiveCampaignSummary> getParticipatingCampaigns(UUID commandId) {
+        log.debug("Fetching participating campaigns for commandId: {}", commandId);
         return detachmentRepository.findAllByMercenaryCommandId(commandId)
                 .flatMap(det -> contractRepository.findById(det.getContractId()))
                 .map(Contract::getCampaignId)
@@ -365,9 +369,14 @@ public class CampaignService {
     }
 
     private Mono<ActiveCampaignSummary> mapToSummary(Campaign c) {
+        log.info("[MONITOR] Mapping campaign {} to summary", c.getId());
         return contractRepository.findAllByCampaignId(c.getId())
                 .collectList()
-                .map(contracts -> createSummary(c, contracts));
+                .map(contracts -> {
+                    ActiveCampaignSummary summary = createSummary(c, contracts);
+                    log.info("[MONITOR] Summary mapped for {}: Primary Employer={}", summary.name(), summary.primaryEmployer());
+                    return summary;
+                });
     }
 
     private ActiveCampaignSummary createSummary(Campaign c, List<Contract> contracts) {

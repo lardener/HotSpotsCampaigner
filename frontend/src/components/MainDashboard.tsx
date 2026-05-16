@@ -5,7 +5,6 @@ import { Sidebar, TabType } from './Sidebar';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
 import { RandomCampaignGenerator } from './RandomCampaignGenerator';
 import { Welcome } from './Welcome';
-import { ForceDashboard } from './ForceDashboard';
 import { LedgerDashboard } from './LedgerDashboard';
 import { CreateCommandForm } from './CreateCommandForm';
 import { UnitProfile } from './UnitProfile';
@@ -19,6 +18,19 @@ const GET_MY_COMMANDS = gql`
       reputation
       experienceLevel
       commandingOfficer
+    }
+  }
+`;
+
+const GET_MANAGED_CAMPAIGNS = gql`
+  query GetManagedCampaigns($status: String) {
+    managedCampaigns(status: $status) {
+      id
+      name
+      systemName
+      status
+      trackCount
+      primaryEmployer
     }
   }
 `;
@@ -40,6 +52,17 @@ interface GetMyCommandsData {
     }[];
 }
 
+interface ManagedCampaignsData {
+    managedCampaigns: {
+        id: string;
+        name: string;
+        systemName: string;
+        status: string;
+        trackCount: number;
+        primaryEmployer: string;
+    }[];
+}
+
 interface MainDashboardProps {
     user: { name: string; id: string } | null;
     onLogout: () => void;
@@ -50,10 +73,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     const [commands, setCommands] = useState<any[]>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
     const [isCreatingCommand, setIsCreatingCommand] = useState(false);
+    const [campaignFilter, setCampaignFilter] = useState<string>('ACTIVE');
 
     const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
         skip: !user,
         fetchPolicy: 'network-only' // Ensure we don't just hit the cache after a save
+    });
+
+    const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<ManagedCampaignsData>(GET_MANAGED_CAMPAIGNS, {
+        variables: { status: campaignFilter },
+        skip: !user || activeTab !== 'my-campaigns'
     });
 
     // Add logging to catch the specific reason for the "COMMUNICATIONS BREAKDOWN"
@@ -109,7 +138,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         }
     };
 
-    // If not authenticated, only show the public theater list
+    // If not authenticated, show available campaigns and the generator
     if (!user) {
         return (
             <div className="public-landing">
@@ -120,6 +149,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                     </button>
                 </div>
                 <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                    <h2 className="section-title">AVAILABLE CAMPAIGNS</h2>
                     <ActiveCampaignsList />
                 </div>
                 <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', marginTop: '40px' }}>
@@ -158,7 +188,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         }
 
         // Allow access to creation, management, and public tabs even if no command is selected yet
-        const commandContextRequired = ['my-campaigns', 'ledger'].includes(activeTab);
+        const commandContextRequired = ['ledger', 'unit-profile'].includes(activeTab);
 
         if (!selectedCommandId && commandContextRequired) {
             return (
@@ -173,9 +203,59 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         switch (activeTab) {
             case 'my-campaigns':
                 return (
-                    <div>
-                        <Welcome userName={user.name} />
-                        {selectedCommandId && <ForceDashboard commandId={selectedCommandId} initialMode="OPERATIONS" />}
+                    <div className="container">
+                        <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h1 className="terminal-text">CAMPAIGN OPERATIONS</h1>
+                                <p className="restricted-text">THEATER MANAGEMENT PROTOCOL</p>
+                            </div>
+                            <button
+                                className="mode-btn"
+                                onClick={() => setCampaignFilter(campaignFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
+                            >
+                                {campaignFilter === 'ACTIVE' ? '[ VIEWING: ACTIVE ONLY ]' : '[ VIEWING: ALL THEATERS ]'}
+                            </button>
+                        </header>
+
+                        <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
+                            {loadingManaged && <div className="loading-intel">RETRIEVING THEATER DATA...</div>}
+
+                            {managedData?.managedCampaigns.map(camp => (
+                                <div
+                                    key={camp.id}
+                                    className="dashboard-section"
+                                    style={{
+                                        border: '1px solid #444',
+                                        backgroundColor: camp.status === 'ACTIVE' ? 'rgba(192, 0, 0, 0.02)' : 'transparent',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h3 className="section-title" style={{ margin: 0 }}>{camp.name}</h3>
+                                        <span className="restricted-text" style={{ color: camp.status === 'ACTIVE' ? '#c00' : '#666' }}>
+                                            [ STATUS: {camp.status} ]
+                                        </span>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
+                                        <div style={{ textAlign: 'right', alignSelf: 'end' }}>
+                                            <button className="mode-btn" style={{ fontSize: '0.8rem' }}>MANAGE THEATER</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {!loadingManaged && managedData?.managedCampaigns.length === 0 && (
+                                <div className="placeholder-content" style={{ border: '1px dashed #444' }}>
+                                    <h3 className="terminal-text">NO MANAGED CAMPAIGNS FOUND</h3>
+                                    <p>Initialize a new operation via the New Campaign Enlistment protocol.</p>
+                                    <button className="login-button" onClick={() => setActiveTab('create-campaign')}>START NEW CAMPAIGN</button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 );
             case 'create-campaign':
@@ -188,6 +268,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                             user={user}
                             onSaveSuccess={() => {
                                 fetchCommands();
+                                refetchManaged();
                                 setActiveTab('my-campaigns');
                             }}
                         />
@@ -285,7 +366,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                     <UnitProfile commandId={selectedCommandId} />
                 ) : null;
             case 'public-campaigns':
-                return <ActiveCampaignsList />;
+                return (
+                    <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                        <header className="dashboard-header">
+                            <h1 className="terminal-text">AVAILABLE CAMPAIGNS</h1>
+                        </header>
+                        <ActiveCampaignsList />
+                    </div>
+                );
             default:
                 return <Welcome userName={user.name} />;
         }

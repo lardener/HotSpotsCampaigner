@@ -12,11 +12,11 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userName, onLogout }) => {
     const menuItems = [
-        { id: 'my-campaigns' as TabType, icon: '🗺️', label: 'My Campaigns' },
-        { id: 'create-campaign' as TabType, icon: '➕', label: 'New Campaign' },
         { id: 'commands' as TabType, icon: '🛡️', label: 'Mercenary Commands' },
+        { id: 'my-campaigns' as TabType, icon: '🗺️', label: 'My Campaigns' }, // Moved from original position
+        { id: 'create-campaign' as TabType, icon: '➕', label: 'New Campaign' },
         { id: 'ledger' as TabType, icon: '📜', label: 'Warchest Ledger' },
-        { id: 'public-campaigns' as TabType, icon: '🌐', label: 'Active Theater' },
+        { id: 'public-campaigns' as TabType, icon: '🌐', label: 'Available Campaigns' },
     ];
 
     return (

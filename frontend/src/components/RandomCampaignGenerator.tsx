@@ -1,5 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import * as campaignApi from '../services/campaignApi';
+import { gql } from '@apollo/client';
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
+
+const GET_METADATA = gql`
+  query GetCampaignMetadata {
+    campaignMetadata {
+      missions {
+        primary
+        opponent
+      }
+      trackTypes
+      resolvedSteps {
+        step
+        values {
+          payRate
+          salvageRights
+          supportRights
+          transportation
+          commandRights
+        }
+      }
+    }
+  }
+`;
+
+const PREVIEW_CAMPAIGN = gql`
+  query PreviewCampaign($input: CampaignInput!) {
+    previewCampaign(input: $input) {
+      campaign {
+        name
+        systemName
+        trackCount
+      }
+      contracts {
+        employerCategory
+        missionType
+        primaryContract
+        payRate
+        payStep
+        salvageTerms
+        salvageStep
+        supportTerms
+        supportStep
+        transportTerms
+        transportStep
+        commandRights
+        commandStep
+        trackCount
+      }
+      tracks
+    }
+  }
+`;
+
+const CREATE_CAMPAIGN = gql`
+  mutation CreateCampaign($input: CampaignInput!) {
+    createCampaign(input: $input) {
+      id
+      name
+    }
+  }
+`;
 
 interface ContractPreview {
     employerCategory: string;
@@ -28,6 +89,24 @@ interface Proposal {
     tracks: string[];
 }
 
+interface MetadataData {
+    campaignMetadata: {
+        missions: {
+            primary: string[];
+            opponent: string[];
+        };
+        trackTypes: string[];
+        resolvedSteps: {
+            step: number;
+            values: any;
+        }[];
+    };
+}
+
+interface PreviewData {
+    previewCampaign: Proposal;
+}
+
 interface Props {
     user?: { name: string };
     onSaveSuccess?: () => void;
@@ -36,67 +115,55 @@ interface Props {
 export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [primaryMissions, setPrimaryMissions] = useState<string[]>([]);
     const [opponentMissions, setOpponentMissions] = useState<string[]>([]);
-    const [resolvedSteps, setResolvedSteps] = useState<Record<string, any>>({});
+    const [resolvedSteps, setResolvedSteps] = useState<Record<number, any>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
 
-    const [loading, setLoading] = useState(false);
-    const [metadataLoading, setMetadataLoading] = useState(true);
-    const [metadataError, setMetadataError] = useState<string | null>(null);
+    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<MetadataData>(GET_METADATA);
+
+    useEffect(() => {
+        if (metadataData) {
+            setPrimaryMissions(metadataData.campaignMetadata.missions.primary);
+            setOpponentMissions(metadataData.campaignMetadata.missions.opponent);
+            setTrackTypes(metadataData.campaignMetadata.trackTypes);
+
+            const steps: Record<number, any> = {};
+            metadataData.campaignMetadata.resolvedSteps.forEach((entry: any) => {
+                steps[entry.step] = entry.values;
+            });
+            setResolvedSteps(steps);
+        }
+    }, [metadataData]);
+
+    const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<PreviewData>(PREVIEW_CAMPAIGN, {
+        fetchPolicy: 'network-only'
+    });
+
+    useEffect(() => {
+        if (previewData) {
+            setProposal(previewData.previewCampaign);
+        }
+    }, [previewData]);
+
+    const [createCampaign, { loading: saveLoading }] = useMutation(CREATE_CAMPAIGN);
+
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [proposal, setProposal] = useState<Proposal | null>(null);
     const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const getQueryParams = () => {
-        return {} as Record<string, string | number | undefined>;
-    };
-
-    const handlePreview = async () => {
-        setLoading(true);
+    const handlePreview = () => {
         setSaved(false);
         setPreviewError(null);
         setIsNameManuallyEdited(false);
-
-        try {
-            const params = getQueryParams();
-            const data = await campaignApi.previewCampaign(params);
-            setProposal(data);
-        } catch (error) {
-            console.error('Dobless preview failed', error);
-            setPreviewError('Failed to generate campaign preview. Please try again.');
-        } finally {
-            setLoading(false);
-        }
+        getPreview({ variables: { input: {} } });
     };
 
     useEffect(() => {
-        const fetchMetadata = async () => {
-            setMetadataLoading(true);
-            setMetadataError(null);
-            try {
-                const [missionsData, trackTypesData, stepsData] = await Promise.all([
-                    campaignApi.getMissions(),
-                    campaignApi.getTrackTypes(),
-                    campaignApi.getResolvedSteps()
-                ]);
-                const parsedMissionsData = missionsData as any;
-                setPrimaryMissions(parsedMissionsData?.primary || []);
-                setOpponentMissions((missionsData as any)?.opponent || []);
-                setTrackTypes(trackTypesData);
-                setResolvedSteps(stepsData);
-
-                // Automatically trigger the first preview once metadata is ready
-                await handlePreview();
-            } catch (err) {
-                console.error('Failed to load generator metadata', err);
-                setMetadataError('Failed to load campaign metadata. Please refresh the page or try again later.');
-            } finally {
-                setMetadataLoading(false);
-            }
-        };
-        fetchMetadata();
-    }, []);
+        if (!metadataLoading && Object.keys(resolvedSteps).length > 0 && !proposal) {
+            handlePreview();
+        }
+    }, [metadataLoading, resolvedSteps, proposal, handlePreview]);
 
     const getSaveParams = () => {
         if (!proposal) {
@@ -117,7 +184,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             mission: primary.missionType,
             employerCategory: employerCategorySuffix,
             systemName: proposal.campaign.systemName,
-            payRate: primary.payRate.toString(),
+            payRate: primary.payRate,
             salvageTerms: primary.salvageTerms,
             supportTerms: primary.supportTerms,
             transportTerms: primary.transportTerms,
@@ -132,11 +199,10 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     };
 
     const handleSave = async () => {
-        setLoading(true);
         setSaveError(null);
 
         try {
-            await campaignApi.saveCampaign(getSaveParams());
+            await createCampaign({ variables: { input: getSaveParams() } });
             setSaved(true);
             setTimeout(() => setProposal(null), 2000); // Allow user to see success state
             if (onSaveSuccess) {
@@ -145,8 +211,6 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         } catch (error) {
             console.error('Dobless save failed', error);
             setSaveError('Failed to save the campaign. Please confirm your session and try again.');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -179,21 +243,9 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             } else if (newCount > currentCount) {
                 // Add to the end by calling backend for appropriate track types
                 const numToAdd = newCount - currentCount;
-                const primaryContract = proposal.contracts[0];
-
-                try {
-                    const newTracks = await campaignApi.generateTracks(
-                        primaryContract.missionType,
-                        primaryContract.commandRights,
-                        numToAdd
-                    );
-                    updatedTracks = [...updatedTracks, ...newTracks];
-                } catch (error) {
-                    console.error('Failed to generate additional tracks', error);
-                    // Fallback: Add generic tracks if backend fails
-                    const fillers = Array(numToAdd).fill('Assault');
-                    updatedTracks = [...updatedTracks, ...fillers];
-                }
+                // Fallback: Add generic tracks if logic is purely local now
+                const fillers = Array(numToAdd).fill('Assault');
+                updatedTracks = [...updatedTracks, ...fillers];
             }
         }
 
@@ -272,14 +324,15 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
 
             <button
                 onClick={handlePreview}
-                disabled={loading || metadataLoading}
+                disabled={previewLoading || metadataLoading}
                 className="login-button"
                 style={{ marginTop: '20px' }}
             >
-                {loading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
+                {previewLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
             </button>
-            {metadataError && <div className="error-message" style={{ marginTop: '12px' }}>{metadataError}</div>}
+            {metadataError && <div className="error-message" style={{ marginTop: '12px' }}>{metadataError.message}</div>}
             {previewError && <div className="error-message" style={{ marginTop: '12px' }}>{previewError}</div>}
+            {previewErrorStatus && <div className="error-message" style={{ marginTop: '12px' }}>{previewErrorStatus.message}</div>}
 
             {proposal && (
                 <div className="proposal-view" style={{ marginTop: '30px' }}>
@@ -372,7 +425,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
 
                     {saveError && <div className="error-message" style={{ marginTop: '12px' }}>{saveError}</div>}
                     {user ? (
-                        <button onClick={handleSave} disabled={loading || saved} className="login-button">
+                        <button onClick={handleSave} disabled={saveLoading || saved} className="login-button">
                             {saved ? 'CAMPAIGN ARCHIVED' : 'CONFIRM & SAVE CAMPAIGN'}
                         </button>
                     ) : (
