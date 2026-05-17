@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { LedgerEntryForm } from './LedgerEntryForm';
-import * as ledgerApi from '../services/ledgerApi';
+import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloProvider } from '@apollo/client/react';
+import { MockLink } from '@apollo/client/testing';
+import { LedgerEntryForm, ADD_LEDGER_ENTRY } from './LedgerEntryForm';
 
 describe('LedgerEntryForm', () => {
     beforeEach(() => {
@@ -9,26 +11,61 @@ describe('LedgerEntryForm', () => {
     });
 
     it('submits a ledger entry successfully', async () => {
-        const createLedgerEntry = vi.spyOn(ledgerApi, 'createLedgerEntry').mockResolvedValue();
         const onEntryAdded = vi.fn();
+        const mocks = [
+            {
+                request: {
+                    query: ADD_LEDGER_ENTRY,
+                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts' },
+                },
+                result: {
+                    data: { addLedgerEntry: { id: 'entry-123' } },
+                },
+            },
+        ];
 
-        render(<LedgerEntryForm detachmentId="detachment-1" onEntryAdded={onEntryAdded} />);
+        const client = new ApolloClient({
+            link: new MockLink(mocks),
+            cache: new InMemoryCache(),
+        });
+
+        render(
+            <ApolloProvider client={client}>
+                <LedgerEntryForm detachmentId="detachment-1" onEntryAdded={onEntryAdded} />
+            </ApolloProvider>
+        );
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } });
         fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } });
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {
-            expect(createLedgerEntry).toHaveBeenCalledWith('detachment-1', { description: 'Repair parts', amount: 50 });
             expect(onEntryAdded).toHaveBeenCalled();
         });
     });
 
     it('shows an error message when ledger submission fails', async () => {
-        vi.spyOn(ledgerApi, 'createLedgerEntry').mockRejectedValue(new Error('Backend error'));
         const onEntryAdded = vi.fn();
+        const mocks = [
+            {
+                request: {
+                    query: ADD_LEDGER_ENTRY,
+                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts' },
+                },
+                error: new Error('GraphQL error'),
+            },
+        ];
 
-        render(<LedgerEntryForm detachmentId="detachment-1" onEntryAdded={onEntryAdded} />);
+        const client = new ApolloClient({
+            link: new MockLink(mocks),
+            cache: new InMemoryCache(),
+        });
+
+        render(
+            <ApolloProvider client={client}>
+                <LedgerEntryForm detachmentId="detachment-1" onEntryAdded={onEntryAdded} />
+            </ApolloProvider>
+        );
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } });
         fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } });

@@ -45,3 +45,15 @@ Eliminate over-fetching in the `MainDashboard` by replacing `forceApi.ts` and `c
 - [x] `MainDashboard` fetches all required data (Command details + Active Campaigns) in a single request.
  - [x] Zero dependencies on `forceApi.ts` or `campaignApi.ts` in the frontend.
  - [x] REST controllers removed from backend, leaving GraphQL as the sole entry point.
+
+## Phase 8: Invitation & User System Finalization
+- [x] Migrate `loginWithToken` from `InviteController` to a GraphQL mutation (Identity-as-Invite flow).
+- [x] Ensure `UserGraphQLController` parity with the legacy `UserController` for profile attributes.
+
+## Phase 9: Final REST Controller Deletion
+- [x] Delete `AssetController.java`.
+- [x] Delete `DetachmentController.java`.
+- [x] Delete `LedgerController.java`.
+- [x] Delete `MercenaryCommandController.java`.
+- [x] Delete `UserController.java`.
+- [x] Delete `InviteController.java`.

@@ -75,6 +75,15 @@ public class CampaignGraphQLController {
                 .defaultIfEmpty("Unknown");
     }
 
+    @SchemaMapping(typeName = "Campaign", field = "secondaryEmployer")
+    public Mono<String> getSecondaryEmployer(Campaign campaign) {
+        return contractRepository.findAllByCampaignId(campaign.getId())
+                .filter(c -> Boolean.FALSE.equals(c.getPrimaryContract()))
+                .map(Contract::getEmployerCategory)
+                .next()
+                .defaultIfEmpty("Unknown");
+    }
+
     @QueryMapping
     public Map<String, Object> campaignMetadata() {
         return Map.of(

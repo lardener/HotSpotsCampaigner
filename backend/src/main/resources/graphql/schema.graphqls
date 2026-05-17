@@ -5,13 +5,17 @@ type Query {
     managedCampaigns(status: String): [Campaign]
     previewCampaign(input: CampaignInput!): CampaignProposal
     campaignMetadata: CampaignMetadata
+    participatingCampaigns(commandId: ID!): [Campaign]
+    generateTracks(mission: String!, commandRights: String!, count: Int!): [String]
+    commandAssets(commandId: ID!): CommandAssetsResponse
+    userProfile: UserProfile
 }
 
 type CampaignMetadata {
   missions: MissionMetadata
   trackTypes: [String]
-  factions: [String]      # Add this line
-  employerTypes: [String] # Add this line
+  factions: [String]
+  employerTypes: [String]
   resolvedSteps: [ResolvedStepEntry]
 }
 
@@ -46,10 +50,15 @@ type Mutation {
     createCampaign(input: CampaignInput!): Campaign
     
     # Asset Management
-    addUnitToForce(commandId: ID!, model: String!, tonnage: Int!, type: String): CombatUnit
+    addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
     deleteUnit(unitId: ID!): Boolean
-    hirePilot(commandId: ID!, name: String!, gunnery: Int!, piloting: Int!): Pilot
+    hirePilot(commandId: ID!, input: PilotInput!): Pilot
     deletePilot(pilotId: ID!): Boolean
+
+    # Identity & Invites
+    loginWithInvite(token: String!, callsign: String!): User
+    createInvite(campaignId: ID!): CampaignInvite
+    assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, contractId: ID!, name: String!): Detachment
@@ -101,6 +110,30 @@ type LedgerEntry {
     runningTotal: Int
 }
 
+type CommandAssetsResponse {
+    units: [CombatUnit]
+    pilots: [Pilot]
+}
+
+type UserProfile {
+    name: String
+    email: String
+}
+
+type User {
+    id: ID!
+    displayName: String
+    role: String
+}
+
+type CampaignInvite {
+    id: ID!
+    campaignId: ID!
+    token: String
+    expiresAt: String
+    used: Boolean
+}
+
 input CampaignInput {
     employer: String
     opponent: String
@@ -118,6 +151,18 @@ input CampaignInput {
     transportStep: Int
     commandStep: Int
     trackCount: Int
+}
+
+input CombatUnitInput {
+    model: String!
+    tonnage: Int!
+    type: String
+}
+
+input PilotInput {
+    name: String!
+    gunnery: Int!
+    piloting: Int!
 }
 
 type CampaignProposal {

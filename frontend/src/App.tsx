@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ApolloClient, InMemoryCache, HttpLink, split } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, split, gql } from '@apollo/client';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { ApolloProvider } from '@apollo/client/react';
@@ -36,16 +36,37 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
+interface UserProfileData {
+  userProfile: {
+    name: string;
+    email: string;
+  } | null;
+}
+
+const GET_USER_PROFILE = gql`
+  query GetUserProfile {
+    userProfile {
+      name
+      email
+    }
+  }
+`;
+
 export function App() {
   const [user, setUser] = useState<{ name: string; id: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check for an existing session on mount
-    campaignApi.getProfile()
-      .then(profile => {
-        // Map backend response (name, email) to user state
-        setUser({ name: profile.name, id: profile.email });
+    client.query<UserProfileData>({ query: GET_USER_PROFILE, fetchPolicy: 'network-only' })
+      .then(result => {
+        const profile = result.data?.userProfile;
+        if (profile) {
+          // Map backend response (name, email) to user state
+          setUser({ name: profile.name, id: profile.email });
+        } else {
+          setUser(null);
+        }
         setLoading(false);
       })
       .catch(() => {

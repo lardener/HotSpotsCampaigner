@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { createLedgerEntry } from '../services/ledgerApi';
+import { gql } from '@apollo/client';
+import { useMutation } from '@apollo/client/react';
+
+export const ADD_LEDGER_ENTRY = gql`
+  mutation AddLedgerEntry($detachmentId: ID!, $amount: Int!, $description: String!) {
+    addLedgerEntry(detachmentId: $detachmentId, amount: $amount, description: $description) {
+      id
+    }
+  }
+`;
 
 interface LedgerEntryFormProps {
     detachmentId: string;
@@ -9,24 +18,27 @@ interface LedgerEntryFormProps {
 export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ detachmentId, onEntryAdded }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState<number>(0);
-    const [loading, setLoading] = useState(false);
+    const [addLedgerEntry, { loading }] = useMutation(ADD_LEDGER_ENTRY);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
         setSubmissionError(null);
 
         try {
-            await createLedgerEntry(detachmentId, { description, amount });
+            await addLedgerEntry({
+                variables: {
+                    detachmentId,
+                    amount,
+                    description
+                }
+            });
             setDescription('');
             setAmount(0);
             onEntryAdded();
         } catch (error) {
             console.error('Error adding ledger entry:', error);
             setSubmissionError('Failed to add ledger entry. Please try again.');
-        } finally {
-            setLoading(false);
         }
     };
 

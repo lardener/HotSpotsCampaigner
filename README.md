@@ -115,16 +115,16 @@ npm test
 │   │   ├── BattletechCampaignApplication.java
 │   │   ├── SchemaGenerator.java      # MySQL Schema utility
 │   │   ├── api/
-│   │   │   ├── CampaignController.java
-│   │   │   ├── LedgerController.java
-│   │   │   └── UserController.java
+│   │   │   ├── CampaignGraphQLController.java
+│   │   │   ├── CommandGraphQLController.java
+│   │   │   ├── InviteGraphQLController.java
+│   │   │   └── UserGraphQLController.java
 │   │   ├── config/
 │   │   │   └── SecurityConfig.java   # Reactive Security
 │   │   ├── entity/                   # R2DBC Entities (Campaign, Contract, Ledger, etc.)
 │   │   ├── repository/               # Reactive R2DBC Repositories
 │   │   └── service/                  # Business Logic (Campaign Generation, Ledger Sync)
-│   ├── src/test/java/com/hotspotscamp/api/
-│   │   └── UserControllerTest.java
+│   ├── src/test/java/com/hotspotscamp/api/ # GraphQL Integration Tests
 │   └── pom.xml
 ├── frontend/                 # React + TypeScript frontend
 │   ├── src/
@@ -133,7 +133,6 @@ npm test
 │   │   │   ├── LedgerEntryForm.tsx
 │   │   │   ├── RandomCampaignGenerator.tsx
 │   │   │   └── Welcome.tsx
-│   │   ├── services/                 # API Clients (campaignApi, ledgerApi)
 │   │   ├── styles/
 │   │   │   ├── index.css
 │   │   │   └── ...
@@ -157,7 +156,7 @@ npm test
 - **Spring WebFlux** for high-concurrency, reactive, non-blocking I/O
 - **Spring Security** with OAuth2 for Google login
 - **Spring Data R2DBC** for reactive SQL persistence (MySQL)
-- **Testable controller layer** with full security context
+- **Spring GraphQL** for a unified API entry point with Subscription support
 
 ### Frontend (React + TypeScript)
 - **Vite** for fast development and optimized builds
