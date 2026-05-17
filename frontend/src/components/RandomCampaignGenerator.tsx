@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 
-const GET_METADATA = gql`
+export const GET_METADATA = gql`
   query GetCampaignMetadata {
     campaignMetadata {
       missions {
@@ -26,7 +26,7 @@ const GET_METADATA = gql`
   }
 `;
 
-const PREVIEW_CAMPAIGN = gql`
+export const PREVIEW_CAMPAIGN = gql`
   query PreviewCampaign($input: CampaignInput!) {
     previewCampaign(input: $input) {
       campaign {
@@ -55,13 +55,13 @@ const PREVIEW_CAMPAIGN = gql`
   }
 `;
 
-const GENERATE_TRACKS = gql`
+export const GENERATE_TRACKS = gql`
   query GenerateTracks($mission: String!, $commandRights: String!, $count: Int!) {
     generateTracks(mission: $mission, commandRights: $commandRights, count: $count)
   }
 `;
 
-const CREATE_CAMPAIGN = gql`
+export const CREATE_CAMPAIGN = gql`
   mutation CreateCampaign($input: CampaignInput!) {
     createCampaign(input: $input) {
       id

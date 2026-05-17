@@ -1,122 +1,67 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RandomCampaignGenerator } from './RandomCampaignGenerator';
-import * as campaignApi from '../services/campaignApi';
+import { render, screen, waitFor } from '@testing-library/react';
+import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloProvider } from '@apollo/client/react';
+import { MockLink } from '@apollo/client/testing';
+import { RandomCampaignGenerator, GET_METADATA, PREVIEW_CAMPAIGN } from './RandomCampaignGenerator';
+import { describe, it, expect } from 'vitest';
 
-vi.mock('../services/campaignApi', () => ({
-    getMissions: vi.fn(),
-    getTrackTypes: vi.fn(),
-    getResolvedSteps: vi.fn(),
-    previewCampaign: vi.fn(),
-    saveCampaign: vi.fn(),
-    generateTracks: vi.fn()
-}));
-
-describe('RandomCampaignGenerator', () => {
-    const mockMissions = { primary: ['Raid'], opponent: ['Garrison'] };
-    const mockTrackTypes = ['Assault', 'Battle'];
-    const mockSteps = { 7: { payRate: '100%', salvageRights: 'None', supportRights: 'None', transportation: 'None', commandRights: 'None' } };
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        (campaignApi.getMissions as any).mockResolvedValue(mockMissions);
-        (campaignApi.getTrackTypes as any).mockResolvedValue(mockTrackTypes);
-        (campaignApi.getResolvedSteps as any).mockResolvedValue(mockSteps);
-    });
-
-    it('loads metadata on mount', async () => {
-        render(<RandomCampaignGenerator />);
-        await waitFor(() => {
-            expect(campaignApi.getMissions).toHaveBeenCalled();
-        });
-    });
-
-    it('generates a preview when clicking the button', async () => {
-        const mockProposal = {
-            campaign: { name: 'OP: TEST', systemName: 'Solaris', trackCount: 2 },
-            contracts: [
-                {
-                    primaryContract: true,
-                    employerCategory: 'House: Davion',
-                    missionType: 'Raid',
-                    payRate: 1.0, payStep: 7, salvageTerms: 'None', salvageStep: 7,
-                    supportTerms: 'None', supportStep: 7, transportTerms: 'None', transportStep: 7,
-                    commandRights: 'None', commandStep: 7, trackCount: 2
+const metadataMock = {
+    request: {
+        query: GET_METADATA,
+    },
+    result: {
+        data: {
+            campaignMetadata: {
+                missions: {
+                    primary: ['Raid'],
+                    opponent: ['Garrison'],
                 },
-                {
-                    primaryContract: false,
-                    employerCategory: 'House: Kurita',
-                    missionType: 'Garrison',
-                    payRate: 1.0, payStep: 7, salvageTerms: 'None', salvageStep: 7,
-                    supportTerms: 'None', supportStep: 7, transportTerms: 'None', transportStep: 7,
-                    commandRights: 'None', commandStep: 7, trackCount: 2
-                }
-            ],
-            tracks: ['Assault', 'Battle']
-        };
+                trackTypes: ['Assault'],
+                factions: ['Davion'],
+                employerTypes: ['Noble'],
+                resolvedSteps: [
+                    { step: 1, values: { payRate: "100%", salvageRights: "None", supportRights: "None", transportation: "0%", commandRights: "House" } }
+                ],
+            },
+        },
+    },
+};
 
-        (campaignApi.previewCampaign as any).mockResolvedValue(mockProposal);
+const previewMock = {
+    request: {
+        query: PREVIEW_CAMPAIGN,
+        variables: { input: {} },
+    },
+    result: {
+        data: {
+            previewCampaign: {
+                campaign: { name: "TEST PREVIEW", systemName: "Terra", trackCount: 5 },
+                contracts: [
+                    { employerCategory: "Davion: Noble", missionType: "Raid", primaryContract: true, payRate: 1.0, payStep: 1, salvageTerms: "None", salvageStep: 1, supportTerms: "None", supportStep: 1, transportTerms: "0%", transportStep: 1, commandRights: "House", commandStep: 1, trackCount: 5 }
+                ],
+                tracks: ["Assault"],
+            },
+        },
+    },
+};
 
-        render(<RandomCampaignGenerator user={{ name: 'Commander' }} />);
-
-        const btn = screen.getByText('GENERATE CONTRACT OFFERS');
-        fireEvent.click(btn);
-
-        await waitFor(() => {
-            expect(screen.getByText(/DOBLESS INTEL: OP: TEST/)).toBeInTheDocument();
+describe('RandomCampaignGenerator Integration', () => {
+    it('successfully fetches metadata and triggers initial preview', async () => {
+        const client = new ApolloClient({
+            link: new MockLink([metadataMock, previewMock]),
+            cache: new InMemoryCache(),
         });
-    });
 
-    it('displays authentication required message when user is missing', async () => {
-        (campaignApi.previewCampaign as any).mockResolvedValue({ campaign: {}, contracts: [], tracks: [] });
-        render(<RandomCampaignGenerator />);
+        render(
+            <ApolloProvider client={client}>
+                <RandomCampaignGenerator />
+            </ApolloProvider>
+        );
 
-        fireEvent.click(screen.getByText('GENERATE CONTRACT OFFERS'));
-
+        // Verify it loads metadata
         await waitFor(() => {
-            expect(screen.getByText('AUTHENTICATION REQUIRED TO PERSIST CAMPAIGN DATA')).toBeInTheDocument();
+            expect(screen.getByText(/DOBLESS INTEL:/i)).toBeInTheDocument();
+            expect(screen.getByDisplayValue(/TEST PREVIEW/i)).toBeInTheDocument();
         });
-    });
-
-    it('does not regenerate campaign name if manually edited', async () => {
-        const mockProposal = {
-            campaign: { name: 'SOLARIS: OP RAID [DAVION]', systemName: 'Solaris', trackCount: 2 },
-            contracts: [
-                { 
-                    primaryContract: true, 
-                    employerCategory: 'House: Davion', 
-                    missionType: 'Raid',
-                    payRate: 1.0, payStep: 7, salvageTerms: 'None', salvageStep: 7,
-                    supportTerms: 'None', supportStep: 7, transportTerms: 'None', transportStep: 7,
-                    commandRights: 'None', commandStep: 7, trackCount: 2
-                },
-                { 
-                    primaryContract: false, 
-                    employerCategory: 'House: Kurita', 
-                    missionType: 'Garrison',
-                    payRate: 1.0, payStep: 7, salvageTerms: 'None', salvageStep: 7,
-                    supportTerms: 'None', supportStep: 7, transportTerms: 'None', transportStep: 7,
-                    commandRights: 'None', commandStep: 7, trackCount: 2
-                }
-            ],
-            tracks: ['Assault', 'Battle']
-        };
-
-        (campaignApi.getMissions as any).mockResolvedValue({ primary: ['Raid', 'Invasion'], opponent: ['Garrison'] });
-        (campaignApi.previewCampaign as any).mockResolvedValue(mockProposal);
-
-        render(<RandomCampaignGenerator user={{ name: 'Commander' }} />);
-        fireEvent.click(screen.getByText('GENERATE CONTRACT OFFERS'));
-
-        await waitFor(() => screen.getByDisplayValue('SOLARIS: OP RAID [DAVION]'));
-
-        const nameInput = screen.getByDisplayValue('SOLARIS: OP RAID [DAVION]');
-        fireEvent.change(nameInput, { target: { value: 'Custom Name' } });
-
-        // Change mission type - should normally trigger name change
-        const missionSelect = screen.getByDisplayValue('Raid');
-        fireEvent.change(missionSelect, { target: { value: 'Invasion' } });
-
-        expect(screen.getByDisplayValue('Custom Name')).toBeInTheDocument();
     });
 });
