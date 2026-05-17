@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { Sidebar, TabType } from './Sidebar';
+import { NavigationTree, TreeItem, NodeType } from './NavigationTree';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
 import { RandomCampaignGenerator } from './RandomCampaignGenerator';
 import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
 import { CreateCommandForm } from './CreateCommandForm';
 import { UnitProfile } from './UnitProfile';
+
+export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'unit-profile';
 
 const GET_MY_COMMANDS = gql`
   query GetMyCommands {
@@ -18,6 +20,10 @@ const GET_MY_COMMANDS = gql`
       reputation
       experienceLevel
       commandingOfficer
+      detachments {
+        id
+        callsign
+      }
     }
   }
 `;
@@ -31,6 +37,10 @@ const GET_MANAGED_CAMPAIGNS = gql`
       status
       trackCount
       primaryEmployer
+      participatingDetachments {
+        id
+        callsign
+      }
     }
   }
 `;
@@ -49,6 +59,10 @@ interface GetMyCommandsData {
         reputation: number;
         experienceLevel: string;
         commandingOfficer: string;
+        detachments?: {
+            id: string;
+            callsign: string;
+        }[];
     }[];
 }
 
@@ -60,6 +74,10 @@ interface ManagedCampaignsData {
         status: string;
         trackCount: number;
         primaryEmployer: string;
+        participatingDetachments?: {
+            id: string;
+            callsign: string;
+        }[];
     }[];
 }
 
@@ -72,6 +90,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     const [activeTab, setActiveTab] = useState<TabType>('my-campaigns');
     const [commands, setCommands] = useState<any[]>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+    const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isCreatingCommand, setIsCreatingCommand] = useState(false);
     const [campaignFilter, setCampaignFilter] = useState<string>('ACTIVE');
 
@@ -82,7 +103,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
 
     const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<ManagedCampaignsData>(GET_MANAGED_CAMPAIGNS, {
         variables: { status: campaignFilter },
-        skip: !user || activeTab !== 'my-campaigns'
+        skip: !user // Removed activeTab restriction so the Tree always has data
     });
 
     // Add logging to catch the specific reason for the "COMMUNICATIONS BREAKDOWN"
@@ -102,6 +123,117 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
             }
         }
     }, [data, selectedCommandId]);
+
+    // Map internal state to the TreeItem structure
+    const treeData = useMemo((): TreeItem[] => {
+        const deploymentNodes: TreeItem[] = [];
+
+        // Aggregate all detachments for the "Current Deployments" view
+        commands.forEach(cmd => {
+            if (cmd.detachments) {
+                cmd.detachments.forEach((det: any) => {
+                    deploymentNodes.push({
+                        id: `deployment-${det.id}`,
+                        label: `${cmd.name} - ${det.callsign}`,
+                        type: 'DEPLOYMENT' as NodeType,
+                        metadata: { detachmentId: det.id, commandId: cmd.id }
+                    });
+                });
+            }
+        });
+
+        return [
+            {
+                id: 'root-deployments',
+                label: 'CURRENT DEPLOYMENTS',
+                type: 'ROOT' as NodeType,
+                children: deploymentNodes
+            },
+            {
+                id: 'root-commands',
+                label: 'MERCENARY COMMANDS',
+                type: 'ROOT' as NodeType,
+                children: commands.map(cmd => ({
+                    id: cmd.id,
+                    label: cmd.name || 'UNNAMED UNIT',
+                    type: 'COMMAND' as NodeType,
+                    children: cmd.detachments?.map((det: any) => ({
+                        id: `cmd-det-${det.id}`,
+                        label: det.callsign,
+                        type: 'DETACHMENT' as NodeType,
+                        metadata: { detachmentId: det.id, commandId: cmd.id }
+                    }))
+                }))
+            },
+            {
+                id: 'root-campaigns',
+                label: 'MANAGED CAMPAIGNS',
+                type: 'ROOT' as NodeType,
+                children: managedData?.managedCampaigns.map(camp => ({
+                    id: camp.id,
+                    label: camp.name,
+                    type: 'CAMPAIGN' as NodeType,
+                    children: camp.participatingDetachments?.map((det: any) => ({
+                        id: `camp-det-${det.id}`,
+                        label: det.callsign,
+                        type: 'DETACHMENT' as NodeType,
+                        metadata: { detachmentId: det.id, campaignId: camp.id }
+                    }))
+                }))
+            },
+            {
+                id: 'root-intel',
+                label: 'GLOBAL INTEL',
+                type: 'ROOT' as NodeType,
+                children: [
+                    { id: 'public-intel', label: 'AVAILABLE CONTRACTS', type: 'INTEL' as NodeType },
+                    { id: 'create-campaign', label: 'NEW CAMPAIGN', type: 'INTEL' as NodeType }
+                ]
+            }
+        ];
+    }, [commands, managedData]);
+
+    const handleTreeSelect = (item: TreeItem) => {
+        // 1. Always exit creation mode when navigating via the tree
+        setIsCreatingCommand(false);
+        setSelectedNodeId(item.id);
+
+        // 2. Map tree nodes to the specific pages described in the plan
+        if (item.id === 'root-commands') {
+            setSelectedDetachmentId(null);
+            setActiveTab('commands'); // Registry / Aggregate View
+        } else if (item.type === 'COMMAND') {
+            setSelectedCommandId(item.id);
+            setSelectedDetachmentId(null);
+            setActiveTab('unit-profile'); // Unit Dossier
+        } else if (item.type === 'DETACHMENT' || item.type === 'DEPLOYMENT') {
+            if (item.metadata?.commandId) setSelectedCommandId(item.metadata.commandId);
+            if (item.metadata?.detachmentId) setSelectedDetachmentId(item.metadata.detachmentId);
+            setActiveTab('ledger'); // Deployment-specific ledger
+        } else if (item.id === 'root-campaigns') {
+            setSelectedCampaignId(null);
+            setSelectedDetachmentId(null);
+            setActiveTab('my-campaigns'); // Operational Overview
+        } else if (item.type === 'CAMPAIGN') {
+            setSelectedCampaignId(item.id);
+            setSelectedDetachmentId(null);
+            setActiveTab('my-campaigns'); // Specific Campaign Focus
+        } else if (item.id === 'public-intel') {
+            setActiveTab('public-campaigns'); // Global Intel
+        } else if (item.id === 'create-campaign') {
+            setActiveTab('create-campaign'); // Creation Tool
+        }
+    };
+
+    const getSelectedNodeId = () => {
+        if (selectedNodeId) return selectedNodeId;
+        if (activeTab === 'create-campaign') return 'create-campaign';
+        if (activeTab === 'public-campaigns') return 'public-intel';
+        if (activeTab === 'my-campaigns') return 'root-campaigns';
+        if (activeTab === 'commands') return 'root-commands';
+        if (['unit-profile', 'ledger'].includes(activeTab)) return selectedCommandId || undefined;
+        return undefined;
+    };
 
     const handleDeleteCommand = async (commandId: string, force = false) => {
         if (!force && !window.confirm("ARE YOU SURE YOU WANT TO SCRAP THIS COMMAND? THIS ACTION IS IRREVERSIBLE.")) {
@@ -160,13 +292,21 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         );
     }
 
+    const getThemeClass = () => {
+        if (activeTab === 'ledger') return 'theme-green';
+        if (activeTab === 'commands' || activeTab === 'unit-profile') return 'theme-amber';
+        if (activeTab === 'my-campaigns') return 'theme-blue';
+        if (['create-campaign', 'public-campaigns'].includes(activeTab)) return 'theme-red';
+        return 'theme-green';
+    };
+
     const renderTabContent = () => {
         if (loading && commands.length === 0) {
             return <div className="loading-intel">SYNCHRONIZING WITH MERCENARY REGISTRY...</div>;
         }
 
         if (error) {
-            return <div className="placeholder-content" style={{ color: '#c00' }}>
+            return <div className="placeholder-content" style={{ color: 'var(--terminal-alert)' }}>
                 <h2>COMMUNICATIONS BREAKDOWN</h2>
                 <p>Unable to retrieve registry data. Please verify your connection.</p>
             </div>;
@@ -181,6 +321,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         setIsCreatingCommand(false);
                         fetchCommands();
                         setSelectedCommandId(newCmd.id);
+                        setSelectedNodeId(newCmd.id);
                         setActiveTab('commands');
                     }}
                 />
@@ -202,60 +343,92 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
 
         switch (activeTab) {
             case 'my-campaigns':
+                const campaign = managedData?.managedCampaigns.find(c => c.id === selectedCampaignId);
+
                 return (
                     <div className="container">
-                        <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                                <h1 className="terminal-text">CAMPAIGN OPERATIONS</h1>
-                                <p className="restricted-text">THEATER MANAGEMENT PROTOCOL</p>
-                            </div>
-                            <button
-                                className="mode-btn"
-                                onClick={() => setCampaignFilter(campaignFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
-                            >
-                                {campaignFilter === 'ACTIVE' ? '[ VIEWING: ACTIVE ONLY ]' : '[ VIEWING: ALL THEATERS ]'}
-                            </button>
-                        </header>
-
-                        <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
-                            {loadingManaged && <div className="loading-intel">RETRIEVING THEATER DATA...</div>}
-
-                            {managedData?.managedCampaigns.map(camp => (
-                                <div
-                                    key={camp.id}
-                                    className="dashboard-section"
-                                    style={{
-                                        border: '1px solid #444',
-                                        backgroundColor: camp.status === 'ACTIVE' ? 'rgba(192, 0, 0, 0.02)' : 'transparent',
-                                        position: 'relative'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 className="section-title" style={{ margin: 0 }}>{camp.name}</h3>
-                                        <span className="restricted-text" style={{ color: camp.status === 'ACTIVE' ? '#c00' : '#666' }}>
-                                            [ STATUS: {camp.status} ]
-                                        </span>
+                        {!selectedCampaignId ? (
+                            <>
+                                <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <h1 className="terminal-text">CAMPAIGN OPERATIONS</h1>
+                                        <p className="restricted-text">THEATER MANAGEMENT PROTOCOL</p>
                                     </div>
+                                    <button
+                                        className="mode-btn"
+                                        onClick={() => setCampaignFilter(campaignFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
+                                    >
+                                        {campaignFilter === 'ACTIVE' ? '[ VIEWING: ACTIVE ONLY ]' : '[ VIEWING: ALL THEATERS ]'}
+                                    </button>
+                                </header>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
-                                        <div style={{ textAlign: 'right', alignSelf: 'end' }}>
-                                            <button className="mode-btn" style={{ fontSize: '0.8rem' }}>MANAGE THEATER</button>
+                                <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
+                                    {loadingManaged && <div className="loading-intel">RETRIEVING THEATER DATA...</div>}
+
+                                    {managedData?.managedCampaigns.map(camp => (
+                                        <div
+                                            key={camp.id}
+                                            className="dashboard-section"
+                                            style={{
+                                                border: '1px solid var(--accent-dim)',
+                                                backgroundColor: camp.status === 'ACTIVE' ? 'rgba(51, 255, 51, 0.02)' : 'transparent',
+                                                position: 'relative'
+                                            }}
+                                        >
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <h3 className="section-title" style={{ margin: 0, color: 'var(--terminal-green)' }}>{camp.name}</h3>
+                                                <span className="restricted-text" style={{ color: camp.status === 'ACTIVE' ? 'var(--terminal-amber)' : 'var(--accent-dim)' }}>
+                                                    [ STATUS: {camp.status} ]
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
+                                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
+                                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
+                                                <div style={{ textAlign: 'right', alignSelf: 'end' }}>
+                                                    <button className="mode-btn" style={{ fontSize: '0.8rem' }} onClick={() => { setSelectedCampaignId(camp.id); setSelectedNodeId(camp.id); }}>MANAGE THEATER</button>
+                                                </div>
+                                            </div>
                                         </div>
+                                    ))}
+
+                                    {!loadingManaged && managedData?.managedCampaigns.length === 0 && (
+                                        <div className="placeholder-content" style={{ border: '1px dashed #444' }}>
+                                            <h3 className="terminal-text">NO MANAGED CAMPAIGNS FOUND</h3>
+                                            <p>Initialize a new operation via the New Campaign Enlistment protocol.</p>
+                                            <button className="login-button" onClick={() => setActiveTab('create-campaign')}>START NEW CAMPAIGN</button>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <header className="dashboard-header">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <h1 className="terminal-text">{campaign?.name}</h1>
+                                            <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName.toUpperCase()}</p>
+                                        </div>
+                                        <button className="mode-btn" onClick={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}>[ RETURN TO LIST ]</button>
+                                    </div>
+                                </header>
+                                <div className="dashboard-section tactical-panel">
+                                    <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
+                                    <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
+                                        {campaign?.participatingDetachments?.map(det => (
+                                            <div key={det.id} className="asset-card" style={{ cursor: 'pointer' }} onClick={() => handleTreeSelect({ id: `camp-det-${det.id}`, label: det.callsign, type: 'DETACHMENT', metadata: { detachmentId: det.id, campaignId: campaign.id } })}>
+                                                <div className="asset-type">DETACHMENT</div>
+                                                <div className="asset-label">{det.callsign}</div>
+                                            </div>
+                                        ))}
+                                        {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (
+                                            <div className="restricted-text">NO DETACHMENTS CURRENTLY DEPLOYED IN THIS THEATER.</div>
+                                        )}
                                     </div>
                                 </div>
-                            ))}
-
-                            {!loadingManaged && managedData?.managedCampaigns.length === 0 && (
-                                <div className="placeholder-content" style={{ border: '1px dashed #444' }}>
-                                    <h3 className="terminal-text">NO MANAGED CAMPAIGNS FOUND</h3>
-                                    <p>Initialize a new operation via the New Campaign Enlistment protocol.</p>
-                                    <button className="login-button" onClick={() => setActiveTab('create-campaign')}>START NEW CAMPAIGN</button>
-                                </div>
-                            )}
-                        </div>
+                            </>
+                        )}
                     </div>
                 );
             case 'create-campaign':
@@ -288,15 +461,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                     onClick={() => setSelectedCommandId(cmd.id)}
                                     style={{
                                         cursor: 'pointer',
-                                        border: selectedCommandId === cmd.id ? '2px solid #c00' : '1px solid #444',
+                                        border: selectedCommandId === cmd.id ? '2px solid var(--accent-primary)' : '1px solid var(--terminal-border)',
                                         transition: 'all 0.2s ease-in-out',
-                                        backgroundColor: selectedCommandId === cmd.id ? 'rgba(192, 0, 0, 0.05)' : 'transparent',
+                                        backgroundColor: selectedCommandId === cmd.id ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
                                         position: 'relative'
                                     }}
                                 >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h3 className="section-title" style={{ margin: 0 }}>{cmd.name || 'UNNAMED UNIT'}</h3>
-                                        {selectedCommandId === cmd.id && <span className="restricted-text" style={{ color: '#c00' }}>[ ACTIVE COMMAND ]</span>}
+                                        {selectedCommandId === cmd.id && <span className="restricted-text" style={{ color: 'var(--accent-primary)' }}>[ ACTIVE COMMAND ]</span>}
                                     </div>
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
@@ -327,7 +500,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                             </button>
                                             <button
                                                 className="mode-btn"
-                                                style={{ marginLeft: 'auto', border: '1px solid #c00', color: '#c00' }}
+                                                style={{ marginLeft: 'auto', border: '1px solid var(--terminal-alert)', color: 'var(--terminal-alert)' }}
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteCommand(cmd.id); }}
                                             >
                                                 SCRAP UNIT
@@ -358,8 +531,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                     </div>
                 );
             case 'ledger':
+                const Dashboard = LedgerDashboard as any;
                 return selectedCommandId ? (
-                    <LedgerDashboard commandId={selectedCommandId} />
+                    <Dashboard commandId={selectedCommandId} detachmentId={selectedDetachmentId || undefined} />
                 ) : null;
             case 'unit-profile':
                 return selectedCommandId ? (
@@ -380,23 +554,38 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     };
 
     return (
-        <div className="dashboard-layout">
-            <Sidebar
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                userName={user.name}
-                onLogout={onLogout}
-            />
-            <main className="main-content-wrapper">
+        <div className="dashboard-layout" style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--terminal-bg)' }}>
+            <aside className="sidebar-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--terminal-bg)', width: '280px', borderRight: '1px solid var(--terminal-border)', flexShrink: 0 }}>
+                <div className="sidebar-header" style={{ padding: '20px', borderBottom: '1px solid var(--terminal-border)' }}>
+                    <span className="sidebar-logo" style={{ color: 'var(--terminal-amber)', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '0 0 10px var(--terminal-amber-dim)' }}>HSC-TACTICAL</span>
+                    <div className="restricted-text" style={{ fontSize: '0.6rem', marginTop: '4px' }}>COMMAND & CONTROL INTERFACE</div>
+                </div>
+                <NavigationTree
+                    data={treeData}
+                    onSelect={handleTreeSelect}
+                    selectedId={getSelectedNodeId()}
+                />
+                <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '15px', borderTop: '1px solid var(--terminal-border)' }}>
+                    <div className="user-profile-mini" style={{ fontSize: '0.8rem', marginBottom: '10px', color: '#888' }}>
+                        👤 {user.name}
+                    </div>
+                    <button className="mode-btn logout-btn" onClick={onLogout} style={{ width: '100%', fontSize: '0.7rem' }}>DISCONNECT NEURAL LINK</button>
+                </div>
+            </aside>
+            <main className={`main-content-wrapper ${getThemeClass()}`} style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--terminal-bg)', padding: '20px', borderLeft: '1px solid var(--terminal-border)' }}>
                 {user && selectedCommandId && commands.length > 1 && (
-                    <div className="command-selector-header" style={{ marginBottom: '20px', textAlign: 'right' }}>
-                        <label htmlFor="command-select" className="restricted-text" style={{ fontSize: '0.8rem' }}>
+                    <div className="command-selector-header theme-amber" style={{ marginBottom: '20px', textAlign: 'right' }}>
+                        <label htmlFor="command-select" className="restricted-text" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)' }}>
                             ACTIVE COMMAND:
                         </label>
                         <select
                             id="command-select"
                             value={selectedCommandId}
-                            onChange={(e) => setSelectedCommandId(e.target.value)}
+                            onChange={(e) => {
+                                setSelectedCommandId(e.target.value);
+                                setSelectedNodeId(e.target.value);
+                                setSelectedDetachmentId(null);
+                            }}
                             className="mode-btn"
                             style={{ marginLeft: '10px', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer' }}
                         >

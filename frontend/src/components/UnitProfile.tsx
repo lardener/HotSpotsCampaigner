@@ -221,8 +221,8 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     const filteredPilots: Pilot[] = command.pilots.filter((p: Pilot) => p.status === 'ACTIVE'); // Simplified for now
 
     return (
-        <div className="container unit-profile">
-            <header className="dashboard-header" style={{ borderBottom: '2px solid #c00', marginBottom: '20px' }}>
+        <div className="container unit-profile theme-amber">
+            <header className="dashboard-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px' }}>
                 <h1 className="terminal-text">{command.name} - UNIT PROFILE</h1>
                 <div className="restricted-text" style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
                     <span>CO: {command.commandingOfficer}</span>
@@ -251,7 +251,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                             >
                                 {det.name}
                             </button>
-                            <button className="mode-btn" style={{ color: '#c00' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>
+                            <button className="mode-btn" style={{ color: 'var(--terminal-alert)' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>
                         </div>
                     ))}
 
@@ -339,7 +339,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                                 </select>
                                                 <button
                                                     onClick={() => handleDeleteAsset('UNIT', u.id)}
-                                                    style={{ background: 'none', border: 'none', color: '#c00', cursor: 'pointer', marginLeft: '5px' }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--terminal-alert)', cursor: 'pointer', marginLeft: '5px' }}
                                                 >
                                                     🗑️
                                                 </button>
@@ -378,7 +378,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                                 </select>
                                                 <button
                                                     onClick={() => handleDeleteAsset('PILOT', p.id)}
-                                                    style={{ background: 'none', border: 'none', color: '#c00', cursor: 'pointer', marginLeft: '5px' }}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--terminal-alert)', cursor: 'pointer', marginLeft: '5px' }}
                                                 >
                                                     🗑️
                                                 </button>

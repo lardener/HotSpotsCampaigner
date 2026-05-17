@@ -15,8 +15,10 @@ import org.springframework.stereotype.Controller;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.Contract;
+import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 import com.hotspotscamp.service.UserService;
@@ -33,6 +35,7 @@ public class CampaignGraphQLController {
 
     private final CampaignRepository campaignRepository;
     private final ContractRepository contractRepository;
+    private final DetachmentRepository detachmentRepository;
     private final CampaignService campaignService;
     private final UserService userService;
 
@@ -82,6 +85,12 @@ public class CampaignGraphQLController {
                 .map(Contract::getEmployerCategory)
                 .next()
                 .defaultIfEmpty("Unknown");
+    }
+
+    @SchemaMapping(typeName = "Campaign", field = "participatingDetachments")
+    public Flux<Detachment> getParticipatingDetachments(Campaign campaign) {
+        return contractRepository.findAllByCampaignId(campaign.getId())
+                .flatMap(contract -> detachmentRepository.findAllByContractId(contract.getId()));
     }
 
     @QueryMapping

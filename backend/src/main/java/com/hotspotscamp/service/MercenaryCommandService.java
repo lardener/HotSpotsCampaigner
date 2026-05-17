@@ -281,6 +281,13 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Fetches all ledger entries for a specific detachment.
+     */
+    public Flux<LedgerEntry> getLedgerEntriesByDetachmentId(UUID detachmentId) {
+        return ledgerEntryRepository.findAllByDetachmentId(detachmentId);
+    }
+
+    /**
      * Adds a new combat unit to the command's reserve pool.
      */
     @Transactional

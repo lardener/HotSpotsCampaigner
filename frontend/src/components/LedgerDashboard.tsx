@@ -11,7 +11,7 @@ const GET_LEDGER_DATA = gql`
       totalSupportPoints
       detachments {
         id
-        name
+        callsign
       }
     }
   }
@@ -24,26 +24,31 @@ interface LedgerData {
         totalSupportPoints: number;
         detachments: {
             id: string;
-            name: string;
+            callsign: string;
         }[];
     };
 }
 
 interface LedgerDashboardProps {
     commandId: string;
+    detachmentId?: string;
 }
 
-export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId }) => {
+export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, detachmentId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string>('');
     const { loading, data } = useQuery<LedgerData>(GET_LEDGER_DATA, {
         variables: { commandId }
     });
 
     useEffect(() => {
-        if (data?.getCommand?.detachments && data.getCommand.detachments.length > 0 && !selectedDetachmentId) {
+        // Prioritize the detachmentId passed from the Navigation Tree
+        if (detachmentId) {
+            setSelectedDetachmentId(detachmentId);
+        } else if (data?.getCommand?.detachments && data.getCommand.detachments.length > 0 && !selectedDetachmentId) {
+            // Fallback to the first detachment if none is selected
             setSelectedDetachmentId(data.getCommand.detachments[0].id);
         }
-    }, [data, selectedDetachmentId]);
+    }, [data, selectedDetachmentId, detachmentId]);
 
     const detachments = data?.getCommand?.detachments || [];
 
@@ -65,7 +70,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId }) =
                     style={{ marginLeft: '10px', padding: '5px' }}
                 >
                     {detachments.map((d: any) => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+                        <option key={d.id} value={d.id}>{d.callsign}</option>
                     ))}
                 </select>
             </div>

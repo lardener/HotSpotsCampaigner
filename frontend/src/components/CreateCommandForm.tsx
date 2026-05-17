@@ -58,7 +58,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
     };
 
     return (
-        <div className="container" style={{ maxWidth: '600px', margin: '40px auto' }}>
+        <div className="container theme-red" style={{ maxWidth: '600px', margin: '40px auto' }}>
             <div className="tactical-panel" data-id="MRB-REC-SHEET">
                 <h2 className="terminal-text">MERCENARY FORCE REGISTRATION</h2>
                 <p className="restricted-text" style={{ fontSize: '0.8rem', marginBottom: '20px' }}>
@@ -115,7 +115,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                     </div>
 
                     {error && (
-                        <div className="error-message tactical-panel" style={{ marginBottom: '15px', color: '#f44', borderColor: '#f44' }}>
+                        <div className="error-message tactical-panel" style={{ marginBottom: '15px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}>
                             {error}
                         </div>
                     )}

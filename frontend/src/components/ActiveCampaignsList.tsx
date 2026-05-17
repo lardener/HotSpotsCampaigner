@@ -55,13 +55,13 @@ export const ActiveCampaignsList: React.FC = () => {
                     <p>No active deployments reported in this sector.</p>
                 ) : (
                     campaigns.map(c => (
-                        <div key={c.id} className="campaign-card" style={{ border: '1px solid #333', padding: '15px', marginBottom: '15px', background: 'rgba(0,0,0,0.2)' }}>
+                        <div key={c.id} className="campaign-card" style={{ border: '1px solid var(--terminal-border)', padding: '15px', marginBottom: '15px', background: 'rgba(5,7,5,0.4)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <h3>{c.name}</h3>
-                                <span className="status-tag" style={{ color: '#c00' }}>ACTIVE</span>
+                                <h3 style={{ color: 'var(--accent-primary)' }}>{c.name}</h3>
+                                <span className="status-tag" style={{ color: 'var(--accent-primary)' }}>[ ACTIVE ]</span>
                             </div>
                             <p><strong>Location:</strong> {c.systemName}</p>
-                            <div style={{ display: 'flex', gap: '20px', fontSize: '0.85em', color: '#aaa' }}>
+                            <div style={{ display: 'flex', gap: '20px', fontSize: '0.85em', color: 'var(--accent-dim)' }}>
                                 <span><strong>Primary:</strong> {c.primaryEmployer}</span>
                                 <span><strong>Opposition:</strong> {c.secondaryEmployer}</span>
                                 <span><strong>Tracks:</strong> {c.trackCount}</span>

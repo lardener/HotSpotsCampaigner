@@ -76,6 +76,7 @@ type MercenaryCommand {
     commandingOfficer: String
     units: [CombatUnit]
     pilots: [Pilot]
+    detachments: [Detachment]
 }
 
 type CombatUnit {
@@ -97,6 +98,7 @@ type Pilot {
 type Detachment {
     id: ID!
     name: String
+    callsign: String
     mercenaryCommandId: ID
     contractId: ID
 }
@@ -198,4 +200,6 @@ type Campaign {
     managerId: String
     primaryEmployer: String
     secondaryEmployer: String
+    # Root 3: All detachments participating in this theater
+    participatingDetachments: [Detachment]
 }

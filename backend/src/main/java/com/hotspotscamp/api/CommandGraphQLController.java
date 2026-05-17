@@ -76,6 +76,13 @@ public class CommandGraphQLController {
         return commandService.getDetachmentsByCommandId(command.getId());
     }
 
+    @SchemaMapping(typeName = "MercenaryCommand", field = "allLedgerEntries")
+    public Flux<LedgerEntry> getAllLedgerEntries(MercenaryCommand command) {
+        return commandService.getDetachmentsByCommandId(command.getId())
+                .flatMap(det -> commandService.getLedgerEntriesByDetachmentId(det.getId()))
+                .sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
+    }
+
     @MutationMapping
     public Mono<Boolean> deleteCommand(@Argument UUID commandId, @Argument Boolean force, Principal principal) {
         String userId = principal.getName();

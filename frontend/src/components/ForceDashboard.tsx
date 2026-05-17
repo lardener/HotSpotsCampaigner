@@ -234,7 +234,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
             <div className="force-dashboard-layout">
                 <header className="dashboard-header">
                     <h1 className="terminal-text">FORCE COMMAND & CONTROL</h1>
-                    <div className="status-bar">
+                    <div className="status-bar theme-amber">
                         LINK: ACTIVE | REPUTATION: {data?.getCommand?.reputation} | WARCHEST: {data?.getCommand?.totalSupportPoints} SP
                     </div>
 
