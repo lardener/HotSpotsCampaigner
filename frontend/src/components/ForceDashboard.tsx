@@ -1,7 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
-import * as forceApi from '../services/forceApi';
+import { gql } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client/react';
 import '../styles/theme.css';
+
+const GET_FORCE_DATA = gql`
+  query GetForceData($commandId: ID!) {
+    getCommand(id: $commandId) {
+      id
+      name
+      totalSupportPoints
+      reputation
+      units {
+        id
+        model
+        tonnage
+        status
+        detachmentId
+      }
+      pilots {
+        id
+        name
+        gunnery
+        piloting
+        status
+        detachmentId
+      }
+      detachments {
+        id
+        name
+      }
+    }
+    managedCampaigns(status: "ACTIVE") {
+      id
+      name
+      systemName
+      trackCount
+    }
+    participatingCampaigns(commandId: $commandId) {
+      id
+      name
+      primaryEmployer
+    }
+  }
+`;
+
+const ASSIGN_ASSET = gql`
+  mutation AssignAsset($assetType: String!, $assetId: ID!, $detachmentId: ID) {
+    assignAsset(assetType: $assetType, assetId: $assetId, detachmentId: $detachmentId)
+  }
+`;
+
+const ADD_UNIT = gql`
+  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitInput!) {
+    addCombatUnit(commandId: $commandId, input: $input) {
+      id
+      model
+    }
+  }
+`;
+
+const HIRE_PILOT = gql`
+  mutation HirePilot($commandId: ID!, $input: PilotInput!) {
+    hirePilot(commandId: $commandId, input: $input) {
+      id
+      name
+    }
+  }
+`;
+
+interface ForceData {
+    getCommand: {
+        id: string;
+        name: string;
+        totalSupportPoints: number;
+        reputation: number;
+        units: any[];
+        pilots: any[];
+        detachments: any[];
+    };
+    managedCampaigns: any[];
+    participatingCampaigns: any[];
+}
 
 interface AssetProps {
     id: string;
@@ -56,45 +136,31 @@ const DroppableZone: React.FC<{ id: string; title: string; children: React.React
 type ViewMode = 'ORGANIZATION' | 'OPERATIONS';
 
 export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMode }> = ({ commandId, initialMode = 'ORGANIZATION' }) => {
-    const [units, setUnits] = useState<forceApi.CombatUnit[]>([]);
-    const [pilots, setPilots] = useState<forceApi.Pilot[]>([]);
-    const [detachments, setDetachments] = useState<forceApi.Detachment[]>([]);
-    const [managedCampaigns, setManagedCampaigns] = useState<forceApi.CampaignSummary[]>([]);
-    const [participatingCampaigns, setParticipatingCampaigns] = useState<forceApi.CampaignSummary[]>([]);
+    const [units, setUnits] = useState<any[]>([]);
+    const [pilots, setPilots] = useState<any[]>([]);
+    const [detachments, setDetachments] = useState<any[]>([]);
+    const [managedCampaigns, setManagedCampaigns] = useState<any[]>([]);
+    const [participatingCampaigns, setParticipatingCampaigns] = useState<any[]>([]);
     const [viewMode, setViewMode] = useState<ViewMode>(initialMode);
-    const [loading, setLoading] = useState(true);
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            // Explicitly type the result of Promise.all to ensure proper destructuring
-            const [assets, dets, managed, participating] = await Promise.all([
-                forceApi.getAssets(commandId),
-                forceApi.getDetachments(commandId),
-                forceApi.getManagedCampaigns(),
-                forceApi.getParticipatingCampaigns(commandId)
-            ]) as [
-                    forceApi.CommandAssetsResponse,
-                    forceApi.Detachment[],
-                    forceApi.CampaignSummary[],
-                    forceApi.CampaignSummary[]
-                ];
-
-            setUnits(assets.units);
-            setPilots(assets.pilots);
-            setDetachments(dets);
-            setManagedCampaigns(managed);
-            setParticipatingCampaigns(participating);
-        } catch (err) {
-            console.error("Failed to load force data", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { loading, error, data, refetch } = useQuery<ForceData>(GET_FORCE_DATA, {
+        variables: { commandId },
+        fetchPolicy: 'network-only'
+    });
 
     useEffect(() => {
-        loadData();
-    }, [commandId, viewMode]);
+        if (data) {
+            setUnits(data.getCommand.units);
+            setPilots(data.getCommand.pilots);
+            setDetachments(data.getCommand.detachments);
+            setManagedCampaigns(data.managedCampaigns);
+            setParticipatingCampaigns(data.participatingCampaigns);
+        }
+    }, [data]);
+
+    const [assignAsset] = useMutation(ASSIGN_ASSET);
+    const [addUnitMutation] = useMutation(ADD_UNIT);
+    const [hirePilotMutation] = useMutation(HIRE_PILOT);
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -104,7 +170,13 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         const targetDetachmentId = over.id === 'pool' ? null : over.id as string;
 
         try {
-            await forceApi.assignAsset(type as 'UNIT' | 'PILOT', assetId, targetDetachmentId);
+            await assignAsset({
+                variables: {
+                    assetType: type,
+                    assetId,
+                    detachmentId: targetDetachmentId
+                }
+            });
 
             // Optimistic UI Update
             if (type === 'UNIT') {
@@ -121,12 +193,17 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         const model = prompt("Enter Unit Model (e.g., Shadow Hawk SHD-2H):");
         if (!model) return;
         try {
-            await forceApi.addUnit(commandId, {
-                model,
-                tonnage: 55,
-                status: 'OPERATIONAL'
-            } as forceApi.CombatUnit);
-            loadData();
+            await addUnitMutation({
+                variables: {
+                    commandId,
+                    input: {
+                        model,
+                        tonnage: 55,
+                        status: 'OPERATIONAL'
+                    }
+                }
+            });
+            refetch();
         } catch (err) { alert("Procurement failed."); }
     };
 
@@ -134,24 +211,32 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         const name = prompt("Enter Pilot Name:");
         if (!name) return;
         try {
-            await forceApi.hirePilot(commandId, {
-                name,
-                gunnery: 4,
-                piloting: 5,
-                status: 'ACTIVE'
-            } as forceApi.Pilot);
-            loadData();
+            await hirePilotMutation({
+                variables: {
+                    commandId,
+                    input: {
+                        name,
+                        gunnery: 4,
+                        piloting: 5,
+                        status: 'ACTIVE'
+                    }
+                }
+            });
+            refetch();
         } catch (err) { alert("Contracting failed."); }
     };
 
-    if (loading) return <div className="loading">INITIALIZING TACTICAL LINK...</div>;
+    if (loading && !data) return <div className="loading">INITIALIZING TACTICAL LINK...</div>;
+    if (error) return <div className="error-message">TACTICAL LINK FAILURE: {error.message}</div>;
 
     return (
         <DndContext onDragEnd={handleDragEnd}>
             <div className="force-dashboard-layout">
                 <header className="dashboard-header">
                     <h1 className="terminal-text">FORCE COMMAND & CONTROL</h1>
-                    <div className="status-bar">LINK: ACTIVE | REPUTATION: 45 | WARCHEST: 4500 SP</div>
+                    <div className="status-bar">
+                        LINK: ACTIVE | REPUTATION: {data?.getCommand?.reputation} | WARCHEST: {data?.getCommand?.totalSupportPoints} SP
+                    </div>
 
                     <nav className="mode-switcher" style={{ marginTop: '1rem' }}>
                         <button

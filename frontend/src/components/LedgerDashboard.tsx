@@ -1,33 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { LedgerEntryForm } from './LedgerEntryForm';
-import * as forceApi from '../services/forceApi';
+import { gql } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
+
+const GET_LEDGER_DATA = gql`
+  query GetLedgerData($commandId: ID!) {
+    getCommand(id: $commandId) {
+      id
+      name
+      totalSupportPoints
+      detachments {
+        id
+        name
+      }
+    }
+  }
+`;
+
+interface LedgerData {
+    getCommand: {
+        id: string;
+        name: string;
+        totalSupportPoints: number;
+        detachments: {
+            id: string;
+            name: string;
+        }[];
+    };
+}
 
 interface LedgerDashboardProps {
     commandId: string;
 }
 
 export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId }) => {
-    const [detachments, setDetachments] = useState<forceApi.Detachment[]>([]);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string>('');
-    const [loading, setLoading] = useState(true);
-
-    const loadDetachments = async () => {
-        try {
-            const data = await forceApi.getDetachments(commandId);
-            setDetachments(data);
-            if (data.length > 0 && !selectedDetachmentId) {
-                setSelectedDetachmentId(data[0].id);
-            }
-        } catch (err) {
-            console.error("Failed to load detachments for ledger", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { loading, data } = useQuery<LedgerData>(GET_LEDGER_DATA, {
+        variables: { commandId }
+    });
 
     useEffect(() => {
-        loadDetachments();
-    }, [commandId]);
+        if (data?.getCommand?.detachments && data.getCommand.detachments.length > 0 && !selectedDetachmentId) {
+            setSelectedDetachmentId(data.getCommand.detachments[0].id);
+        }
+    }, [data, selectedDetachmentId]);
+
+    const detachments = data?.getCommand?.detachments || [];
 
     if (loading) return <div>ACCESSING SECURE LEDGER...</div>;
 
@@ -46,7 +64,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId }) =
                     onChange={(e) => setSelectedDetachmentId(e.target.value)}
                     style={{ marginLeft: '10px', padding: '5px' }}
                 >
-                    {detachments.map(d => (
+                    {detachments.map((d: any) => (
                         <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                 </select>

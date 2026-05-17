@@ -10,6 +10,8 @@ const GET_METADATA = gql`
         opponent
       }
       trackTypes
+      factions
+      employerTypes
       resolvedSteps {
         step
         values {
@@ -50,6 +52,12 @@ const PREVIEW_CAMPAIGN = gql`
       }
       tracks
     }
+  }
+`;
+
+const GENERATE_TRACKS = gql`
+  query GenerateTracks($mission: String!, $commandRights: String!, $count: Int!) {
+    generateTracks(mission: $mission, commandRights: $commandRights, count: $count)
   }
 `;
 
@@ -96,6 +104,8 @@ interface MetadataData {
             opponent: string[];
         };
         trackTypes: string[];
+        factions: string[];
+        employerTypes: string[];
         resolvedSteps: {
             step: number;
             values: any;
@@ -105,6 +115,10 @@ interface MetadataData {
 
 interface PreviewData {
     previewCampaign: Proposal;
+}
+
+interface GenerateTracksData {
+    generateTracks: string[];
 }
 
 interface Props {
@@ -137,6 +151,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<PreviewData>(PREVIEW_CAMPAIGN, {
         fetchPolicy: 'network-only'
     });
+    const [getTracks] = useLazyQuery<GenerateTracksData>(GENERATE_TRACKS);
 
     useEffect(() => {
         if (previewData) {
@@ -243,8 +258,15 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             } else if (newCount > currentCount) {
                 // Add to the end by calling backend for appropriate track types
                 const numToAdd = newCount - currentCount;
-                // Fallback: Add generic tracks if logic is purely local now
-                const fillers = Array(numToAdd).fill('Assault');
+                const primary = proposal.contracts[0];
+                const { data: trackData } = await getTracks({
+                    variables: {
+                        mission: primary.missionType,
+                        commandRights: primary.commandRights,
+                        count: numToAdd
+                    }
+                });
+                const fillers = trackData?.generateTracks || Array(numToAdd).fill('Assault');
                 updatedTracks = [...updatedTracks, ...fillers];
             }
         }

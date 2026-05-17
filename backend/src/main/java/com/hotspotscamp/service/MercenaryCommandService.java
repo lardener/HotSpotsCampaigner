@@ -274,6 +274,13 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Fetches all detachments belonging to a specific mercenary command.
+     */
+    public Flux<Detachment> getDetachmentsByCommandId(UUID commandId) {
+        return detachmentRepository.findAllByMercenaryCommandId(commandId);
+    }
+
+    /**
      * Adds a new combat unit to the command's reserve pool.
      */
     @Transactional

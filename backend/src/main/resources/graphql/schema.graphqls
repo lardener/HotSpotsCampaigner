@@ -8,9 +8,11 @@ type Query {
 }
 
 type CampaignMetadata {
-    missions: MissionMetadata
-    trackTypes: [String]
-    resolvedSteps: [ResolvedStepEntry]
+  missions: MissionMetadata
+  trackTypes: [String]
+  factions: [String]      # Add this line
+  employerTypes: [String] # Add this line
+  resolvedSteps: [ResolvedStepEntry]
 }
 
 type MissionMetadata {

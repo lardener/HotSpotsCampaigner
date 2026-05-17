@@ -2,6 +2,7 @@ package com.hotspotscamp.api;
 
 import java.security.Principal;
 import java.util.UUID;
+import java.util.Map;
 
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -48,6 +49,11 @@ public class CommandGraphQLController {
                 .next();
     }
 
+    @QueryMapping
+    public Mono<Object> commandAssets(@Argument UUID commandId, Principal principal) {
+        return commandService.getAssetsByCommandId(commandId).cast(Object.class);
+    }
+
     @SubscriptionMapping
     public Flux<MercenaryCommand> ledgerUpdated(@Argument UUID commandId) {
         return commandService.getCommandUpdates(commandId);
@@ -63,6 +69,11 @@ public class CommandGraphQLController {
     public Flux<Pilot> getPilots(MercenaryCommand command) {
         return commandService.getAssetsByCommandId(command.getId())
                 .flatMapMany(assets -> Flux.fromIterable(assets.pilots()));
+    }
+
+    @SchemaMapping(typeName = "MercenaryCommand", field = "detachments")
+    public Flux<Detachment> getDetachments(MercenaryCommand command) {
+        return commandService.getDetachmentsByCommandId(command.getId());
     }
 
     @MutationMapping
@@ -88,8 +99,12 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument String name, @Argument Integer gunnery, @Argument Integer piloting, Principal principal) {
-        Pilot pilot = Pilot.builder().name(name).gunnery(gunnery).piloting(piloting).build();
+    public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
+        Pilot pilot = Pilot.builder()
+                .name((String) input.get("name"))
+                .gunnery((Integer) input.get("gunnery"))
+                .piloting((Integer) input.get("piloting"))
+                .build();
         return commandService.hirePilot(commandId, pilot, principal.getName());
     }
 
@@ -115,12 +130,17 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CombatUnit> addUnitToForce(@Argument UUID commandId, @Argument String model, @Argument Integer tonnage, @Argument String type, Principal principal) {
+    public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
         CombatUnit unit = CombatUnit.builder()
-                .model(model)
-                .tonnage(tonnage)
-                .type(type != null ? type : "MECH")
+                .model((String) input.get("model"))
+                .tonnage((Integer) input.get("tonnage"))
+                .type(input.get("type") != null ? (String) input.get("type") : "MECH")
                 .build();
         return commandService.addCombatUnit(commandId, unit, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<Boolean> assignAsset(@Argument String assetType, @Argument UUID assetId, @Argument UUID detachmentId, Principal principal) {
+        return commandService.assignAssetToDetachment(assetType, assetId, detachmentId, principal.getName()).thenReturn(true);
     }
 }

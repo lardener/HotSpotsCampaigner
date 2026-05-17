@@ -307,53 +307,6 @@ public class CampaignService {
 
     }
 
-    public record ActiveCampaignPage(List<ActiveCampaignSummary> content, long totalElements, int totalPages) {
-
-    }
-
-    public Mono<ActiveCampaignPage> getActiveCampaigns(int page, int size) {
-        log.debug("Fetching active campaigns - page: {}, size: {}", page, size);
-        int offset = page * size;
-        return campaignRepository.countByStatus("ACTIVE")
-                .doOnNext(total -> log.debug("Total active campaigns count: {}", total))
-                .flatMap(total -> campaignRepository.findAllByStatus("ACTIVE", size, offset)
-                .doOnNext(c -> log.debug("Processing campaign: {} (ID: {})", c.getName(), c.getId()))
-                .flatMap(c -> contractRepository.findAllByCampaignId(c.getId())
-                .collectList()
-                .doOnNext(contracts -> log.debug("Found {} contracts for campaign ID: {}", contracts.size(), c.getId()))
-                .map(contracts -> {
-                    String primary = contracts.stream()
-                            .filter(contract -> Boolean.TRUE.equals(contract.getPrimaryContract()))
-                            .map(Contract::getEmployerCategory).findFirst().orElse("Unknown");
-                    log.debug("Primary employer for campaign ID {}: {}", c.getId(), primary);
-                    String secondary = contracts.stream()
-                            .filter(contract -> Boolean.FALSE.equals(contract.getPrimaryContract()))
-                            .map(Contract::getEmployerCategory).findFirst().orElse("Unknown");
-                    log.debug("Oppponent employer for campaign ID {}: {}", c.getId(), secondary);
-                    String campaignName = c.getName() != null ? c.getName() : "Unknown Campaign";
-                    String systemName = c.getSystemName() != null ? c.getSystemName() : "Unknown System";
-                    Integer trackCount = c.getTrackCount() != null ? c.getTrackCount() : 0;
-                    return new ActiveCampaignSummary(c.getId(), campaignName, systemName, trackCount, primary, secondary);
-                }))
-                .collectList()
-                .map(list -> {
-                    int totalPages = (int) Math.ceil((double) total / size);
-                    log.debug("Returning page of active campaigns - count: {}, total: {}, pages: {}", list.size(), total, totalPages);
-                    return new ActiveCampaignPage(list, total, totalPages);
-                }));
-    }
-
-    /**
-     * Fetches campaigns where the user is the designated Campaign Manager.
-     */
-    public Flux<ActiveCampaignSummary> getManagedCampaigns(String managerId) {
-        log.info("[MONITOR] getManagedCampaigns triggered for managerId: {}", managerId);
-        return campaignRepository.findAllByManagerId(managerId)
-                .doOnNext(c -> log.info("[MONITOR] Found managed campaign: {} (ID: {})", c.getName(), c.getId()))
-                .flatMap(this::mapToSummary)
-                .doOnComplete(() -> log.info("[MONITOR] Flux stream completed for managerId: {}", managerId));
-    }
-
     /**
      * Fetches campaigns that the Mercenary Command is currently participating
      * in via its detachments.

@@ -2,6 +2,7 @@ package com.hotspotscamp.api;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -59,6 +60,12 @@ public class CampaignGraphQLController {
                 });
     }
 
+    @QueryMapping
+    public Flux<Campaign> participatingCampaigns(@Argument UUID commandId) {
+        return campaignService.getParticipatingCampaigns(commandId)
+                .flatMap(summary -> campaignRepository.findById(summary.id()));
+    }
+
     @SchemaMapping(typeName = "Campaign", field = "primaryEmployer")
     public Mono<String> getPrimaryEmployer(Campaign campaign) {
         return contractRepository.findAllByCampaignId(campaign.getId())
@@ -73,10 +80,17 @@ public class CampaignGraphQLController {
         return Map.of(
                 "missions", campaignService.getAvailableMissions(),
                 "trackTypes", campaignService.getAvailableTrackTypes(),
+                "factions", campaignService.getAvailableFactions(),
+                "employerTypes", campaignService.getEmployerTypes(),
                 "resolvedSteps", campaignService.getResolvedStepsTable().entrySet().stream()
                         .map(e -> Map.of("step", e.getKey(), "values", e.getValue()))
                         .collect(Collectors.toList())
         );
+    }
+
+    @QueryMapping
+    public Mono<java.util.List<String>> generateTracks(@Argument String mission, @Argument String commandRights, @Argument Integer count) {
+        return Mono.just(campaignService.generateTracks(mission, commandRights, count));
     }
 
     @QueryMapping

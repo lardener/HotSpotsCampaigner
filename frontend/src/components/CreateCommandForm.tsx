@@ -1,18 +1,35 @@
 import React, { useState } from 'react';
-import * as forceApi from '../services/forceApi';
+import { gql } from '@apollo/client';
+import { useMutation } from '@apollo/client/react';
+
+const ESTABLISH_COMMAND = gql`
+  mutation EstablishCommand($name: String!, $commandingOfficer: String) {
+    establishCommand(name: $name, commandingOfficer: $commandingOfficer) {
+      id
+      name
+    }
+  }
+`;
+
+interface EstablishCommandData {
+    establishCommand: {
+        id: string;
+        name: string;
+    };
+}
 
 interface CreateCommandFormProps {
     user?: { name: string };
     onCancel: () => void;
-    onSuccess: (cmd: forceApi.MercenaryCommand) => void;
+    onSuccess: (cmd: any) => void;
 }
 
 export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCancel, onSuccess }) => {
     const [name, setName] = useState('');
     const [experienceLevel, setExperienceLevel] = useState('REGULAR');
     const [initialSP, setInitialSP] = useState(1000);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error] = useState<string | null>(null);
+    const [establishCommand, { loading }] = useMutation<EstablishCommandData>(ESTABLISH_COMMAND);
 
     const handleLevelChange = (level: string) => {
         setExperienceLevel(level);
@@ -28,23 +45,15 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!name) return;
-
-        setLoading(true);
-        setError(null);
         try {
-            const newCmd = await forceApi.createCommand({
-                name,
-                totalSupportPoints: initialSP,
-                reputation: 1,
-                experienceLevel
+            const { data } = await establishCommand({
+                variables: { name, commandingOfficer: user?.name }
             });
-            onSuccess(newCmd);
-        } catch (err: any) {
-            const detail = err.response?.statusText || err.message || "";
-            setError(`REGISTRATION FAILED: ${detail}. CONTACT COMSTAR MRB REPRESENTATIVE.`);
-        } finally {
-            setLoading(false);
+            if (data?.establishCommand) {
+                onSuccess(data.establishCommand);
+            }
+        } catch (err) {
+            alert("REGISTRY FAILURE: UNABLE TO ESTABLISH COMMAND.");
         }
     };
 

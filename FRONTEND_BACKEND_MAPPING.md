@@ -5,7 +5,7 @@ This document maps all frontend drop-down fields to their corresponding backend 
 
 ## Data Flow
 ```
-JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignController (GET endpoints) → Frontend (fetch via campaignApi service)
+JSON Rules Files → CampaignService (loads on @PostConstruct) → GraphQL Resolvers (Query/Mutation) → Frontend (Apollo Client Hooks)
 ```
 
 ---
@@ -102,8 +102,8 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → CampaignContr
 | `GET /api/campaigns/metadata/missions` | `Map<String, List<String>>` | `missionTable.json` | ✅ Yes |
 | `GET /api/campaigns/metadata/track-types` | `string[]` | `trackTable.json` | ✅ Yes |
 | `GET /api/campaigns/metadata/resolved-steps` | `Record<int, Map<string, string>>` | `contractStepsTable.json` | ✅ Yes |
-| `GET /api/campaigns/metadata/employer-types` | `string[]` | `employerTable.json` (distinct values) | ❌ No |
-| `GET /api/campaigns/metadata/factions` | `string[]` | `factions.json` | ❌ No |
+| `GET /api/campaigns/metadata/employer-types` | `string[]` | `employerTable.json` (distinct values) | ✅ Yes |
+| `GET /api/campaigns/metadata/factions` | `string[]` | `factions.json` | ✅ Yes |
 | `GET /api/campaigns/metadata/pay-rates` | `string[]` | `contractStepsTable.json` (distinct payRate values) | ❌ No |
 | `GET /api/campaigns/metadata/salvage` | `string[]` | `contractStepsTable.json` (distinct salvageRights values) | ❌ No |
 | `GET /api/campaigns/metadata/support` | `string[]` | `contractStepsTable.json` (distinct supportRights values) | ❌ No |
