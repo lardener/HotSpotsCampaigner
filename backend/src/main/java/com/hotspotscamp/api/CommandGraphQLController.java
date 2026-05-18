@@ -122,6 +122,7 @@ public class CommandGraphQLController {
                 .piloting((Integer) input.get("piloting"))
                 .asSkill(input.get("asSkill") != null ? (Integer) input.get("asSkill") : null)
                 .unitType((String) input.get("unitType"))
+                .status((String) input.get("status"))
                 .build();
         return commandService.hirePilot(commandId, pilot, principal.getName());
     }
@@ -134,6 +135,7 @@ public class CommandGraphQLController {
                 .piloting((Integer) input.get("piloting"))
                 .asSkill(input.get("asSkill") != null ? (Integer) input.get("asSkill") : null)
                 .unitType((String) input.get("unitType"))
+                .status((String) input.get("status"))
                 .build();
         return commandService.updatePilot(id, pilot, principal.getName());
     }
@@ -170,6 +172,7 @@ public class CommandGraphQLController {
                 .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : 0)
                 .bv(input.get("bv") != null ? (Integer) input.get("bv") : 0)
                 .pv(input.get("pv") != null ? (Integer) input.get("pv") : 0)
+                .status((String) input.get("status"))
                 .build();
         return commandService.addCombatUnit(commandId, unit, principal.getName());
     }
@@ -185,6 +188,7 @@ public class CommandGraphQLController {
                 .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : null)
                 .bv(input.get("bv") != null ? (Integer) input.get("bv") : null)
                 .pv(input.get("pv") != null ? (Integer) input.get("pv") : null)
+                .status((String) input.get("status"))
                 .build();
         return commandService.updateCombatUnit(id, unit, principal.getName());
     }

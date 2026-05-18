@@ -66,7 +66,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
-                                    <div style={{ textAlign: 'right', alignSelf: 'end' }}>
+                                    <div className="text-right" style={{ alignSelf: 'end' }}>
                                         <button className="mode-btn" style={{ fontSize: '0.8rem' }} onClick={() => onSelectCampaign(camp.id)}>MANAGE THEATER</button>
                                     </div>
                                 </div>

@@ -175,14 +175,16 @@ input CombatUnitInput {
     asSize: Int
     bv: Int
     pv: Int
+    status: String
 }
 
 input PilotInput {
-    name: String!
-    gunnery: Int!
-    piloting: Int!
+    name: String
+    gunnery: Int
+    piloting: Int
     asSkill: Int
     unitType: String
+    status: String
 }
 
 type CampaignProposal {

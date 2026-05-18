@@ -71,8 +71,8 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                             <label className="zone-header" style={{ display: 'block' }}>COMMAND NAME</label>
                             <input
                                 type="text"
-                                className="mode-btn"
-                                style={{ width: '100%', textAlign: 'left', padding: '10px' }}
+                                className="mode-btn text-left"
+                                style={{ width: '100%', padding: '10px' }}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="FORCE DESIGNATION..."
@@ -106,8 +106,8 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                             <label className="zone-header" style={{ display: 'block' }}>INITIAL WARCHEST (SP)</label>
                             <input
                                 type="number"
-                                className="mode-btn"
-                                style={{ width: '100%', textAlign: 'left', padding: '10px' }}
+                                className="mode-btn text-left"
+                                style={{ width: '100%', padding: '10px' }}
                                 value={initialSP}
                                 onChange={(e) => setInitialSP(parseInt(e.target.value))}
                             />

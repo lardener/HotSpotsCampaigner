@@ -386,7 +386,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                                 <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
                                                 <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
                                                 <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
-                                                <div style={{ textAlign: 'right', alignSelf: 'end' }}>
+                                                <div className="text-right" style={{ alignSelf: 'end' }}>
                                                     <button className="mode-btn" style={{ fontSize: '0.8rem' }} onClick={() => { setSelectedCampaignId(camp.id); setSelectedNodeId(camp.id); }}>MANAGE THEATER</button>
                                                 </div>
                                             </div>
@@ -576,7 +576,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
             </aside>
             <main className={`main-content-wrapper ${getThemeClass()}`} style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--terminal-bg)', padding: '20px', borderLeft: '1px solid var(--terminal-border)' }}>
                 {user && selectedCommandId && commands.length > 1 && (
-                    <div className="command-selector-header theme-amber" style={{ marginBottom: '20px', textAlign: 'right' }}>
+                    <div className="command-selector-header theme-amber text-right" style={{ marginBottom: '20px' }}>
                         <label htmlFor="command-select" className="restricted-text" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)' }}>
                             ACTIVE COMMAND:
                         </label>

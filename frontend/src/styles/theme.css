@@ -166,3 +166,34 @@ body {
     color: var(--terminal-bg);
     box-shadow: 0 0 10px var(--accent-dim);
 }
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.tactical-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--accent-dim);
+}
+
+.tactical-table th {
+    border: 1px solid var(--accent-dim);
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    white-space: normal;
+    vertical-align: bottom;
+}
+
+.tactical-table td {
+    border: 1px solid var(--accent-dim);
+    padding: 2px 4px;
+}
