@@ -11,7 +11,7 @@ const GET_LEDGER_DATA = gql`
       totalSupportPoints
       detachments {
         id
-        callsign
+        name
       }
     }
   }
@@ -24,7 +24,7 @@ interface LedgerData {
         totalSupportPoints: number;
         detachments: {
             id: string;
-            callsign: string;
+            name: string;
         }[];
     };
 }
@@ -70,7 +70,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
                     style={{ marginLeft: '10px', padding: '5px' }}
                 >
                     {detachments.map((d: any) => (
-                        <option key={d.id} value={d.id}>{d.callsign}</option>
+                        <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                 </select>
             </div>

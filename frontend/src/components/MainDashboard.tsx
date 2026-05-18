@@ -22,7 +22,7 @@ const GET_MY_COMMANDS = gql`
       commandingOfficer
       detachments {
         id
-        callsign
+        name
       }
     }
   }
@@ -39,7 +39,7 @@ const GET_MANAGED_CAMPAIGNS = gql`
       primaryEmployer
       participatingDetachments {
         id
-        callsign
+        name
       }
     }
   }
@@ -61,7 +61,7 @@ interface GetMyCommandsData {
         commandingOfficer: string;
         detachments?: {
             id: string;
-            callsign: string;
+            name: string;
         }[];
     }[];
 }
@@ -76,7 +76,7 @@ interface ManagedCampaignsData {
         primaryEmployer: string;
         participatingDetachments?: {
             id: string;
-            callsign: string;
+            name: string;
         }[];
     }[];
 }
@@ -134,7 +134,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 cmd.detachments.forEach((det: any) => {
                     deploymentNodes.push({
                         id: `deployment-${det.id}`,
-                        label: `${cmd.name} - ${det.callsign}`,
+                        label: `${cmd.name} - ${det.name}`,
                         type: 'DEPLOYMENT' as NodeType,
                         metadata: { detachmentId: det.id, commandId: cmd.id }
                     });
@@ -159,7 +159,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                     type: 'COMMAND' as NodeType,
                     children: cmd.detachments?.map((det: any) => ({
                         id: `cmd-det-${det.id}`,
-                        label: det.callsign,
+                        label: det.name,
                         type: 'DETACHMENT' as NodeType,
                         metadata: { detachmentId: det.id, commandId: cmd.id }
                     }))
@@ -175,7 +175,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                     type: 'CAMPAIGN' as NodeType,
                     children: camp.participatingDetachments?.map((det: any) => ({
                         id: `camp-det-${det.id}`,
-                        label: det.callsign,
+                        label: det.name,
                         type: 'DETACHMENT' as NodeType,
                         metadata: { detachmentId: det.id, campaignId: camp.id }
                     }))
@@ -417,9 +417,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                     <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                                     <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
                                         {campaign?.participatingDetachments?.map(det => (
-                                            <div key={det.id} className="asset-card" style={{ cursor: 'pointer' }} onClick={() => handleTreeSelect({ id: `camp-det-${det.id}`, label: det.callsign, type: 'DETACHMENT', metadata: { detachmentId: det.id, campaignId: campaign.id } })}>
+                                            <div key={det.id} className="asset-card" style={{ cursor: 'pointer' }} onClick={() => handleTreeSelect({ id: `camp-det-${det.id}`, label: det.name, type: 'DETACHMENT', metadata: { detachmentId: det.id, campaignId: campaign.id } })}>
                                                 <div className="asset-type">DETACHMENT</div>
-                                                <div className="asset-label">{det.callsign}</div>
+                                                <div className="asset-label">{det.name}</div>
                                             </div>
                                         ))}
                                         {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (

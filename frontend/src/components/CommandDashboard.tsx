@@ -43,7 +43,7 @@ const GET_UNIT_DOSSIER = gql`
 `;
 
 const CREATE_DETACHMENT = gql`
-  mutation CreateDetachment($commandId: ID!, $campaignId: ID!, $name: String!) {
+  mutation CreateDetachment($commandId: ID!, $campaignId: ID, $name: String!) {
     createDetachment(commandId: $commandId, campaignId: $campaignId, name: $name) {
       id
       name

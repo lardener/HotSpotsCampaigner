@@ -97,9 +97,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                         <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
                             {campaign?.participatingDetachments?.map((det: any) => (
-                                <div key={det.id} className="asset-card" style={{ cursor: 'pointer' }} onClick={() => onSelectDetachment({ id: `camp-det-${det.id}`, label: det.callsign, type: 'DETACHMENT', metadata: { detachmentId: det.id, campaignId: campaign.id } })}>
+                                <div key={det.id} className="asset-card" style={{ cursor: 'pointer' }} onClick={() => onSelectDetachment({ id: `camp-det-${det.id}`, label: det.name, type: 'DETACHMENT', metadata: { detachmentId: det.id, campaignId: campaign.id } })}>
                                     <div className="asset-type">DETACHMENT</div>
-                                    <div className="asset-label">{det.callsign}</div>
+                                    <div className="asset-label">{det.name}</div>
                                 </div>
                             ))}
                             {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (
