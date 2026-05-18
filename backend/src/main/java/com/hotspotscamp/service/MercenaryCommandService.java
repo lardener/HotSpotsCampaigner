@@ -21,6 +21,7 @@ import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
+import com.hotspotscamp.util.SqlUtils;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -201,10 +202,14 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<MercenaryCommand> syncTotalSupportPoints(UUID commandId) {
-        return detachmentRepository.findAllByMercenaryCommandId(commandId)
-                .flatMap(detachment -> ledgerEntryRepository.findAllByDetachmentId(detachment.getId()))
-                .map(entry -> entry.getAmount() != null ? entry.getAmount() : 0)
-                .reduce(0, Integer::sum)
+        String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries le "
+                + "JOIN detachments d ON le.detachment_id = d.id "
+                + "WHERE d.mercenary_command_id = :id";
+
+        return SqlUtils.bindUuid(databaseClient.sql(sql), "id", commandId)
+                .map((row, metadata) -> row.get("total", Long.class))
+                .one()
+                .map(Long::intValue)
                 .flatMap(totalSp -> commandRepository.findById(commandId)
                 .flatMap(command -> {
                     command.setNew(false);
@@ -231,8 +236,8 @@ public class MercenaryCommandService {
     public Mono<Void> assignAssetToDetachment(String assetType, UUID assetId, UUID detachmentId, String userId) {
         String table = assetType.equalsIgnoreCase("UNIT") ? "combat_units" : "pilots";
 
-        return databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id")
-                .bind("id", assetId.toString())
+        var selectSpec = databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id");
+        return SqlUtils.bindUuid(selectSpec, "id", assetId)
                 .map((row, metadata) -> row.get("command_id", UUID.class))
                 .one()
                 .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
@@ -255,13 +260,9 @@ public class MercenaryCommandService {
             return Mono.just(true);
         }))
                 .flatMap(authorized -> {
-                    var spec = databaseClient.sql("UPDATE " + table + " SET detachment_id = :detId WHERE id = :id")
-                            .bind("id", assetId.toString());
-                    if (detachmentId == null) {
-                        spec = spec.bindNull("detId", UUID.class);
-                    } else {
-                        spec = spec.bind("detId", detachmentId.toString());
-                    }
+                    var spec = databaseClient.sql("UPDATE " + table + " SET detachment_id = :detId WHERE id = :id");
+                    spec = SqlUtils.bindUuid(spec, "id", assetId);
+                    spec = SqlUtils.bindUuid(spec, "detId", detachmentId);
                     return spec.fetch().rowsUpdated().then();
                 }));
     }
@@ -280,12 +281,9 @@ public class MercenaryCommandService {
                             .flatMap(detachment -> {
                                 UUID commandId = detachment.getMercenaryCommandId();
                                 return Mono.when(
-                                        databaseClient.sql("UPDATE combat_units SET detachment_id = NULL WHERE detachment_id = :id")
-                                                .bind("id", detachmentId.toString()).then(),
-                                        databaseClient.sql("UPDATE pilots SET detachment_id = NULL WHERE detachment_id = :id")
-                                                .bind("id", detachmentId.toString()).then(),
-                                        databaseClient.sql("DELETE FROM ledger_entries WHERE detachment_id = :id")
-                                                .bind("id", detachmentId.toString()).then(),
+                                        SqlUtils.bindUuid(databaseClient.sql("UPDATE combat_units SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
+                                        SqlUtils.bindUuid(databaseClient.sql("UPDATE pilots SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
+                                        SqlUtils.bindUuid(databaseClient.sql("DELETE FROM ledger_entries WHERE detachment_id = :id"), "id", detachmentId).then(),
                                         detachmentRepository.deleteById(detachmentId)
                                 ).then(syncTotalSupportPoints(commandId)).then();
                             });
@@ -467,20 +465,20 @@ public class MercenaryCommandService {
     private Mono<Boolean> isAuthorizedToEditLedger(UUID detachmentId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> {
             String internalId = user.getId().toString();
-            return detachmentRepository.findById(detachmentId)
-                    .flatMap(detachment -> {
-                        // Check if user is Command Owner
-                        Mono<Boolean> isOwner = commandRepository.findById(detachment.getMercenaryCommandId())
-                                .map(cmd -> cmd.getOwnerId().equals(internalId))
-                                .defaultIfEmpty(false);
+            String sql = "SELECT EXISTS ("
+                    + "  SELECT 1 FROM detachments d "
+                    + "  JOIN mercenary_commands mc ON d.mercenary_command_id = mc.id "
+                    + "  JOIN campaigns c ON d.campaign_id = c.id "
+                    + "  WHERE d.id = :detId "
+                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
+                    + ")";
 
-                        // Check if user is Campaign Manager
-                        Mono<Boolean> isManager = campaignRepository.findById(detachment.getCampaignId())
-                                .map(campaign -> campaign.getManagerId().equals(internalId) || campaign.getManagerId().equals(userId))
-                                .defaultIfEmpty(false);
-
-                        return Mono.zip(isOwner, isManager).map(tuple -> tuple.getT1() || tuple.getT2());
-                    })
+            return SqlUtils.bindUuid(databaseClient.sql(sql), "detId", detachmentId)
+                    .bind("userId", internalId)
+                    .bind("externalId", userId)
+                    .map((row, metadata) -> row.get(0, Long.class))
+                    .one()
+                    .map(val -> val != null && val > 0)
                     .defaultIfEmpty(false);
         });
     }
