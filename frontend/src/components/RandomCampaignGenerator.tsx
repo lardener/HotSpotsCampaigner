@@ -121,9 +121,16 @@ interface GenerateTracksData {
     generateTracks: string[];
 }
 
+interface CreateCampaignData {
+    createCampaign: {
+        id: string;
+        name: string;
+    };
+}
+
 interface Props {
     user?: { name: string };
-    onSaveSuccess?: () => void;
+    onSaveSuccess?: (newCampaign: any) => void;
 }
 
 export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
@@ -159,7 +166,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [previewData]);
 
-    const [createCampaign, { loading: saveLoading }] = useMutation(CREATE_CAMPAIGN);
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: any }>(CREATE_CAMPAIGN);
 
     const [previewError, setPreviewError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -217,11 +224,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         setSaveError(null);
 
         try {
-            await createCampaign({ variables: { input: getSaveParams() } });
+            const result = await createCampaign({ variables: { input: getSaveParams() } });
             setSaved(true);
             setTimeout(() => setProposal(null), 2000); // Allow user to see success state
-            if (onSaveSuccess) {
-                onSaveSuccess();
+            if (onSaveSuccess && result.data?.createCampaign) {
+                onSaveSuccess(result.data.createCampaign);
             }
         } catch (error) {
             console.error('Dobless save failed', error);

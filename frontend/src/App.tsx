@@ -38,6 +38,7 @@ const client = new ApolloClient({
 
 interface UserProfileData {
   userProfile: {
+    id: string;
     name: string;
     email: string;
   } | null;
@@ -46,6 +47,7 @@ interface UserProfileData {
 const GET_USER_PROFILE = gql`
   query GetUserProfile {
     userProfile {
+      id
       name
       email
     }
@@ -62,8 +64,8 @@ export function App() {
       .then(result => {
         const profile = result.data?.userProfile;
         if (profile) {
-          // Map backend response (name, email) to user state
-          setUser({ name: profile.name, id: profile.email });
+          // Use the internal UUID (id) as the user identifier
+          setUser({ name: profile.name, id: profile.id });
         } else {
           setUser(null);
         }

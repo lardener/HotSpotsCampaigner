@@ -22,5 +22,5 @@ public interface DetachmentRepository extends ReactiveCrudRepository<Detachment,
         return findAllByMercenaryCommandId(commandId);
     }
 
-    Flux<Detachment> findAllByContractId(UUID contractId);
+    Flux<Detachment> findAllByCampaignId(UUID campaignId);
 }

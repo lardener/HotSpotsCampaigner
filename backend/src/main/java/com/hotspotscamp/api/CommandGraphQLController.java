@@ -1,8 +1,8 @@
 package com.hotspotscamp.api;
 
 import java.security.Principal;
-import java.util.UUID;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
@@ -101,6 +101,15 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
+    public Mono<MercenaryCommand> updateCommand(@Argument UUID id,
+            @Argument String commandingOfficer,
+            @Argument Integer totalSupportPoints,
+            @Argument Integer reputation,
+            Principal principal) {
+        return commandService.updateCommandDetails(id, commandingOfficer, totalSupportPoints, reputation, principal.getName());
+    }
+
+    @MutationMapping
     public Mono<Boolean> deleteUnit(@Argument UUID unitId, Principal principal) {
         return commandService.deleteCombatUnit(unitId, principal.getName()).thenReturn(true);
     }
@@ -111,8 +120,22 @@ public class CommandGraphQLController {
                 .name((String) input.get("name"))
                 .gunnery((Integer) input.get("gunnery"))
                 .piloting((Integer) input.get("piloting"))
+                .asSkill(input.get("asSkill") != null ? (Integer) input.get("asSkill") : null)
+                .unitType((String) input.get("unitType"))
                 .build();
         return commandService.hirePilot(commandId, pilot, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<Pilot> updatePilot(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+        Pilot pilot = Pilot.builder()
+                .name((String) input.get("name"))
+                .gunnery((Integer) input.get("gunnery"))
+                .piloting((Integer) input.get("piloting"))
+                .asSkill(input.get("asSkill") != null ? (Integer) input.get("asSkill") : null)
+                .unitType((String) input.get("unitType"))
+                .build();
+        return commandService.updatePilot(id, pilot, principal.getName());
     }
 
     @MutationMapping
@@ -121,8 +144,8 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Detachment> createDetachment(@Argument UUID commandId, @Argument UUID contractId, @Argument String name, Principal principal) {
-        return commandService.createDetachment(commandId, contractId, name, principal.getName());
+    public Mono<Detachment> createDetachment(@Argument UUID commandId, @Argument UUID campaignId, @Argument String name, Principal principal) {
+        return commandService.createDetachment(commandId, campaignId, name, principal.getName());
     }
 
     @MutationMapping
@@ -139,11 +162,31 @@ public class CommandGraphQLController {
     @MutationMapping
     public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
         CombatUnit unit = CombatUnit.builder()
-                .model((String) input.get("model"))
-                .tonnage((Integer) input.get("tonnage"))
                 .type(input.get("type") != null ? (String) input.get("type") : "MECH")
+                .model((String) input.get("model"))
+                .variant((String) input.get("variant"))
+                .techBase((String) input.get("techBase"))
+                .tonnage(input.get("tonnage") != null ? (Integer) input.get("tonnage") : 0)
+                .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : 0)
+                .bv(input.get("bv") != null ? (Integer) input.get("bv") : 0)
+                .pv(input.get("pv") != null ? (Integer) input.get("pv") : 0)
                 .build();
         return commandService.addCombatUnit(commandId, unit, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<CombatUnit> updateCombatUnit(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+        CombatUnit unit = CombatUnit.builder()
+                .type((String) input.get("type"))
+                .model((String) input.get("model"))
+                .variant((String) input.get("variant"))
+                .techBase((String) input.get("techBase"))
+                .tonnage(input.get("tonnage") != null ? (Integer) input.get("tonnage") : null)
+                .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : null)
+                .bv(input.get("bv") != null ? (Integer) input.get("bv") : null)
+                .pv(input.get("pv") != null ? (Integer) input.get("pv") : null)
+                .build();
+        return commandService.updateCombatUnit(id, unit, principal.getName());
     }
 
     @MutationMapping

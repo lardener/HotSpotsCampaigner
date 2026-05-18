@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
 
@@ -13,9 +13,14 @@ const GET_UNIT_DOSSIER = gql`
       commandingOfficer
       units {
         id
-        model
         type
+        model
+        variant
+        techBase
         tonnage
+        asSize
+        bv
+        pv
         status
       }
       pilots {
@@ -23,7 +28,13 @@ const GET_UNIT_DOSSIER = gql`
         name
         gunnery
         piloting
+        asSkill
+        unitType
         status
+      }
+      detachments {
+        id
+        name
       }
     }
     managedCampaigns(status: "ACTIVE") {
@@ -34,43 +45,65 @@ const GET_UNIT_DOSSIER = gql`
 `;
 
 const CREATE_DETACHMENT = gql`
-  mutation CreateDetachment($commandId: ID!, $contractId: ID!, $name: String!) {
-    createDetachment(commandId: $commandId, contractId: $contractId, name: $name) {
+  mutation CreateDetachment($commandId: ID!, $campaignId: ID!, $name: String!) {
+    createDetachment(commandId: $commandId, campaignId: $campaignId, name: $name) {
       id
       name
     }
   }
 `;
 
-const ADD_LEDGER_ENTRY = gql`
-  mutation AddLedgerEntry($detachmentId: ID!, $amount: Int!, $description: String!) {
-    addLedgerEntry(detachmentId: $detachmentId, amount: $amount, description: $description) {
-      id
-    }
-  }
-`;
-
 const HIRE_PILOT = gql`
-  mutation HirePilot($commandId: ID!, $name: String!, $gunnery: Int!, $piloting: Int!) {
-    hirePilot(commandId: $commandId, name: $name, gunnery: $gunnery, piloting: $piloting) {
+  mutation HirePilot($commandId: ID!, $input: PilotInput!) {
+    hirePilot(commandId: $commandId, input: $input) {
       id
+      name
     }
   }
 `;
 
 const ADD_UNIT = gql`
-  mutation AddUnit($commandId: ID!, $model: String!, $tonnage: Int!, $type: String) {
-    addUnitToForce(commandId: $commandId, model: $model, tonnage: $tonnage, type: $type) {
+  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitInput!) {
+    addCombatUnit(commandId: $commandId, input: $input) {
       id
+      model
     }
+  }
+`;
+
+const UPDATE_COMMAND = gql`
+  mutation UpdateCommand($id: ID!, $co: String, $sp: Int, $rep: Int) {
+    updateCommand(id: $id, commandingOfficer: $co, totalSupportPoints: $sp, reputation: $rep) {
+      id
+      commandingOfficer
+      totalSupportPoints
+      reputation
+    }
+  }
+`;
+
+const UPDATE_UNIT = gql`
+  mutation UpdateUnit($id: ID!, $input: CombatUnitInput!) {
+    updateCombatUnit(id: $id, input: $input) { id }
+  }
+`;
+
+const UPDATE_PILOT = gql`
+  mutation UpdatePilot($id: ID!, $input: PilotInput!) {
+    updatePilot(id: $id, input: $input) { id }
   }
 `;
 
 interface CombatUnit {
     id: string;
-    model: string;
     type: string;
+    model: string;
+    variant: string;
+    techBase: string;
     tonnage: number;
+    asSize: number;
+    bv: number;
+    pv: number;
     status: string;
     detachmentId?: string | null;
 }
@@ -80,6 +113,8 @@ interface Pilot {
     name: string;
     gunnery: number;
     piloting: number;
+    asSkill: number;
+    unitType: string;
     status: string;
     detachmentId?: string | null;
 }
@@ -100,6 +135,7 @@ interface UnitDossierData {
         experienceLevel: string;
         commandingOfficer: string;
         units: CombatUnit[];
+        detachments: Detachment[];
         pilots: Pilot[];
     };
     managedCampaigns: ManagedCampaign[];
@@ -114,22 +150,97 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
 
     // Form states
     const [newDetachmentName, setNewDetachmentName] = useState('');
-    const [selectedContractId, setSelectedContractId] = useState('');
-    const [ledgerAmount, setLedgerAmount] = useState<number>(0);
-    const [ledgerDesc, setLedgerDesc] = useState('');
+    const [selectedCampaignId, setSelectedCampaignId] = useState('');
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSaved, setLastSaved] = useState<string | null>(null);
 
     const { loading, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId }
     });
 
-    const [createDetachment] = useMutation(CREATE_DETACHMENT);
-    const [addLedger] = useMutation(ADD_LEDGER_ENTRY);
+    const [updateCommand] = useMutation(UPDATE_COMMAND);
+    const [updateUnit] = useMutation(UPDATE_UNIT);
+    const [updatePilot] = useMutation(UPDATE_PILOT);
     const [addUnit] = useMutation(ADD_UNIT);
     const [hirePilot] = useMutation(HIRE_PILOT);
+    const [createDetachment] = useMutation(CREATE_DETACHMENT);
 
-    const handleMoveAsset = async (type: 'UNIT' | 'PILOT', id: string, targetDetachmentId: string | null) => {
-        // Note: Mutation for moving assets still needs to be implemented in schema/controller
-        alert(`Asset movement for ${type}:${id} to ${targetDetachmentId || 'pool'} requires 'assignAsset' mutation implementation.`);
+    const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+
+    const markSaved = () => {
+        setIsSyncing(false);
+        setLastSaved(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+
+    // Clear all timeouts on unmount
+    useEffect(() => {
+        const timeouts = saveTimeoutRef.current;
+        return () => {
+            Object.values(timeouts).forEach(clearTimeout);
+        };
+    }, []);
+
+    const handleHeaderUpdate = (field: string, value: any, immediate = true) => {
+        const key = `header-${field}`;
+        if (saveTimeoutRef.current[key]) {
+            clearTimeout(saveTimeoutRef.current[key]);
+            delete saveTimeoutRef.current[key];
+        }
+
+        const execute = () => {
+            setIsSyncing(true);
+            const vars: any = { id: commandId };
+            if (field === 'CO') vars.co = value;
+            if (field === 'SP') vars.sp = parseInt(value) || 0;
+            if (field === 'REP') vars.rep = parseInt(value) || 0;
+            updateCommand({ variables: vars }).then(() => { refetch(); markSaved(); });
+        };
+
+        if (immediate) execute();
+        else saveTimeoutRef.current[key] = setTimeout(execute, 5000);
+    };
+
+    const handleUnitUpdate = (id: string, field: string, value: any, immediate = true) => {
+        const key = `unit-${id}-${field}`;
+        if (saveTimeoutRef.current[key]) {
+            clearTimeout(saveTimeoutRef.current[key]);
+            delete saveTimeoutRef.current[key];
+        }
+
+        const execute = () => {
+            setIsSyncing(true);
+            // Only send the field that was actually modified to prevent race conditions 
+            // overwriting other fields with stale cache data.
+            const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);
+            const input = {
+                [field]: isNumeric ? (parseInt(value) || 0) : value
+            };
+            updateUnit({ variables: { id, input } }).then(() => { refetch(); markSaved(); });
+        };
+
+        if (immediate) execute();
+        else saveTimeoutRef.current[key] = setTimeout(execute, 5000);
+    };
+
+    const handlePilotUpdate = (id: string, field: string, value: any, immediate = true) => {
+        const key = `pilot-${id}-${field}`;
+        if (saveTimeoutRef.current[key]) {
+            clearTimeout(saveTimeoutRef.current[key]);
+            delete saveTimeoutRef.current[key];
+        }
+
+        const execute = () => {
+            setIsSyncing(true);
+            // Only send the changed field for pilots as well
+            const isNumeric = ['gunnery', 'piloting', 'asSkill'].includes(field);
+            const input = {
+                [field]: isNumeric ? (parseInt(value) || 0) : value
+            };
+            updatePilot({ variables: { id, input } }).then(() => { refetch(); markSaved(); });
+        };
+
+        if (immediate) execute();
+        else saveTimeoutRef.current[key] = setTimeout(execute, 5000);
     };
 
     const handleAddUnit = async () => {
@@ -139,9 +250,11 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
             await addUnit({
                 variables: {
                     commandId,
-                    model,
-                    tonnage: 70,
-                    type: 'MECH'
+                    input: {
+                        model,
+                        tonnage: 20,
+                        type: 'BM'
+                    }
                 }
             });
             refetch();
@@ -155,33 +268,30 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
             await hirePilot({
                 variables: {
                     commandId,
-                    name,
-                    gunnery: 4,
-                    piloting: 5
+                    input: {
+                        name,
+                        gunnery: 4,
+                        piloting: 5
+                    }
                 }
             });
             refetch();
         } catch (err) { alert("Failed to hire pilot."); }
     };
 
-    const handleDeleteAsset = async (type: 'UNIT' | 'PILOT', id: string) => {
-        if (!window.confirm(`Are you sure you want to remove this ${type.toLowerCase()}?`)) return;
-        // Requires deleteUnit/deletePilot mutation calls.
-        alert(`Deletion of ${type}:${id} logic is pending.`);
-    };
-
     const handleCreateDetachment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newDetachmentName || !selectedContractId) return;
+        if (!newDetachmentName || !selectedCampaignId) return;
         try {
             await createDetachment({
                 variables: {
                     commandId,
-                    contractId: selectedContractId,
+                    campaignId: selectedCampaignId,
                     name: newDetachmentName
                 }
             });
             setNewDetachmentName('');
+            setSelectedCampaignId('');
             refetch();
         } catch (err) { alert("Failed to create detachment."); }
     };
@@ -192,55 +302,73 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
         alert(`Detachment deletion for ${id} logic is pending.`);
     };
 
-    const handleAddLedger = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedDetachmentId || ledgerAmount === 0) return;
-        try {
-            await addLedger({
-                variables: {
-                    detachmentId: selectedDetachmentId,
-                    amount: ledgerAmount,
-                    description: ledgerDesc
-                }
-            });
-            setLedgerAmount(0);
-            setLedgerDesc('');
-            refetch();
-        } catch (err) { alert("Failed to add ledger entry."); }
-    };
-
     if (loading) return <div className="loading-intel">RETRIEVING UNIT DOSSIER...</div>;
     const command = data?.getCommand;
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
 
-    // Placeholder for detachments logic - needs to be added to GraphQL query
-    const detachments: Detachment[] = []; // This will need to be populated from GraphQL later
+    const detachments: Detachment[] = command.detachments || [];
     const campaigns: ManagedCampaign[] = data?.managedCampaigns || [];
 
-    const filteredUnits: CombatUnit[] = command.units.filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId);
-    const filteredPilots: Pilot[] = command.pilots.filter((p: Pilot) => p.status === 'ACTIVE'); // Simplified for now
+    const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
+    const TECH_BASES = ['Inner Sphere', 'Clan', 'Mixed'];
 
     return (
         <div className="container unit-profile theme-amber">
-            <header className="dashboard-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px' }}>
-                <h1 className="terminal-text">{command.name} - UNIT PROFILE</h1>
-                <div className="restricted-text" style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
-                    <span>CO: {command.commandingOfficer}</span>
-                    <span>SP: {command.totalSupportPoints}</span>
-                    <span>REP: {command.reputation} ({command.experienceLevel})</span>
+            <header className="dashboard-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                    <h1 className="terminal-text">{command.name} - UNIT PROFILE</h1>
+                </div>
+                <div className="sync-indicator" style={{ textAlign: 'right', paddingBottom: '5px' }}>
+                    <span className={`restricted-text ${isSyncing ? 'pulse' : ''}`} style={{ color: isSyncing ? 'var(--terminal-amber)' : 'var(--terminal-green)', fontSize: '0.7rem' }}>
+                        {isSyncing ? '>> UPLOADING DATA...' : '● NEURAL LINK: STABLE'}
+                    </span>
+                    {lastSaved && !isSyncing && <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>LAST SYNC: {lastSaved}</div>}
                 </div>
             </header>
+            <div className="header-metadata-row" style={{ marginBottom: '20px' }}>
+                <div className="tactical-header-grid" style={{ display: 'flex', gap: '40px', marginTop: '10px' }}>
+                    <div className="input-group">
+                        <label className="restricted-text">CO:</label>
+                        <input
+                            className="inline-edit"
+                            defaultValue={command.commandingOfficer}
+                            onChange={(e) => handleHeaderUpdate('CO', e.target.value, false)}
+                            onBlur={(e) => handleHeaderUpdate('CO', e.target.value, true)}
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label className="restricted-text">WARCHEST (SP):</label>
+                        <input
+                            type="number"
+                            className="inline-edit"
+                            defaultValue={command.totalSupportPoints}
+                            onChange={(e) => handleHeaderUpdate('SP', e.target.value, false)}
+                            onBlur={(e) => handleHeaderUpdate('SP', e.target.value, true)}
+                        />
+                    </div>
+                    <div className="input-group">
+                        <label className="restricted-text">REPUTATION:</label>
+                        <input
+                            type="number"
+                            className="inline-edit"
+                            defaultValue={command.reputation}
+                            onChange={(e) => handleHeaderUpdate('REP', e.target.value, false)}
+                            onBlur={(e) => handleHeaderUpdate('REP', e.target.value, true)}
+                        />
+                        <span className="restricted-text" style={{ marginLeft: '10px' }}>[ LVL: {command.experienceLevel.toUpperCase()} ]</span>
+                    </div>
+                </div>
+            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '30px' }}>
-                {/* Sidebar: Detachments */}
-                <aside>
-                    <h3 className="section-title">ORGANIZATION</h3>
+            <div className="dashboard-grid" style={{ gridTemplateColumns: '250px 1fr' }}>
+                <aside className="tactical-panel" data-id="ORG-STRUCTURE">
+                    <h3 className="zone-header">ORGANIZATION</h3>
                     <div
                         className={`mode-btn ${selectedDetachmentId === null ? 'active' : ''}`}
                         onClick={() => setSelectedDetachmentId(null)}
                         style={{ width: '100%', marginBottom: '10px', textAlign: 'left' }}
                     >
-                        COMMAND POOL
+                        FORCE POOL
                     </div>
                     {detachments.map(det => (
                         <div key={det.id} style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
@@ -255,141 +383,149 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                         </div>
                     ))}
 
-                    <form onSubmit={handleCreateDetachment} style={{ marginTop: '30px', borderTop: '1px solid #333', paddingTop: '15px' }}>
+                    <form onSubmit={handleCreateDetachment} style={{ marginTop: '30px', borderTop: '1px solid var(--terminal-border)', paddingTop: '15px' }}>
                         <span className="restricted-text" style={{ fontSize: '0.8rem' }}>NEW DETACHMENT</span>
                         <input
                             type="text"
-                            placeholder="Detachment Name"
+                            className="mode-btn"
+                            placeholder="Callsign..."
                             value={newDetachmentName}
                             onChange={e => setNewDetachmentName(e.target.value)}
-                            style={{ width: '100%', marginTop: '5px' }}
+                            style={{ width: '100%', marginTop: '5px', textAlign: 'left' }}
                         />
                         <select
-                            value={selectedContractId}
-                            onChange={e => setSelectedContractId(e.target.value)}
+                            className="mode-btn"
+                            value={selectedCampaignId}
+                            onChange={e => setSelectedCampaignId(e.target.value)}
                             style={{ width: '100%', marginTop: '5px' }}
                         >
                             <option value="">SELECT CAMPAIGN</option>
                             {campaigns.map(cap => (
-                                <optgroup key={cap.id} label={cap.name}>
-                                    <option value={cap.id}>Primary Contract</option>
-                                </optgroup>
+                                <option key={cap.id} value={cap.id}>{cap.name}</option>
                             ))}
                         </select>
                         <button type="submit" className="login-button" style={{ width: '100%', marginTop: '10px', fontSize: '0.8rem' }}>FORM UNIT</button>
                     </form>
                 </aside>
 
-                {/* Main Content */}
-                <main>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 className="section-title">
-                            {selectedDetachmentId ? detachments.find(d => d.id === selectedDetachmentId)?.name : 'COMMAND POOL'}
-                        </h2>
-                        {selectedDetachmentId === null && (
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <button className="mode-btn" onClick={handleAddUnit}>+ ADD UNIT</button>
-                                <button className="mode-btn" onClick={handleHirePilot}>+ HIRE PILOT</button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Ledger Form for Detachments */}
-                    {selectedDetachmentId && (
-                        <div className="dashboard-section" style={{ padding: '15px', marginBottom: '20px' }}>
-                            <form onSubmit={handleAddLedger} style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                                <div style={{ flex: 1 }}>
-                                    <label className="restricted-text" style={{ fontSize: '0.7rem' }}>DESCRIPTION</label>
-                                    <input type="text" value={ledgerDesc} onChange={e => setLedgerDesc(e.target.value)} style={{ width: '100%' }} />
-                                </div>
-                                <div style={{ width: '120px' }}>
-                                    <label className="restricted-text" style={{ fontSize: '0.7rem' }}>SP AMOUNT</label>
-                                    <input type="number" value={ledgerAmount} onChange={e => setLedgerAmount(parseInt(e.target.value))} style={{ width: '100%' }} />
-                                </div>
-                                <button type="submit" className="login-button">LOG ENTRY</button>
-                            </form>
+                <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                    <section className="dashboard-section tactical-panel" data-id="ASSET-REG">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 className="zone-header" style={{ margin: 0 }}>COMBAT ASSET REGISTRY</h3>
+                            <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>
                         </div>
-                    )}
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                        {/* Combat Units */}
-                        <section className="dashboard-section" style={{ minHeight: '300px' }}>
-                            <h3 className="restricted-text">COMBAT UNITS</h3>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                                <thead>
-                                    <tr className="restricted-text" style={{ fontSize: '0.7rem', textAlign: 'left', borderBottom: '1px solid #333' }}>
-                                        <th>MODEL</th>
-                                        <th>TONS</th>
-                                        <th>ACTIONS</th>
+                        <table className="tactical-table">
+                            <thead>
+                                <tr>
+                                    <th>TYPE</th>
+                                    <th>MODEL</th>
+                                    <th>VARIANT</th>
+                                    <th>TECH</th>
+                                    <th>TONS</th>
+                                    <th>SZ</th>
+                                    <th>BV</th>
+                                    <th>PV</th>
+                                    <th>STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {command.units.map(u => (
+                                    <tr key={u.id}>
+                                        <td>
+                                            <select
+                                                className="table-input"
+                                                defaultValue={u.type}
+                                                onChange={(e) => handleUnitUpdate(u.id, 'type', e.target.value)}
+                                                onBlur={(e) => handleUnitUpdate(u.id, 'type', e.target.value, true)}
+                                            >
+                                                {UNIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </td>
+                                        <td><input
+                                            className="table-input"
+                                            defaultValue={u.model}
+                                            onChange={(e) => handleUnitUpdate(u.id, 'model', e.target.value, false)}
+                                            onBlur={(e) => handleUnitUpdate(u.id, 'model', e.target.value, true)}
+                                        /></td>
+                                        <td><input
+                                            className="table-input"
+                                            defaultValue={u.variant}
+                                            onChange={(e) => handleUnitUpdate(u.id, 'variant', e.target.value, false)}
+                                            onBlur={(e) => handleUnitUpdate(u.id, 'variant', e.target.value, true)}
+                                        /></td>
+                                        <td>
+                                            <select
+                                                className="table-input"
+                                                defaultValue={u.techBase}
+                                                onChange={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value)}
+                                                onBlur={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value, true)}
+                                            >
+                                                {TECH_BASES.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </td>
+                                        <td><input className="table-input" type="number" defaultValue={u.tonnage}
+                                            onChange={(e) => handleUnitUpdate(u.id, 'tonnage', e.target.value, false)}
+                                            onBlur={(e) => handleUnitUpdate(u.id, 'tonnage', e.target.value, true)} /></td>
+                                        <td><input className="table-input" type="number" defaultValue={u.asSize}
+                                            onChange={(e) => handleUnitUpdate(u.id, 'asSize', e.target.value, false)}
+                                            onBlur={(e) => handleUnitUpdate(u.id, 'asSize', e.target.value, true)} /></td>
+                                        <td><input className="table-input" type="number" defaultValue={u.bv}
+                                            onChange={(e) => handleUnitUpdate(u.id, 'bv', e.target.value, false)}
+                                            onBlur={(e) => handleUnitUpdate(u.id, 'bv', e.target.value, true)} /></td>
+                                        <td><input className="table-input" type="number" defaultValue={u.pv}
+                                            onChange={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, false)}
+                                            onBlur={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, true)} /></td>
+                                        <td className="restricted-text" style={{ fontSize: '0.7rem' }}>{u.status}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredUnits.map(u => (
-                                        <tr key={u.id} style={{ fontSize: '0.9rem', borderBottom: '1px solid #222', verticalAlign: 'top' }}>
-                                            <td style={{ padding: '8px 0' }}>{u.model}</td>
-                                            <td>{u.tonnage}</td>
-                                            <td>
-                                                <select
-                                                    value={u.detachmentId || ''}
-                                                    onChange={(e) => handleMoveAsset('UNIT', u.id, e.target.value || null)}
-                                                    style={{ fontSize: '0.7rem' }}
-                                                >
-                                                    <option value="">Pool</option>
-                                                    {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                                </select>
-                                                <button
-                                                    onClick={() => handleDeleteAsset('UNIT', u.id)}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--terminal-alert)', cursor: 'pointer', marginLeft: '5px' }}
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            {filteredUnits.length === 0 && <p style={{ opacity: 0.5, marginTop: '20px', textAlign: 'center' }}>No units assigned.</p>}
-                        </section>
+                                ))}
+                            </tbody>
+                        </table>
+                    </section>
 
-                        {/* Pilots */}
-                        <section className="dashboard-section" style={{ minHeight: '300px' }}>
-                            <h3 className="restricted-text">PILOT BARRACKS</h3>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                                <thead>
-                                    <tr className="restricted-text" style={{ fontSize: '0.7rem', textAlign: 'left', borderBottom: '1px solid #333' }}>
-                                        <th>NAME</th>
-                                        <th>G/P</th>
-                                        <th>ACTIONS</th>
+                    <section className="dashboard-section tactical-panel" data-id="PERS-BARR">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 className="zone-header" style={{ margin: 0 }}>PERSONNEL BARRACKS</h3>
+                            <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.7rem' }}>+ HIRE PILOT</button>
+                        </div>
+                        <table className="tactical-table">
+                            <thead>
+                                <tr>
+                                    <th>NAME</th>
+                                    <th>GUNNERY</th>
+                                    <th>PILOTING</th>
+                                    <th>AS SKILL</th>
+                                    <th>UNIT SPECIALTY</th>
+                                    <th>STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {command.pilots.map(p => (
+                                    <tr key={p.id}>
+                                        <td><input className="table-input" defaultValue={p.name}
+                                            onChange={(e) => handlePilotUpdate(p.id, 'name', e.target.value, false)}
+                                            onBlur={(e) => handlePilotUpdate(p.id, 'name', e.target.value, true)} /></td>
+                                        <td><input className="table-input" type="number" defaultValue={p.gunnery}
+                                            onChange={(e) => handlePilotUpdate(p.id, 'gunnery', e.target.value, false)}
+                                            onBlur={(e) => handlePilotUpdate(p.id, 'gunnery', e.target.value, true)} /></td>
+                                        <td><input className="table-input" type="number" defaultValue={p.piloting}
+                                            onChange={(e) => handlePilotUpdate(p.id, 'piloting', e.target.value, false)}
+                                            onBlur={(e) => handlePilotUpdate(p.id, 'piloting', e.target.value, true)} /></td>
+                                        <td><input className="table-input" type="number" defaultValue={p.asSkill}
+                                            onChange={(e) => handlePilotUpdate(p.id, 'asSkill', e.target.value, false)}
+                                            onBlur={(e) => handlePilotUpdate(p.id, 'asSkill', e.target.value, true)} /></td>
+                                        <td>
+                                            <select className="table-input" defaultValue={p.unitType}
+                                                onChange={(e) => handlePilotUpdate(p.id, 'unitType', e.target.value)}
+                                                onBlur={(e) => handlePilotUpdate(p.id, 'unitType', e.target.value, true)}>
+                                                {UNIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="restricted-text" style={{ fontSize: '0.7rem' }}>{p.status}</td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredPilots.map(p => (
-                                        <tr key={p.id} style={{ fontSize: '0.9rem', borderBottom: '1px solid #222', verticalAlign: 'top' }}>
-                                            <td style={{ padding: '8px 0' }}>{p.name}</td>
-                                            <td>{p.gunnery}/{p.piloting}</td>
-                                            <td>
-                                                <select
-                                                    value={p.detachmentId || ''}
-                                                    onChange={(e) => handleMoveAsset('PILOT', p.id, e.target.value || null)}
-                                                    style={{ fontSize: '0.7rem' }}
-                                                >
-                                                    <option value="">Pool</option>
-                                                    {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                                </select>
-                                                <button
-                                                    onClick={() => handleDeleteAsset('PILOT', p.id)}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--terminal-alert)', cursor: 'pointer', marginLeft: '5px' }}
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            {filteredPilots.length === 0 && <p style={{ opacity: 0.5, marginTop: '20px', textAlign: 'center' }}>No personnel assigned.</p>}
-                        </section>
-                    </div>
+                                ))}
+                            </tbody>
+                        </table>
+                    </section>
                 </main>
             </div>
         </div>

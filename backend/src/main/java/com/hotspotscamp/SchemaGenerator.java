@@ -109,7 +109,6 @@ public class SchemaGenerator {
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    `name` VARCHAR(255),\n");
         sql.append("    `owner_id` VARCHAR(36) NOT NULL,\n");
-        sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `total_support_points` INT DEFAULT 0,\n");
         sql.append("    `reputation` INT DEFAULT 1,\n");
         sql.append("    `experience_level` VARCHAR(50),\n");
@@ -121,10 +120,11 @@ public class SchemaGenerator {
         sql.append("CREATE TABLE detachments (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    `mercenary_command_id` VARCHAR(36) NOT NULL,\n");
-        sql.append("    `contract_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `campaign_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `name` VARCHAR(255),\n");
+        sql.append("    `callsign` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
-        sql.append("    CONSTRAINT fk_detachment_contract FOREIGN KEY (contract_id) REFERENCES contracts(id)\n");
+        sql.append("    CONSTRAINT fk_detachment_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
         sql.append("-- Create ledger_entries table (LedgerEntry.java)\n");
@@ -145,7 +145,12 @@ public class SchemaGenerator {
         sql.append("    `detachment_id` VARCHAR(36),\n");
         sql.append("    `model` VARCHAR(255),\n");
         sql.append("    `type` VARCHAR(255),\n");
+        sql.append("    `variant` VARCHAR(255),\n");
+        sql.append("    `tech_base` VARCHAR(100),\n");
         sql.append("    `tonnage` INT,\n");
+        sql.append("    `as_size` INT,\n");
+        sql.append("    `bv` INT,\n");
+        sql.append("    `pv` INT,\n");
         sql.append("    `status` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
@@ -159,6 +164,8 @@ public class SchemaGenerator {
         sql.append("    `name` VARCHAR(255),\n");
         sql.append("    `gunnery` INT,\n");
         sql.append("    `piloting` INT,\n");
+        sql.append("    `as_skill` INT,\n");
+        sql.append("    `unit_type` VARCHAR(50),\n");
         sql.append("    `status` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");

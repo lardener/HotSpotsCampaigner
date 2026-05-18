@@ -30,8 +30,6 @@ public class MercenaryCommand implements Persistable<UUID> {
     private String name;
     @Column("owner_id") // Belongs to a user
     private String ownerId;
-    @Column("campaign_id")
-    private UUID campaignId; // Participates in 0-1 campaigns
     @Column("total_support_points")
     private Integer totalSupportPoints; // Derived from ledger entries
 

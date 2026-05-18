@@ -26,13 +26,13 @@ public class FactionReputation implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("`campaign_faction_id`")
+    @Column("campaign_faction_id")
     private UUID campaignFactionId; // Links to the specific faction in this campaign
-    @Column("`mercenary_command_id`")
+    @Column("mercenary_command_id")
     private UUID mercenaryCommandId; // Whose reputation is this?
-    @Column("`score`")
+    @Column("score")
     private Integer score; // Reputation points
-    @Column("`standing`")
+    @Column("standing")
     private String standing; // e.g., Liked, Hated, Neutral
 
     @Transient

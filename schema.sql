@@ -96,7 +96,6 @@ CREATE TABLE mercenary_commands (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
     `owner_id` VARCHAR(36) NOT NULL,
-    `campaign_id` VARCHAR(36),
     `total_support_points` INT DEFAULT 0,
     `reputation` INT DEFAULT 1,
     `experience_level` VARCHAR(50),
@@ -108,10 +107,11 @@ CREATE TABLE mercenary_commands (
 CREATE TABLE detachments (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     `mercenary_command_id` VARCHAR(36) NOT NULL,
-    `contract_id` VARCHAR(36) NOT NULL,
+    `campaign_id` VARCHAR(36) NOT NULL,
     `name` VARCHAR(255),
+    `callsign` VARCHAR(255),
     CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
-    CONSTRAINT fk_detachment_contract FOREIGN KEY (contract_id) REFERENCES contracts(id)
+    CONSTRAINT fk_detachment_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
 
 -- Create ledger_entries table (LedgerEntry.java)
@@ -132,7 +132,12 @@ CREATE TABLE combat_units (
     `detachment_id` VARCHAR(36),
     `model` VARCHAR(255),
     `type` VARCHAR(255),
+    `variant` VARCHAR(255),
+    `tech_base` VARCHAR(100),
     `tonnage` INT,
+    `as_size` INT,
+    `bv` INT,
+    `pv` INT,
     `status` VARCHAR(255),
     CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
@@ -146,6 +151,8 @@ CREATE TABLE pilots (
     `name` VARCHAR(255),
     `gunnery` INT,
     `piloting` INT,
+    `as_skill` INT,
+    `unit_type` VARCHAR(50),
     `status` VARCHAR(255),
     CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL

@@ -26,13 +26,13 @@ public class CampaignFaction implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("`campaign_id`")
+    @Column("campaign_id")
     private UUID campaignId;
-    @Column("`faction_name`")
+    @Column("faction_name")
     private String factionName; // e.g., "Vesper Marches"
-    @Column("`offers_contracts`")
+    @Column("offers_contracts")
     private Boolean offersContracts; // Can mercs work for them?
-    @Column("`short_description`")
+    @Column("short_description")
     private String shortDescription;
 
     @Transient

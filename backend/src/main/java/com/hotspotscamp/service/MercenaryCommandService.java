@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +85,29 @@ public class MercenaryCommandService {
                 }));
     }
 
+    @Transactional
+    public Mono<MercenaryCommand> updateCommandDetails(UUID commandId, String co, Integer sp, Integer rep, String userId) {
+        return commandRepository.findById(commandId)
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied"));
+            }
+            cmd.setNew(false);
+            if (co != null) {
+                cmd.setCommandingOfficer(co);
+            }
+            if (sp != null) {
+                cmd.setTotalSupportPoints(sp);
+            }
+            if (rep != null) {
+                cmd.setReputation(rep);
+                // Experience level could be derived here based on rep
+            }
+                    return commandRepository.save(cmd)
+                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId));
+        }));
+    }
+
     /**
      * Establishes a new mercenary command. Modeled on the initial setup of the
      * Mercenary Force Record Sheet.
@@ -114,15 +138,17 @@ public class MercenaryCommandService {
                         command.setExperienceLevel("Green");
                     }
 
-                    return commandRepository.save(command);
+                    return commandRepository.save(command)
+                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(command.getId()));
                 });
     }
 
     /**
-     * Creates a new detachment for a command under a specific contract.
+     * Creates a new detachment for a command assigned to a specific campaign
+     * theater.
      */
     @Transactional
-    public Mono<Detachment> createDetachment(UUID commandId, UUID contractId, String name, String userId) {
+    public Mono<Detachment> createDetachment(UUID commandId, UUID campaignId, String name, String userId) {
         return commandRepository.findById(commandId)
                 .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
             if (!cmd.getOwnerId().equals(user.getId().toString())) {
@@ -131,9 +157,10 @@ public class MercenaryCommandService {
             Detachment det = new Detachment();
             det.setId(UUID.randomUUID());
             det.setMercenaryCommandId(commandId);
-            det.setContractId(contractId);
+            det.setCampaignId(campaignId);
             det.setName(name);
-            return detachmentRepository.save(det);
+            return detachmentRepository.save(det)
+                    .onErrorResume(DuplicateKeyException.class, e -> detachmentRepository.findById(det.getId()));
         }));
     }
 
@@ -176,12 +203,14 @@ public class MercenaryCommandService {
     public Mono<MercenaryCommand> syncTotalSupportPoints(UUID commandId) {
         return detachmentRepository.findAllByMercenaryCommandId(commandId)
                 .flatMap(detachment -> ledgerEntryRepository.findAllByDetachmentId(detachment.getId()))
-                .map(LedgerEntry::getAmount)
+                .map(entry -> entry.getAmount() != null ? entry.getAmount() : 0)
                 .reduce(0, Integer::sum)
                 .flatMap(totalSp -> commandRepository.findById(commandId)
                 .flatMap(command -> {
+                    command.setNew(false);
                     command.setTotalSupportPoints(totalSp);
                     return commandRepository.save(command)
+                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
                             .doOnNext(saved -> commandSink.tryEmitNext(saved));
                 }));
     }
@@ -273,6 +302,73 @@ public class MercenaryCommandService {
         ).map(tuple -> new CommandAssetsResponse(tuple.getT1(), tuple.getT2()));
     }
 
+    @Transactional
+    public Mono<CombatUnit> updateCombatUnit(UUID unitId, CombatUnit updatedData, String userId) {
+        return combatUnitRepository.findById(unitId)
+                .flatMap(unit -> commandRepository.findById(unit.getCommandId())
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied"));
+            }
+            unit.setNew(false);
+            if (updatedData.getType() != null) {
+                unit.setType(updatedData.getType());
+            }
+            if (updatedData.getModel() != null) {
+                unit.setModel(updatedData.getModel());
+            }
+            if (updatedData.getVariant() != null) {
+                unit.setVariant(updatedData.getVariant());
+            }
+            if (updatedData.getTechBase() != null) {
+                unit.setTechBase(updatedData.getTechBase());
+            }
+            if (updatedData.getTonnage() != null) {
+                unit.setTonnage(updatedData.getTonnage());
+            }
+            if (updatedData.getAsSize() != null) {
+                unit.setAsSize(updatedData.getAsSize());
+            }
+            if (updatedData.getBv() != null) {
+                unit.setBv(updatedData.getBv());
+            }
+            if (updatedData.getPv() != null) {
+                unit.setPv(updatedData.getPv());
+            }
+            return combatUnitRepository.save(unit)
+                    .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
+        })));
+    }
+
+    @Transactional
+    public Mono<Pilot> updatePilot(UUID pilotId, Pilot updatedData, String userId) {
+        return pilotRepository.findById(pilotId)
+                .flatMap(pilot -> commandRepository.findById(pilot.getCommandId())
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied"));
+            }
+            pilot.setNew(false);
+            if (updatedData.getName() != null) {
+                pilot.setName(updatedData.getName());
+            }
+            if (updatedData.getGunnery() != null) {
+                pilot.setGunnery(updatedData.getGunnery());
+            }
+            if (updatedData.getPiloting() != null) {
+                pilot.setPiloting(updatedData.getPiloting());
+            }
+            if (updatedData.getAsSkill() != null) {
+                pilot.setAsSkill(updatedData.getAsSkill());
+            }
+            if (updatedData.getUnitType() != null) {
+                pilot.setUnitType(updatedData.getUnitType());
+            }
+            return pilotRepository.save(pilot)
+                    .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
+        })));
+    }
+
     /**
      * Fetches all detachments belonging to a specific mercenary command.
      */
@@ -304,7 +400,8 @@ public class MercenaryCommandService {
                 unit.setStatus("OPERATIONAL");
             }
 
-            return combatUnitRepository.save(unit);
+            return combatUnitRepository.save(unit)
+                    .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unit.getId()));
         }));
     }
 
@@ -325,7 +422,8 @@ public class MercenaryCommandService {
                 pilot.setStatus("ACTIVE");
             }
 
-            return pilotRepository.save(pilot);
+            return pilotRepository.save(pilot)
+                    .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilot.getId()));
         }));
     }
 
@@ -377,8 +475,7 @@ public class MercenaryCommandService {
                                 .defaultIfEmpty(false);
 
                         // Check if user is Campaign Manager
-                        Mono<Boolean> isManager = contractRepository.findById(detachment.getContractId())
-                                .flatMap(contract -> campaignRepository.findById(contract.getCampaignId()))
+                        Mono<Boolean> isManager = campaignRepository.findById(detachment.getCampaignId())
                                 .map(campaign -> campaign.getManagerId().equals(internalId) || campaign.getManagerId().equals(userId))
                                 .defaultIfEmpty(false);
 

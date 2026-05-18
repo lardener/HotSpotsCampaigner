@@ -5,27 +5,47 @@ import java.util.UUID;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table("combat_units")
 public class CombatUnit implements Persistable<UUID> {
 
     @Id
     private UUID id;
+
+    @Column("command_id")
     private UUID commandId;
-    private UUID detachmentId; // Nullable: if null, it's in the pool
-    private String model;      // e.g. "Timber Wolf (Mad Cat) Prime"
-    private String type;       // MECH, VEHICLE, AEROSPACE
+
+    @Column("detachment_id")
+    private UUID detachmentId;
+
+    private String model;
+    private String type;      // BM, CV, PM, IM, BA, CI
+    private String variant;
+
+    @Column("tech_base")
+    private String techBase;  // Inner Sphere, Clan, Mixed
+
     private Integer tonnage;
-    private String status;     // OPERATIONAL, DAMAGED, DESTROYED
-    
+
+    @Column("as_size")
+    private Integer asSize;
+
+    private Integer bv;
+    private Integer pv;
+    private String status;
 
     @Transient
     @Builder.Default

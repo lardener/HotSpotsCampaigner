@@ -25,12 +25,13 @@ public class Detachment implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("`mercenary_command_id`")
+    @Column("mercenary_command_id")
     private UUID mercenaryCommandId;
-    @Column("`contract_id`")
-    private UUID contractId;
-    @Column("`name`")
-    private String name; // e.g. "Alpha Lance", "Striker Force"
+    @Column("campaign_id")
+    private UUID campaignId;
+    @Column("name")
+    private String name;
+    private String callsign;
 
     @Transient
     @Builder.Default

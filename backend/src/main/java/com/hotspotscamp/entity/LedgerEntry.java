@@ -27,15 +27,15 @@ public class LedgerEntry implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("`detachment_id`")
+    @Column("detachment_id")
     private UUID detachmentId; // Links to the specific contract deployment
-    @Column("`timestamp`")
+    @Column("timestamp")
     private LocalDateTime timestamp;
-    @Column("`short_description`")
+    @Column("short_description")
     private String description; // e.g. "Repairing Warhammer WHM-6R", "Mission Reward"
-    @Column("`amount`")
+    @Column("amount")
     private Integer amount; // Can be negative for costs
-    @Column("`running_total`")
+    @Column("running_total")
     private Integer runningTotal; // SP total after this transaction
 
     @Transient

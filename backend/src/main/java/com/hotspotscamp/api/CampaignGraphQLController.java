@@ -89,8 +89,7 @@ public class CampaignGraphQLController {
 
     @SchemaMapping(typeName = "Campaign", field = "participatingDetachments")
     public Flux<Detachment> getParticipatingDetachments(Campaign campaign) {
-        return contractRepository.findAllByCampaignId(campaign.getId())
-                .flatMap(contract -> detachmentRepository.findAllByContractId(contract.getId()));
+        return detachmentRepository.findAllByCampaignId(campaign.getId());
     }
 
     @QueryMapping

@@ -439,9 +439,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         </header>
                         <RandomCampaignGenerator
                             user={user}
-                            onSaveSuccess={() => {
+                            onSaveSuccess={(newCampaign) => {
                                 fetchCommands();
                                 refetchManaged();
+                                setSelectedCampaignId(newCampaign.id);
+                                setSelectedNodeId(newCampaign.id);
                                 setActiveTab('my-campaigns');
                             }}
                         />

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import com.hotspotscamp.entity.User;
@@ -40,12 +41,18 @@ public class UserService {
                 }))
                 .switchIfEmpty(Mono.defer(() -> {
                     // Onboarding new Google users
-                    return userRepository.save(User.builder()
+                    User newUser = User.builder()
                             .id(UUID.randomUUID())
                             .externalId(identity)
                             .role("ROLE_AUTHENTICATED")
                             .isNew(true)
-                            .build());
+                            .build();
+
+                    return userRepository.save(newUser)
+                            .onErrorResume(DuplicateKeyException.class, e -> {
+                                log.info("[AUTH] Concurrent registration detected for {}. Falling back to lookup.", identity);
+                                return userRepository.findByExternalId(identity);
+                            });
                 }));
     }
 
@@ -55,10 +62,12 @@ public class UserService {
     public Mono<User> upgradeToManager(UUID userId, String externalId, String email) {
         return userRepository.findById(userId)
                 .flatMap(user -> {
+                    user.setNew(false);
                     user.setExternalId(externalId);
                     user.setEmail(email);
                     user.setRole("ROLE_AUTHENTICATED");
-                    return userRepository.save(user);
+                    return userRepository.save(user)
+                            .onErrorResume(DuplicateKeyException.class, e -> userRepository.findById(userId));
                 });
     }
 }

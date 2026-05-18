@@ -44,6 +44,7 @@ type Subscription {
 type Mutation {
     # Command Management
     establishCommand(name: String!, commandingOfficer: String): MercenaryCommand
+    updateCommand(id: ID!, commandingOfficer: String, totalSupportPoints: Int, reputation: Int): MercenaryCommand
     deleteCommand(commandId: ID!, force: Boolean): Boolean
     
     # Campaign Management
@@ -51,8 +52,10 @@ type Mutation {
     
     # Asset Management
     addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
+    updateCombatUnit(id: ID!, input: CombatUnitInput!): CombatUnit
     deleteUnit(unitId: ID!): Boolean
     hirePilot(commandId: ID!, input: PilotInput!): Pilot
+    updatePilot(id: ID!, input: PilotInput!): Pilot
     deletePilot(pilotId: ID!): Boolean
 
     # Identity & Invites
@@ -61,7 +64,7 @@ type Mutation {
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
 
     # Ledger & Detachments
-    createDetachment(commandId: ID!, contractId: ID!, name: String!): Detachment
+    createDetachment(commandId: ID!, campaignId: ID!, name: String!): Detachment
     deleteDetachment(detachmentId: ID!): Boolean
     addLedgerEntry(detachmentId: ID!, amount: Int!, description: String!): LedgerEntry
 }
@@ -81,9 +84,14 @@ type MercenaryCommand {
 
 type CombatUnit {
     id: ID!
+    type: String  # BM, CV, PM, IM, BA, CI
     model: String
-    type: String
+    variant: String
+    techBase: String
     tonnage: Int
+    asSize: Int
+    bv: Int
+    pv: Int
     status: String
 }
 
@@ -92,6 +100,8 @@ type Pilot {
     name: String
     gunnery: Int
     piloting: Int
+    asSkill: Int
+    unitType: String
     status: String
 }
 
@@ -100,7 +110,7 @@ type Detachment {
     name: String
     callsign: String
     mercenaryCommandId: ID
-    contractId: ID
+    campaignId: ID
 }
 
 type LedgerEntry {
@@ -118,6 +128,7 @@ type CommandAssetsResponse {
 }
 
 type UserProfile {
+    id: ID!
     name: String
     email: String
 }
@@ -156,15 +167,22 @@ input CampaignInput {
 }
 
 input CombatUnitInput {
-    model: String!
-    tonnage: Int!
     type: String
+    model: String
+    variant: String
+    techBase: String
+    tonnage: Int
+    asSize: Int
+    bv: Int
+    pv: Int
 }
 
 input PilotInput {
     name: String!
     gunnery: Int!
     piloting: Int!
+    asSkill: Int
+    unitType: String
 }
 
 type CampaignProposal {

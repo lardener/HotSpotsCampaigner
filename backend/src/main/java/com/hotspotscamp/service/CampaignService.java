@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DuplicateKeyException;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignTrack;
+import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignFactionRepository;
@@ -314,8 +316,7 @@ public class CampaignService {
     public Flux<ActiveCampaignSummary> getParticipatingCampaigns(UUID commandId) {
         log.debug("Fetching participating campaigns for commandId: {}", commandId);
         return detachmentRepository.findAllByMercenaryCommandId(commandId)
-                .flatMap(det -> contractRepository.findById(det.getContractId()))
-                .map(Contract::getCampaignId)
+                .map(Detachment::getCampaignId)
                 .distinct()
                 .flatMap(campaignRepository::findById)
                 .flatMap(this::mapToSummary);
@@ -769,6 +770,7 @@ public class CampaignService {
                     final String oppositionEmployerName = proposal.contracts().get(1).getEmployerCategory().split(": ", 2)[0];
 
                     return campaignRepository.save(campaign)
+                            .onErrorResume(DuplicateKeyException.class, e -> campaignRepository.findById(campaign.getId()))
                             .flatMap(savedCampaign -> {
                                 CampaignFaction empFaction = CampaignFaction.builder()
                                         .id(UUID.randomUUID())
