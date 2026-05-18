@@ -59,6 +59,25 @@ export function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Dynamic Tactical Favicon Injection
+    const link = (document.querySelector("link[rel*='icon']") || document.createElement('link')) as HTMLLinkElement;
+    link.type = 'image/svg+xml';
+    link.rel = 'shortcut icon';
+
+    // Styled Amber Hex-Crosshair Icon
+    const faviconSvg = `
+      <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+        <rect width='100' height='100' fill='#050705'/>
+        <polygon points='50,10 85,30 85,70 50,90 15,70 15,30' fill='none' stroke='#ffb000' stroke-width='8'/>
+        <circle cx='50' cy='50' r='18' fill='none' stroke='#ffb000' stroke-width='4'/>
+        <path d='M50 20 L50 80 M20 50 L80 50' stroke='#ffb000' stroke-width='4'/>
+      </svg>
+    `.trim();
+
+    link.href = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+    document.getElementsByTagName('head')[0].appendChild(link);
+    document.title = "HSC-TACTICAL // CAMPAIGNER";
+
     // Check for an existing session on mount
     client.query<UserProfileData>({ query: GET_USER_PROFILE, fetchPolicy: 'network-only' })
       .then(result => {
@@ -89,6 +108,11 @@ export function App() {
   if (loading) {
     return (
       <div className="loading-intel" style={{ textAlign: 'center', marginTop: '20%' }}>
+        <svg width="80" height="80" viewBox="0 0 100 100" style={{ marginBottom: '24px' }}>
+          <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="var(--terminal-amber)" strokeWidth="6" />
+          <circle cx="50" cy="50" r="18" fill="none" stroke="var(--terminal-amber)" strokeWidth="3" />
+          <path d="M50 20 L50 80 M20 50 L80 50" stroke="var(--terminal-amber)" strokeWidth="3" />
+        </svg>
         <h2>INITIALIZING NEURAL LINK...</h2>
         <p className="terminal-text">SYNCHRONIZING WITH COMSTAR RELAY</p>
       </div>

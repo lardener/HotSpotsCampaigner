@@ -559,7 +559,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         <div className="dashboard-layout" style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--terminal-bg)' }}>
             <aside className="sidebar-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--terminal-bg)', width: '280px', borderRight: '1px solid var(--terminal-border)', flexShrink: 0 }}>
                 <div className="sidebar-header" style={{ padding: '20px', borderBottom: '1px solid var(--terminal-border)' }}>
-                    <span className="sidebar-logo" style={{ color: 'var(--terminal-amber)', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '0 0 10px var(--terminal-amber-dim)' }}>HSC-TACTICAL</span>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+                        <svg width="24" height="24" viewBox="0 0 100 100" style={{ marginRight: '10px', filter: 'drop-shadow(0 0 5px var(--terminal-amber-dim))' }}>
+                            <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="var(--terminal-amber)" strokeWidth="8" />
+                            <circle cx="50" cy="50" r="18" fill="none" stroke="var(--terminal-amber)" strokeWidth="4" />
+                            <path d="M50 20 L50 80 M20 50 L80 50" stroke="var(--terminal-amber)" strokeWidth="4" />
+                        </svg>
+                        <span className="sidebar-logo" style={{ color: 'var(--terminal-amber)', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '0 0 10px var(--terminal-amber-dim)' }}>HSC-TACTICAL</span>
+                    </div>
                     <div className="restricted-text" style={{ fontSize: '0.6rem', marginTop: '4px' }}>COMMAND & CONTROL INTERFACE</div>
                 </div>
                 <NavigationTree
