@@ -53,6 +53,12 @@ const CREATE_DETACHMENT = gql`
   }
 `;
 
+const DELETE_DETACHMENT = gql`
+  mutation DeleteDetachment($detachmentId: ID!) {
+    deleteDetachment(detachmentId: $detachmentId)
+  }
+`;
+
 const HIRE_PILOT = gql`
   mutation HirePilot($commandId: ID!, $input: PilotInput!) {
     hirePilot(commandId: $commandId, input: $input) {
@@ -225,6 +231,10 @@ interface DeletePilotVars {
     pilotId: string;
 }
 
+interface DeleteDetachmentVars {
+    detachmentId: string;
+}
+
 interface CreateDetachmentVars {
     commandId: string;
     campaignId: string;
@@ -313,6 +323,15 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                         }
                     }
                 });
+            }
+        }
+    });
+
+    const [deleteDetachment] = useMutation<any, DeleteDetachmentVars>(DELETE_DETACHMENT, {
+        update(cache, { data: result }, { variables }) {
+            if (result?.deleteDetachment && variables?.detachmentId) {
+                cache.evict({ id: cache.identify({ __typename: 'Detachment', id: variables.detachmentId }) });
+                cache.gc();
             }
         }
     });
@@ -538,8 +557,14 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
 
     const handleDeleteDetachment = async (id: string) => {
         if (!window.confirm("Delete detachment? Assets will return to pool.")) return;
-        // Requires deleteDetachment mutation call
-        alert(`Detachment deletion for ${id} logic is pending.`);
+        try {
+            await deleteDetachment({ variables: { detachmentId: id } });
+            if (selectedDetachmentId === id) {
+                setSelectedDetachmentId(null);
+            }
+        } catch (err) {
+            alert("Failed to delete detachment.");
+        }
     };
 
     if (loading && !data) return <div className="loading-intel">RETRIEVING UNIT DOSSIER...</div>;

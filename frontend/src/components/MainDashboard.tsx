@@ -582,28 +582,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 </div>
             </aside>
             <main className={`main-content-wrapper ${getThemeClass()}`} style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--terminal-bg)', padding: '20px', borderLeft: '1px solid var(--terminal-border)' }}>
-                {user && selectedCommandId && commands.length > 1 && (
-                    <div className="command-selector-header theme-amber text-right" style={{ marginBottom: '20px' }}>
-                        <label htmlFor="command-select" className="restricted-text" style={{ fontSize: '0.8rem', color: 'var(--accent-primary)' }}>
-                            ACTIVE COMMAND:
-                        </label>
-                        <select
-                            id="command-select"
-                            value={selectedCommandId}
-                            onChange={(e) => {
-                                setSelectedCommandId(e.target.value);
-                                setSelectedNodeId(e.target.value);
-                                setSelectedDetachmentId(null);
-                            }}
-                            className="mode-btn"
-                            style={{ marginLeft: '10px', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer' }}
-                        >
-                            {commands.map(cmd => (
-                                <option key={cmd.id} value={cmd.id}>{cmd.name || 'UNNAMED COMMAND'}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
                 {renderTabContent()}
             </main>
         </div>

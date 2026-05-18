@@ -103,8 +103,8 @@ public class MercenaryCommandService {
                 cmd.setReputation(rep);
                 // Experience level could be derived here based on rep
             }
-                    return commandRepository.save(cmd)
-                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId));
+            return commandRepository.save(cmd)
+                    .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId));
         }));
     }
 
@@ -232,7 +232,7 @@ public class MercenaryCommandService {
         String table = assetType.equalsIgnoreCase("UNIT") ? "combat_units" : "pilots";
 
         return databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id")
-                .bind("id", assetId)
+                .bind("id", assetId.toString())
                 .map((row, metadata) -> row.get("command_id", UUID.class))
                 .one()
                 .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
@@ -256,11 +256,11 @@ public class MercenaryCommandService {
         }))
                 .flatMap(authorized -> {
                     var spec = databaseClient.sql("UPDATE " + table + " SET detachment_id = :detId WHERE id = :id")
-                            .bind("id", assetId);
+                            .bind("id", assetId.toString());
                     if (detachmentId == null) {
                         spec = spec.bindNull("detId", UUID.class);
                     } else {
-                        spec = spec.bind("detId", detachmentId);
+                        spec = spec.bind("detId", detachmentId.toString());
                     }
                     return spec.fetch().rowsUpdated().then();
                 }));
@@ -281,11 +281,11 @@ public class MercenaryCommandService {
                                 UUID commandId = detachment.getMercenaryCommandId();
                                 return Mono.when(
                                         databaseClient.sql("UPDATE combat_units SET detachment_id = NULL WHERE detachment_id = :id")
-                                                .bind("id", detachmentId).then(),
+                                                .bind("id", detachmentId.toString()).then(),
                                         databaseClient.sql("UPDATE pilots SET detachment_id = NULL WHERE detachment_id = :id")
-                                                .bind("id", detachmentId).then(),
+                                                .bind("id", detachmentId.toString()).then(),
                                         databaseClient.sql("DELETE FROM ledger_entries WHERE detachment_id = :id")
-                                                .bind("id", detachmentId).then(),
+                                                .bind("id", detachmentId.toString()).then(),
                                         detachmentRepository.deleteById(detachmentId)
                                 ).then(syncTotalSupportPoints(commandId)).then();
                             });
