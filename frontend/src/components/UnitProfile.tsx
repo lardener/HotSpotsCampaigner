@@ -58,6 +58,11 @@ const HIRE_PILOT = gql`
     hirePilot(commandId: $commandId, input: $input) {
       id
       name
+      gunnery
+      piloting
+      asSkill
+      unitType
+      status
     }
   }
 `;
@@ -67,6 +72,14 @@ const ADD_UNIT = gql`
     addCombatUnit(commandId: $commandId, input: $input) {
       id
       model
+      type
+      variant
+      techBase
+      tonnage
+      asSize
+      bv
+      pv
+      status
     }
   }
 `;
@@ -156,18 +169,74 @@ interface ManagedCampaign {
     name: string;
 }
 
+interface UpdateCommandVars {
+    id: string;
+    co?: string;
+    sp?: number;
+    rep?: number;
+}
+
+interface CombatUnitInput {
+    type?: string;
+    model?: string;
+    variant?: string;
+    techBase?: string;
+    tonnage?: number;
+    asSize?: number;
+    bv?: number;
+    pv?: number;
+    status?: string;
+}
+
+interface UpdateUnitVars {
+    id: string;
+    input: CombatUnitInput;
+}
+
+interface PilotInput {
+    name?: string;
+    gunnery?: number;
+    piloting?: number;
+    asSkill?: number;
+    unitType?: string;
+    status?: string;
+}
+
+interface UpdatePilotVars {
+    id: string;
+    input: PilotInput;
+}
+
+interface AddUnitVars {
+    commandId: string;
+    input: CombatUnitInput;
+}
+
+interface HirePilotVars {
+    commandId: string;
+    input: PilotInput;
+}
+
+interface DeleteUnitVars {
+    unitId: string;
+}
+
+interface DeletePilotVars {
+    pilotId: string;
+}
+
+interface CreateDetachmentVars {
+    commandId: string;
+    campaignId: string;
+    name: string;
+}
+
 interface AddUnitData {
-    addCombatUnit: {
-        id: string;
-        model: string;
-    };
+    addCombatUnit: CombatUnit;
 }
 
 interface HirePilotData {
-    hirePilot: {
-        id: string;
-        name: string;
-    };
+    hirePilot: Pilot;
 }
 
 type Detachment = any; // Placeholder, as detachments are not yet fully typed from GraphQL
@@ -201,18 +270,90 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     const [justAddedId, setJustAddedId] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
 
-    const { loading, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
+    const { loading, data } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId }
     });
 
-    const [updateCommand] = useMutation(UPDATE_COMMAND);
-    const [updateUnit] = useMutation(UPDATE_UNIT);
-    const [updatePilot] = useMutation(UPDATE_PILOT);
-    const [addUnit] = useMutation<AddUnitData>(ADD_UNIT);
-    const [hirePilot] = useMutation<HirePilotData>(HIRE_PILOT);
-    const [deleteUnit] = useMutation(DELETE_UNIT);
-    const [deletePilot] = useMutation(DELETE_PILOT);
-    const [createDetachment] = useMutation(CREATE_DETACHMENT);
+    const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
+    const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
+    const [updatePilot] = useMutation<any, UpdatePilotVars>(UPDATE_PILOT);
+    const [addUnit] = useMutation<AddUnitData, AddUnitVars>(ADD_UNIT, {
+        update(cache, { data: addData }) {
+            if (!addData?.addCombatUnit) return;
+            const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
+            if (existing?.getCommand) {
+                cache.writeQuery({
+                    query: GET_UNIT_DOSSIER,
+                    variables: { commandId },
+                    data: {
+                        ...existing,
+                        getCommand: {
+                            ...existing.getCommand,
+                            units: [...existing.getCommand.units, addData.addCombatUnit]
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT, {
+        update(cache, { data: hireData }) {
+            if (!hireData?.hirePilot) return;
+            const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
+            if (existing?.getCommand) {
+                cache.writeQuery({
+                    query: GET_UNIT_DOSSIER,
+                    variables: { commandId },
+                    data: {
+                        ...existing,
+                        getCommand: {
+                            ...existing.getCommand,
+                            pilots: [...existing.getCommand.pilots, hireData.hirePilot]
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    const [deleteUnit] = useMutation<any, DeleteUnitVars>(DELETE_UNIT, {
+        update(cache, { data: result }, { variables }) {
+            if (result?.deleteUnit && variables?.unitId) {
+                cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
+                cache.gc();
+            }
+        }
+    });
+
+    const [deletePilot] = useMutation<any, DeletePilotVars>(DELETE_PILOT, {
+        update(cache, { data: result }, { variables }) {
+            if (result?.deletePilot && variables?.pilotId) {
+                cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
+                cache.gc();
+            }
+        }
+    });
+
+    const [createDetachment] = useMutation<any, CreateDetachmentVars>(CREATE_DETACHMENT, {
+        update(cache, { data: createData }) {
+            if (!createData?.createDetachment) return;
+            const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
+            if (existing?.getCommand) {
+                cache.writeQuery({
+                    query: GET_UNIT_DOSSIER,
+                    variables: { commandId },
+                    data: {
+                        ...existing,
+                        getCommand: {
+                            ...existing.getCommand,
+                            detachments: [...(existing.getCommand.detachments || []), createData.createDetachment]
+                        }
+                    }
+                });
+            }
+        }
+    });
 
     const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
 
@@ -345,7 +486,6 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                 }
             });
             if (addData?.addCombatUnit?.id) setJustAddedId(addData.addCombatUnit.id);
-            refetch();
         } catch (err) { alert("Failed to add unit."); }
     };
 
@@ -363,7 +503,6 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                 }
             });
             if (hireData?.hirePilot?.id) setJustAddedId(hireData.hirePilot.id);
-            refetch();
         } catch (err) { alert("Failed to hire pilot."); }
     };
 
@@ -371,7 +510,6 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
         if (!window.confirm("SCRAP THIS ASSET? THIS ACTION IS PERMANENT.")) return;
         try {
             await deleteUnit({ variables: { unitId: id } });
-            refetch();
         } catch (err) { alert("Failed to scrap unit."); }
     };
 
@@ -379,7 +517,6 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
         if (!window.confirm("DISCHARGE THIS PERSONNEL? THIS ACTION IS PERMANENT.")) return;
         try {
             await deletePilot({ variables: { pilotId: id } });
-            refetch();
         } catch (err) { alert("Failed to discharge pilot."); }
     };
 
@@ -396,7 +533,6 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
             });
             setNewDetachmentName('');
             setSelectedCampaignId('');
-            refetch();
         } catch (err) { alert("Failed to create detachment."); }
     };
 
@@ -409,6 +545,28 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     if (loading && !data) return <div className="loading-intel">RETRIEVING UNIT DOSSIER...</div>;
     const command = data?.getCommand;
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
+
+    // Calculate Summaries for Force Pool
+    const unitSummaries = Object.values(command.units.reduce((acc, u) => {
+        const type = u.type || 'UNKNOWN';
+        if (!acc[type]) acc[type] = { type, count: 0, tons: 0, bv: 0, pv: 0, sz: 0 };
+        acc[type].count++;
+        acc[type].tons += u.tonnage || 0;
+        acc[type].bv += u.bv || 0;
+        acc[type].pv += u.pv || 0;
+        acc[type].sz += u.asSize || 0;
+        return acc;
+    }, {} as Record<string, any>));
+
+    const pilotSummaries = Object.values(command.pilots.reduce((acc, p) => {
+        const spec = p.unitType || 'UNKNOWN';
+        if (!acc[spec]) acc[spec] = { spec, count: 0, gun: 0, pil: 0, as: 0 };
+        acc[spec].count++;
+        acc[spec].gun += p.gunnery || 0;
+        acc[spec].pil += p.piloting || 0;
+        acc[spec].as += p.asSkill || 0;
+        return acc;
+    }, {} as Record<string, any>));
 
     const detachments: Detachment[] = command.detachments || [];
     const campaigns: ManagedCampaign[] = data?.managedCampaigns || [];
@@ -517,6 +675,74 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                 </aside>
 
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                    {selectedDetachmentId === null && (
+                        <section className="dashboard-section tactical-panel" data-id="FORCE-SUMMARY">
+                            <h3 className="zone-header">FORCE POOL SITREP</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div>
+                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>ASSET DISTRIBUTION</span>
+                                    <table className="tactical-table" style={{ marginTop: '5px' }}>
+                                        <thead>
+                                            <tr>
+                                                <th className="text-center">TYPE</th>
+                                                <th className="text-center">QTY</th>
+                                                <th className="text-center">TONS</th>
+                                                <th className="text-center">BV</th>
+                                                <th className="text-center">PV</th>
+                                                <th className="text-center">SZ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {unitSummaries.map((s: any) => (
+                                                <tr key={s.type}>
+                                                    <td className="text-center">{s.type}</td>
+                                                    <td className="text-center">{s.count}</td>
+                                                    <td className="text-right">{s.tons}</td>
+                                                    <td className="text-right">{s.bv}</td>
+                                                    <td className="text-right">{s.pv}</td>
+                                                    <td className="text-center">{s.sz}</td>
+                                                </tr>
+                                            ))}
+                                            <tr style={{ borderTop: '2px solid var(--accent-dim)', fontWeight: 'bold' }}>
+                                                <td className="text-center">TOTAL</td>
+                                                <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.count, 0)}</td>
+                                                <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.tons, 0)}</td>
+                                                <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.bv, 0)}</td>
+                                                <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.pv, 0)}</td>
+                                                <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.sz, 0)}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div>
+                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>PERSONNEL READINESS</span>
+                                    <table className="tactical-table" style={{ marginTop: '5px' }}>
+                                        <thead>
+                                            <tr>
+                                                <th className="text-center">SPECIALTY</th>
+                                                <th className="text-center">QTY</th>
+                                                <th className="text-center">AVG GUN</th>
+                                                <th className="text-center">AVG PIL</th>
+                                                <th className="text-center">AVG AS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {pilotSummaries.map((s: any) => (
+                                                <tr key={s.spec}>
+                                                    <td className="text-center">{s.spec}</td>
+                                                    <td className="text-center">{s.count}</td>
+                                                    <td className="text-center">{(s.gun / s.count).toFixed(1)}</td>
+                                                    <td className="text-center">{(s.pil / s.count).toFixed(1)}</td>
+                                                    <td className="text-center">{(s.as / s.count).toFixed(1)}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <h3 className="zone-header" style={{ margin: 0 }}>COMBAT ASSET REGISTRY</h3>
