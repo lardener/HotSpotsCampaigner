@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { TreeItem } from '../components/NavigationTree';
 
-export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'unit-profile';
+export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard';
 
 export const useDashboardNavigation = () => {
     const [activeTab, setActiveTab] = useState<TabType>('my-campaigns');
@@ -23,7 +23,7 @@ export const useDashboardNavigation = () => {
         } else if (item.type === 'COMMAND') {
             setSelectedCommandId(item.id);
             setSelectedDetachmentId(null);
-            setActiveTab('unit-profile'); // Unit Dossier
+            setActiveTab('command-dashboard'); // Unit Dossier
         } else if (item.type === 'DETACHMENT' || item.type === 'DEPLOYMENT') {
             if (item.metadata?.commandId) setSelectedCommandId(item.metadata.commandId);
             if (item.metadata?.detachmentId) setSelectedDetachmentId(item.metadata.detachmentId);
@@ -49,13 +49,13 @@ export const useDashboardNavigation = () => {
         if (activeTab === 'public-campaigns') return 'public-intel';
         if (activeTab === 'my-campaigns') return 'root-campaigns';
         if (activeTab === 'commands') return 'root-commands';
-        if (['unit-profile', 'ledger'].includes(activeTab)) return selectedCommandId || undefined;
+        if (['command-dashboard', 'ledger'].includes(activeTab)) return selectedCommandId || undefined;
         return undefined;
     }, [selectedNodeId, activeTab, selectedCommandId]);
 
     const getThemeClass = useCallback(() => {
         if (activeTab === 'ledger') return 'theme-green';
-        if (activeTab === 'commands' || activeTab === 'unit-profile') return 'theme-amber';
+        if (activeTab === 'commands' || activeTab === 'command-dashboard') return 'theme-amber';
         if (activeTab === 'my-campaigns') return 'theme-blue';
         if (['create-campaign', 'public-campaigns'].includes(activeTab)) return 'theme-red';
         return 'theme-green';

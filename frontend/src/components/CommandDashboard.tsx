@@ -22,6 +22,7 @@ const GET_UNIT_DOSSIER = gql`
         bv
         pv
         status
+        detachmentId
       }
       pilots {
         id
@@ -31,15 +32,12 @@ const GET_UNIT_DOSSIER = gql`
         asSkill
         unitType
         status
+        detachmentId
       }
       detachments {
         id
         name
       }
-    }
-    managedCampaigns(status: "ACTIVE") {
-      id
-      name
     }
   }
 `;
@@ -50,6 +48,12 @@ const CREATE_DETACHMENT = gql`
       id
       name
     }
+  }
+`;
+
+const ASSIGN_ASSET = gql`
+  mutation AssignAsset($assetType: String!, $assetId: ID!, $detachmentId: ID) {
+    assignAsset(assetType: $assetType, assetId: $assetId, detachmentId: $detachmentId)
   }
 `;
 
@@ -170,11 +174,6 @@ interface Pilot {
     detachmentId?: string | null;
 }
 
-interface ManagedCampaign {
-    id: string;
-    name: string;
-}
-
 interface UpdateCommandVars {
     id: string;
     co?: string;
@@ -237,7 +236,7 @@ interface DeleteDetachmentVars {
 
 interface CreateDetachmentVars {
     commandId: string;
-    campaignId: string;
+    campaignId: string | null;
     name: string;
 }
 
@@ -263,19 +262,16 @@ interface UnitDossierData {
         detachments: Detachment[];
         pilots: Pilot[];
     };
-    managedCampaigns: ManagedCampaign[];
 }
 
-interface UnitProfileProps {
+interface CommandDashboardProps {
     commandId: string;
 }
 
-export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
+export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
     // Form states
-    const [newDetachmentName, setNewDetachmentName] = useState('');
-    const [selectedCampaignId, setSelectedCampaignId] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
     const [justAddedId, setJustAddedId] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -287,6 +283,25 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
     const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
     const [updatePilot] = useMutation<any, UpdatePilotVars>(UPDATE_PILOT);
+    const [assignAsset] = useMutation<any, { assetType: string, assetId: string, detachmentId: string | null }>(ASSIGN_ASSET, {
+        update(cache, { data: result }, { variables }) {
+            if (result?.assignAsset && variables) {
+                const queryVars = { commandId };
+                const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: queryVars });
+                if (existing?.getCommand) {
+                    const { assetType, assetId, detachmentId } = variables;
+                    const getCommand = { ...existing.getCommand };
+                    if (assetType === 'UNIT') {
+                        getCommand.units = getCommand.units.map(u => u.id === assetId ? { ...u, detachmentId } : u);
+                    } else {
+                        getCommand.pilots = getCommand.pilots.map(p => p.id === assetId ? { ...p, detachmentId } : p);
+                    }
+                    cache.writeQuery({ query: GET_UNIT_DOSSIER, variables: queryVars, data: { ...existing, getCommand } });
+                }
+            }
+        }
+    });
+
     const [addUnit] = useMutation<AddUnitData, AddUnitVars>(ADD_UNIT, {
         update(cache, { data: addData }) {
             if (!addData?.addCombatUnit) return;
@@ -404,6 +419,15 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
             if (field === 'REP') vars.rep = parseInt(value) || 0;
 
             const current = data?.getCommand;
+
+            // Calculate optimistic experience level
+            const optRep = vars.rep ?? current?.reputation ?? 1;
+            let optLevel = current?.experienceLevel || "Green";
+            if (optRep >= 9) optLevel = "Elite";
+            else if (optRep >= 6) optLevel = "Veteran";
+            else if (optRep >= 3) optLevel = "Regular";
+            else optLevel = "Green";
+
             updateCommand({
                 variables: vars,
                 optimisticResponse: current ? {
@@ -412,6 +436,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                         commandingOfficer: vars.co ?? current.commandingOfficer,
                         totalSupportPoints: vars.sp ?? current.totalSupportPoints,
                         reputation: vars.rep ?? current.reputation,
+                        experienceLevel: optLevel,
                         __typename: 'MercenaryCommand'
                     }
                 } : undefined
@@ -539,19 +564,30 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
         } catch (err) { alert("Failed to discharge pilot."); }
     };
 
-    const handleCreateDetachment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newDetachmentName || !selectedCampaignId) return;
+    const handleAssignAsset = async (assetType: 'UNIT' | 'PILOT', assetId: string, detId: string) => {
+        try {
+            await assignAsset({
+                variables: {
+                    assetType,
+                    assetId,
+                    detachmentId: detId === "" ? null : detId
+                }
+            });
+        } catch (err) { alert("Assignment failed."); }
+    };
+
+    const handleCreateDetachment = async () => {
+        const name = prompt("Enter Detachment Callsign:");
+        if (!name) return;
+
         try {
             await createDetachment({
                 variables: {
                     commandId,
-                    campaignId: selectedCampaignId,
-                    name: newDetachmentName
+                    campaignId: null,
+                    name
                 }
             });
-            setNewDetachmentName('');
-            setSelectedCampaignId('');
         } catch (err) { alert("Failed to create detachment."); }
     };
 
@@ -594,7 +630,6 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     }, {} as Record<string, any>));
 
     const detachments: Detachment[] = command.detachments || [];
-    const campaigns: ManagedCampaign[] = data?.managedCampaigns || [];
 
     const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
     const TECH_BASES = ['Inner Sphere', 'Clan', 'Mixed'];
@@ -602,10 +637,10 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
     const PILOT_STATUS_OPTIONS = ["Healthy", "Injured", "Injured x 2", "Injured x 3", "Injured x 4", "Injured x 5", "Dead"];
 
     return (
-        <div className="container unit-profile theme-amber">
+        <div key={commandId} className="container unit-profile theme-amber">
             <header className="dashboard-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                    <h1 className="terminal-text">{command.name} - UNIT PROFILE</h1>
+                    <h1 className="terminal-text">{command.name} - COMMAND DASHBOARD</h1>
                 </div>
                 <div className="sync-indicator text-right" style={{ paddingBottom: '5px' }}>
                     <span className={`restricted-text ${isSyncing ? 'pulse' : ''}`} style={{ color: isSyncing ? 'var(--terminal-amber)' : 'var(--terminal-green)', fontSize: '0.7rem' }}>
@@ -654,12 +689,15 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
             <div className="dashboard-grid" style={{ gridTemplateColumns: '250px 1fr' }}>
                 <aside className="tactical-panel" data-id="ORG-STRUCTURE">
                     <h3 className="zone-header">ORGANIZATION</h3>
-                    <div
-                        className={`mode-btn text-left ${selectedDetachmentId === null ? 'active' : ''}`}
-                        onClick={() => setSelectedDetachmentId(null)}
-                        style={{ width: '100%', marginBottom: '10px' }}
-                    >
-                        FORCE POOL
+                    <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                        <button
+                            className={`mode-btn text-left ${selectedDetachmentId === null ? 'active' : ''}`}
+                            onClick={() => setSelectedDetachmentId(null)}
+                            style={{ flex: 1 }}
+                        >
+                            COMMAND
+                        </button>
+                        <button className="mode-btn" onClick={handleCreateDetachment}>+</button>
                     </div>
                     {detachments.map(det => (
                         <div key={det.id} style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
@@ -673,39 +711,15 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                             <button className="mode-btn" style={{ color: 'var(--terminal-alert)' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>
                         </div>
                     ))}
-
-                    <form onSubmit={handleCreateDetachment} style={{ marginTop: '30px', borderTop: '1px solid var(--terminal-border)', paddingTop: '15px' }}>
-                        <span className="restricted-text" style={{ fontSize: '0.8rem' }}>NEW DETACHMENT</span>
-                        <input
-                            type="text"
-                            className="mode-btn text-left"
-                            placeholder="Callsign..."
-                            value={newDetachmentName}
-                            onChange={e => setNewDetachmentName(e.target.value)}
-                            style={{ width: '100%', marginTop: '5px' }}
-                        />
-                        <select
-                            className="mode-btn"
-                            value={selectedCampaignId}
-                            onChange={e => setSelectedCampaignId(e.target.value)}
-                            style={{ width: '100%', marginTop: '5px' }}
-                        >
-                            <option value="">SELECT CAMPAIGN</option>
-                            {campaigns.map(cap => (
-                                <option key={cap.id} value={cap.id}>{cap.name}</option>
-                            ))}
-                        </select>
-                        <button type="submit" className="login-button" style={{ width: '100%', marginTop: '10px', fontSize: '0.8rem' }}>FORM UNIT</button>
-                    </form>
                 </aside>
 
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                     {selectedDetachmentId === null && (
                         <section className="dashboard-section tactical-panel" data-id="FORCE-SUMMARY">
-                            <h3 className="zone-header">FORCE POOL SITREP</h3>
+                            <h3 className="zone-header">COMMAND READINESS</h3>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                 <div>
-                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>ASSET DISTRIBUTION</span>
+                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>UNIT READINESS</span>
                                     <table className="tactical-table" style={{ marginTop: '5px' }}>
                                         <thead>
                                             <tr>
@@ -740,7 +754,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                     </table>
                                 </div>
                                 <div>
-                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>PERSONNEL READINESS</span>
+                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>PILOT READINESS</span>
                                     <table className="tactical-table" style={{ marginTop: '5px' }}>
                                         <thead>
                                             <tr>
@@ -770,7 +784,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
 
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <h3 className="zone-header" style={{ margin: 0 }}>COMBAT ASSET REGISTRY</h3>
+                            <h3 className="zone-header" style={{ margin: 0 }}>COMBAT UNIT ROSTER</h3>
                             <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>
                         </div>
                         <table className="tactical-table">
@@ -785,6 +799,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                     <th className="text-center" title="Battle Value">BV</th>
                                     <th className="text-center" title="Point Value">PV</th>
                                     <th className="text-center">STATUS</th>
+                                    <th className="text-center">DETACHMENT</th>
                                     <th className="text-center"></th>
                                 </tr>
                             </thead>
@@ -849,6 +864,16 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                             </select>
                                         </td>
                                         <td className="text-center">
+                                            <select
+                                                className="table-input"
+                                                value={u.detachmentId || ""}
+                                                onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
+                                            >
+                                                <option value="">[ HANGAR ]</option>
+                                                {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="text-center">
                                             <button
                                                 className="mode-btn"
                                                 style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
@@ -863,7 +888,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
 
                     <section className="dashboard-section tactical-panel" data-id="PERS-BARR">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <h3 className="zone-header" style={{ margin: 0 }}>PERSONNEL BARRACKS</h3>
+                            <h3 className="zone-header" style={{ margin: 0 }}>PILOT ROSTER</h3>
                             <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.7rem' }}>+ HIRE PILOT</button>
                         </div>
                         <table className="tactical-table">
@@ -875,6 +900,7 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                     <th className="text-center">AS SKILL</th>
                                     <th className="text-center">UNIT SPECIALTY</th>
                                     <th className="text-center">STATUS</th>
+                                    <th className="text-center">DETACHMENT</th>
                                     <th className="text-center"></th>
                                 </tr>
                             </thead>
@@ -912,6 +938,16 @@ export const UnitProfile: React.FC<UnitProfileProps> = ({ commandId }) => {
                                                 onBlur={(e) => handlePilotUpdate(p.id, 'status', e.target.value, true)}
                                             >
                                                 {PILOT_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                            </select>
+                                        </td>
+                                        <td className="text-center">
+                                            <select
+                                                className="table-input"
+                                                value={p.detachmentId || ""}
+                                                onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
+                                            >
+                                                <option value="">[ BARRACKS ]</option>
+                                                {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                             </select>
                                         </td>
                                         <td className="text-center">

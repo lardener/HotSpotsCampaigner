@@ -64,7 +64,7 @@ type Mutation {
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
 
     # Ledger & Detachments
-    createDetachment(commandId: ID!, campaignId: ID!, name: String!): Detachment
+    createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
     deleteDetachment(detachmentId: ID!): Boolean
     addLedgerEntry(detachmentId: ID!, amount: Int!, description: String!): LedgerEntry
 }
@@ -93,6 +93,7 @@ type CombatUnit {
     bv: Int
     pv: Int
     status: String
+    detachmentId: ID
 }
 
 type Pilot {
@@ -103,6 +104,7 @@ type Pilot {
     asSkill: Int
     unitType: String
     status: String
+    detachmentId: ID
 }
 
 type Detachment {

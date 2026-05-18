@@ -102,10 +102,24 @@ public class MercenaryCommandService {
             }
             if (rep != null) {
                 cmd.setReputation(rep);
-                // Experience level could be derived here based on rep
+                // Derive experience level from Hinterlands reputation thresholds
+                if (rep >= 9) {
+                    cmd.setExperienceLevel("Elite");
+                } else if (rep >= 6) {
+                    cmd.setExperienceLevel("Veteran");
+                } else if (rep >= 3) {
+                    cmd.setExperienceLevel("Regular");
+                } else {
+                    cmd.setExperienceLevel("Green");
+                }
             }
             return commandRepository.save(cmd)
-                    .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId));
+                    .doOnNext(saved -> commandSink.tryEmitNext(saved))
+                    .onErrorResume(DuplicateKeyException.class, e -> {
+                        // If save fails due to R2DBC isNew logic, we fallback to a fetch 
+                        // but we've still missed the update, so we log it for debugging
+                        return Mono.error(new RuntimeException("Registry update failed: Persistence conflict."));
+                    });
         }));
     }
 
@@ -207,9 +221,9 @@ public class MercenaryCommandService {
                 + "WHERE d.mercenary_command_id = :id";
 
         return SqlUtils.bindUuid(databaseClient.sql(sql), "id", commandId)
-                .map((row, metadata) -> row.get("total", Long.class))
+                .map((row, metadata) -> row.get("total", Number.class))
                 .one()
-                .map(Long::intValue)
+                .map(total -> total != null ? total.intValue() : 0)
                 .flatMap(totalSp -> commandRepository.findById(commandId)
                 .flatMap(command -> {
                     command.setNew(false);
@@ -238,8 +252,9 @@ public class MercenaryCommandService {
 
         var selectSpec = databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id");
         return SqlUtils.bindUuid(selectSpec, "id", assetId)
-                .map((row, metadata) -> row.get("command_id", UUID.class))
+                .map((row, metadata) -> row.get("command_id", String.class))
                 .one()
+                .map(UUID::fromString)
                 .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
                 .flatMap(commandId -> commandRepository.findById(commandId)
                 .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
@@ -476,9 +491,9 @@ public class MercenaryCommandService {
             return SqlUtils.bindUuid(databaseClient.sql(sql), "detId", detachmentId)
                     .bind("userId", internalId)
                     .bind("externalId", userId)
-                    .map((row, metadata) -> row.get(0, Long.class))
+                    .map((row, metadata) -> row.get(0, Number.class))
                     .one()
-                    .map(val -> val != null && val > 0)
+                    .map(n -> n != null && n.longValue() > 0)
                     .defaultIfEmpty(false);
         });
     }

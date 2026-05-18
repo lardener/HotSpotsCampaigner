@@ -107,7 +107,7 @@ CREATE TABLE mercenary_commands (
 CREATE TABLE detachments (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     `mercenary_command_id` VARCHAR(36) NOT NULL,
-    `campaign_id` VARCHAR(36) NOT NULL,
+    `campaign_id` VARCHAR(36),
     `name` VARCHAR(255),
     `callsign` VARCHAR(255),
     CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,

@@ -120,7 +120,7 @@ public class SchemaGenerator {
         sql.append("CREATE TABLE detachments (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    `mercenary_command_id` VARCHAR(36) NOT NULL,\n");
-        sql.append("    `campaign_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `name` VARCHAR(255),\n");
         sql.append("    `callsign` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_detachment_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");

@@ -7,9 +7,9 @@ import { RandomCampaignGenerator } from './RandomCampaignGenerator';
 import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
 import { CreateCommandForm } from './CreateCommandForm';
-import { UnitProfile } from './UnitProfile';
+import { CommandDashboard } from './CommandDashboard';
 
-export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'unit-profile';
+export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard';
 
 const GET_MY_COMMANDS = gql`
   query GetMyCommands {
@@ -205,7 +205,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         } else if (item.type === 'COMMAND') {
             setSelectedCommandId(item.id);
             setSelectedDetachmentId(null);
-            setActiveTab('unit-profile'); // Unit Dossier
+            setActiveTab('command-dashboard'); // Unit Dossier
         } else if (item.type === 'DETACHMENT' || item.type === 'DEPLOYMENT') {
             if (item.metadata?.commandId) setSelectedCommandId(item.metadata.commandId);
             if (item.metadata?.detachmentId) setSelectedDetachmentId(item.metadata.detachmentId);
@@ -231,7 +231,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         if (activeTab === 'public-campaigns') return 'public-intel';
         if (activeTab === 'my-campaigns') return 'root-campaigns';
         if (activeTab === 'commands') return 'root-commands';
-        if (['unit-profile', 'ledger'].includes(activeTab)) return selectedCommandId || undefined;
+        if (['command-dashboard', 'ledger'].includes(activeTab)) return selectedCommandId || undefined;
         return undefined;
     };
 
@@ -294,7 +294,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
 
     const getThemeClass = () => {
         if (activeTab === 'ledger') return 'theme-green';
-        if (activeTab === 'commands' || activeTab === 'unit-profile') return 'theme-amber';
+        if (activeTab === 'commands' || activeTab === 'command-dashboard') return 'theme-amber';
         if (activeTab === 'my-campaigns') return 'theme-blue';
         if (['create-campaign', 'public-campaigns'].includes(activeTab)) return 'theme-red';
         return 'theme-green';
@@ -329,7 +329,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         }
 
         // Allow access to creation, management, and public tabs even if no command is selected yet
-        const commandContextRequired = ['ledger', 'unit-profile'].includes(activeTab);
+        const commandContextRequired = ['ledger', 'command-dashboard'].includes(activeTab);
 
         if (!selectedCommandId && commandContextRequired) {
             return (
@@ -496,9 +496,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                             </button>
                                             <button
                                                 className="mode-btn"
-                                                onClick={(e) => { e.stopPropagation(); setActiveTab('unit-profile'); }}
+                                                onClick={(e) => { e.stopPropagation(); setActiveTab('command-dashboard'); }}
                                             >
-                                                UNIT PROFILE
+                                                COMMAND DASHBOARD
                                             </button>
                                             <button
                                                 className="mode-btn"
@@ -537,9 +537,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 return selectedCommandId ? (
                     <Dashboard commandId={selectedCommandId} detachmentId={selectedDetachmentId || undefined} />
                 ) : null;
-            case 'unit-profile':
+            case 'command-dashboard':
                 return selectedCommandId ? (
-                    <UnitProfile commandId={selectedCommandId} />
+                    <CommandDashboard commandId={selectedCommandId} />
                 ) : null;
             case 'public-campaigns':
                 return (
