@@ -77,6 +77,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
 
             {selectedDetachmentId ? (
                 <LedgerEntryForm
+                    commandId={commandId}
                     detachmentId={selectedDetachmentId}
                     onEntryAdded={() => alert("Transaction synchronized with Warchest.")}
                 />

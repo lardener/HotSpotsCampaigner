@@ -13,4 +13,6 @@ import reactor.core.publisher.Flux;
 public interface LedgerEntryRepository extends ReactiveCrudRepository<LedgerEntry, UUID> {
 
     Flux<LedgerEntry> findAllByDetachmentId(UUID detachmentId);
+
+    Flux<LedgerEntry> findAllByCommandId(UUID commandId);
 }

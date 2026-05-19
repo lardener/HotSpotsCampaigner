@@ -2,6 +2,7 @@ type Query {
     myCommands: [MercenaryCommand]
     activeCampaigns(page: Int, size: Int): [Campaign]
     getCommand(id: ID!): MercenaryCommand
+    getCampaign(id: ID!): Campaign
     managedCampaigns(status: String): [Campaign]
     previewCampaign(input: CampaignInput!): CampaignProposal
     campaignMetadata: CampaignMetadata
@@ -49,6 +50,8 @@ type Mutation {
     
     # Campaign Management
     createCampaign(input: CampaignInput!): Campaign
+    updateCampaign(id: ID!, input: CampaignInput!): Campaign
+    assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
     
     # Asset Management
     addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
@@ -62,12 +65,14 @@ type Mutation {
     loginWithInvite(token: String!, callsign: String!): User
     createInvite(campaignId: ID!): CampaignInvite
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
+    joinCampaign(token: String!, detachmentId: ID!): Boolean
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
     deleteDetachment(detachmentId: ID!): Boolean
     addLedgerEntry(
-        detachmentId: ID!, 
+        commandId: ID!,
+        detachmentId: ID, 
         amount: Int!, 
         description: String!,
         coverAmount: Int,
@@ -128,6 +133,7 @@ type Detachment {
 
 type LedgerEntry {
     id: ID!
+    commandId: ID
     detachmentId: ID
     amount: Int
     description: String
@@ -172,6 +178,7 @@ input CampaignInput {
     mission: String
     employerCategory: String
     systemName: String
+    description: String
     payRate: Float
     salvageTerms: String
     supportTerms: String
@@ -236,11 +243,24 @@ type Campaign {
     id: ID!
     name: String
     systemName: String
+    description: String
     status: String
     trackCount: Int
     managerId: String
     primaryEmployer: String
     secondaryEmployer: String
+    contracts: [Contract]
     # Root 3: All detachments participating in this theater
     participatingDetachments: [Detachment]
+    campaignInvites: [CampaignInvite]
+    payRate: Float
+    salvageTerms: String
+    supportTerms: String
+    transportTerms: String
+    commandRights: String
+    payStep: Int
+    salvageStep: Int
+    supportStep: Int
+    transportStep: Int
+    commandStep: Int
 }

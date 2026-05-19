@@ -236,52 +236,64 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     };
 
-    const updateProposalCampaign = async (field: keyof Proposal['campaign'], value: string | number) => {
+    const updateProposalCampaign = (field: keyof Proposal['campaign'], value: string | number) => {
         if (!proposal) return;
 
         if (field === 'name') {
             setIsNameManuallyEdited(true);
         }
 
-        const updatedCampaign = { ...proposal.campaign, [field]: value };
-
-        if (field === 'systemName' && !isNameManuallyEdited) {
-            const primary = proposal.contracts[0];
-            const employerFaction = primary.employerCategory.split(': ')[0];
-            updatedCampaign.name = `${String(value).toUpperCase()}: OP ${primary.missionType.toUpperCase()} [${employerFaction}]`;
-        }
-
-        let updatedTracks = [...proposal.tracks];
-
         if (field === 'trackCount') {
             const newCount = Number(value);
+            if (isNaN(newCount)) return;
             const currentCount = proposal.tracks.length;
 
-            updatedCampaign.trackCount = newCount; // Track count is the source of truth
+            // Synchronously update the count and trim tracks if needed
+            setProposal(prev => prev ? {
+                ...prev,
+                campaign: { ...prev.campaign, trackCount: newCount },
+                tracks: newCount < currentCount ? prev.tracks.slice(0, newCount) : prev.tracks
+            } : null);
 
-            if (newCount < currentCount) {
-                // Delete from the end
-                updatedTracks = updatedTracks.slice(0, newCount);
-            } else if (newCount > currentCount) {
-                // Add to the end by calling backend for appropriate track types
+            if (newCount > currentCount) {
                 const numToAdd = newCount - currentCount;
                 const primary = proposal.contracts[0];
-                const { data: trackData } = await getTracks({
+                getTracks({
                     variables: {
                         mission: primary.missionType,
                         commandRights: primary.commandRights,
                         count: numToAdd
                     }
+                }).then(({ data: trackData }) => {
+                    const fillers = trackData?.generateTracks || Array(numToAdd).fill('Assault');
+                    setProposal(prev => {
+                        if (!prev) return null;
+                        // Only append if the length is still short (handles rapid clicks)
+                        if (prev.tracks.length >= newCount) return prev;
+                        return {
+                            ...prev,
+                            tracks: [...prev.tracks, ...fillers]
+                        };
+                    });
                 });
-                const fillers = trackData?.generateTracks || Array(numToAdd).fill('Assault');
-                updatedTracks = [...updatedTracks, ...fillers];
             }
+            return;
         }
 
-        setProposal({
-            ...proposal,
-            campaign: updatedCampaign,
-            tracks: updatedTracks
+        setProposal(prev => {
+            if (!prev) return null;
+            const updatedCampaign = { ...prev.campaign, [field]: value };
+
+            if (field === 'systemName' && !isNameManuallyEdited) {
+                const primary = prev.contracts[0];
+                const employerFaction = primary.employerCategory.split(': ')[0];
+                updatedCampaign.name = `${String(value).toUpperCase()}: OP ${primary.missionType.toUpperCase()} [${employerFaction}]`;
+            }
+
+            return {
+                ...prev,
+                campaign: updatedCampaign
+            };
         });
     };
 
@@ -368,7 +380,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     <div className="campaign-summary-header" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.1)', borderLeft: '4px solid #c00' }}>
                         <h3 className="section-title">
                             DOBLESS INTEL:
-                            <input
+                            <input // Campaign name input
                                 type="text"
                                 value={proposal.campaign.name}
                                 onChange={(e) => updateProposalCampaign('name', e.target.value)}
@@ -384,8 +396,14 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                             />
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
-                            <div><strong>SYSTEM:</strong> <input type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} style={{ width: '100%' }} /></div>
-                            <div><strong>TRACKS:</strong> <input type="number" value={proposal.campaign.trackCount} onChange={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value))} style={{ width: '60px' }} /></div>
+                            <div><strong>SYSTEM:</strong> <input type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} style={{ width: '100%' }} /></div>
+                            <div>
+                                <strong>TRACKS:</strong>
+                                <input type="number" value={proposal.campaign.trackCount}
+                                    onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
+                                    onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
+                                    style={{ width: '60px' }} />
+                            </div>
                         </div>
                     </div>
 

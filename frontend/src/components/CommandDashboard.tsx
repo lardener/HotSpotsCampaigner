@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
+import { LedgerEntryForm } from './LedgerEntryForm';
 
 const GET_UNIT_DOSSIER = gql`
   query GetUnitDossier($commandId: ID!) {
@@ -160,6 +161,12 @@ const UPDATE_PILOT = gql`
   }
 `;
 
+const JOIN_CAMPAIGN = gql`
+  mutation JoinCampaign($token: String!, $detachmentId: ID!) {
+    joinCampaign(token: $token, detachmentId: $detachmentId)
+  }
+`;
+
 interface CombatUnit {
     id: string;
     type: string;
@@ -298,24 +305,28 @@ interface UnitDossierData {
 interface CommandDashboardProps {
     commandId: string;
     detachmentId?: string;
+    isManagerView?: boolean;
 }
 
-export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId }) => {
+export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
     // Form states
     const [isSyncing, setIsSyncing] = useState(false);
     const [justAddedId, setJustAddedId] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
+    const [inviteToken, setInviteToken] = useState('');
 
     // Synchronize selection with prop changes (e.g. from Navigation Tree)
     useEffect(() => {
         setSelectedDetachmentId(detachmentId || null);
     }, [detachmentId]);
 
-    const { loading, data } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
+    const { loading, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId }
     });
+
+    const [joinCampaign] = useMutation(JOIN_CAMPAIGN);
 
     const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
     const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
@@ -615,6 +626,16 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         } catch (err) { alert("Assignment failed."); }
     };
 
+    const handleJoinCampaign = async () => {
+        if (!selectedDetachmentId || !inviteToken) return;
+        try {
+            await joinCampaign({ variables: { token: inviteToken, detachmentId: selectedDetachmentId } });
+            alert("RECRUITMENT SUCCESSFUL: DETACHMENT DEPLOYED.");
+            setInviteToken('');
+            window.location.reload();
+        } catch (err) { alert("RECRUITMENT FAILURE: INVALID OR EXPIRED TOKEN."); }
+    };
+
     const handleCreateDetachment = async () => {
         const name = prompt("Enter Detachment Callsign:");
         if (!name) return;
@@ -706,6 +727,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <div className="input-group">
                         <label className="restricted-text">CO:</label>
                         <input
+                            disabled={isManagerView}
                             className="inline-edit"
                             defaultValue={command.commandingOfficer}
                             onChange={(e) => handleHeaderUpdate('CO', e.target.value, false)}
@@ -715,6 +737,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <div className="input-group">
                         <label className="restricted-text">WARCHEST (SP):</label>
                         <input
+                            disabled={isManagerView}
                             type="number"
                             className="inline-edit"
                             style={{ width: '6em' }}
@@ -726,6 +749,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <div className="input-group">
                         <label className="restricted-text">REPUTATION:</label>
                         <input
+                            disabled={isManagerView}
                             type="number"
                             className="inline-edit"
                             style={{ width: '4em' }}
@@ -741,28 +765,45 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             <div className="dashboard-grid" style={{ gridTemplateColumns: '250px 1fr' }}>
                 <aside className="tactical-panel" data-id="ORG-STRUCTURE">
                     <h3 className="zone-header">ORGANIZATION</h3>
-                    <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
-                        <button
-                            className={`mode-btn text-left ${selectedDetachmentId === null ? 'active' : ''}`}
-                            onClick={() => setSelectedDetachmentId(null)}
-                            style={{ flex: 1 }}
-                        >
-                            COMMAND
-                        </button>
-                        <button className="mode-btn" onClick={handleCreateDetachment}>+</button>
-                    </div>
-                    {detachments.map(det => (
-                        <div key={det.id} style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                    {!isManagerView && (
+                        <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
                             <button
-                                className={`mode-btn text-left ${selectedDetachmentId === det.id ? 'active' : ''}`}
-                                onClick={() => setSelectedDetachmentId(det.id)}
+                                className={`mode-btn text-left ${selectedDetachmentId === null ? 'active' : ''}`}
+                                onClick={() => setSelectedDetachmentId(null)}
                                 style={{ flex: 1 }}
                             >
-                                {det.name}
+                                COMMAND
                             </button>
-                            <button className="mode-btn" style={{ color: 'var(--terminal-alert)' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>
+                            <button className="mode-btn" onClick={handleCreateDetachment}>+</button>
                         </div>
-                    ))}
+                    )}
+                    {detachments
+                        .filter(det => !isManagerView || det.id === selectedDetachmentId)
+                        .map(det => (
+                            <div key={det.id} style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                                <button
+                                    className={`mode-btn text-left ${selectedDetachmentId === det.id ? 'active' : ''}`}
+                                    onClick={() => setSelectedDetachmentId(det.id)}
+                                    style={{ flex: 1 }}
+                                >
+                                    {det.name}
+                                </button>
+                                {!isManagerView && <button className="mode-btn" style={{ color: 'var(--terminal-alert)' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>}
+                            </div>
+                        ))}
+
+                    {selectedDetachmentId && !isManagerView && (
+                        <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
+                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
+                            <input
+                                className="table-input"
+                                placeholder="INVITE TOKEN..."
+                                value={inviteToken}
+                                onChange={(e) => setInviteToken(e.target.value)}
+                            />
+                            <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
+                        </div>
+                    )}
                 </aside>
 
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -835,7 +876,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <h3 className="zone-header" style={{ margin: 0 }}>COMBAT UNIT ROSTER</h3>
-                            <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>
+                            {!isManagerView && <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>}
                         </div>
                         <table className="tactical-table">
                             <thead>
@@ -925,13 +966,15 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 </select>
                                             </td>
                                         )}
-                                        <td className="text-center">
-                                            <button
-                                                className="mode-btn"
-                                                style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
-                                                onClick={() => handleDeleteUnit(u.id)}
-                                            >X</button>
-                                        </td>
+                                        {!isManagerView && (
+                                            <td className="text-center">
+                                                <button
+                                                    className="mode-btn"
+                                                    style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
+                                                    onClick={() => handleDeleteUnit(u.id)}
+                                                >X</button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -941,7 +984,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <section className="dashboard-section tactical-panel" data-id="PERS-BARR">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <h3 className="zone-header" style={{ margin: 0 }}>PILOT ROSTER</h3>
-                            <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.7rem' }}>+ HIRE PILOT</button>
+                            {!isManagerView && <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.7rem' }}>+ HIRE PILOT</button>}
                         </div>
                         <table className="tactical-table">
                             <thead>
@@ -1004,13 +1047,15 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 </select>
                                             </td>
                                         )}
-                                        <td className="text-center">
-                                            <button
-                                                className="mode-btn"
-                                                style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
-                                                onClick={() => handleDeletePilot(p.id)}
-                                            >X</button>
-                                        </td>
+                                        {!isManagerView && (
+                                            <td className="text-center">
+                                                <button
+                                                    className="mode-btn"
+                                                    style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
+                                                    onClick={() => handleDeletePilot(p.id)}
+                                                >X</button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>
@@ -1020,6 +1065,15 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
                 <section className="dashboard-section tactical-panel" data-id={selectedDetachmentId ? "DETACHMENT-LEDGER" : "COMMAND-LEDGER"} style={{ gridColumn: '1 / -1', marginTop: '30px' }}>
                     <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT LEDGER' : 'COMMAND LEDGER'}</h3>
+
+                    <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
+                        <LedgerEntryForm
+                            commandId={commandId}
+                            detachmentId={selectedDetachmentId}
+                            onEntryAdded={() => refetch()}
+                        />
+                    </div>
+
                     <table className="tactical-table">
                         <thead>
                             <tr>

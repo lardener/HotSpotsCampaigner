@@ -1,16 +1,18 @@
 package com.hotspotscamp.service;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.stereotype.Service;
+
 import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignInviteRepository;
 import com.hotspotscamp.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +34,7 @@ public class InviteService {
 
     public Mono<User> loginWithToken(String token, String displayName) {
         return inviteRepository.findByToken(token)
-                .filter(invite -> !invite.isUsed() && invite.getExpiresAt().isAfter(LocalDateTime.now()))
+                .filter(invite -> !Boolean.TRUE.equals(invite.getUsed()) && invite.getExpiresAt().isAfter(LocalDateTime.now()))
                 .switchIfEmpty(Mono.error(new RuntimeException("Invalid or expired token")))
                 .flatMap(invite -> {
                     // Identity-as-Invite: We hash the token to create a consistent user ID for this invite

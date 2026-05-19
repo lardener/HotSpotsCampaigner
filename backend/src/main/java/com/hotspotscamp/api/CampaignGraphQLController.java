@@ -14,6 +14,7 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
 
 import com.hotspotscamp.entity.Campaign;
+import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.repository.CampaignRepository;
@@ -64,6 +65,11 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
+    public Mono<Campaign> getCampaign(@Argument UUID id) {
+        return campaignRepository.findById(id);
+    }
+
+    @QueryMapping
     public Flux<Campaign> participatingCampaigns(@Argument UUID commandId) {
         return campaignService.getParticipatingCampaigns(commandId)
                 .flatMap(summary -> campaignRepository.findById(summary.id()));
@@ -90,6 +96,16 @@ public class CampaignGraphQLController {
     @SchemaMapping(typeName = "Campaign", field = "participatingDetachments")
     public Flux<Detachment> getParticipatingDetachments(Campaign campaign) {
         return detachmentRepository.findAllByCampaignId(campaign.getId());
+    }
+
+    @SchemaMapping(typeName = "Campaign", field = "contracts")
+    public Flux<Contract> getContracts(Campaign campaign) {
+        return contractRepository.findAllByCampaignId(campaign.getId());
+    }
+
+    @SchemaMapping(typeName = "Campaign", field = "campaignInvites")
+    public Flux<CampaignInvite> getCampaignInvites(Campaign campaign) {
+        return campaignService.getCampaignInvites(campaign.getId());
     }
 
     @QueryMapping
@@ -140,5 +156,10 @@ public class CampaignGraphQLController {
                             (Integer) input.get("supportStep"), (Integer) input.get("transportStep"), (Integer) input.get("commandStep"),
                             (Integer) input.get("trackCount"));
                 });
+    }
+
+    @MutationMapping
+    public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, Principal principal) {
+        return campaignService.createInvite(campaignId, principal.getName());
     }
 }

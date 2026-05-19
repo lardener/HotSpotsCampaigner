@@ -16,7 +16,7 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY,
-                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
+                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
                 },
                 result: {
                     data: { addLedgerEntry: { id: 'entry-123' } },
@@ -31,7 +31,7 @@ describe('LedgerEntryForm', () => {
 
         render(
             <ApolloProvider client={client}>
-                <LedgerEntryForm detachmentId="detachment-1" onEntryAdded={onEntryAdded} />
+                <LedgerEntryForm commandId="command-1" detachmentId="detachment-1" onEntryAdded={onEntryAdded} />
             </ApolloProvider>
         );
 
@@ -53,7 +53,7 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY, // Assuming the mutation variables will be updated in the test
-                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
+                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
                 },
                 error: new Error('GraphQL error'),
             },
@@ -66,7 +66,7 @@ describe('LedgerEntryForm', () => {
 
         render(
             <ApolloProvider client={client}>
-                <LedgerEntryForm detachmentId="detachment-1" onEntryAdded={onEntryAdded} />
+                <LedgerEntryForm commandId="command-1" detachmentId="detachment-1" onEntryAdded={onEntryAdded} />
             </ApolloProvider>
         );
 

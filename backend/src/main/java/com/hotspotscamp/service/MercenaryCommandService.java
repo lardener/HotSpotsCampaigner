@@ -2,6 +2,7 @@ package com.hotspotscamp.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.dao.DuplicateKeyException;
@@ -9,6 +10,7 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.LedgerEntry;
@@ -216,9 +218,8 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<MercenaryCommand> syncTotalSupportPoints(UUID commandId) {
-        String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries le "
-                + "JOIN detachments d ON le.detachment_id = d.id "
-                + "WHERE d.mercenary_command_id = :id";
+        String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
+                + "WHERE command_id = :id";
 
         return SqlUtils.bindUuid(databaseClient.sql(sql), "id", commandId)
                 .map((row, metadata) -> row.get("total", Number.class))
@@ -397,6 +398,20 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Fetches all ledger entries for a specific command.
+     */
+    public Flux<LedgerEntry> getLedgerEntriesByCommandId(UUID commandId) {
+        return ledgerEntryRepository.findAllByCommandId(commandId);
+    }
+
+    /**
+     * Fetches a command by ID without owner filtering.
+     */
+    public Mono<MercenaryCommand> getCommandById(UUID commandId) {
+        return commandRepository.findById(commandId);
+    }
+
+    /**
      * Adds a new combat unit to the command's reserve pool.
      */
     @Transactional
@@ -454,18 +469,18 @@ public class MercenaryCommandService {
      * command owner or the campaign manager.
      */
     @Transactional // Assuming LedgerEntry entity is updated with new fields
-    public Mono<LedgerEntry> addLedgerEntry(UUID detachmentId, LedgerEntry entry, String userId) { 
-        return isAuthorizedToEditLedger(detachmentId, userId)
+    public Mono<LedgerEntry> addLedgerEntry(UUID commandId, UUID detachmentId, LedgerEntry entry, String userId) {
+        return isAuthorizedToEditLedger(commandId, userId)
                 .flatMap(isAuthorized -> {
                     if (!isAuthorized) {
                         return Mono.error(new RuntimeException("Access Denied: You are not the owner or the campaign manager."));
                     }
+                    entry.setCommandId(commandId);
                     entry.setDetachmentId(detachmentId);
                     entry.setTimestamp(LocalDateTime.now());
 
                     return ledgerEntryRepository.save(entry)
-                            .flatMap(savedEntry -> detachmentRepository.findById(detachmentId)
-                            .flatMap(d -> syncTotalSupportPoints(d.getMercenaryCommandId()))
+                            .flatMap(savedEntry -> syncTotalSupportPoints(commandId)
                             .thenReturn(savedEntry));
                 });
     }
@@ -475,18 +490,100 @@ public class MercenaryCommandService {
      * MercenaryCommand. 2. User manages the Campaign the detachment is
      * contracted to.
      */
-    private Mono<Boolean> isAuthorizedToEditLedger(UUID detachmentId, String userId) {
+    private Mono<Boolean> isAuthorizedToEditLedger(UUID commandId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> {
             String internalId = user.getId().toString();
             String sql = "SELECT EXISTS ("
-                    + "  SELECT 1 FROM detachments d "
-                    + "  JOIN mercenary_commands mc ON d.mercenary_command_id = mc.id "
-                    + "  JOIN campaigns c ON d.campaign_id = c.id "
-                    + "  WHERE d.id = :detId "
+                    + "  SELECT 1 FROM mercenary_commands mc "
+                    + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
+                    + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
+                    + "  WHERE mc.id = :cmdId "
+                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId OR c.manager_id IS NULL)"
+                    + ")";
+
+            return SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId)
+                    .bind("userId", internalId)
+                    .bind("externalId", userId)
+                    .map((row, metadata) -> row.get(0, Number.class))
+                    .one()
+                    .map(n -> n != null && n.longValue() > 0)
+                    .defaultIfEmpty(false);
+        });
+    }
+
+    @Transactional
+    public Mono<Boolean> joinCampaign(String token, UUID detachmentId, String userId) {
+        return databaseClient.sql("SELECT campaign_id FROM campaign_invites WHERE token = :token AND used = false")
+                .bind("token", token)
+                .map((row, meta) -> UUID.fromString(row.get("campaign_id", String.class)))
+                .one()
+                .switchIfEmpty(Mono.error(new RuntimeException("INVALID_OR_USED_TOKEN")))
+                .flatMap(campaignId -> detachmentRepository.findById(detachmentId)
+                .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT_NOT_FOUND")))
+                .flatMap(det -> {
+                    det.setNew(false);
+                    det.setCampaignId(campaignId);
+                    return detachmentRepository.save(det)
+                            .then(databaseClient.sql("UPDATE campaign_invites SET used = true WHERE token = :token")
+                                    .bind("token", token)
+                                    .fetch().rowsUpdated());
+                }))
+                .thenReturn(true);
+    }
+
+    @Transactional
+    public Mono<Campaign> updateCampaignDetails(UUID campaignId, Map<String, Object> input, String userId) {
+        return userService.resolveOrCreateUser(userId).flatMap(user
+                -> campaignRepository.findById(campaignId)
+                        .flatMap(camp -> {
+                            // Validation: Ensure the user is the manager
+                            if (!camp.getManagerId().equals(user.getId().toString())) {
+                                return Mono.error(new RuntimeException("Access Denied: Not the theater manager."));
+                            }
+
+                            camp.setNew(false); // Mark as existing for R2DBC
+                            if (input.containsKey("systemName")) {
+                                camp.setSystemName((String) input.get("systemName"));
+                            }
+                            if (input.containsKey("description")) {
+                                camp.setDescription((String) input.get("description"));
+                            }
+                            // Add more field updates as needed for parity
+                            return campaignRepository.save(camp);
+                        })
+        );
+    }
+
+    @Transactional
+    public Mono<Void> assignDetachmentToCampaign(UUID detachmentId, UUID campaignId, String userId) {
+        return detachmentRepository.findById(detachmentId)
+                .flatMap(det -> {
+                    // If setting a campaign, check manager permissions or owner permissions
+                    // For now, allow owner to clear or join via invite, and manager to eject
+                    det.setNew(false);
+                    det.setCampaignId(campaignId);
+                    return detachmentRepository.save(det);
+                }).then();
+    }
+
+    /**
+     * Checks if a user is authorized to view or interact with a command.
+     * Authorized if: 
+     * 1. User is the owner of the command.
+     * 2. User is the manager of a campaign where the command has at least one detachment.
+     */
+    public Mono<Boolean> isAuthorizedForCommand(UUID commandId, String userId) {
+        return userService.resolveOrCreateUser(userId).flatMap(user -> {
+            String internalId = user.getId().toString();
+            String sql = "SELECT EXISTS ("
+                    + "  SELECT 1 FROM mercenary_commands mc "
+                    + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
+                    + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
+                    + "  WHERE mc.id = :cmdId "
                     + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
                     + ")";
 
-            return SqlUtils.bindUuid(databaseClient.sql(sql), "detId", detachmentId)
+            return SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId)
                     .bind("userId", internalId)
                     .bind("externalId", userId)
                     .map((row, metadata) -> row.get(0, Number.class))

@@ -8,6 +8,7 @@ import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
 import { CreateCommandForm } from './CreateCommandForm';
 import { CommandDashboard } from './CommandDashboard';
+import { CampaignTheaterView } from './CampaignTheaterView';
 
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard';
 
@@ -34,12 +35,41 @@ const GET_MANAGED_CAMPAIGNS = gql`
       id
       name
       systemName
+      description
       status
       trackCount
       primaryEmployer
+      secondaryEmployer
+      payRate
+      salvageTerms
+      supportTerms
+      transportTerms
+      commandRights
+      payStep
+      salvageStep
+      supportStep
+      transportStep
+      commandStep
+      contracts {
+        id
+        employerCategory
+        missionType
+        payRate
+        payStep
+        salvageTerms
+        salvageStep
+        supportTerms
+        supportStep
+        transportTerms
+        transportStep
+        commandRights
+        commandStep
+        primaryContract
+      }
       participatingDetachments {
         id
         name
+        mercenaryCommandId
       }
     }
   }
@@ -177,7 +207,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         id: `camp-det-${det.id}`,
                         label: det.name,
                         type: 'DETACHMENT' as NodeType,
-                        metadata: { detachmentId: det.id, campaignId: camp.id }
+                    metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: camp.id, managerView: true }
                     }))
                 }))
             },
@@ -209,6 +239,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         } else if (item.type === 'DETACHMENT' || item.type === 'DEPLOYMENT') {
             if (item.metadata?.commandId) setSelectedCommandId(item.metadata.commandId);
             if (item.metadata?.detachmentId) setSelectedDetachmentId(item.metadata.detachmentId);
+
+            if (item.metadata?.managerView) {
+                setActiveTab('command-dashboard');
+                return;
+            }
             setActiveTab('command-dashboard'); // Focus the unit dossier for this detachment
         } else if (item.id === 'root-campaigns') {
             setSelectedCampaignId(null);
@@ -343,93 +378,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
 
         switch (activeTab) {
             case 'my-campaigns':
-                const campaign = managedData?.managedCampaigns.find(c => c.id === selectedCampaignId);
-
                 return (
-                    <div className="container">
-                        {!selectedCampaignId ? (
-                            <>
-                                <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <h1 className="terminal-text">CAMPAIGN OPERATIONS</h1>
-                                        <p className="restricted-text">THEATER MANAGEMENT PROTOCOL</p>
-                                    </div>
-                                    <button
-                                        className="mode-btn"
-                                        onClick={() => setCampaignFilter(campaignFilter === 'ACTIVE' ? 'ALL' : 'ACTIVE')}
-                                    >
-                                        {campaignFilter === 'ACTIVE' ? '[ VIEWING: ACTIVE ONLY ]' : '[ VIEWING: ALL THEATERS ]'}
-                                    </button>
-                                </header>
-
-                                <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
-                                    {loadingManaged && <div className="loading-intel">RETRIEVING THEATER DATA...</div>}
-
-                                    {managedData?.managedCampaigns.map(camp => (
-                                        <div
-                                            key={camp.id}
-                                            className="dashboard-section"
-                                            style={{
-                                                border: '1px solid var(--accent-dim)',
-                                                backgroundColor: camp.status === 'ACTIVE' ? 'rgba(51, 255, 51, 0.02)' : 'transparent',
-                                                position: 'relative'
-                                            }}
-                                        >
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <h3 className="section-title" style={{ margin: 0, color: 'var(--terminal-green)' }}>{camp.name}</h3>
-                                                <span className="restricted-text" style={{ color: camp.status === 'ACTIVE' ? 'var(--terminal-amber)' : 'var(--accent-dim)' }}>
-                                                    [ STATUS: {camp.status} ]
-                                                </span>
-                                            </div>
-
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
-                                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
-                                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
-                                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
-                                                <div className="text-right" style={{ alignSelf: 'end' }}>
-                                                    <button className="mode-btn" style={{ fontSize: '0.8rem' }} onClick={() => { setSelectedCampaignId(camp.id); setSelectedNodeId(camp.id); }}>MANAGE THEATER</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    {!loadingManaged && managedData?.managedCampaigns.length === 0 && (
-                                        <div className="placeholder-content" style={{ border: '1px dashed #444' }}>
-                                            <h3 className="terminal-text">NO MANAGED CAMPAIGNS FOUND</h3>
-                                            <p>Initialize a new operation via the New Campaign Enlistment protocol.</p>
-                                            <button className="login-button" onClick={() => setActiveTab('create-campaign')}>START NEW CAMPAIGN</button>
-                                        </div>
-                                    )}
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <header className="dashboard-header">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <h1 className="terminal-text">{campaign?.name}</h1>
-                                            <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName.toUpperCase()}</p>
-                                        </div>
-                                        <button className="mode-btn" onClick={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}>[ RETURN TO LIST ]</button>
-                                    </div>
-                                </header>
-                                <div className="dashboard-section tactical-panel">
-                                    <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
-                                    <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                                        {campaign?.participatingDetachments?.map(det => (
-                                            <div key={det.id} className="asset-card" style={{ cursor: 'pointer' }} onClick={() => handleTreeSelect({ id: `camp-det-${det.id}`, label: det.name, type: 'DETACHMENT', metadata: { detachmentId: det.id, campaignId: campaign.id } })}>
-                                                <div className="asset-type">DETACHMENT</div>
-                                                <div className="asset-label">{det.name}</div>
-                                            </div>
-                                        ))}
-                                        {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (
-                                            <div className="restricted-text">NO DETACHMENTS CURRENTLY DEPLOYED IN THIS THEATER.</div>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
+                    <CampaignTheaterView
+                        managedData={managedData}
+                        loadingManaged={loadingManaged}
+                        selectedCampaignId={selectedCampaignId}
+                        campaignFilter={campaignFilter}
+                        onSetFilter={setCampaignFilter}
+                        onSelectCampaign={(id) => { setSelectedCampaignId(id); setSelectedNodeId(id); }}
+                        onReturnToList={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}
+                        onCreateNew={() => setActiveTab('create-campaign')}
+                        onSelectDetachment={handleTreeSelect}
+                    />
                 );
             case 'create-campaign':
                 return (
@@ -539,7 +499,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 ) : null;
             case 'command-dashboard':
                 return selectedCommandId ? (
-                    <CommandDashboard commandId={selectedCommandId} detachmentId={selectedDetachmentId || undefined} />
+                    <CommandDashboard
+                        commandId={selectedCommandId}
+                        detachmentId={selectedDetachmentId || undefined}
+                        isManagerView={selectedNodeId?.startsWith('camp-det-')}
+                    />
                 ) : null;
             case 'public-campaigns':
                 return (

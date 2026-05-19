@@ -3,19 +3,20 @@ import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 
 export const ADD_LEDGER_ENTRY = gql`
-  mutation AddLedgerEntry($detachmentId: ID!, $amount: Int!, $description: String!, $coverAmount: Int, $paidAmount: Int, $reputationChange: Int) {
-    addLedgerEntry(detachmentId: $detachmentId, amount: $amount, description: $description, coverAmount: $coverAmount, paidAmount: $paidAmount, reputationChange: $reputationChange) {
+  mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $amount: Int!, $description: String!, $coverAmount: Int, $paidAmount: Int, $reputationChange: Int) {
+    addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, amount: $amount, description: $description, coverAmount: $coverAmount, paidAmount: $paidAmount, reputationChange: $reputationChange) {
       id
     }
   }
 `;
 
 interface LedgerEntryFormProps {
-    detachmentId: string;
+    commandId: string;
+    detachmentId: string | null;
     onEntryAdded: () => void;
 }
 
-export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ detachmentId, onEntryAdded }) => {
+export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, detachmentId, onEntryAdded }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState<number>(0);
     const [coverAmount, setCoverAmount] = useState<number | undefined>(undefined);
@@ -35,6 +36,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ detachmentId, 
         try {
             await addLedgerEntry({
                 variables: {
+                    commandId,
                     detachmentId,
                     amount,
                     description,

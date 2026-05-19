@@ -1,5 +1,6 @@
 package com.hotspotscamp.service;
 
+import java.time.LocalDateTime;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Detachment;
+import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignFactionRepository;
@@ -29,6 +31,7 @@ import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.repository.CampaignInviteRepository;
 import com.hotspotscamp.repository.UserRepository;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 
@@ -47,6 +50,7 @@ public class CampaignService {
     private final CampaignFactionRepository campaignFactionRepository;
     private final CampaignTrackRepository campaignTrackRepository;
     private final ContractRepository contractRepository;
+    private final CampaignInviteRepository campaignInviteRepository;
     private final DetachmentRepository detachmentRepository;
     private final UserRepository userRepository;
     private final UserService userService;
@@ -395,14 +399,6 @@ public class CampaignService {
 
         String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
 
-        // Ensure the campaign name and primary contract mission type are derived from the same empMission string
-        Campaign campaign = Campaign.builder()
-                .name(finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
-                .systemName(finalSystemName)
-                .trackCount(finalTracksCount)
-                .status("PREVIEW")
-                .build();
-
         // Command rights are resolved per-contract below but can be overridden here
         String previewRights = commandRights != null ? commandRights : "Liaison";
 
@@ -410,6 +406,25 @@ public class CampaignService {
                 payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep, salvageStep,
                 supportStep, transportStep, commandStep, finalTracksCount, true,
                 finalSystemName, rand);
+
+        // Populate the Campaign entity with metadata from the Primary Contract
+        Campaign campaign = Campaign.builder()
+                .name(finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
+                .systemName(finalSystemName)
+                .trackCount(finalTracksCount)
+                .description("Theater established in the " + finalSystemName + " system.")
+                .payRate(primaryContract.getPayRate())
+                .payStep(primaryContract.getPayStep())
+                .salvageTerms(primaryContract.getSalvageTerms())
+                .salvageStep(primaryContract.getSalvageStep())
+                .supportTerms(primaryContract.getSupportTerms())
+                .supportStep(primaryContract.getSupportStep())
+                .transportTerms(primaryContract.getTransportTerms())
+                .transportStep(primaryContract.getTransportStep())
+                .commandRights(primaryContract.getCommandRights())
+                .commandStep(primaryContract.getCommandStep())
+                .status("PREVIEW")
+                .build();
 
         // Determine Attacker/Defender role based on p. 135
         String primaryRole = determineUnitRole(empMission, rand);
@@ -838,5 +853,37 @@ public class CampaignService {
 
     private String getRandomMission() {
         return availablePrimaryMissions.get(new Random().nextInt(availablePrimaryMissions.size()));
+    }
+
+    /**
+     * Creates a new invitation token for a campaign.
+     */
+    @Transactional
+    public Mono<CampaignInvite> createInvite(UUID campaignId, String userId) {
+        return userService.resolveOrCreateUser(userId).flatMap(user ->
+            campaignRepository.findById(campaignId)
+                    .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found")))
+                    .flatMap(campaign -> {
+                        if (!campaign.getManagerId().equals(user.getId().toString())) {
+                            return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
+                        }
+
+                        CampaignInvite invite = CampaignInvite.builder()
+                                .id(UUID.randomUUID())
+                                .campaignId(campaignId)
+                                .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
+                                .expiresAt(LocalDateTime.now().plusDays(7))
+                                .used(false)
+                                .build();
+                        return campaignInviteRepository.save(invite);
+                    })
+        );
+    }
+
+    /**
+     * Fetches all invitation tokens for a specific campaign.
+     */
+    public Flux<CampaignInvite> getCampaignInvites(UUID campaignId) {
+        return campaignInviteRepository.findAllByCampaignId(campaignId);
     }
 }

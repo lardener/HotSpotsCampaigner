@@ -48,7 +48,18 @@ public class SchemaGenerator {
         sql.append("    `manager_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `status` VARCHAR(50),\n");
         sql.append("    `system_name` VARCHAR(255),\n");
+        sql.append("    `description` TEXT,\n");
         sql.append("    `track_count` INT,\n");
+        sql.append("    `pay_rate` DOUBLE,\n");
+        sql.append("    `pay_step` INT,\n");
+        sql.append("    `salvage_terms` VARCHAR(255),\n");
+        sql.append("    `salvage_step` INT,\n");
+        sql.append("    `support_terms` VARCHAR(255),\n");
+        sql.append("    `support_step` INT,\n");
+        sql.append("    `transport_terms` VARCHAR(255),\n");
+        sql.append("    `transport_step` INT,\n");
+        sql.append("    `command_rights` VARCHAR(255),\n");
+        sql.append("    `command_step` INT,\n");
         sql.append("    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 
@@ -130,7 +141,8 @@ public class SchemaGenerator {
         sql.append("-- Create ledger_entries table (LedgerEntry.java)\n");
         sql.append("CREATE TABLE ledger_entries (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
-        sql.append("    `detachment_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `command_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `detachment_id` VARCHAR(36),\n");
         sql.append("    `amount` INT,\n");
         sql.append("    `short_description` VARCHAR(1000),\n");
         sql.append("    `timestamp` DATETIME,\n");
@@ -141,7 +153,8 @@ public class SchemaGenerator {
         sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `campaign_name` VARCHAR(255),\n");
         sql.append("    `contract_month` VARCHAR(50),\n");
-        sql.append("    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE\n");
+        sql.append("    CONSTRAINT fk_ledger_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
+        sql.append("    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");
 
         sql.append("-- Create combat_units table (CombatUnit.java)\n");

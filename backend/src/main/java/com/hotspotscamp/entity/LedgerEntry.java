@@ -4,11 +4,12 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +29,8 @@ public class LedgerEntry implements Persistable<UUID> {
 
     @Id
     private UUID id;
+    @Column("command_id")
+    private UUID commandId;
     @Column("detachment_id")
     private UUID detachmentId; // Links to the specific contract deployment
     @Column("timestamp")
@@ -54,10 +57,16 @@ public class LedgerEntry implements Persistable<UUID> {
 
     @Transient
     @Builder.Default
+    @JsonIgnore
     private boolean isNew = true;
 
     @Override
+    @JsonIgnore
     public boolean isNew() {
         return isNew || id == null;
+    }
+
+    public void setNew(boolean isNew) {
+        this.isNew = isNew;
     }
 }

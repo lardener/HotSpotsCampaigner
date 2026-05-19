@@ -35,7 +35,18 @@ CREATE TABLE campaigns (
     `manager_id` VARCHAR(36) NOT NULL,
     `status` VARCHAR(50),
     `system_name` VARCHAR(255),
+    `description` TEXT,
     `track_count` INT,
+    `pay_rate` DOUBLE,
+    `pay_step` INT,
+    `salvage_terms` VARCHAR(255),
+    `salvage_step` INT,
+    `support_terms` VARCHAR(255),
+    `support_step` INT,
+    `transport_terms` VARCHAR(255),
+    `transport_step` INT,
+    `command_rights` VARCHAR(255),
+    `command_step` INT,
     CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)
 );
 
@@ -117,7 +128,8 @@ CREATE TABLE detachments (
 -- Create ledger_entries table (LedgerEntry.java)
 CREATE TABLE ledger_entries (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
-    `detachment_id` VARCHAR(36) NOT NULL,
+    `command_id` VARCHAR(36) NOT NULL,
+    `detachment_id` VARCHAR(36),
     `amount` INT,
     `short_description` VARCHAR(1000),
     `timestamp` DATETIME,
@@ -128,7 +140,8 @@ CREATE TABLE ledger_entries (
     `campaign_id` VARCHAR(36),
     `campaign_name` VARCHAR(255),
     `contract_month` VARCHAR(50),
-    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE
+    CONSTRAINT fk_ledger_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
 );
 
 -- Create combat_units table (CombatUnit.java)
