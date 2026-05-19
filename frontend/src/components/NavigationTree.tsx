@@ -34,6 +34,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ item, level, onSelect, selectedId }
             <div
                 className={`tree-node ${isSelected ? 'selected' : ''} ${isRoot ? 'root-node' : ''}`}
                 onClick={() => onSelect(item)}
+                title={item.label}
             >
                 {hasChildren ? (
                     <span className={`toggle-arrow ${isOpen ? 'open' : ''}`} onClick={handleToggle}>

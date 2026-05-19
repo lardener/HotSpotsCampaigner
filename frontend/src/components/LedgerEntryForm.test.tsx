@@ -35,11 +35,11 @@ describe('LedgerEntryForm', () => {
             </ApolloProvider>
         );
 
-        fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } });
-        fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } });
-        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } });
-        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } });
-        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/support points \(sp\)/i), { target: { value: '50' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } }); // Added title to input
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {
@@ -70,11 +70,11 @@ describe('LedgerEntryForm', () => {
             </ApolloProvider>
         );
 
-        fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } });
-        fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } });
-        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } });
-        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } });
-        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/support points \(sp\)/i), { target: { value: '50' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } }); // Added title to input
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {

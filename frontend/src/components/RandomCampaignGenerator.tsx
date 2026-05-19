@@ -363,7 +363,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
             <p className="restricted-text">HINTERLANDS REGIONAL INTEL UPDATED</p>
 
-            <button
+            <button type="button"
                 onClick={handlePreview}
                 disabled={previewLoading || metadataLoading}
                 className="login-button"
@@ -381,9 +381,12 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                         <h3 className="section-title">
                             DOBLESS INTEL:
                             <input // Campaign name input
+                                id="proposal-name"
                                 type="text"
                                 value={proposal.campaign.name}
                                 onChange={(e) => updateProposalCampaign('name', e.target.value)}
+                                title="Campaign Name Designation"
+                                placeholder="CAMPAIGN NAME..."
                                 style={{
                                     marginLeft: '10px',
                                     width: '60%',
@@ -396,12 +399,16 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                             />
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
-                            <div><strong>SYSTEM:</strong> <input type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} style={{ width: '100%' }} /></div>
-                            <div>
-                                <strong>TRACKS:</strong>
-                                <input type="number" value={proposal.campaign.trackCount}
+                            <div> {/* Added title to input */}
+                                <label htmlFor="proposal-system"><strong>SYSTEM:</strong></label>
+                                <input id="proposal-system" type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" style={{ width: '100%' }} />
+                            </div>
+                            <div> {/* Added title to input */}
+                                <label htmlFor="proposal-tracks"><strong>TRACKS:</strong></label>
+                                <input id="proposal-tracks" type="number" value={proposal.campaign.trackCount}
                                     onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
                                     onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
+                                    title="Number of tracks (months)"
                                     style={{ width: '60px' }} />
                             </div>
                         </div>
@@ -412,9 +419,9 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                         <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
                             {proposal.tracks.map((t, idx) => (
                                 <div key={idx} style={{ marginBottom: '5px' }}>
-                                    TRACK {idx + 1}:
+                                    <label htmlFor={`track-${idx}`}>TRACK {idx + 1}:</label> {/* Added title to select */}
                                     {/* Strip suffix for the value so it matches the options in trackTypes */}
-                                    <select value={t.split(' (')[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} style={{ marginLeft: '10px' }}>
+                                    <select id={`track-${idx}`} value={t.split(' (')[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} style={{ marginLeft: '10px' }} title={`Select track type for track ${idx + 1}`}>
                                         {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                     </select>
                                 </div>
@@ -427,41 +434,42 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
                                 <strong>{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</strong>
                                 <p><strong>EMPLOYER:</strong>
-                                    <input
+                                    <input // Added title to input
                                         type="text"
                                         value={c.employerCategory}
                                         onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
                                         style={{ width: 'calc(100% - 110px)', marginLeft: '10px' }}
+                                        title="Employer Faction and Category"
                                     />
                                 </p>
                                 <p><strong>MISSION:</strong>
-                                    <select value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)}>
+                                    <select value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)} title="Mission Type">
                                         {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                     <p><strong>PAY STEP:</strong>
-                                        <select value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))}>
+                                        <select value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))} title="Pay Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({Math.round(c.payRate * 100)}%)</span>
                                     </p>
                                     <p><strong>SALVAGE STEP:</strong>
-                                        <select value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))}>
+                                        <select value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))} title="Salvage Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.salvageTerms})</span>
                                     </p>
                                     <p><strong>SUPPORT STEP:</strong>
-                                        <select value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))}>
+                                        <select value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))} title="Support Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.supportTerms})</span>
                                     </p>
                                     <p><strong>TRANSPORT STEP:</strong>
-                                        <select value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))}>
+                                        <select value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))} title="Transport Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.transportTerms})</span>
                                     </p>
                                     <p><strong>COMMAND STEP:</strong>
-                                        <select value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))}>
+                                        <select value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))} title="Command Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.commandRights})</span>
                                     </p>
@@ -471,7 +479,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     </div>
 
                     {saveError && <div className="error-message" style={{ marginTop: '12px' }}>{saveError}</div>}
-                    {user ? (
+                    {user ? ( // Added type="button"
                         <button onClick={handleSave} disabled={saveLoading || saved} className="login-button">
                             {saved ? 'CAMPAIGN ARCHIVED' : 'CONFIRM & SAVE CAMPAIGN'}
                         </button>

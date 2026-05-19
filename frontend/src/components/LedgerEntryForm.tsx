@@ -59,7 +59,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
 
     return (
         <div className="ledger-form-container">
-            <h3 className="section-title">RECORD SP TRANSACTION</h3>
+            <h3 className="section-title" title="Record Support Point Transaction">RECORD SP TRANSACTION</h3>
             <form onSubmit={handleSubmit} className="ledger-form">
                 <div className="form-group">
                     <label htmlFor="description">Description</label>
@@ -68,6 +68,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        title="Transaction Description"
                         placeholder="e.g., Repairing Atlas AS7-D"
                         required
                     />
@@ -79,6 +80,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(parseInt(e.target.value))}
+                        title="Support Points Amount (negative for costs)"
                         required
                     />
                     <small>Use negative values for costs</small>
@@ -90,6 +92,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                         type="number"
                         value={coverAmount === undefined ? '' : coverAmount}
                         onChange={(e) => setCoverAmount(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                        title="Amount covered by contract"
                         placeholder="Optional"
                     />
                     <small>Amount covered by contract terms</small>
@@ -101,6 +104,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                         type="number"
                         value={paidAmount === undefined ? '' : paidAmount}
                         onChange={(e) => setPaidAmount(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                        title="Actual amount paid"
                         placeholder="Optional"
                     />
                     <small>Actual amount paid</small>
@@ -112,6 +116,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                         type="number"
                         value={reputationChange === undefined ? '' : reputationChange}
                         onChange={(e) => setReputationChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                        title="Reputation change from transaction"
                         placeholder="Optional"
                     />
                     <small>Positive or negative change</small>

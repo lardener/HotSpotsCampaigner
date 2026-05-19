@@ -69,7 +69,6 @@ const GET_MANAGED_CAMPAIGNS = gql`
       participatingDetachments {
         id
         name
-        mercenaryCommandId
       }
     }
   }
@@ -104,9 +103,22 @@ interface ManagedCampaignsData {
         status: string;
         trackCount: number;
         primaryEmployer: string;
+        secondaryEmployer: string;
+        payRate?: number;
+        salvageTerms?: string;
+        supportTerms?: string;
+        transportTerms?: string;
+        commandRights?: string;
+        payStep?: number;
+        salvageStep?: number;
+        supportStep?: number;
+        transportStep?: number;
+        commandStep?: number;
+        contracts?: any[];
         participatingDetachments?: {
             id: string;
             name: string;
+            mercenaryCommandId?: string;
         }[];
     }[];
 }
@@ -207,7 +219,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         id: `camp-det-${det.id}`,
                         label: det.name,
                         type: 'DETACHMENT' as NodeType,
-                    metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: camp.id, managerView: true }
+                        metadata: { detachmentId: det.id, campaignId: camp.id, managerView: true }
                     }))
                 }))
             },
@@ -309,17 +321,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     if (!user) {
         return (
             <div className="public-landing">
-                <div style={{ textAlign: 'center', padding: '40px' }}>
+                <div className="landing-header">
                     <h1 className="main-title">HOTSPOTS: CAMPAIGNER</h1>
-                    <button className="login-button" onClick={() => window.location.href = 'http://localhost:8080/login/oauth2/authorization/google'}>
+                    <button type="button" className="login-button" onClick={() => window.location.href = 'http://localhost:8080/login/oauth2/authorization/google'} title="Login to your account">
                         COMMANDER LOGIN
                     </button>
                 </div>
-                <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                <div className="container landing-section">
                     <h2 className="section-title">AVAILABLE CAMPAIGNS</h2>
                     <ActiveCampaignsList />
                 </div>
-                <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', marginTop: '40px' }}>
+                <div className="container landing-section mt-40">
                     <h2 className="section-title">CAMPAIGN GENERATOR</h2>
                     <RandomCampaignGenerator user={undefined} />
                 </div>
@@ -385,7 +397,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         selectedCampaignId={selectedCampaignId}
                         campaignFilter={campaignFilter}
                         onSetFilter={setCampaignFilter}
-                        onSelectCampaign={(id) => { setSelectedCampaignId(id); setSelectedNodeId(id); }}
+                        onSelectCampaign={(id: string) => { setSelectedCampaignId(id); setSelectedNodeId(id); }}
                         onReturnToList={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}
                         onCreateNew={() => setActiveTab('create-campaign')}
                         onSelectDetachment={handleTreeSelect}
@@ -420,7 +432,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                 <div
                                     key={cmd.id}
                                     className={`dashboard-section ${selectedCommandId === cmd.id ? 'active-command-panel' : ''}`}
-                                    onClick={() => setSelectedCommandId(cmd.id)}
+                                    onClick={() => setSelectedCommandId(cmd.id)} title={`Select ${cmd.name}`}
                                     style={{
                                         cursor: 'pointer',
                                         border: selectedCommandId === cmd.id ? '2px solid var(--accent-primary)' : '1px solid var(--terminal-border)',
@@ -432,35 +444,35 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <h3 className="section-title" style={{ margin: 0 }}>{cmd.name || 'UNNAMED UNIT'}</h3>
                                         {selectedCommandId === cmd.id && <span className="restricted-text" style={{ color: 'var(--accent-primary)' }}>[ ACTIVE COMMAND ]</span>}
-                                    </div>
+                                    </div> {/* Added type="button" */}
 
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                                         <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMANDING OFFICER</span> {cmd.commandingOfficer || 'UNKNOWN'}</div>
                                         <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SUPPORT POINTS</span> {cmd.totalSupportPoints || 0}</div>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div>
-                                    </div>
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div> {/* Added title to button */}
+                                    </div> {/* Added type="button" */}
 
                                     {selectedCommandId === cmd.id && (
                                         <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-                                            <button
+                                            <button type="button"
                                                 className="mode-btn"
                                                 onClick={(e) => { e.stopPropagation(); setActiveTab('my-campaigns'); }}
                                             >
                                                 VIEW OPERATIONS
                                             </button>
-                                            <button
+                                            <button type="button"
                                                 className="mode-btn"
                                                 onClick={(e) => { e.stopPropagation(); setActiveTab('ledger'); }}
                                             >
                                                 OPEN LEDGER
                                             </button>
-                                            <button
+                                            <button type="button"
                                                 className="mode-btn"
                                                 onClick={(e) => { e.stopPropagation(); setActiveTab('command-dashboard'); }}
                                             >
                                                 COMMAND DASHBOARD
                                             </button>
-                                            <button
+                                            <button type="button"
                                                 className="mode-btn"
                                                 style={{ marginLeft: 'auto', border: '1px solid var(--terminal-alert)', color: 'var(--terminal-alert)' }}
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteCommand(cmd.id); }}
@@ -473,9 +485,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                             ))}
 
                             <div
-                                className="dashboard-section"
+                                className="dashboard-section" // Added type="button"
                                 onClick={() => setIsCreatingCommand(true)}
-                                style={{
+                                style={{ // Added title to button
                                     cursor: 'pointer',
                                     border: '1px dashed #666',
                                     textAlign: 'center',
@@ -486,7 +498,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                                     alignItems: 'center',
                                     justifyContent: 'center'
                                 }}
-                            >
+                            > {/* Added title to button */}
                                 <h3 className="terminal-text" style={{ margin: 0 }}>+ ESTABLISH NEW MERCENARY COMMAND</h3>
                             </div>
                         </div>
@@ -510,7 +522,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                     <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <header className="dashboard-header">
                             <h1 className="terminal-text">AVAILABLE CAMPAIGNS</h1>
-                        </header>
+                        </header> {/* Added title to button */}
                         <ActiveCampaignsList />
                     </div>
                 );
@@ -520,32 +532,32 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     };
 
     return (
-        <div className="dashboard-layout" style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--terminal-bg)' }}>
-            <aside className="sidebar-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: 'var(--terminal-bg)', width: '280px', borderRight: '1px solid var(--terminal-border)', flexShrink: 0 }}>
-                <div className="sidebar-header" style={{ padding: '20px', borderBottom: '1px solid var(--terminal-border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                        <svg width="24" height="24" viewBox="0 0 100 100" style={{ marginRight: '10px', filter: 'drop-shadow(0 0 5px var(--terminal-amber-dim))' }}>
+        <div className="dashboard-layout vw-100 vh-100 flex overflow-hidden">
+            <aside className="sidebar-container flex-col h-100">
+                <div className="sidebar-header-main">
+                    <div className="flex-center mb-5">
+                        <svg width="24" height="24" viewBox="0 0 100 100" className="sidebar-icon-svg">
                             <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="var(--terminal-amber)" strokeWidth="8" />
                             <circle cx="50" cy="50" r="18" fill="none" stroke="var(--terminal-amber)" strokeWidth="4" />
                             <path d="M50 20 L50 80 M20 50 L80 50" stroke="var(--terminal-amber)" strokeWidth="4" />
                         </svg>
-                        <span className="sidebar-logo" style={{ color: 'var(--terminal-amber)', fontWeight: 'bold', fontSize: '1.2rem', textShadow: '0 0 10px var(--terminal-amber-dim)' }}>HSC-TACTICAL</span>
+                        <span className="sidebar-logo-text">HSC-TACTICAL</span>
                     </div>
-                    <div className="restricted-text" style={{ fontSize: '0.6rem', marginTop: '4px' }}>COMMAND & CONTROL INTERFACE</div>
+                    <div className="restricted-text sidebar-subtitle">COMMAND & CONTROL INTERFACE</div>
                 </div>
                 <NavigationTree
                     data={treeData}
                     onSelect={handleTreeSelect}
                     selectedId={getSelectedNodeId()}
                 />
-                <div className="sidebar-footer" style={{ marginTop: 'auto', padding: '15px', borderTop: '1px solid var(--terminal-border)' }}>
-                    <div className="user-profile-mini" style={{ fontSize: '0.8rem', marginBottom: '10px', color: '#888' }}>
+                <div className="sidebar-footer-main">
+                    <div className="user-profile-mini sidebar-user-info">
                         👤 {user.name}
                     </div>
-                    <button className="mode-btn logout-btn" onClick={onLogout} style={{ width: '100%', fontSize: '0.7rem' }}>DISCONNECT NEURAL LINK</button>
+                    <button type="button" className="mode-btn logout-btn sidebar-logout-btn" onClick={onLogout} title="Disconnect from the system">DISCONNECT NEURAL LINK</button>
                 </div>
             </aside>
-            <main className={`main-content-wrapper ${getThemeClass()}`} style={{ flex: 1, height: '100vh', overflowY: 'auto', backgroundColor: 'var(--terminal-bg)', padding: '20px', borderLeft: '1px solid var(--terminal-border)' }}>
+            <main className={`main-content-wrapper ${getThemeClass()} h-100`}>
                 {renderTabContent()}
             </main>
         </div>

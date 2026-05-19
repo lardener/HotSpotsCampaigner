@@ -101,9 +101,3 @@
     color: #ff4444;
     background-color: rgba(255, 0, 0, 0.15);
 }
-
-.main-content-wrapper {
-    margin-left: 60px;
-    padding: 20px;
-    min-height: 100vh;
-}

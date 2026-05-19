@@ -68,20 +68,22 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                 <form onSubmit={handleSubmit}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
                         <div className="form-group">
-                            <label className="zone-header" style={{ display: 'block' }}>COMMAND NAME</label>
+                            <label htmlFor="command-name" className="zone-header block-label">COMMAND NAME</label>
                             <input
+                                id="command-name"
                                 type="text"
                                 className="mode-btn text-left"
                                 style={{ width: '100%', padding: '10px' }}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="FORCE DESIGNATION..."
+                                title="Enter the name of your mercenary unit"
                                 required
                             />
                         </div>
                         <div className="form-group">
-                            <label className="zone-header" style={{ display: 'block' }}>COMMANDING OFFICER</label>
-                            <div className="mode-btn" style={{ padding: '10px', opacity: 0.7, cursor: 'default' }}>
+                            <label className="zone-header block-label">COMMANDING OFFICER</label>
+                            <div className="mode-btn" style={{ padding: '10px', opacity: 0.7, cursor: 'default' }} title="CO assigned from neural link profile">
                                 {user?.name || 'UNKNOWN COMMANDER'}
                             </div>
                         </div>
@@ -89,12 +91,14 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px' }}>
                         <div className="form-group">
-                            <label className="zone-header" style={{ display: 'block' }}>EXPERIENCE LEVEL</label>
+                            <label htmlFor="exp-level" className="zone-header block-label">EXPERIENCE LEVEL</label>
                             <select
+                                id="exp-level"
                                 className="mode-btn"
                                 style={{ width: '100%', padding: '10px' }}
                                 value={experienceLevel}
                                 onChange={(e) => handleLevelChange(e.target.value)}
+                                title="Select initial experience level"
                             >
                                 <option value="GREEN">GREEN (800 SP)</option>
                                 <option value="REGULAR">REGULAR (1000 SP)</option>
@@ -103,13 +107,15 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                             </select>
                         </div>
                         <div className="form-group">
-                            <label className="zone-header" style={{ display: 'block' }}>INITIAL WARCHEST (SP)</label>
+                            <label htmlFor="initial-sp" className="zone-header block-label">INITIAL WARCHEST (SP)</label>
                             <input
+                                id="initial-sp"
                                 type="number"
                                 className="mode-btn text-left"
                                 style={{ width: '100%', padding: '10px' }}
                                 value={initialSP}
                                 onChange={(e) => setInitialSP(parseInt(e.target.value))}
+                                title="Initial Support Points"
                             />
                         </div>
                     </div>

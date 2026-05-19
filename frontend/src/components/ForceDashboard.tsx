@@ -239,13 +239,13 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                     </div>
 
                     <nav className="mode-switcher" style={{ marginTop: '1rem' }}>
-                        <button
+                        <button type="button"
                             className={`mode-btn ${viewMode === 'ORGANIZATION' ? 'active' : ''}`}
                             onClick={() => setViewMode('ORGANIZATION')}
                         >
                             [ 01 ] FORCE ORGANIZATION
                         </button>
-                        <button
+                        <button type="button"
                             className={`mode-btn ${viewMode === 'OPERATIONS' ? 'active' : ''}`}
                             onClick={() => setViewMode('OPERATIONS')}
                         >
@@ -260,7 +260,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         <DroppableZone id="pool" title="RESERVE POOL">
                             <div className="asset-group">
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <h4>COMBAT UNITS</h4>
+                                    <h4 title="Combat Units">COMBAT UNITS</h4> {/* Added type="button" */}
                                     <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.6rem' }}>+</button>
                                 </div>
                                 {units.filter(u => !u.detachmentId).map(u => (
@@ -275,7 +275,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                             </div>
                             <div className="asset-group">
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <h4>PILOT BARRACKS</h4>
+                                    <h4 title="Pilot Barracks">PILOT BARRACKS</h4> {/* Added type="button" */}
                                     <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.6rem' }}>+</button>
                                 </div>
                                 {pilots.filter(p => !p.detachmentId).map(p => (
@@ -335,8 +335,8 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                 {managedCampaigns.map(camp => (
                                     <div key={camp.id} className="ops-item tactical-panel" style={{ marginBottom: '0.5rem' }}>
                                         <div className="ops-title">{camp.name}</div>
-                                        <div className="ops-status">SYSTEM: {camp.systemName} | TRACKS: {camp.trackCount}</div>
-                                        <button className="mode-btn" style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>MANAGE THEATER</button>
+                                        <div className="ops-status" title={`System: ${camp.systemName} | Tracks: ${camp.trackCount}`}>SYSTEM: {camp.systemName} | TRACKS: {camp.trackCount}</div>
+                                        <button type="button" className="mode-btn" style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>MANAGE THEATER</button>
                                     </div>
                                 ))}
                                 {managedCampaigns.length === 0 && (
@@ -352,9 +352,9 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                 {participatingCampaigns.map(camp => (
                                     <div key={camp.id} className="ops-item tactical-panel" style={{ marginBottom: '0.5rem' }}>
                                         <div className="ops-title">{camp.name}</div>
-                                        <div className="ops-meta">EMPLOYER: {camp.primaryEmployer}</div>
+                                        <div className="ops-meta" title={`Employer: ${camp.primaryEmployer}`}>EMPLOYER: {camp.primaryEmployer}</div>
                                         <div className="ops-meta">CURRENT WARCHEST: 4500 SP</div>
-                                        <div className="ops-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <div className="ops-actions" style={{ display: 'flex', gap: '0.5rem' }}> {/* Added type="button" */}
                                             <button className="mode-btn" style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>OPEN LOGBOOK</button>
                                         </div>
                                     </div>

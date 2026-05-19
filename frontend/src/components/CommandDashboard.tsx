@@ -711,53 +711,57 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     return (
         <div key={commandId} className="container unit-profile theme-amber">
-            <header className="dashboard-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <header className="dashboard-header dossier-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
                     <h1 className="terminal-text">{command.name} - COMMAND DASHBOARD</h1>
                 </div>
-                <div className="sync-indicator text-right" style={{ paddingBottom: '5px' }}>
+                <div className="sync-indicator text-right pb-5">
                     <span className={`restricted-text ${isSyncing ? 'pulse' : ''}`} style={{ color: isSyncing ? 'var(--terminal-amber)' : 'var(--terminal-green)', fontSize: '0.7rem' }}>
                         {isSyncing ? '>> UPLOADING DATA...' : '● NEURAL LINK: STABLE'}
                     </span>
-                    {lastSaved && !isSyncing && <div style={{ fontSize: '0.6rem', opacity: 0.5 }}>LAST SYNC: {lastSaved}</div>}
+                    {lastSaved && !isSyncing && <div className="last-sync-time">LAST SYNC: {lastSaved}</div>}
                 </div>
             </header>
-            <div className="header-metadata-row" style={{ marginBottom: '20px' }}>
-                <div className="tactical-header-grid" style={{ display: 'flex', gap: '40px', marginTop: '10px' }}>
+            <div className="header-metadata-row mb-20">
+                <div className="tactical-header-grid flex flex-gap-40 mt-10">
                     <div className="input-group">
-                        <label className="restricted-text">CO:</label>
+                        <label htmlFor="header-co" className="restricted-text">CO:</label>
                         <input
+                            id="header-co"
                             disabled={isManagerView}
                             className="inline-edit"
                             defaultValue={command.commandingOfficer}
                             onChange={(e) => handleHeaderUpdate('CO', e.target.value, false)}
                             onBlur={(e) => handleHeaderUpdate('CO', e.target.value, true)}
+                            title="Commanding Officer Name"
                         />
                     </div>
                     <div className="input-group">
-                        <label className="restricted-text">WARCHEST (SP):</label>
+                        <label htmlFor="header-sp" className="restricted-text">WARCHEST (SP):</label>
                         <input
+                            id="header-sp"
                             disabled={isManagerView}
                             type="number"
-                            className="inline-edit"
-                            style={{ width: '6em' }}
+                            className="inline-edit inline-edit-input"
                             defaultValue={command.totalSupportPoints}
                             onChange={(e) => handleHeaderUpdate('SP', e.target.value, false)}
                             onBlur={(e) => handleHeaderUpdate('SP', e.target.value, true)}
+                            title="Total Support Points"
                         />
                     </div>
                     <div className="input-group">
-                        <label className="restricted-text">REPUTATION:</label>
+                        <label htmlFor="header-rep" className="restricted-text">REPUTATION:</label>
                         <input
+                            id="header-rep"
                             disabled={isManagerView}
                             type="number"
-                            className="inline-edit"
-                            style={{ width: '4em' }}
+                            className="inline-edit inline-edit-input-small"
                             defaultValue={command.reputation}
                             onChange={(e) => handleHeaderUpdate('REP', e.target.value, false)}
                             onBlur={(e) => handleHeaderUpdate('REP', e.target.value, true)}
+                            title="Force Reputation Score"
                         />
-                        <span className="restricted-text" style={{ marginLeft: '10px' }}>[ LVL: {command.experienceLevel.toUpperCase()} ]</span>
+                        <span className="restricted-text input-group-gap">[ LVL: {command.experienceLevel.toUpperCase()} ]</span>
                     </div>
                 </div>
             </div>
@@ -794,12 +798,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
                     {selectedDetachmentId && !isManagerView && (
                         <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
-                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
+                            <label htmlFor="invite-token" className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
                             <input
+                                id="invite-token"
                                 className="table-input"
                                 placeholder="INVITE TOKEN..."
                                 value={inviteToken}
                                 onChange={(e) => setInviteToken(e.target.value)}
+                                title="Enter campaign invitation key"
                             />
                             <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
                         </div>
@@ -900,6 +906,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">
                                             <select
                                                 className="table-input"
+                                                title="Unit Classification"
                                                 autoFocus={u.id === justAddedId}
                                                 onFocus={() => setJustAddedId(null)}
                                                 defaultValue={u.type}
@@ -911,12 +918,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         </td>
                                         <td><input
                                             className="table-input"
+                                            title="Unit Model"
                                             defaultValue={u.model}
                                             onChange={(e) => handleUnitUpdate(u.id, 'model', e.target.value, false)}
                                             onBlur={(e) => handleUnitUpdate(u.id, 'model', e.target.value, true)}
                                         /></td>
                                         <td className="text-center"><input
                                             className="table-input"
+                                            title="Unit Variant"
                                             style={{ width: '10em' }}
                                             defaultValue={u.variant}
                                             onChange={(e) => handleUnitUpdate(u.id, 'variant', e.target.value, false)}
@@ -925,6 +934,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">
                                             <select
                                                 className="table-input"
+                                                title="Technology Base"
                                                 defaultValue={u.techBase}
                                                 onChange={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value)}
                                                 onBlur={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value, true)}
@@ -932,21 +942,22 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 {TECH_BASES.map(t => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.tonnage}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.tonnage} title="Tonnage"
                                             onChange={(e) => handleUnitUpdate(u.id, 'tonnage', e.target.value, false)}
                                             onBlur={(e) => handleUnitUpdate(u.id, 'tonnage', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={u.asSize}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={u.asSize} title="AS Size"
                                             onChange={(e) => handleUnitUpdate(u.id, 'asSize', e.target.value, false)}
                                             onBlur={(e) => handleUnitUpdate(u.id, 'asSize', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '5em' }} type="number" defaultValue={u.bv}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '5em' }} type="number" defaultValue={u.bv} title="Battle Value"
                                             onChange={(e) => handleUnitUpdate(u.id, 'bv', e.target.value, false)}
                                             onBlur={(e) => handleUnitUpdate(u.id, 'bv', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.pv}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.pv} title="Point Value"
                                             onChange={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, false)}
                                             onBlur={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, true)} /></td>
                                         <td className="text-center">
                                             <select
                                                 className="table-input"
+                                                title="Unit Operational Status"
                                                 defaultValue={u.status}
                                                 onChange={(e) => handleUnitUpdate(u.id, 'status', e.target.value)}
                                                 onBlur={(e) => handleUnitUpdate(u.id, 'status', e.target.value, true)}
@@ -958,6 +969,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                             <td className="text-center">
                                                 <select
                                                     className="table-input"
+                                                    title="Assign to Detachment"
                                                     value={u.detachmentId || ""}
                                                     onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
                                                 >
@@ -1004,22 +1016,26 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     <tr key={p.id}>
                                         <td><input
                                             className="table-input"
+                                            title="Pilot Name"
                                             autoFocus={p.id === justAddedId}
                                             onFocus={() => setJustAddedId(null)}
                                             defaultValue={p.name}
                                             onChange={(e) => handlePilotUpdate(p.id, 'name', e.target.value, false)}
                                             onBlur={(e) => handlePilotUpdate(p.id, 'name', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.gunnery}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.gunnery} title="Gunnery Skill"
                                             onChange={(e) => handlePilotUpdate(p.id, 'gunnery', e.target.value, false)}
                                             onBlur={(e) => handlePilotUpdate(p.id, 'gunnery', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.piloting}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.piloting} title="Piloting Skill"
                                             onChange={(e) => handlePilotUpdate(p.id, 'piloting', e.target.value, false)}
                                             onBlur={(e) => handlePilotUpdate(p.id, 'piloting', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.asSkill}
+                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.asSkill} title="Alpha Strike Skill"
                                             onChange={(e) => handlePilotUpdate(p.id, 'asSkill', e.target.value, false)}
                                             onBlur={(e) => handlePilotUpdate(p.id, 'asSkill', e.target.value, true)} /></td>
                                         <td className="text-center">
-                                            <select className="table-input" defaultValue={p.unitType}
+                                            <select
+                                                className="table-input"
+                                                defaultValue={p.unitType}
+                                                title="Pilot Specialty"
                                                 onChange={(e) => handlePilotUpdate(p.id, 'unitType', e.target.value)}
                                                 onBlur={(e) => handlePilotUpdate(p.id, 'unitType', e.target.value, true)}>
                                                 {UNIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -1028,6 +1044,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">
                                             <select
                                                 className="table-input"
+                                                title="Pilot Health Status"
                                                 defaultValue={p.status}
                                                 onChange={(e) => handlePilotUpdate(p.id, 'status', e.target.value)}
                                                 onBlur={(e) => handlePilotUpdate(p.id, 'status', e.target.value, true)}
@@ -1039,6 +1056,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                             <td className="text-center">
                                                 <select
                                                     className="table-input"
+                                                    title="Assign to Barracks/Detachment"
                                                     value={p.detachmentId || ""}
                                                     onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
                                                 >

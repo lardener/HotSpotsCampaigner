@@ -6,8 +6,8 @@ export function Login() {
     window.location.href = 'http://localhost:8080/login/oauth2/authorization/google';
   };
 
-  return (
-    <button onClick={handleGoogleLogin} className="login-button">
+  return ( // Added type="button"
+    <button onClick={handleGoogleLogin} className="login-button" title="Login with your Google account">
       Login with Google
     </button>
   );

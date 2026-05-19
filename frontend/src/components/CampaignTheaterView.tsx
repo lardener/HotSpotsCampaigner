@@ -172,8 +172,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     </span>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
+                                    <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>OPPOSITION</span> {camp.secondaryEmployer || 'UNKNOWN'}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
                                     <div className="text-right" style={{ alignSelf: 'end' }}>
@@ -195,30 +196,30 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             ) : (
                 <>
                     <header className="dashboard-header">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="flex-between">
                             <div>
                                 <h1 className="terminal-text">{campaign?.name}</h1>
                                 <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
                             </div>
-                            <button className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
+                            <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
                         </div>
                     </header>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                    <div className="grid-3-col mb-30">
                         <div className="tactical-panel" style={{ gridColumn: 'span 2' }}>
                             <h3 className="zone-header">THEATER INTEL</h3>
-                            <div className="form-group">
-                                <label className="restricted-text">LOCATION</label>
-                                <input className="table-input" defaultValue={campaign?.systemName} onChange={(e) => handleUpdate('systemName', e.target.value)} />
+                            <div className="form-group"> {/* Added title to input */}
+                                <label htmlFor="theater-location" className="restricted-text">LOCATION</label>
+                                <input id="theater-location" className="table-input" defaultValue={campaign?.systemName} onChange={(e) => handleUpdate('systemName', e.target.value)} placeholder="Star System Name..." title="Geographic center of operations" />
                             </div>
-                            <div className="form-group" style={{ marginTop: '10px' }}>
-                                <label className="restricted-text">MISSION DESCRIPTION</label>
-                                <textarea className="table-input" style={{ height: '80px' }} defaultValue={campaign?.description} onChange={(e) => handleUpdate('description', e.target.value)} />
+                            <div className="form-group mt-10"> {/* Added title to textarea */}
+                                <label htmlFor="theater-description" className="restricted-text">MISSION DESCRIPTION</label>
+                                <textarea id="theater-description" className="table-input" style={{ height: '80px' }} defaultValue={campaign?.description} onChange={(e) => handleUpdate('description', e.target.value)} placeholder="Operational details and briefing lore..." title="Primary mission summary" />
                             </div>
 
-                            <div style={{ marginTop: '15px' }}>
+                            <div className="mt-15">
                                 <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '5px' }}>
+                                <div className="grid-5-col mt-5">
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY (STEP {campaign?.payStep})</label>
                                         <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem' }}>{Math.round((campaign?.payRate || 0) * 100)}%</div>
@@ -279,7 +280,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     {activeToken}
                                 </div>
                             ) : (
-                                <button className="login-button" style={{ marginTop: '15px' }} onClick={handleGenerateInvite}>GENERATE INVITE KEY</button>
+                                <button type="button" className="login-button" style={{ marginTop: '15px' }} onClick={handleGenerateInvite} title="Generate a new invitation key">GENERATE INVITE KEY</button>
                             )}
 
                             {campaignInvites.length > 0 && (
@@ -317,7 +318,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <div className="asset-type">DETACHMENT</div>
                                         <div className="asset-label">{det.name}</div>
                                     </div>
-                                    <button className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>
+                                    <button type="button" className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>
                                 </div>
                             ))}
                             {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (

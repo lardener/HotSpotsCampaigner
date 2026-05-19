@@ -68,6 +68,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
                     value={selectedDetachmentId}
                     onChange={(e) => setSelectedDetachmentId(e.target.value)}
                     style={{ marginLeft: '10px', padding: '5px' }}
+                    title="Select active detachment for ledger entries"
                 >
                     {detachments.map((d: any) => (
                         <option key={d.id} value={d.id}>{d.name}</option>

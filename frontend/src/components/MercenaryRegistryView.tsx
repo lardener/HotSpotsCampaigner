@@ -31,7 +31,7 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
                     <div
                         key={cmd.id}
                         className={`dashboard-section ${selectedCommandId === cmd.id ? 'active-command-panel' : ''}`}
-                        onClick={() => onSelectCommand(cmd.id)}
+                        onClick={() => onSelectCommand(cmd.id)} title={`Select ${cmd.name}`}
                         style={{
                             cursor: 'pointer',
                             border: selectedCommandId === cmd.id ? '2px solid var(--accent-primary)' : '1px solid var(--terminal-border)',
@@ -48,15 +48,15 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                             <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMANDING OFFICER</span> {cmd.commandingOfficer || 'UNKNOWN'}</div>
                             <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SUPPORT POINTS</span> {cmd.totalSupportPoints || 0}</div>
-                            <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div>
+                            <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div> {/* Added title to button */}
                         </div>
 
                         {selectedCommandId === cmd.id && (
-                            <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-                                <button className="mode-btn" onClick={(e) => { e.stopPropagation(); onViewOperations(); }}>VIEW OPERATIONS</button>
-                                <button className="mode-btn" onClick={(e) => { e.stopPropagation(); onOpenLedger(); }}>OPEN LEDGER</button>
-                                <button className="mode-btn" onClick={(e) => { e.stopPropagation(); onViewUnitProfile(); }}>UNIT PROFILE</button>
-                                <button
+                            <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px', display: 'flex', gap: '10px' }}> {/* Added type="button" */}
+                                <button type="button" className="mode-btn" onClick={(e) => { e.stopPropagation(); onViewOperations(); }}>VIEW OPERATIONS</button>
+                                <button type="button" className="mode-btn" onClick={(e) => { e.stopPropagation(); onOpenLedger(); }}>OPEN LEDGER</button>
+                                <button type="button" className="mode-btn" onClick={(e) => { e.stopPropagation(); onViewUnitProfile(); }}>UNIT PROFILE</button>
+                                <button type="button"
                                     className="mode-btn"
                                     style={{ marginLeft: 'auto', border: '1px solid var(--terminal-alert)', color: 'var(--terminal-alert)' }}
                                     onClick={(e) => { e.stopPropagation(); onDeleteCommand(cmd.id); }}
@@ -71,7 +71,7 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
                 <div
                     className="dashboard-section"
                     onClick={onEstablishCommand}
-                    style={{ cursor: 'pointer', border: '1px dashed #666', textAlign: 'center', padding: '30px', opacity: 0.7, backgroundColor: 'rgba(255, 255, 255, 0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ cursor: 'pointer', border: '1px dashed #666', textAlign: 'center', padding: '30px', opacity: 0.7, backgroundColor: 'rgba(255, 255, 255, 0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Establish a new mercenary command"
                 >
                     <h3 className="terminal-text" style={{ margin: 0 }}>+ ESTABLISH NEW MERCENARY COMMAND</h3>
                 </div>

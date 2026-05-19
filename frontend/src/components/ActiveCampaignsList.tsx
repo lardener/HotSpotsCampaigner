@@ -47,7 +47,7 @@ export const ActiveCampaignsList: React.FC = () => {
             <p className="restricted-text">SITUATION REPORT: HINTERLANDS REGION</p>
 
             <div className="search-placeholder" style={{ margin: '20px 0', padding: '10px', border: '1px dashed #444', color: '#666' }}>
-                [ SEARCH FILTERS: RECRUITMENT STATUS / REGION / FACTION ]
+                <span title="Search filters for recruitment status, region, or faction">[ SEARCH FILTERS: RECRUITMENT STATUS / REGION / FACTION ]</span>
             </div>
 
             <div className="campaign-list">

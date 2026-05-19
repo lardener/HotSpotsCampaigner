@@ -6,7 +6,7 @@ interface WelcomeProps {
 
 export function Welcome({ userName }: WelcomeProps) {
   return (
-    <div className="welcome-container">
+    <div className="welcome-container" title={`Welcome ${userName} to the Mercenary Life`}>
       <h1>Welcome {userName} to the Mercenary Life</h1>
     </div>
   );
