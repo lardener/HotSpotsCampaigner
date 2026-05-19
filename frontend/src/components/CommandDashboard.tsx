@@ -38,6 +38,15 @@ const GET_UNIT_DOSSIER = gql`
         id
         name
       }
+      allLedgerEntries {
+        id
+        timestamp
+        description
+        amount
+        coverAmount
+        paidAmount
+        reputationChange
+      }
     }
   }
 `;
@@ -73,6 +82,7 @@ const HIRE_PILOT = gql`
       asSkill
       unitType
       status
+      detachmentId
     }
   }
 `;
@@ -90,6 +100,7 @@ const ADD_UNIT = gql`
       bv
       pv
       status
+      detachmentId
     }
   }
 `;
@@ -174,6 +185,17 @@ interface Pilot {
     detachmentId?: string | null;
 }
 
+interface LedgerEntry {
+    id: string;
+    detachmentId?: string;
+    amount: number;
+    description: string;
+    timestamp: string;
+    coverAmount?: number;
+    paidAmount?: number;
+    reputationChange?: number;
+}
+
 interface UpdateCommandVars {
     id: string;
     co?: string;
@@ -191,6 +213,7 @@ interface CombatUnitInput {
     bv?: number;
     pv?: number;
     status?: string;
+    detachmentId?: string | null;
 }
 
 interface UpdateUnitVars {
@@ -205,6 +228,7 @@ interface PilotInput {
     asSkill?: number;
     unitType?: string;
     status?: string;
+    detachmentId?: string | null;
 }
 
 interface UpdatePilotVars {
@@ -248,6 +272,11 @@ interface HirePilotData {
     hirePilot: Pilot;
 }
 
+interface ManagedCampaign {
+    id: string;
+    name: string;
+}
+
 type Detachment = any; // Placeholder, as detachments are not yet fully typed from GraphQL
 
 interface UnitDossierData {
@@ -261,20 +290,28 @@ interface UnitDossierData {
         units: CombatUnit[];
         detachments: Detachment[];
         pilots: Pilot[];
+        allLedgerEntries: LedgerEntry[];
     };
+    managedCampaigns: ManagedCampaign[];
 }
 
 interface CommandDashboardProps {
     commandId: string;
+    detachmentId?: string;
 }
 
-export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId }) => {
+export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
     // Form states
     const [isSyncing, setIsSyncing] = useState(false);
     const [justAddedId, setJustAddedId] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
+
+    // Synchronize selection with prop changes (e.g. from Navigation Tree)
+    useEffect(() => {
+        setSelectedDetachmentId(detachmentId || null);
+    }, [detachmentId]);
 
     const { loading, data } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId }
@@ -525,7 +562,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                         model: "NEW UNIT",
                         tonnage: 0,
                         type: 'BM',
-                        status: 'Nominal'
+                        status: 'Nominal',
+                        detachmentId: selectedDetachmentId
                     }
                 }
             });
@@ -542,7 +580,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                         name: "NEW PILOT",
                         gunnery: 4,
                         piloting: 5,
-                        status: 'Healthy'
+                        status: 'Healthy',
+                        detachmentId: selectedDetachmentId
                     }
                 }
             });
@@ -607,8 +646,21 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
     const command = data?.getCommand;
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
 
-    // Calculate Summaries for Force Pool
-    const unitSummaries = Object.values(command.units.reduce((acc, u) => {
+    // Filter rosters for the focused detachment
+    const filteredUnits = selectedDetachmentId
+        ? command.units.filter(u => u.detachmentId === selectedDetachmentId)
+        : command.units;
+
+    const filteredPilots = selectedDetachmentId
+        ? command.pilots.filter(p => p.detachmentId === selectedDetachmentId)
+        : command.pilots;
+
+    const filteredLedger = selectedDetachmentId
+        ? command.allLedgerEntries.filter(e => e.detachmentId === selectedDetachmentId)
+        : command.allLedgerEntries;
+
+    // Calculate Summaries based on filtered assets
+    const unitSummaries = Object.values(filteredUnits.reduce((acc, u) => {
         const type = u.type || 'UNKNOWN';
         if (!acc[type]) acc[type] = { type, count: 0, tons: 0, bv: 0, pv: 0, sz: 0 };
         acc[type].count++;
@@ -619,7 +671,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
         return acc;
     }, {} as Record<string, any>));
 
-    const pilotSummaries = Object.values(command.pilots.reduce((acc, p) => {
+    const pilotSummaries = Object.values(filteredPilots.reduce((acc, p) => {
         const spec = p.unitType || 'UNKNOWN';
         if (!acc[spec]) acc[spec] = { spec, count: 0, gun: 0, pil: 0, as: 0 };
         acc[spec].count++;
@@ -714,73 +766,71 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                 </aside>
 
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                    {selectedDetachmentId === null && (
-                        <section className="dashboard-section tactical-panel" data-id="FORCE-SUMMARY">
-                            <h3 className="zone-header">COMMAND READINESS</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                <div>
-                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>UNIT READINESS</span>
-                                    <table className="tactical-table" style={{ marginTop: '5px' }}>
-                                        <thead>
-                                            <tr>
-                                                <th className="text-center">TYPE</th>
-                                                <th className="text-center">QTY</th>
-                                                <th className="text-center">TONS</th>
-                                                <th className="text-center">BV</th>
-                                                <th className="text-center">PV</th>
-                                                <th className="text-center">SZ</th>
+                    <section className="dashboard-section tactical-panel" data-id="FORCE-SUMMARY">
+                        <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT READINESS' : 'COMMAND READINESS'}</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                            <div>
+                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>UNIT READINESS</span>
+                                <table className="tactical-table" style={{ marginTop: '5px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th className="text-center">TYPE</th>
+                                            <th className="text-center">QTY</th>
+                                            <th className="text-center">TONS</th>
+                                            <th className="text-center">BV</th>
+                                            <th className="text-center">PV</th>
+                                            <th className="text-center">SZ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {unitSummaries.map((s: any) => (
+                                            <tr key={s.type}>
+                                                <td className="text-center">{s.type}</td>
+                                                <td className="text-center">{s.count}</td>
+                                                <td className="text-right">{s.tons}</td>
+                                                <td className="text-right">{s.bv}</td>
+                                                <td className="text-right">{s.pv}</td>
+                                                <td className="text-center">{s.sz}</td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {unitSummaries.map((s: any) => (
-                                                <tr key={s.type}>
-                                                    <td className="text-center">{s.type}</td>
-                                                    <td className="text-center">{s.count}</td>
-                                                    <td className="text-right">{s.tons}</td>
-                                                    <td className="text-right">{s.bv}</td>
-                                                    <td className="text-right">{s.pv}</td>
-                                                    <td className="text-center">{s.sz}</td>
-                                                </tr>
-                                            ))}
-                                            <tr style={{ borderTop: '2px solid var(--accent-dim)', fontWeight: 'bold' }}>
-                                                <td className="text-center">TOTAL</td>
-                                                <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.count, 0)}</td>
-                                                <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.tons, 0)}</td>
-                                                <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.bv, 0)}</td>
-                                                <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.pv, 0)}</td>
-                                                <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.sz, 0)}</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div>
-                                    <span className="restricted-text" style={{ fontSize: '0.7rem' }}>PILOT READINESS</span>
-                                    <table className="tactical-table" style={{ marginTop: '5px' }}>
-                                        <thead>
-                                            <tr>
-                                                <th className="text-center">SPECIALTY</th>
-                                                <th className="text-center">QTY</th>
-                                                <th className="text-center">AVG GUN</th>
-                                                <th className="text-center">AVG PIL</th>
-                                                <th className="text-center">AVG AS</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {pilotSummaries.map((s: any) => (
-                                                <tr key={s.spec}>
-                                                    <td className="text-center">{s.spec}</td>
-                                                    <td className="text-center">{s.count}</td>
-                                                    <td className="text-center">{(s.gun / s.count).toFixed(1)}</td>
-                                                    <td className="text-center">{(s.pil / s.count).toFixed(1)}</td>
-                                                    <td className="text-center">{(s.as / s.count).toFixed(1)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        ))}
+                                        <tr style={{ borderTop: '2px solid var(--accent-dim)', fontWeight: 'bold' }}>
+                                            <td className="text-center">TOTAL</td>
+                                            <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.count, 0)}</td>
+                                            <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.tons, 0)}</td>
+                                            <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.bv, 0)}</td>
+                                            <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.pv, 0)}</td>
+                                            <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.sz, 0)}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
-                        </section>
-                    )}
+                            <div>
+                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>PILOT READINESS</span>
+                                <table className="tactical-table" style={{ marginTop: '5px' }}>
+                                    <thead>
+                                        <tr>
+                                            <th className="text-center">SPECIALTY</th>
+                                            <th className="text-center">QTY</th>
+                                            <th className="text-center">AVG GUN</th>
+                                            <th className="text-center">AVG PIL</th>
+                                            <th className="text-center">AVG AS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pilotSummaries.map((s: any) => (
+                                            <tr key={s.spec}>
+                                                <td className="text-center">{s.spec}</td>
+                                                <td className="text-center">{s.count}</td>
+                                                <td className="text-center">{(s.gun / s.count).toFixed(1)}</td>
+                                                <td className="text-center">{(s.pil / s.count).toFixed(1)}</td>
+                                                <td className="text-center">{(s.as / s.count).toFixed(1)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
 
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
@@ -799,12 +849,12 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                                     <th className="text-center" title="Battle Value">BV</th>
                                     <th className="text-center" title="Point Value">PV</th>
                                     <th className="text-center">STATUS</th>
-                                    <th className="text-center">DETACHMENT</th>
+                                    {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {command.units.map(u => (
+                                {filteredUnits.map(u => (
                                     <tr key={u.id}>
                                         <td className="text-center">
                                             <select
@@ -863,16 +913,18 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                                                 {UNIT_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
                                         </td>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                value={u.detachmentId || ""}
-                                                onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
-                                            >
-                                                <option value="">[ HANGAR ]</option>
-                                                {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                            </select>
-                                        </td>
+                                        {!selectedDetachmentId && (
+                                            <td className="text-center">
+                                                <select
+                                                    className="table-input"
+                                                    value={u.detachmentId || ""}
+                                                    onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
+                                                >
+                                                    <option value="">[ HANGAR ]</option>
+                                                    {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                </select>
+                                            </td>
+                                        )}
                                         <td className="text-center">
                                             <button
                                                 className="mode-btn"
@@ -900,12 +952,12 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                                     <th className="text-center">AS SKILL</th>
                                     <th className="text-center">UNIT SPECIALTY</th>
                                     <th className="text-center">STATUS</th>
-                                    <th className="text-center">DETACHMENT</th>
+                                    {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {command.pilots.map(p => (
+                                {filteredPilots.map(p => (
                                     <tr key={p.id}>
                                         <td><input
                                             className="table-input"
@@ -940,16 +992,18 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                                                 {PILOT_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
                                         </td>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                value={p.detachmentId || ""}
-                                                onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
-                                            >
-                                                <option value="">[ BARRACKS ]</option>
-                                                {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                            </select>
-                                        </td>
+                                        {!selectedDetachmentId && (
+                                            <td className="text-center">
+                                                <select
+                                                    className="table-input"
+                                                    value={p.detachmentId || ""}
+                                                    onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
+                                                >
+                                                    <option value="">[ BARRACKS ]</option>
+                                                    {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                </select>
+                                            </td>
+                                        )}
                                         <td className="text-center">
                                             <button
                                                 className="mode-btn"
@@ -963,6 +1017,38 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId })
                         </table>
                     </section>
                 </main>
+
+                <section className="dashboard-section tactical-panel" data-id={selectedDetachmentId ? "DETACHMENT-LEDGER" : "COMMAND-LEDGER"} style={{ gridColumn: '1 / -1', marginTop: '30px' }}>
+                    <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT LEDGER' : 'COMMAND LEDGER'}</h3>
+                    <table className="tactical-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: '10%' }}>DATE</th>
+                                <th style={{ width: '40%' }}>EVENT</th>
+                                <th className="text-right" style={{ width: '10%' }}>SPENT (SP)</th>
+                                <th className="text-right" style={{ width: '10%' }}>PAID (SP)</th>
+                                <th className="text-right" style={{ width: '10%' }}>REP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredLedger.length > 0 ? (
+                                filteredLedger.map(entry => (
+                                    <tr key={entry.id}>
+                                        <td>{new Date(entry.timestamp).toLocaleDateString()}</td>
+                                        <td>{entry.description}</td>
+                                        <td className="text-right">{(entry.amount || 0) - (entry.coverAmount || 0)}</td>
+                                        <td className="text-right">{entry.paidAmount !== undefined ? entry.paidAmount : '-'}</td>
+                                        <td className="text-right">{entry.reputationChange !== undefined ? entry.reputationChange : '-'}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="text-center restricted-text">NO TRANSACTIONS RECORDED</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </section>
             </div>
         </div>
     );

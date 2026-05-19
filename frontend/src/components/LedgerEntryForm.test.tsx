@@ -16,7 +16,7 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY,
-                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts' },
+                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
                 },
                 result: {
                     data: { addLedgerEntry: { id: 'entry-123' } },
@@ -37,6 +37,9 @@ describe('LedgerEntryForm', () => {
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } });
         fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } });
+        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } });
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {
@@ -49,8 +52,8 @@ describe('LedgerEntryForm', () => {
         const mocks = [
             {
                 request: {
-                    query: ADD_LEDGER_ENTRY,
-                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts' },
+                    query: ADD_LEDGER_ENTRY, // Assuming the mutation variables will be updated in the test
+                    variables: { detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
                 },
                 error: new Error('GraphQL error'),
             },
@@ -69,6 +72,9 @@ describe('LedgerEntryForm', () => {
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } });
         fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } });
+        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } });
+        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } });
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {

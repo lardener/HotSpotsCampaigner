@@ -209,7 +209,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         } else if (item.type === 'DETACHMENT' || item.type === 'DEPLOYMENT') {
             if (item.metadata?.commandId) setSelectedCommandId(item.metadata.commandId);
             if (item.metadata?.detachmentId) setSelectedDetachmentId(item.metadata.detachmentId);
-            setActiveTab('ledger'); // Deployment-specific ledger
+            setActiveTab('command-dashboard'); // Focus the unit dossier for this detachment
         } else if (item.id === 'root-campaigns') {
             setSelectedCampaignId(null);
             setSelectedDetachmentId(null);
@@ -539,7 +539,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 ) : null;
             case 'command-dashboard':
                 return selectedCommandId ? (
-                    <CommandDashboard commandId={selectedCommandId} />
+                    <CommandDashboard commandId={selectedCommandId} detachmentId={selectedDetachmentId || undefined} />
                 ) : null;
             case 'public-campaigns':
                 return (

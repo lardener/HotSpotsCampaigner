@@ -122,6 +122,12 @@ CREATE TABLE ledger_entries (
     `short_description` VARCHAR(1000),
     `timestamp` DATETIME,
     `running_total` INT,
+    `cover_amount` INT,
+    `paid_amount` INT,
+    `reputation_change` INT,
+    `campaign_id` VARCHAR(36),
+    `campaign_name` VARCHAR(255),
+    `contract_month` VARCHAR(50),
     CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE
 );
 

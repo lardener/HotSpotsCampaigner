@@ -408,7 +408,6 @@ public class MercenaryCommandService {
             }
             unit.setId(UUID.randomUUID());
             unit.setCommandId(commandId);
-            unit.setDetachmentId(null); // Ensure it starts in the pool
             if (unit.getStatus() == null) {
                 unit.setStatus("OPERATIONAL");
             }
@@ -430,7 +429,6 @@ public class MercenaryCommandService {
             }
             pilot.setId(UUID.randomUUID());
             pilot.setCommandId(commandId);
-            pilot.setDetachmentId(null); // Ensure they start in the barracks
             if (pilot.getStatus() == null) {
                 pilot.setStatus("ACTIVE");
             }
@@ -455,8 +453,8 @@ public class MercenaryCommandService {
      * Adds a new ledger entry after validating that the user is either the
      * command owner or the campaign manager.
      */
-    @Transactional
-    public Mono<LedgerEntry> addLedgerEntry(UUID detachmentId, LedgerEntry entry, String userId) {
+    @Transactional // Assuming LedgerEntry entity is updated with new fields
+    public Mono<LedgerEntry> addLedgerEntry(UUID detachmentId, LedgerEntry entry, String userId) { 
         return isAuthorizedToEditLedger(detachmentId, userId)
                 .flatMap(isAuthorized -> {
                     if (!isAuthorized) {

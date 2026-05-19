@@ -135,6 +135,12 @@ public class SchemaGenerator {
         sql.append("    `short_description` VARCHAR(1000),\n");
         sql.append("    `timestamp` DATETIME,\n");
         sql.append("    `running_total` INT,\n");
+        sql.append("    `cover_amount` INT,\n");
+        sql.append("    `paid_amount` INT,\n");
+        sql.append("    `reputation_change` INT,\n");
+        sql.append("    `campaign_id` VARCHAR(36),\n");
+        sql.append("    `campaign_name` VARCHAR(255),\n");
+        sql.append("    `contract_month` VARCHAR(50),\n");
         sql.append("    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
