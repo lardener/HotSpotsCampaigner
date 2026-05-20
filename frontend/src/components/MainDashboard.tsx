@@ -68,6 +68,18 @@ const GET_MANAGED_CAMPAIGNS = gql`
         commandStep
         primaryContract
       }
+      factions {
+        id
+        factionName
+      }
+      tracks {
+        id
+        trackName
+        sequenceOrder
+        location
+        nextSession
+        attackerFactionId
+      }
       participatingDetachments {
         id
         name
@@ -133,6 +145,18 @@ interface ManagedCampaignsData {
             commandRights: string;
             commandStep: number;
             primaryContract: boolean;
+        }[];
+        factions: {
+            id: string;
+            factionName: string;
+        }[];
+        tracks: {
+            id: string;
+            trackName: string;
+            sequenceOrder: number;
+            location?: string;
+            nextSession?: string;
+            attackerFactionId?: string;
         }[];
         participatingDetachments?: {
             id: string;

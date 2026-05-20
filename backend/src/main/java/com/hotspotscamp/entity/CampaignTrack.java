@@ -1,5 +1,6 @@
 package com.hotspotscamp.entity;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
@@ -33,6 +34,15 @@ public class CampaignTrack implements Persistable<UUID> {
 
     @Column("sequence_order")
     private Integer sequenceOrder;
+
+    @Column("location")
+    private String location;
+
+    @Column("next_session")
+    private LocalDateTime nextSession;
+
+    @Column("attacker_faction_id")
+    private UUID attackerFactionId;
 
     @Transient
     @Builder.Default

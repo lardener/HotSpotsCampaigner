@@ -3,6 +3,8 @@ import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { useQuery } from '@apollo/client/react';
 import { NodeType } from './NavigationTree';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const CREATE_INVITE = gql`
   mutation CreateInvite($campaignId: ID!) {
@@ -25,6 +27,18 @@ const UPDATE_CAMPAIGN = gql`
 const ASSIGN_DETACHMENT = gql`
   mutation AssignDetachmentToCampaign($detachmentId: ID!, $campaignId: ID) {
     assignDetachmentToCampaign(detachmentId: $detachmentId, campaignId: $campaignId)
+  }
+`;
+
+const UPDATE_TRACK = gql`
+  mutation UpdateTrack($id: ID!, $input: TrackInput!) {
+    updateTrack(id: $id, input: $input) {
+      id
+      trackName
+      location
+      nextSession
+      attackerFactionId
+    }
   }
 `;
 
@@ -90,6 +104,15 @@ interface CampaignDetail {
     commandRights?: string;
     commandStep?: number;
     contracts?: any[];
+    factions?: { id: string, factionName: string }[];
+    tracks?: {
+        id: string;
+        trackName: string;
+        sequenceOrder: number;
+        location?: string;
+        nextSession?: string;
+        attackerFactionId?: string;
+    }[];
     participatingDetachments?: ParticipatingDetachment[];
 }
 
@@ -125,9 +148,11 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         fetchPolicy: 'network-only'
     });
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
+    const [updateTrack] = useMutation(UPDATE_TRACK);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isEditingDescription, setIsEditingDescription] = useState(false);
     const saveTimeoutRef = useRef<Record<string, number>>({});
 
     const campaignInvites = invitesData?.getCampaign?.campaignInvites || [];
@@ -154,6 +179,17 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         saveTimeoutRef.current[key] = setTimeout(async () => {
             setIsSyncing(true);
             await updateCampaign({ variables: { id: selectedCampaignId, input: { [field]: value } } });
+            setIsSyncing(false);
+        }, 1000) as unknown as number;
+    };
+
+    const handleTrackUpdate = (trackId: string, field: string, value: string) => {
+        const key = `track-${trackId}-${field}`;
+        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
+
+        saveTimeoutRef.current[key] = setTimeout(async () => {
+            setIsSyncing(true);
+            await updateTrack({ variables: { id: trackId, input: { [field]: value } } });
             setIsSyncing(false);
         }, 1000) as unknown as number;
     };
@@ -205,7 +241,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>OPPOSITION</span> {camp.secondaryEmployer || 'UNKNOWN'}</div>
-                                    <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SYSTEM</span> {camp.systemName}</div>
+                                    <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>LOCATION</span> {camp.systemName}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
                                     <div className="text-right" style={{ alignSelf: 'end' }}>
                                         <button className="mode-btn" style={{ fontSize: '0.8rem' }} onClick={() => onSelectCampaign(camp.id)}>MANAGE THEATER</button>
@@ -229,7 +265,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         <div className="flex-between">
                             <div>
                                 <h1 className="terminal-text">{campaign?.name}</h1>
-                                <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
+                                <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName?.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
                             </div>
                             <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
                         </div>
@@ -238,13 +274,40 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     <div className="grid-3-col mb-30">
                         <div className="tactical-panel" style={{ gridColumn: 'span 2' }}>
                             <h3 className="zone-header">THEATER INTEL</h3>
-                            <div className="form-group"> {/* Added title to input */}
-                                <label htmlFor="theater-location" className="restricted-text">LOCATION</label>
-                                <input id="theater-location" className="table-input" defaultValue={campaign?.systemName} onChange={(e) => handleUpdate('systemName', e.target.value)} placeholder="Star System Name..." title="Geographic center of operations" />
-                            </div>
-                            <div className="form-group mt-10"> {/* Added title to textarea */}
-                                <label htmlFor="theater-description" className="restricted-text">MISSION DESCRIPTION</label>
-                                <textarea id="theater-description" className="table-input" style={{ height: '80px' }} defaultValue={campaign?.description} onChange={(e) => handleUpdate('description', e.target.value)} placeholder="Operational details and briefing lore..." title="Primary mission summary" />
+
+                            <div className="mt-10" style={{ width: '100%' }}>
+                                {isEditingDescription ? (
+                                    <textarea
+                                        id="theater-description"
+                                        className="table-input"
+                                        style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
+                                        defaultValue={campaign?.description}
+                                        autoFocus
+                                        onBlur={() => setIsEditingDescription(false)}
+                                        onChange={(e) => handleUpdate('description', e.target.value)}
+                                        placeholder="Enter operational briefing (Markdown supported)..."
+                                        title="Exit field to save mission description"
+                                    />
+                                ) : (
+                                    <div
+                                        className="markdown-preview"
+                                        style={{
+                                            minHeight: '80px',
+                                            width: '100%',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            lineHeight: '1.4'
+                                        }}
+                                        onClick={() => setIsEditingDescription(true)}
+                                        title="Click to edit theater command briefing"
+                                    >
+                                        {campaign?.description ? (
+                                            <Markdown remarkPlugins={[remarkGfm]}>{campaign.description}</Markdown>
+                                        ) : (
+                                            <span className="restricted-text">NO OPERATIONAL BRIEFING FILED. CLICK TO INITIALIZE THEATER LORE.</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="mt-15">
@@ -331,6 +394,79 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         </div>
                     </div>
 
+                    <div className="dashboard-section tactical-panel mb-30">
+                        <h3 className="section-title">TRACK OPERATIONS</h3>
+                        <div className="mt-15">
+                            <table className="tactical-table">
+                                <thead>
+                                    <tr>
+                                        <th className="text-center">#</th>
+                                        <th>TRACK DESIGNATION</th>
+                                        <th>REAL WORLD LOCATION</th>
+                                        <th>DEPLOYMENT TIME</th>
+                                        <th>ATTACKER</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {[...(campaign?.tracks || [])].sort((a, b) => a.sequenceOrder - b.sequenceOrder).map(track => (
+                                        <tr key={track.id}>
+                                            <td className="text-center">{track.sequenceOrder + 1}</td>
+                                            <td>
+                                                <input
+                                                    className="table-input"
+                                                    defaultValue={track.trackName}
+                                                    onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
+                                                    placeholder="Track designation..."
+                                                    title="Operational designation for this mission"
+                                                    aria-label={`Track ${track.sequenceOrder + 1} designation`}
+                                                />
+                                            </td>
+                                            <td>
+                                                <div className="flex flex-gap-5">
+                                                    <input
+                                                        className="table-input"
+                                                        defaultValue={track.location}
+                                                        onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
+                                                        placeholder="Real world address..."
+                                                        title="Physical meeting location for this game session"
+                                                        aria-label={`Track ${track.sequenceOrder + 1} physical location`}
+                                                    />
+                                                    {track.location && (
+                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(track.location)}`} target="_blank" rel="noopener noreferrer" className="mode-btn sm-text" style={{ padding: '2px 5px' }} title="Get directions via Google Maps">MAP</a>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="datetime-local"
+                                                    className="table-input"
+                                                    defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
+                                                    onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
+                                                    title="Scheduled deployment date and time"
+                                                    aria-label={`Track ${track.sequenceOrder + 1} deployment time`}
+                                                />
+                                            </td>
+                                            <td>
+                                                <select
+                                                    className="table-input"
+                                                    defaultValue={track.attackerFactionId || ""}
+                                                    onChange={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
+                                                    title="Select which employer is the aggressor for this track"
+                                                    aria-label={`Track ${track.sequenceOrder + 1} attacking faction`}
+                                                >
+                                                    <option value="">[ SELECT ATTACKER ]</option>
+                                                    {campaign?.factions?.map(f => (
+                                                        <option key={f.id} value={f.id}>{f.factionName.toUpperCase()}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div className="dashboard-section tactical-panel">
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                         <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
@@ -342,7 +478,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             id: `camp-det-${det.id}`,
                                             label: det.name,
                                             type: 'DETACHMENT',
-                                            metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: campaign.id, managerView: true }
+                                            metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: campaign?.id, managerView: true }
                                         })}
                                     >
                                         <div className="asset-type">DETACHMENT</div>

@@ -1,5 +1,6 @@
 package com.hotspotscamp.entity;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;

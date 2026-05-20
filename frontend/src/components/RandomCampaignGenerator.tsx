@@ -395,9 +395,9 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                 }}
                             />
                         </h3>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             <div> {/* Added title to input */}
-                                <label htmlFor="proposal-system"><strong>SYSTEM:</strong></label>
+                                <label htmlFor="proposal-system"><strong>STAR SYSTEM:</strong></label>
                                 <input id="proposal-system" type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" style={{ width: '100%' }} />
                             </div>
                             <div> {/* Added title to input */}

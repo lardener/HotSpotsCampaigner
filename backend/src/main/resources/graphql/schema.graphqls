@@ -54,6 +54,7 @@ type Mutation {
     assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
     
     # Asset Management
+    updateTrack(id: ID!, input: TrackInput!): CampaignTrack
     addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
     updateCombatUnit(id: ID!, input: CombatUnitInput!): CombatUnit
     deleteUnit(unitId: ID!): Boolean
@@ -192,6 +193,32 @@ input CampaignInput {
     trackCount: Int
 }
 
+input TrackInput {
+    trackName: String
+    sequenceOrder: Int
+    location: String
+    nextSession: String
+    attackerFactionId: ID
+}
+
+type CampaignTrack {
+    id: ID!
+    campaignId: ID!
+    trackName: String
+    sequenceOrder: Int
+    location: String
+    nextSession: String
+    attackerFactionId: ID
+}
+
+type CampaignFaction {
+    id: ID!
+    campaignId: ID!
+    factionName: String
+    offersContracts: Boolean
+    shortDescription: String
+}
+
 input CombatUnitInput {
     type: String
     model: String
@@ -250,6 +277,8 @@ type Campaign {
     primaryEmployer: String
     secondaryEmployer: String
     contracts: [Contract]
+    tracks: [CampaignTrack]
+    factions: [CampaignFaction]
     # Root 3: All detachments participating in this theater
     participatingDetachments: [Detachment]
     campaignInvites: [CampaignInvite]

@@ -91,6 +91,9 @@ public class SchemaGenerator {
         sql.append("    campaign_id VARCHAR(36) NOT NULL,\n");
         sql.append("    `track_name` VARCHAR(255),\n");
         sql.append("    `sequence_order` INT,\n");
+        sql.append("    `location` VARCHAR(255),\n");
+        sql.append("    `next_session` DATETIME,\n");
+        sql.append("    `attacker_faction_id` VARCHAR(36),\n");
         sql.append("    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 

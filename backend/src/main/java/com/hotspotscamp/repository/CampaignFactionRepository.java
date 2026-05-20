@@ -6,7 +6,9 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 
 import com.hotspotscamp.entity.CampaignFaction;
+import reactor.core.publisher.Flux;
 
 @Repository
 public interface CampaignFactionRepository extends ReactiveCrudRepository<CampaignFaction, UUID> {
+    Flux<CampaignFaction> findAllByCampaignId(UUID campaignId);
 }

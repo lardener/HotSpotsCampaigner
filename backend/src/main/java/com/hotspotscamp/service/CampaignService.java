@@ -899,4 +899,26 @@ public class CampaignService {
     public Flux<CampaignInvite> getCampaignInvites(UUID campaignId) {
         return campaignInviteRepository.findAllByCampaignId(campaignId);
     }
+
+    @Transactional
+    public Mono<CampaignTrack> updateTrack(UUID trackId, Map<String, Object> input) {
+        return campaignTrackRepository.findById(trackId)
+                .flatMap(track -> {
+                    track.setNew(false);
+                    if (input.containsKey("trackName")) {
+                        track.setTrackName((String) input.get("trackName"));
+                    }
+                    if (input.containsKey("location")) {
+                        track.setLocation((String) input.get("location"));
+                    }
+                    if (input.containsKey("nextSession")) {
+                        String ns = (String) input.get("nextSession");
+                        track.setNextSession(ns != null && !ns.isEmpty() ? LocalDateTime.parse(ns) : null);
+                    }
+                    if (input.containsKey("attackerFactionId")) {
+                        track.setAttackerFactionId(input.get("attackerFactionId") != null ? UUID.fromString((String) input.get("attackerFactionId")) : null);
+                    }
+                    return campaignTrackRepository.save(track);
+                });
+    }
 }

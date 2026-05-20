@@ -78,6 +78,9 @@ CREATE TABLE campaign_tracks (
     campaign_id VARCHAR(36) NOT NULL,
     `track_name` VARCHAR(255),
     `sequence_order` INT,
+    `location` VARCHAR(255),
+    `next_session` DATETIME,
+    `attacker_faction_id` VARCHAR(36),
     CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
 

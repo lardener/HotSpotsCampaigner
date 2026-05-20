@@ -13,11 +13,15 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
+import com.hotspotscamp.repository.CampaignTrackRepository;
+import com.hotspotscamp.entity.CampaignFaction;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignInvite;
+import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.Detachment;
+import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
@@ -37,6 +41,8 @@ public class CampaignGraphQLController {
 
     private final CampaignRepository campaignRepository;
     private final ContractRepository contractRepository;
+    private final CampaignFactionRepository campaignFactionRepository;
+    private final CampaignTrackRepository campaignTrackRepository;
     private final DetachmentRepository detachmentRepository;
     private final CampaignService campaignService;
     private final UserService userService;
@@ -121,6 +127,16 @@ public class CampaignGraphQLController {
             return Flux.empty();
         }
         return detachmentRepository.findAllByCampaignId(id);
+    }
+
+    @SchemaMapping(typeName = "Campaign", field = "tracks")
+    public Flux<CampaignTrack> getTracks(Campaign campaign) {
+        return campaignTrackRepository.findAllByCampaignId(campaign.getId());
+    }
+
+    @SchemaMapping(typeName = "Campaign", field = "factions")
+    public Flux<CampaignFaction> getFactions(Campaign campaign) {
+        return campaignFactionRepository.findAllByCampaignId(campaign.getId());
     }
 
     @SchemaMapping(typeName = "Campaign", field = "contracts")
@@ -219,5 +235,11 @@ public class CampaignGraphQLController {
             return Mono.error(new RuntimeException("Authentication required to create invite"));
         }
         return campaignService.createInvite(campaignId, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<CampaignTrack> updateTrack(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+        if (principal == null) return Mono.error(new RuntimeException("Unauthorized"));
+        return campaignService.updateTrack(id, input);
     }
 }
