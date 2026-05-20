@@ -22,7 +22,7 @@ public class InviteService {
     private final UserRepository userRepository;
 
     public Mono<CampaignInvite> generateInvite(UUID campaignId) {
-        String token = RandomStringUtils.randomAlphanumeric(12).toUpperCase();
+        String token = RandomStringUtils.secure().nextAlphanumeric(12).toUpperCase();
         return inviteRepository.save(CampaignInvite.builder()
                 .id(UUID.randomUUID())
                 .campaignId(campaignId)
