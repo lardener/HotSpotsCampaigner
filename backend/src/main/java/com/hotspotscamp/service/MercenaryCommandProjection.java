@@ -1,17 +1,25 @@
 package com.hotspotscamp.service;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+
 import com.hotspotscamp.domain.events.CombatUnitPurchased;
 import com.hotspotscamp.domain.events.CommandEstablished;
 import com.hotspotscamp.domain.events.LedgerEntryCreated;
 import com.hotspotscamp.domain.events.PilotHired;
-import com.hotspotscamp.entity.*;
-import com.hotspotscamp.repository.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import java.util.Objects;
+import com.hotspotscamp.entity.CombatUnit;
+import com.hotspotscamp.entity.LedgerEntry;
+import com.hotspotscamp.entity.MercenaryCommand;
+import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.repository.CombatUnitRepository;
+import com.hotspotscamp.repository.LedgerEntryRepository;
+import com.hotspotscamp.repository.MercenaryCommandRepository;
+import com.hotspotscamp.repository.PilotRepository;
 
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
@@ -69,6 +77,7 @@ public class MercenaryCommandProjection {
                     .detachmentId(e.detachmentId())
                     .amount(e.amount())
                     .description(e.description())
+                    .timestamp(LocalDateTime.now())
                     .isNew(true)
                     .build();
             return ledgerRepository.save(entry)

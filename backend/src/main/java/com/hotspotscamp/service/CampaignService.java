@@ -25,15 +25,12 @@ import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.Contract;
-import com.hotspotscamp.entity.User;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.CampaignInviteRepository;
-import com.hotspotscamp.repository.UserRepository;
-import com.hotspotscamp.service.CampaignService.CampaignProposal;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +49,6 @@ public class CampaignService {
     private final ContractRepository contractRepository;
     private final CampaignInviteRepository campaignInviteRepository;
     private final DetachmentRepository detachmentRepository;
-    private final UserRepository userRepository;
     private final UserService userService;
 
     private Map<Integer, String> employerTable;
@@ -72,7 +68,7 @@ public class CampaignService {
     private Map<String, Object> roleTableData;
     private Map<String, Object> trackCountTableData;
 
-    private Map<String, ContractTableConfig> contractTables = new HashMap<>();
+    private final Map<String, ContractTableConfig> contractTables = new HashMap<>();
 
     private record ContractTableConfig(int diceCount, int diceSides, List<Map<String, Object>> rollToStep,
             Map<String, Integer> empMods, Map<String, Integer> missionMods) {
@@ -98,8 +94,10 @@ public class CampaignService {
         ObjectMapper mapper = new ObjectMapper();
 
         Map<String, Object> empData = loadMap("employerTable.json", mapper);
-        employerDiceCount = (Integer) empData.get("diceCount");
-        employerDiceSides = (Integer) empData.get("diceSides");
+        Integer edc = (Integer) empData.get("diceCount");
+        Integer eds = (Integer) empData.get("diceSides");
+        employerDiceCount = edc != null ? edc : 2;
+        employerDiceSides = eds != null ? eds : 6;
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> entries = (List<Map<String, Object>>) empData.get("entries");
         employerTable = entries.stream()
@@ -109,10 +107,14 @@ public class CampaignService {
                 ));
 
         Map<String, Object> sysData = loadMap("systemTable.json", mapper);
-        systemGroupDiceCount = (Integer) sysData.get("groupDiceCount");
-        systemGroupDiceSides = (Integer) sysData.get("groupDiceSides");
-        systemEntryDiceCount = (Integer) sysData.get("entryDiceCount");
-        systemEntryDiceSides = (Integer) sysData.get("entryDiceSides");
+        Integer sgdc = (Integer) sysData.get("groupDiceCount");
+        Integer sgds = (Integer) sysData.get("groupDiceSides");
+        Integer sedc = (Integer) sysData.get("entryDiceCount");
+        Integer seds = (Integer) sysData.get("entryDiceSides");
+        systemGroupDiceCount = sgdc != null ? sgdc : 2;
+        systemGroupDiceSides = sgds != null ? sgds : 6;
+        systemEntryDiceCount = sedc != null ? sedc : 2;
+        systemEntryDiceSides = seds != null ? seds : 6;
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> groups = (List<Map<String, Object>>) sysData.get("groups");
 
@@ -220,9 +222,6 @@ public class CampaignService {
             Map<String, Integer> missionMods = (Map<String, Integer>) tableData.get("missionModifiers");
 
             @SuppressWarnings("unchecked")
-            List<Map<String, Object>> rollToStepList = (List<Map<String, Object>>) (tableData.get("rollToStep") != null ? tableData.get("rollToStep") : java.util.Collections.emptyList());
-
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> rollToStep = (List<Map<String, Object>>) tableData.get("rollToStep");
 
             contractTables.put(key, new ContractTableConfig(
@@ -235,7 +234,6 @@ public class CampaignService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> loadMap(String fileName, ObjectMapper mapper) throws IOException {
         return loadMapTyped(fileName, mapper, new TypeReference<Map<String, Object>>() {
         });
@@ -247,7 +245,6 @@ public class CampaignService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private List<String> loadList(String fileName, ObjectMapper mapper) throws IOException {
         try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
             return mapper.readValue(is, new TypeReference<List<String>>() {
@@ -385,8 +382,10 @@ public class CampaignService {
         String oppMission;
 
         if (mission == null || mission.isEmpty()) {
-            int diceCount = (Integer) missionTableData.get("diceCount");
-            int diceSides = (Integer) missionTableData.get("diceSides");
+            Integer dc = (Integer) missionTableData.get("diceCount");
+            Integer ds = (Integer) missionTableData.get("diceSides");
+            int diceCount = dc != null ? dc : 2;
+            int diceSides = ds != null ? ds : 6;
             int roll = rollDice(diceCount, diceSides, rand);
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> entries = (List<Map<String, Object>>) missionTableData.get("entries");
@@ -395,8 +394,10 @@ public class CampaignService {
             oppMission = "Unknown Opponent Mission";
 
             for (Map<String, Object> entry : entries) {
-                int min = (Integer) entry.get("minRoll");
-                int max = (Integer) entry.get("maxRoll");
+                Integer minVal = (Integer) entry.get("minRoll");
+                Integer maxVal = (Integer) entry.get("maxRoll");
+                int min = minVal != null ? minVal : 0;
+                int max = maxVal != null ? maxVal : 0;
                 if (roll >= min && roll <= max) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> primaryTable = (Map<String, Object>) entry.get("primary");
@@ -559,9 +560,12 @@ public class CampaignService {
     }
 
     private String determineUnitRole(String missionType, Random rand) {
-        int diceCount = (Integer) roleTableData.get("diceCount");
-        int diceSides = (Integer) roleTableData.get("diceSides");
-        int threshold = (Integer) roleTableData.get("threshold");
+        Integer dc = (Integer) roleTableData.get("diceCount");
+        Integer ds = (Integer) roleTableData.get("diceSides");
+        Integer th = (Integer) roleTableData.get("threshold");
+        int diceCount = dc != null ? dc : 2;
+        int diceSides = ds != null ? ds : 6;
+        int threshold = th != null ? th : 7;
         @SuppressWarnings("unchecked")
         Map<String, Integer> mods = (Map<String, Integer>) roleTableData.get("missionModifiers");
 
@@ -578,8 +582,10 @@ public class CampaignService {
     }
 
     private int rollTrackCount(String missionType, Random rand) {
-        int diceCount = (Integer) trackCountTableData.get("diceCount");
-        int diceSides = (Integer) trackCountTableData.get("diceSides");
+        Integer dc = (Integer) trackCountTableData.get("diceCount");
+        Integer ds = (Integer) trackCountTableData.get("diceSides");
+        int diceCount = dc != null ? dc : 2;
+        int diceSides = ds != null ? ds : 6;
         int roll = rollDice(diceCount, diceSides, rand);
 
         @SuppressWarnings("unchecked")
@@ -597,10 +603,13 @@ public class CampaignService {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> entries = (List<Map<String, Object>>) selectedGroup.get("entries");
         for (Map<String, Object> entry : entries) {
-            int min = (Integer) entry.get("minRoll");
-            int max = (Integer) entry.get("maxRoll");
+            Integer minVal = (Integer) entry.get("minRoll");
+            Integer maxVal = (Integer) entry.get("maxRoll");
+            int min = minVal != null ? minVal : 0;
+            int max = maxVal != null ? maxVal : 0;
             if (roll >= min && roll <= max) {
-                return (Integer) entry.get("value");
+                Integer val = (Integer) entry.get("value");
+                return val != null ? val : 1;
             }
         }
 
@@ -632,8 +641,10 @@ public class CampaignService {
 
     private String rollTrackType(String role, String missionType, Random rand) {
         log.debug("Rolling track type for role: {}, mission: {}", role, missionType);
-        int diceCount = (Integer) trackTableData.get("diceCount");
-        int diceSides = (Integer) trackTableData.get("diceSides");
+        Integer dc = (Integer) trackTableData.get("diceCount");
+        Integer ds = (Integer) trackTableData.get("diceSides");
+        int diceCount = dc != null ? dc : 2;
+        int diceSides = ds != null ? ds : 6;
         int roll = rollDice(diceCount, diceSides, rand);
 
         @SuppressWarnings("unchecked")
@@ -647,10 +658,10 @@ public class CampaignService {
                 })
                 .findFirst()
                 .orElseGet(() -> groups.stream().filter(g -> {
-                    @SuppressWarnings("unchecked")
-                    List<String> missions = (List<String>) g.get("missions");
-                    return missions.contains("Default");
-                })
+            @SuppressWarnings("unchecked")
+            List<String> missions = (List<String>) g.get("missions");
+            return missions.contains("Default");
+        })
                 .findFirst()
                 .orElse(groups.get(0)));
 
@@ -683,10 +694,13 @@ public class CampaignService {
         int roll = rollDice(config.diceCount, config.diceSides, rand);
         int initialStep = 6;
         for (Map<String, Object> range : config.rollToStep) {
-            int min = (Integer) range.get("minRoll");
-            int max = (Integer) range.get("maxRoll");
+            Integer minVal = (Integer) range.get("minRoll");
+            Integer maxVal = (Integer) range.get("maxRoll");
+            int min = minVal != null ? minVal : 0;
+            int max = maxVal != null ? maxVal : 0;
             if (roll >= min && roll <= max) {
-                initialStep = (Integer) range.get("step");
+                Integer stepVal = (Integer) range.get("step");
+                initialStep = stepVal != null ? stepVal : 6;
                 break;
             }
         }
@@ -738,15 +752,19 @@ public class CampaignService {
     }
 
     private String resolveFromSubTable(Map<String, Object> subTable, Random rand) {
-        int diceCount = (Integer) subTable.get("diceCount");
-        int diceSides = (Integer) subTable.get("diceSides");
+        Integer dc = (Integer) subTable.get("diceCount");
+        Integer ds = (Integer) subTable.get("diceSides");
+        int diceCount = dc != null ? dc : 2;
+        int diceSides = ds != null ? ds : 6;
         int roll = rollDice(diceCount, diceSides, rand);
-        
+
         @SuppressWarnings("unchecked") // Cast from Object to List<Map<String, Object>>
         List<Map<String, Object>> entries = (List<Map<String, Object>>) subTable.get("entries");
         for (Map<String, Object> entry : entries) {
-            int min = (Integer) entry.get("minRoll");
-            int max = (Integer) entry.get("maxRoll");
+            Integer minVal = (Integer) entry.get("minRoll");
+            Integer maxVal = (Integer) entry.get("maxRoll");
+            int min = minVal != null ? minVal : 0;
+            int max = maxVal != null ? maxVal : 0;
             if (roll >= min && roll <= max) {
                 return (String) entry.get("value");
             }
@@ -766,7 +784,6 @@ public class CampaignService {
      * Resolves the opposing mission type by finding the entry in
      * missionTable.json that corresponds to the provided primary mission type.
      */
-    @SuppressWarnings("unchecked")
     private String getOpposingMissionType(String employerMission, Random rand) {
         @SuppressWarnings("unchecked") // Cast from Object to List<Map<String, Object>>
         List<Map<String, Object>> entries = (List<Map<String, Object>>) missionTableData.get("entries");
@@ -838,11 +855,11 @@ public class CampaignService {
                                         .offersContracts(true) // Per Hinterlands, both sides often hire mercs
                                         .build();
 
-                                return campaignFactionRepository.saveAll(List.of(empFaction, oppFaction))
+                                return campaignFactionRepository.saveAll(java.util.Objects.requireNonNull(List.of(empFaction, oppFaction)))
                                         .collectList()
                                         .flatMap(factions -> {
-                                            Flux<Contract> contractFlux = Flux.fromIterable(proposal.contracts())
-                                                    .zipWith(Flux.fromIterable(factions))
+                                            Flux<Contract> contractFlux = Flux.fromIterable(java.util.Objects.requireNonNull(proposal.contracts()))
+                                                    .zipWith(Flux.fromIterable(java.util.Objects.requireNonNull(factions)))
                                                     .flatMap(tuple -> {
                                                         Contract c = tuple.getT1();
                                                         if (c.getId() == null) {
@@ -853,7 +870,7 @@ public class CampaignService {
                                                         return contractRepository.save(c);
                                                     });
 
-                                            Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks())
+                                            Flux<CampaignTrack> trackFlux = Flux.fromIterable(java.util.Objects.requireNonNull(proposal.tracks()))
                                                     .index()
                                                     .flatMap(tuple -> {
                                                         CampaignTrack track = CampaignTrack.builder()
@@ -897,23 +914,23 @@ public class CampaignService {
      */
     @Transactional
     public Mono<CampaignInvite> createInvite(UUID campaignId, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMap(user ->
-            campaignRepository.findById(campaignId)
-                    .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found")))
-                    .flatMap(campaign -> {
-                        if (!campaign.getManagerId().equals(user.getId().toString())) {
-                            return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
-                        }
+        return userService.resolveOrCreateUser(userId).flatMap(user
+                -> campaignRepository.findById(campaignId)
+                        .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found")))
+                        .flatMap(campaign -> {
+                            if (!campaign.getManagerId().equals(user.getId().toString())) {
+                                return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
+                            }
 
-                        CampaignInvite invite = CampaignInvite.builder()
-                                .id(UUID.randomUUID())
-                                .campaignId(campaignId)
-                                .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
-                                .expiresAt(LocalDateTime.now().plusDays(7))
-                                .used(false)
-                                .build();
-                        return campaignInviteRepository.save(invite);
-                    })
+                            CampaignInvite invite = CampaignInvite.builder()
+                                    .id(UUID.randomUUID())
+                                    .campaignId(campaignId)
+                                    .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
+                                    .expiresAt(LocalDateTime.now().plusDays(7))
+                                    .used(false)
+                                    .build();
+                            return campaignInviteRepository.save(invite);
+                        })
         );
     }
 

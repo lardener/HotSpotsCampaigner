@@ -18,7 +18,17 @@ public class SqlUtils {
         if (value == null) {
             return spec.bindNull(name, String.class);
         }
-        return spec.bind(name, value.toString());
+        return spec.bind(name, (Object) value.toString());
+    }
+
+    public static DatabaseClient.GenericExecuteSpec bindString(
+            DatabaseClient.GenericExecuteSpec spec,
+            String name,
+            String value) {
+        if (value == null) {
+            return spec.bindNull(name, String.class);
+        }
+        return spec.bind(name, (Object) value);
     }
 
     public static DatabaseClient.GenericExecuteSpec bindDateTime(

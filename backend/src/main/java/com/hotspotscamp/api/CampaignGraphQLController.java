@@ -67,18 +67,34 @@ public class CampaignGraphQLController {
 
     @QueryMapping
     public Mono<Campaign> getCampaign(@Argument UUID id) {
+        if (id == null) {
+            return Mono.empty();
+        }
         return campaignRepository.findById(id);
     }
 
     @QueryMapping
     public Flux<Campaign> participatingCampaigns(@Argument UUID commandId) {
+        if (commandId == null) {
+            return Flux.empty();
+        }
         return campaignService.getParticipatingCampaigns(commandId)
-                .flatMap(summary -> campaignRepository.findById(summary.id()));
+                .flatMap(summary -> {
+                    UUID id = summary.id();
+                    if (id == null) {
+                        return Mono.empty();
+                    }
+                    return campaignRepository.findById(id);
+                });
     }
 
     @SchemaMapping(typeName = "Campaign", field = "primaryEmployer")
     public Mono<String> getPrimaryEmployer(Campaign campaign) {
-        return contractRepository.findAllByCampaignId(campaign.getId())
+        UUID id = campaign.getId();
+        if (id == null) {
+            return Mono.empty();
+        }
+        return contractRepository.findAllByCampaignId(id)
                 .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
                 .map(Contract::getEmployerCategory)
                 .next()
@@ -87,7 +103,11 @@ public class CampaignGraphQLController {
 
     @SchemaMapping(typeName = "Campaign", field = "secondaryEmployer")
     public Mono<String> getSecondaryEmployer(Campaign campaign) {
-        return contractRepository.findAllByCampaignId(campaign.getId())
+        UUID id = campaign.getId();
+        if (id == null) {
+            return Mono.empty();
+        }
+        return contractRepository.findAllByCampaignId(id)
                 .filter(c -> Boolean.FALSE.equals(c.getPrimaryContract()))
                 .map(Contract::getEmployerCategory)
                 .next()
@@ -96,17 +116,29 @@ public class CampaignGraphQLController {
 
     @SchemaMapping(typeName = "Campaign", field = "participatingDetachments")
     public Flux<Detachment> getParticipatingDetachments(Campaign campaign) {
-        return detachmentRepository.findAllByCampaignId(campaign.getId());
+        UUID id = campaign.getId();
+        if (id == null) {
+            return Flux.empty();
+        }
+        return detachmentRepository.findAllByCampaignId(id);
     }
 
     @SchemaMapping(typeName = "Campaign", field = "contracts")
     public Flux<Contract> getContracts(Campaign campaign) {
-        return contractRepository.findAllByCampaignId(campaign.getId());
+        UUID id = campaign.getId();
+        if (id == null) {
+            return Flux.empty();
+        }
+        return contractRepository.findAllByCampaignId(id);
     }
 
     @SchemaMapping(typeName = "Campaign", field = "campaignInvites")
     public Flux<CampaignInvite> getCampaignInvites(Campaign campaign) {
-        return campaignService.getCampaignInvites(campaign.getId());
+        UUID id = campaign.getId();
+        if (id == null) {
+            return Flux.empty();
+        }
+        return campaignService.getCampaignInvites(id);
     }
 
     @QueryMapping
@@ -180,6 +212,12 @@ public class CampaignGraphQLController {
 
     @MutationMapping
     public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, Principal principal) {
+        if (campaignId == null) {
+            return Mono.error(new IllegalArgumentException("Campaign ID is required"));
+        }
+        if (principal == null) {
+            return Mono.error(new RuntimeException("Authentication required to create invite"));
+        }
         return campaignService.createInvite(campaignId, principal.getName());
     }
 }

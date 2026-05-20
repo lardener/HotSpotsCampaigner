@@ -42,6 +42,7 @@ const GET_UNIT_DOSSIER = gql`
       allLedgerEntries {
         id
         timestamp
+        detachmentId
         description
         amount
         coverAmount
