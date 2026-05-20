@@ -19,6 +19,18 @@ DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+-- Create event_store table for Event Sourcing
+CREATE TABLE event_store (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_id VARCHAR(36) NOT NULL,
+    event_type VARCHAR(255) NOT NULL,
+    event_data JSON NOT NULL,
+    occurred_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    version INT NOT NULL,
+    user_id VARCHAR(36),
+    INDEX idx_aggregate (aggregate_id)
+);
+
 -- Create app_users table (User.java)
 CREATE TABLE app_users (
     id VARCHAR(36) NOT NULL PRIMARY KEY,

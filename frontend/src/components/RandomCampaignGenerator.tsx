@@ -139,6 +139,12 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const [resolvedSteps, setResolvedSteps] = useState<Record<number, any>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
 
+    const [previewError, setPreviewError] = useState<string | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const [proposal, setProposal] = useState<Proposal | null>(null);
+    const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
+    const [saved, setSaved] = useState(false);
+
     const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<MetadataData>(GET_METADATA);
 
     useEffect(() => {
@@ -166,13 +172,30 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [previewData]);
 
-    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: any }>(CREATE_CAMPAIGN);
+    // Monitor track count changes to fetch additional tracks if needed
+    useEffect(() => {
+        if (!proposal || !proposal.contracts[0]) return;
+        const targetCount = proposal.campaign.trackCount;
+        const currentCount = proposal.tracks.length;
 
-    const [previewError, setPreviewError] = useState<string | null>(null);
-    const [saveError, setSaveError] = useState<string | null>(null);
-    const [proposal, setProposal] = useState<Proposal | null>(null);
-    const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
-    const [saved, setSaved] = useState(false);
+        if (targetCount > currentCount) {
+            const numToAdd = targetCount - currentCount;
+            const primary = proposal.contracts[0];
+            getTracks({
+                variables: {
+                    mission: primary.missionType,
+                    commandRights: primary.commandRights,
+                    count: numToAdd
+                }
+            }).then(({ data: trackData }) => {
+                if (trackData?.generateTracks) {
+                    setProposal(prev => prev ? { ...prev, tracks: [...prev.tracks, ...trackData.generateTracks] } : null);
+                }
+            });
+        }
+    }, [proposal?.campaign.trackCount, getTracks]);
+
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: any }>(CREATE_CAMPAIGN);
 
     const handlePreview = () => {
         setSaved(false);
@@ -243,46 +266,19 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             setIsNameManuallyEdited(true);
         }
 
-        if (field === 'trackCount') {
-            const newCount = Number(value);
-            if (isNaN(newCount)) return;
-            const currentCount = proposal.tracks.length;
-
-            // Synchronously update the count and trim tracks if needed
-            setProposal(prev => prev ? {
-                ...prev,
-                campaign: { ...prev.campaign, trackCount: newCount },
-                tracks: newCount < currentCount ? prev.tracks.slice(0, newCount) : prev.tracks
-            } : null);
-
-            if (newCount > currentCount) {
-                const numToAdd = newCount - currentCount;
-                const primary = proposal.contracts[0];
-                getTracks({
-                    variables: {
-                        mission: primary.missionType,
-                        commandRights: primary.commandRights,
-                        count: numToAdd
-                    }
-                }).then(({ data: trackData }) => {
-                    const fillers = trackData?.generateTracks || Array(numToAdd).fill('Assault');
-                    setProposal(prev => {
-                        if (!prev) return null;
-                        // Only append if the length is still short (handles rapid clicks)
-                        if (prev.tracks.length >= newCount) return prev;
-                        return {
-                            ...prev,
-                            tracks: [...prev.tracks, ...fillers]
-                        };
-                    });
-                });
-            }
-            return;
-        }
-
         setProposal(prev => {
             if (!prev) return null;
-            const updatedCampaign = { ...prev.campaign, [field]: value };
+            let updatedTracks = prev.tracks;
+            const updatedVal = field === 'trackCount' ? Number(value) : value;
+
+            if (field === 'trackCount' && !isNaN(updatedVal as number)) {
+                const newCount = updatedVal as number;
+                if (newCount < updatedTracks.length) {
+                    updatedTracks = updatedTracks.slice(0, newCount);
+                }
+            }
+
+            const updatedCampaign = { ...prev.campaign, [field]: updatedVal };
 
             if (field === 'systemName' && !isNameManuallyEdited) {
                 const primary = prev.contracts[0];
@@ -292,7 +288,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
 
             return {
                 ...prev,
-                campaign: updatedCampaign
+                campaign: updatedCampaign,
+                tracks: updatedTracks
             };
         });
     };
@@ -409,19 +406,19 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                     onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
                                     onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
                                     title="Number of tracks (months)"
-                                    style={{ width: '60px' }} />
+                                    className="inline-edit-input-small" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="campaign-tracks" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(255,0,0,0.05)', border: '1px solid #c00' }}>
+                    <div className="campaign-tracks bg-tracks-proposal mb-20 p-15">
                         <strong>THEATER OPERATIONAL TRACKS</strong>
-                        <div style={{ marginTop: '10px', fontSize: '0.9em' }}>
+                        <div className="mt-10 fs-09em">
                             {proposal.tracks.map((t, idx) => (
-                                <div key={idx} style={{ marginBottom: '5px' }}>
+                                <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`}>TRACK {idx + 1}:</label> {/* Added title to select */}
                                     {/* Strip suffix for the value so it matches the options in trackTypes */}
-                                    <select id={`track-${idx}`} value={t.split(' (')[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} style={{ marginLeft: '10px' }} title={`Select track type for track ${idx + 1}`}>
+                                    <select id={`track-${idx}`} value={t.split(' (')[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="input-group-gap" title={`Select track type for track ${idx + 1}`}>
                                         {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                     </select>
                                 </div>
@@ -434,11 +431,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
                                 <strong>{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</strong>
                                 <p><strong>EMPLOYER:</strong>
-                                    <input // Added title to input
+                                    <input
                                         type="text"
                                         value={c.employerCategory}
                                         onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
-                                        style={{ width: 'calc(100% - 110px)', marginLeft: '10px' }}
+                                        className="asset-assignment-select"
                                         title="Employer Faction and Category"
                                     />
                                 </p>

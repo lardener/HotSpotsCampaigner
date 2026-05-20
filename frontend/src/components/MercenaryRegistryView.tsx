@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface MercenaryRegistryViewProps {
-    commands: any[];
+    commands: { id: string; name: string; commandingOfficer: string; totalSupportPoints: number; reputation: number; experienceLevel: string }[];
     selectedCommandId: string | null;
     onSelectCommand: (id: string) => void;
     onDeleteCommand: (id: string) => void;

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { useQuery } from '@apollo/client/react';
+import { NodeType } from './NavigationTree';
 
 const CREATE_INVITE = gql`
   mutation CreateInvite($campaignId: ID!) {
@@ -63,8 +64,37 @@ interface GetCampaignInvitesData {
     };
 }
 
+interface ParticipatingDetachment {
+    id: string;
+    name: string;
+    mercenaryCommandId?: string;
+}
+
+interface CampaignDetail {
+    id: string;
+    name: string;
+    systemName: string;
+    description?: string;
+    status: string;
+    primaryEmployer: string;
+    secondaryEmployer: string;
+    trackCount: number;
+    payRate?: number;
+    payStep?: number;
+    salvageTerms?: string;
+    salvageStep?: number;
+    supportTerms?: string;
+    supportStep?: number;
+    transportTerms?: string;
+    transportStep?: number;
+    commandRights?: string;
+    commandStep?: number;
+    contracts?: any[];
+    participatingDetachments?: ParticipatingDetachment[];
+}
+
 interface CampaignTheaterViewProps {
-    managedData: any;
+    managedData: { managedCampaigns: CampaignDetail[] } | undefined;
     loadingManaged: boolean;
     selectedCampaignId: string | null;
     campaignFilter: string;
@@ -72,7 +102,7 @@ interface CampaignTheaterViewProps {
     onSelectCampaign: (id: string) => void;
     onReturnToList: () => void;
     onCreateNew: () => void;
-    onSelectDetachment: (item: any) => void;
+    onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
 }
 
 export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
@@ -86,8 +116,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onCreateNew,
     onSelectDetachment
 }) => {
-    const campaign = managedData?.managedCampaigns.find((c: any) => c.id === selectedCampaignId);
-    const opposition = campaign?.contracts?.find((c: any) => !c.primaryContract);
+    const campaign = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
+    const opposition = campaign?.contracts?.find((c) => !c.primaryContract);
     const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
     const { data: invitesData, refetch: refetchInvites } = useQuery<GetCampaignInvitesData>(GET_CAMPAIGN_INVITES, {
         variables: { campaignId: selectedCampaignId || '' },
@@ -98,7 +128,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
-    const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+    const saveTimeoutRef = useRef<Record<string, number>>({});
 
     const campaignInvites = invitesData?.getCampaign?.campaignInvites || [];
 
@@ -125,7 +155,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             setIsSyncing(true);
             await updateCampaign({ variables: { id: selectedCampaignId, input: { [field]: value } } });
             setIsSyncing(false);
-        }, 1000);
+        }, 1000) as unknown as number;
     };
 
     const handleRemoveDetachment = async (detId: string) => {
@@ -155,7 +185,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
                         {loadingManaged && <div className="loading-intel">RETRIEVING THEATER DATA...</div>}
 
-                        {managedData?.managedCampaigns.map((camp: any) => (
+                        {managedData?.managedCampaigns.map((camp) => (
                             <div
                                 key={camp.id}
                                 className="dashboard-section"
@@ -304,7 +334,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     <div className="dashboard-section tactical-panel">
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                         <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                            {campaign?.participatingDetachments?.map((det: any) => (
+                            {campaign?.participatingDetachments?.map((det) => (
                                 <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
                                     <div
                                         style={{ cursor: 'pointer' }}

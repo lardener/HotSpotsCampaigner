@@ -58,22 +58,21 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
     };
 
     return (
-        <div className="container theme-red" style={{ maxWidth: '600px', margin: '40px auto' }}>
+        <div className="container theme-red max-w-600 mx-auto my-40">
             <div className="tactical-panel" data-id="MRB-REC-SHEET">
                 <h2 className="terminal-text">MERCENARY FORCE REGISTRATION</h2>
-                <p className="restricted-text" style={{ fontSize: '0.8rem', marginBottom: '20px' }}>
+                <p className="restricted-text sm-text mb-20">
                     MRB FORM 12-A: MERCENARY FORCE RECORD SHEET
                 </p>
 
                 <form onSubmit={handleSubmit}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                    <div className="grid-2-col mb-15">
                         <div className="form-group">
                             <label htmlFor="command-name" className="zone-header block-label">COMMAND NAME</label>
                             <input
                                 id="command-name"
                                 type="text"
-                                className="mode-btn text-left"
-                                style={{ width: '100%', padding: '10px' }}
+                                className="mode-btn text-left w-100 p-10"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="FORCE DESIGNATION..."
@@ -83,19 +82,18 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                         </div>
                         <div className="form-group">
                             <label className="zone-header block-label">COMMANDING OFFICER</label>
-                            <div className="mode-btn" style={{ padding: '10px', opacity: 0.7, cursor: 'default' }} title="CO assigned from neural link profile">
+                            <div className="mode-btn form-display-only" title="CO assigned from neural link profile">
                                 {user?.name || 'UNKNOWN COMMANDER'}
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '25px' }}>
+                    <div className="grid-2-col mb-25">
                         <div className="form-group">
                             <label htmlFor="exp-level" className="zone-header block-label">EXPERIENCE LEVEL</label>
                             <select
                                 id="exp-level"
-                                className="mode-btn"
-                                style={{ width: '100%', padding: '10px' }}
+                                className="mode-btn w-100 p-10"
                                 value={experienceLevel}
                                 onChange={(e) => handleLevelChange(e.target.value)}
                                 title="Select initial experience level"
@@ -111,8 +109,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                             <input
                                 id="initial-sp"
                                 type="number"
-                                className="mode-btn text-left"
-                                style={{ width: '100%', padding: '10px' }}
+                                className="mode-btn text-left w-100 p-10"
                                 value={initialSP}
                                 onChange={(e) => setInitialSP(parseInt(e.target.value))}
                                 title="Initial Support Points"
@@ -121,12 +118,12 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                     </div>
 
                     {error && (
-                        <div className="error-message tactical-panel" style={{ marginBottom: '15px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}>
+                        <div className="error-message tactical-panel mb-15 alert-border">
                             {error}
                         </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div className="flex flex-gap-10">
                         <button type="submit" className="login-button" disabled={loading}>
                             {loading ? 'REGISTERING...' : 'CONFIRM REGISTRATION'}
                         </button>

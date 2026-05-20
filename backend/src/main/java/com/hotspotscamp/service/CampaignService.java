@@ -100,6 +100,7 @@ public class CampaignService {
         Map<String, Object> empData = loadMap("employerTable.json", mapper);
         employerDiceCount = (Integer) empData.get("diceCount");
         employerDiceSides = (Integer) empData.get("diceSides");
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> entries = (List<Map<String, Object>>) empData.get("entries");
         employerTable = entries.stream()
                 .collect(Collectors.toMap(
@@ -112,11 +113,13 @@ public class CampaignService {
         systemGroupDiceSides = (Integer) sysData.get("groupDiceSides");
         systemEntryDiceCount = (Integer) sysData.get("entryDiceCount");
         systemEntryDiceSides = (Integer) sysData.get("entryDiceSides");
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> groups = (List<Map<String, Object>>) sysData.get("groups");
 
         systemTable = new HashMap<>();
         for (Map<String, Object> group : groups) {
             Integer groupRoll = (Integer) group.get("roll");
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> entriesList = (List<Map<String, Object>>) group.get("entries");
             Map<Integer, String> entryMap = entriesList.stream()
                     .collect(Collectors.toMap(
@@ -166,7 +169,11 @@ public class CampaignService {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> trackGroups = (List<Map<String, Object>>) trackTableData.get("groups");
         availableTrackTypes = trackGroups.stream()
-                .flatMap(g -> ((List<Map<String, Object>>) g.get("entries")).stream())
+                .flatMap(g -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> entriesList = (List<Map<String, Object>>) g.get("entries");
+                    return entriesList.stream();
+                })
                 .map(e -> (String) e.get("value"))
                 .distinct()
                 .sorted()
@@ -176,6 +183,7 @@ public class CampaignService {
         trackCountTableData = loadMap("trackCountTable.json", mapper);
 
         Map<String, Object> stepsData = loadMap("contractStepsTable.json", mapper);
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> stepEntries = (List<Map<String, Object>>) stepsData.get("entries");
         contractStepsTable = new HashMap<>();
         for (Map<String, Object> entry : stepEntries) {
@@ -211,10 +219,16 @@ public class CampaignService {
             @SuppressWarnings("unchecked")
             Map<String, Integer> missionMods = (Map<String, Integer>) tableData.get("missionModifiers");
 
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rollToStepList = (List<Map<String, Object>>) (tableData.get("rollToStep") != null ? tableData.get("rollToStep") : java.util.Collections.emptyList());
+
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rollToStep = (List<Map<String, Object>>) tableData.get("rollToStep");
+
             contractTables.put(key, new ContractTableConfig(
                     (Integer) tableData.get("diceCount"),
                     (Integer) tableData.get("diceSides"),
-                    (List<Map<String, Object>>) (tableData.get("rollToStep") != null ? tableData.get("rollToStep") : java.util.Collections.emptyList()),
+                    rollToStep != null ? rollToStep : java.util.Collections.emptyList(),
                     empMods != null ? empMods : java.util.Collections.emptyMap(),
                     missionMods != null ? missionMods : java.util.Collections.emptyMap()
             ));
@@ -374,6 +388,7 @@ public class CampaignService {
             int diceCount = (Integer) missionTableData.get("diceCount");
             int diceSides = (Integer) missionTableData.get("diceSides");
             int roll = rollDice(diceCount, diceSides, rand);
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> entries = (List<Map<String, Object>>) missionTableData.get("entries");
 
             empMission = "Unknown Mission";
@@ -383,8 +398,12 @@ public class CampaignService {
                 int min = (Integer) entry.get("minRoll");
                 int max = (Integer) entry.get("maxRoll");
                 if (roll >= min && roll <= max) {
-                    empMission = resolveFromSubTable((Map<String, Object>) entry.get("primary"), rand);
-                    oppMission = resolveFromSubTable((Map<String, Object>) entry.get("opponent"), rand);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> primaryTable = (Map<String, Object>) entry.get("primary");
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> opponentTable = (Map<String, Object>) entry.get("opponent");
+                    empMission = resolveFromSubTable(primaryTable, rand);
+                    oppMission = resolveFromSubTable(opponentTable, rand);
                     break;
                 }
             }
@@ -543,6 +562,7 @@ public class CampaignService {
         int diceCount = (Integer) roleTableData.get("diceCount");
         int diceSides = (Integer) roleTableData.get("diceSides");
         int threshold = (Integer) roleTableData.get("threshold");
+        @SuppressWarnings("unchecked")
         Map<String, Integer> mods = (Map<String, Integer>) roleTableData.get("missionModifiers");
 
         int roll = rollDice(diceCount, diceSides, rand);
@@ -566,8 +586,11 @@ public class CampaignService {
         List<Map<String, Object>> groups = (List<Map<String, Object>>) trackCountTableData.get("groups");
 
         Map<String, Object> selectedGroup = groups.stream()
-                .filter(g -> ((List<String>) g.get("missions")).stream()
-                .anyMatch(m -> missionMatches(missionType, m)))
+                .filter(g -> {
+                    @SuppressWarnings("unchecked")
+                    List<String> missions = (List<String>) g.get("missions");
+                    return missions.stream().anyMatch(m -> missionMatches(missionType, m));
+                })
                 .findFirst()
                 .orElse(groups.get(0)); // Default to Raid/Expedition logic
 
@@ -617,16 +640,23 @@ public class CampaignService {
         List<Map<String, Object>> groups = (List<Map<String, Object>>) trackTableData.get("groups");
 
         Map<String, Object> selectedGroup = groups.stream()
-                .filter(g -> ((List<String>) g.get("missions")).stream()
-                .anyMatch(m -> missionMatches(missionType, m)))
+                .filter(g -> {
+                    @SuppressWarnings("unchecked")
+                    List<String> missions = (List<String>) g.get("missions");
+                    return missions.stream().anyMatch(m -> missionMatches(missionType, m));
+                })
                 .findFirst()
-                .orElseGet(() -> groups.stream()
-                .filter(g -> ((List<String>) g.get("missions")).contains("Default"))
+                .orElseGet(() -> groups.stream().filter(g -> {
+                    @SuppressWarnings("unchecked")
+                    List<String> missions = (List<String>) g.get("missions");
+                    return missions.contains("Default");
+                })
                 .findFirst()
                 .orElse(groups.get(0)));
 
         log.debug("Selected track group for mission '{}': {}", missionType, selectedGroup.get("missions"));
 
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> entries = (List<Map<String, Object>>) selectedGroup.get("entries");
         log.debug("Track entries for selected group: {}", entries.size());
 
@@ -711,6 +741,8 @@ public class CampaignService {
         int diceCount = (Integer) subTable.get("diceCount");
         int diceSides = (Integer) subTable.get("diceSides");
         int roll = rollDice(diceCount, diceSides, rand);
+        
+        @SuppressWarnings("unchecked") // Cast from Object to List<Map<String, Object>>
         List<Map<String, Object>> entries = (List<Map<String, Object>>) subTable.get("entries");
         for (Map<String, Object> entry : entries) {
             int min = (Integer) entry.get("minRoll");
@@ -736,16 +768,21 @@ public class CampaignService {
      */
     @SuppressWarnings("unchecked")
     private String getOpposingMissionType(String employerMission, Random rand) {
+        @SuppressWarnings("unchecked") // Cast from Object to List<Map<String, Object>>
         List<Map<String, Object>> entries = (List<Map<String, Object>>) missionTableData.get("entries");
         for (Map<String, Object> entry : entries) {
+            @SuppressWarnings("unchecked")
             Map<String, Object> primary = (Map<String, Object>) entry.get("primary");
+            @SuppressWarnings("unchecked")
             List<Map<String, Object>> subEntries = (List<Map<String, Object>>) primary.get("entries");
 
             boolean matchFound = subEntries.stream()
                     .anyMatch(se -> missionMatches(employerMission, (String) se.get("value")));
 
             if (matchFound) {
-                return resolveFromSubTable((Map<String, Object>) entry.get("opponent"), rand);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> opponentTable = (Map<String, Object>) entry.get("opponent");
+                return resolveFromSubTable(opponentTable, rand);
             }
         }
         // Fallback if the specific mission type isn't mapped to a table entry

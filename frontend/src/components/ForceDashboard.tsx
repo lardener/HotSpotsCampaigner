@@ -238,7 +238,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         LINK: ACTIVE | REPUTATION: {data?.getCommand?.reputation} | WARCHEST: {data?.getCommand?.totalSupportPoints} SP
                     </div>
 
-                    <nav className="mode-switcher" style={{ marginTop: '1rem' }}>
+                <nav className="mode-switcher mt-1rem">
                         <button type="button"
                             className={`mode-btn ${viewMode === 'ORGANIZATION' ? 'active' : ''}`}
                             onClick={() => setViewMode('ORGANIZATION')}
@@ -259,9 +259,9 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         {/* ASSET POOL (Unassigned) */}
                         <DroppableZone id="pool" title="RESERVE POOL">
                             <div className="asset-group">
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <div className="flex-between">
                                     <h4 title="Combat Units">COMBAT UNITS</h4> {/* Added type="button" */}
-                                    <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.6rem' }}>+</button>
+                                <button type="button" className="mode-btn sm-text" onClick={handleAddUnit}>+</button>
                                 </div>
                                 {units.filter(u => !u.detachmentId).map(u => (
                                     <DraggableAsset
@@ -274,9 +274,9 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                 ))}
                             </div>
                             <div className="asset-group">
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <div className="flex-between">
                                     <h4 title="Pilot Barracks">PILOT BARRACKS</h4> {/* Added type="button" */}
-                                    <button className="mode-btn" onClick={handleHirePilot} style={{ fontSize: '0.6rem' }}>+</button>
+                                    <button type="button" className="mode-btn sm-text" onClick={handleHirePilot}>+</button>
                                 </div>
                                 {pilots.filter(p => !p.detachmentId).map(p => (
                                     <DraggableAsset
@@ -333,10 +333,10 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                             <h3 className="zone-header">MANAGED CAMPAIGNS</h3>
                             <div className="ops-list">
                                 {managedCampaigns.map(camp => (
-                                    <div key={camp.id} className="ops-item tactical-panel" style={{ marginBottom: '0.5rem' }}>
+                                    <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-status" title={`System: ${camp.systemName} | Tracks: ${camp.trackCount}`}>SYSTEM: {camp.systemName} | TRACKS: {camp.trackCount}</div>
-                                        <button type="button" className="mode-btn" style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>MANAGE THEATER</button>
+                                        <button type="button" className="mode-btn sm-text mt-05rem">MANAGE THEATER</button>
                                     </div>
                                 ))}
                                 {managedCampaigns.length === 0 && (
@@ -350,12 +350,12 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                             <h3 className="zone-header">DEPLOYED DETACHMENTS</h3>
                             <div className="ops-list">
                                 {participatingCampaigns.map(camp => (
-                                    <div key={camp.id} className="ops-item tactical-panel" style={{ marginBottom: '0.5rem' }}>
+                                    <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-meta" title={`Employer: ${camp.primaryEmployer}`}>EMPLOYER: {camp.primaryEmployer}</div>
                                         <div className="ops-meta">CURRENT WARCHEST: 4500 SP</div>
-                                        <div className="ops-actions" style={{ display: 'flex', gap: '0.5rem' }}> {/* Added type="button" */}
-                                            <button className="mode-btn" style={{ fontSize: '0.7rem', marginTop: '0.5rem' }}>OPEN LOGBOOK</button>
+                                        <div className="ops-actions flex flex-gap-10"> {/* Added type="button" */}
+                                            <button type="button" className="mode-btn sm-text mt-05rem">OPEN LOGBOOK</button>
                                         </div>
                                     </div>
                                 ))}

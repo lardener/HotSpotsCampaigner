@@ -12,11 +12,11 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userName, onLogout }) => {
     const menuItems = [
-        { id: 'commands' as TabType, icon: '🛡️', label: 'Mercenary Commands' },
-        { id: 'my-campaigns' as TabType, icon: '🗺️', label: 'My Campaigns' }, // Moved from original position
-        { id: 'create-campaign' as TabType, icon: '➕', label: 'New Campaign' },
-        { id: 'ledger' as TabType, icon: '📜', label: 'Warchest Ledger' },
-        { id: 'public-campaigns' as TabType, icon: '🌐', label: 'Available Campaigns' },
+        { id: 'commands' as TabType, icon: '🛡️', label: 'Mercenary Commands', aria: 'Shield' },
+        { id: 'my-campaigns' as TabType, icon: '🗺️', label: 'My Campaigns', aria: 'Map' },
+        { id: 'create-campaign' as TabType, icon: '➕', label: 'New Campaign', aria: 'Plus' },
+        { id: 'ledger' as TabType, icon: '📜', label: 'Warchest Ledger', aria: 'Scroll' },
+        { id: 'public-campaigns' as TabType, icon: '🌐', label: 'Available Campaigns', aria: 'Globe' },
     ];
 
     return (
@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, userNa
                         onClick={() => onTabChange(item.id)}
                         title={item.label}
                     >
-                        <span className="nav-icon">{item.icon}</span>
+                        <span className="nav-icon" role="img" aria-label={item.aria}>{item.icon}</span>
                         <span className="nav-label">{item.label}</span>
                     </button>
                 ))}

@@ -1,6 +1,7 @@
 package com.hotspotscamp.api;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -109,16 +110,35 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
-    public Map<String, Object> campaignMetadata() {
-        return Map.of(
-                "missions", campaignService.getAvailableMissions(),
-                "trackTypes", campaignService.getAvailableTrackTypes(),
-                "factions", campaignService.getAvailableFactions(),
-                "employerTypes", campaignService.getEmployerTypes(),
-                "resolvedSteps", campaignService.getResolvedStepsTable().entrySet().stream()
-                        .map(e -> Map.of("step", e.getKey(), "values", e.getValue()))
+    public CampaignMetadata campaignMetadata() {
+        Map<String, List<String>> missions = campaignService.getAvailableMissions();
+        return new CampaignMetadata(
+                new MissionMetadata(missions.get("primary"), missions.get("opponent")),
+                campaignService.getAvailableTrackTypes(),
+                campaignService.getAvailableFactions(),
+                campaignService.getEmployerTypes(),
+                campaignService.getResolvedStepsTable().entrySet().stream()
+                        .map(e -> new ResolvedStepEntry(e.getKey(), e.getValue()))
                         .collect(Collectors.toList())
         );
+    }
+
+    public record CampaignMetadata(
+            MissionMetadata missions,
+            List<String> trackTypes,
+            List<String> factions,
+            List<String> employerTypes,
+            List<ResolvedStepEntry> resolvedSteps
+            ) {
+
+    }
+
+    public record MissionMetadata(List<String> primary, List<String> opponent) {
+
+    }
+
+    public record ResolvedStepEntry(Integer step, Map<String, String> values) {
+
     }
 
     @QueryMapping

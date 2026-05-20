@@ -12,6 +12,8 @@ import { CampaignTheaterView } from './CampaignTheaterView';
 
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const GET_MY_COMMANDS = gql`
   query GetMyCommands {
     myCommands {
@@ -69,6 +71,7 @@ const GET_MANAGED_CAMPAIGNS = gql`
       participatingDetachments {
         id
         name
+        mercenaryCommandId
       }
     }
   }
@@ -100,25 +103,41 @@ interface ManagedCampaignsData {
         id: string;
         name: string;
         systemName: string;
+        description: string;
         status: string;
         trackCount: number;
         primaryEmployer: string;
         secondaryEmployer: string;
-        payRate?: number;
-        salvageTerms?: string;
-        supportTerms?: string;
-        transportTerms?: string;
-        commandRights?: string;
-        payStep?: number;
-        salvageStep?: number;
-        supportStep?: number;
-        transportStep?: number;
-        commandStep?: number;
-        contracts?: any[];
+        payRate: number;
+        salvageTerms: string;
+        supportTerms: string;
+        transportTerms: string;
+        commandRights: string;
+        payStep: number;
+        salvageStep: number;
+        supportStep: number;
+        transportStep: number;
+        commandStep: number;
+        contracts: {
+            id: string;
+            employerCategory: string;
+            missionType: string;
+            payRate: number;
+            payStep: number;
+            salvageTerms: string;
+            salvageStep: number;
+            supportTerms: string;
+            supportStep: number;
+            transportTerms: string;
+            transportStep: number;
+            commandRights: string;
+            commandStep: number;
+            primaryContract: boolean;
+        }[];
         participatingDetachments?: {
             id: string;
             name: string;
-            mercenaryCommandId?: string;
+            mercenaryCommandId: string;
         }[];
     }[];
 }
@@ -130,7 +149,7 @@ interface MainDashboardProps {
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) => {
     const [activeTab, setActiveTab] = useState<TabType>('my-campaigns');
-    const [commands, setCommands] = useState<any[]>([]);
+    const [commands, setCommands] = useState<GetMyCommandsData['myCommands']>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
@@ -219,7 +238,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         id: `camp-det-${det.id}`,
                         label: det.name,
                         type: 'DETACHMENT' as NodeType,
-                        metadata: { detachmentId: det.id, campaignId: camp.id, managerView: true }
+                        metadata: {
+                            detachmentId: det.id,
+                            commandId: det.mercenaryCommandId,
+                            campaignId: camp.id,
+                            managerView: true
+                        }
                     }))
                 }))
             },
@@ -270,6 +294,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
         } else if (item.id === 'create-campaign') {
             setActiveTab('create-campaign'); // Creation Tool
         }
+    };
+
+    const onCreateNew = () => {
+        setActiveTab('create-campaign');
     };
 
     const getSelectedNodeId = () => {
@@ -323,7 +351,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
             <div className="public-landing">
                 <div className="landing-header">
                     <h1 className="main-title">HOTSPOTS: CAMPAIGNER</h1>
-                    <button type="button" className="login-button" onClick={() => window.location.href = 'http://localhost:8080/login/oauth2/authorization/google'} title="Login to your account">
+                    <button type="button" className="login-button" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account">
                         COMMANDER LOGIN
                     </button>
                 </div>
@@ -392,14 +420,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
             case 'my-campaigns':
                 return (
                     <CampaignTheaterView
-                        managedData={managedData}
+                        managedData={managedData as any}
                         loadingManaged={loadingManaged}
                         selectedCampaignId={selectedCampaignId}
                         campaignFilter={campaignFilter}
                         onSetFilter={setCampaignFilter}
-                        onSelectCampaign={(id: string) => { setSelectedCampaignId(id); setSelectedNodeId(id); }}
+                        onSelectCampaign={(id) => { setSelectedCampaignId(id); setSelectedNodeId(id); }}
                         onReturnToList={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}
-                        onCreateNew={() => setActiveTab('create-campaign')}
+                        onCreateNew={onCreateNew}
                         onSelectDetachment={handleTreeSelect}
                     />
                 );
@@ -485,19 +513,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                             ))}
 
                             <div
-                                className="dashboard-section" // Added type="button"
+                                className="dashboard-section establish-command-placeholder"
                                 onClick={() => setIsCreatingCommand(true)}
-                                style={{ // Added title to button
-                                    cursor: 'pointer',
-                                    border: '1px dashed #666',
-                                    textAlign: 'center',
-                                    padding: '30px',
-                                    opacity: 0.7,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}
+                                title="Establish a new mercenary command"
                             > {/* Added title to button */}
                                 <h3 className="terminal-text" style={{ margin: 0 }}>+ ESTABLISH NEW MERCENARY COMMAND</h3>
                             </div>
