@@ -51,11 +51,6 @@ public class CampaignService {
     private final DetachmentRepository detachmentRepository;
     private final UserService userService;
 
-    private int systemGroupDiceCount;
-    private int systemGroupDiceSides;
-    private int systemEntryDiceCount;
-    private int systemEntryDiceSides;
-
     // DTOs for Configuration Tables
     private record RollEntry(int minRoll, int maxRoll, String value) {
 
@@ -97,7 +92,7 @@ public class CampaignService {
 
     }
 
-    private record SystemTableConfig(int groupDiceCount, int groupDiceSides, int entryDiceCount, int entryDiceSides, List<SystemGroup> groups) {
+    private record SystemTableConfig(Integer groupDiceCount, Integer groupDiceSides, Integer entryDiceCount, Integer entryDiceSides, List<SystemGroup> groups) {
 
     }
 
@@ -147,6 +142,11 @@ public class CampaignService {
     private TrackTableConfig trackTableData;
     private TrackCountTableConfig trackCountTableData;
     private ContractStepsTableConfig contractStepsTableConfig;
+
+    private int systemGroupDiceCount;
+    private int systemGroupDiceSides;
+    private int systemEntryDiceCount;
+    private int systemEntryDiceSides;
 
     private record ContractTableConfig(int diceCount, int diceSides, List<Map<String, Object>> rollToStep,
             Map<String, Integer> empMods, Map<String, Integer> missionMods) {
@@ -678,8 +678,8 @@ public class CampaignService {
     }
 
     private String rollSystemName(Random rand) {
-        int groupRoll = rollDice(systemTableConfig.groupDiceCount(), systemTableConfig.groupDiceSides(), rand);
-        int entryRoll = rollDice(systemTableConfig.entryDiceCount(), systemTableConfig.entryDiceSides(), rand);
+        int groupRoll = rollDice(systemGroupDiceCount, systemGroupDiceSides, rand);
+        int entryRoll = rollDice(systemEntryDiceCount, systemEntryDiceSides, rand);
 
         return systemTableConfig.groups().stream()
                 .filter(g -> g.roll() == groupRoll)

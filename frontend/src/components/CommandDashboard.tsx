@@ -107,6 +107,19 @@ const ADD_UNIT = gql`
   }
 `;
 
+const IMPORT_ASSETS = gql`
+  mutation ImportAssets($commandId: ID!, $detachmentId: ID, $link: String!) {
+    importCombatUnitsFromLink(commandId: $commandId, detachmentId: $detachmentId, link: $link) {
+      id
+      model
+      variant
+      tonnage
+      bv
+      pv
+    }
+  }
+`;
+
 const DELETE_UNIT = gql`
   mutation DeleteUnit($unitId: ID!) {
     deleteUnit(unitId: $unitId)
@@ -317,6 +330,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [justAddedId, setJustAddedId] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
     const [inviteToken, setInviteToken] = useState('');
+    const [importLink, setImportLink] = useState('');
 
     // Synchronize selection with prop changes (e.g. from Navigation Tree)
     useEffect(() => {
@@ -328,6 +342,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     });
 
     const [joinCampaign] = useMutation(JOIN_CAMPAIGN);
+    const [importAssets] = useMutation(IMPORT_ASSETS);
 
     const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
     const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
@@ -599,6 +614,19 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             });
             if (hireData?.hirePilot?.id) setJustAddedId(hireData.hirePilot.id);
         } catch (err) { alert("Failed to hire pilot."); }
+    };
+
+    const handleImport = async () => {
+        if (!importLink) return;
+        setIsSyncing(true);
+        try {
+            await importAssets({ variables: { commandId, detachmentId: selectedDetachmentId, link: importLink } });
+            setImportLink('');
+            refetch();
+        } catch (err) {
+            alert("Scraping failure: Link format not recognized or site unreachable.");
+        }
+        setIsSyncing(false);
     };
 
     const handleDeleteUnit = async (id: string) => {
@@ -883,7 +911,13 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                             <h3 className="zone-header" style={{ margin: 0 }}>COMBAT UNIT ROSTER</h3>
-                            {!isManagerView && <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>}
+                            {!isManagerView && (
+                                <div className="flex flex-gap-10">
+                                    <input className="table-input" style={{ width: '200px', fontSize: '0.7rem' }} placeholder="External Link (MUL)..." value={importLink} onChange={(e) => setImportLink(e.target.value)} title="Paste link to import mechs" />
+                                    <button className="mode-btn" onClick={handleImport} style={{ fontSize: '0.7rem' }}>IMPORT</button>
+                                    <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>
+                                </div>
+                            )}
                         </div>
                         <table className="tactical-table">
                             <thead>

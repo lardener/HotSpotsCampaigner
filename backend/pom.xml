@@ -119,7 +119,15 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.22.2</version>
+        </dependency>
     </dependencies>
+
+    <!-- Source: https://mvnrepository.com/artifact/org.jsoup/jsoup -->
+
 
     <build>
         <plugins>

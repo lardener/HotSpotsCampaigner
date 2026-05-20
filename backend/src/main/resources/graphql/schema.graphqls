@@ -54,6 +54,7 @@ type Mutation {
     assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
     
     # Asset Management
+    importCombatUnitsFromLink(commandId: ID!, detachmentId: ID, link: String!): [CombatUnit]
     updateTrack(id: ID!, input: TrackInput!): CampaignTrack
     addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
     updateCombatUnit(id: ID!, input: CombatUnitInput!): CombatUnit

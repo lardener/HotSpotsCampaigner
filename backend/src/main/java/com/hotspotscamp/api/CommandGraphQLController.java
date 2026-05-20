@@ -2,6 +2,7 @@ package com.hotspotscamp.api;
 
 import java.security.Principal;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -344,5 +345,15 @@ public class CommandGraphQLController {
             return Mono.error(new RuntimeException("Authentication required to join campaign"));
         }
         return commandService.joinCampaign(token, detachmentId, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<List<CombatUnit>> importCombatUnitsFromLink(@Argument UUID commandId, 
+                                                          @Argument UUID detachmentId, 
+                                                          @Argument String link, 
+                                                          Principal principal) {
+        if (principal == null) return Mono.error(new RuntimeException("Unauthorized"));
+        return commandService.importAssetsFromLink(commandId, detachmentId, link, principal.getName())
+                .collectList();
     }
 }

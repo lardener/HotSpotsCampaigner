@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.r2dbc.core.DatabaseClient;
@@ -31,6 +33,7 @@ import com.hotspotscamp.repository.EventStoreRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
+import com.hotspotscamp.service.scraper.ScraperFactory;
 import com.hotspotscamp.util.SqlUtils;
 
 import lombok.NonNull;
@@ -40,6 +43,8 @@ import reactor.core.publisher.Sinks;
 
 @Service
 public class MercenaryCommandService {
+
+    private static final Logger log = LoggerFactory.getLogger(MercenaryCommandService.class);
 
     private final MercenaryCommandRepository commandRepository;
     private final DetachmentRepository detachmentRepository;
@@ -53,6 +58,7 @@ public class MercenaryCommandService {
     private final PilotRepository pilotRepository;
     private final UserService userService;
     private final DatabaseClient databaseClient;
+    private final ScraperFactory scraperFactory;
 
     public MercenaryCommandService(
             MercenaryCommandRepository commandRepository,
@@ -66,7 +72,8 @@ public class MercenaryCommandService {
             CombatUnitRepository combatUnitRepository,
             PilotRepository pilotRepository,
             UserService userService,
-            DatabaseClient databaseClient) {
+            DatabaseClient databaseClient,
+            ScraperFactory scraperFactory) {
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
         this.eventStoreRepository = eventStoreRepository;
@@ -79,6 +86,7 @@ public class MercenaryCommandService {
         this.pilotRepository = pilotRepository;
         this.userService = userService;
         this.databaseClient = databaseClient;
+        this.scraperFactory = scraperFactory;
     }
 
     /**
@@ -655,5 +663,34 @@ public class MercenaryCommandService {
                     .map(n -> n != null && n.longValue() > 0)
                     .defaultIfEmpty(false);
         });
+    }
+
+    /**
+     * Scrapes an external link to import mechs. Currently supports: Master Unit
+     * List (MUL).
+     */
+    @Transactional
+    public Flux<CombatUnit> importAssetsFromLink(@NonNull UUID commandId, UUID detachmentId, String link, String userId) {
+        return userService.resolveOrCreateUser(userId).flatMapMany(user
+                -> commandRepository.findById(commandId).flatMapMany(cmd -> {
+                    if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                        return Flux.error(new RuntimeException("Access Denied"));
+                    }
+
+                    log.info("[SCRAPER] Initiating import from: {}", link);
+
+                    return scraperFactory.getScraper(link)
+                            .flatMapMany(scraper -> scraper.scrape(link))
+                            .map(unit -> {
+                                unit.setId(UUID.randomUUID());
+                                unit.setCommandId(commandId);
+                                unit.setDetachmentId(detachmentId);
+                                unit.setStatus("OPERATIONAL");
+                                unit.setNew(true);
+                                return unit;
+                            })
+                            .flatMap(combatUnitRepository::save);
+                })
+        );
     }
 }
