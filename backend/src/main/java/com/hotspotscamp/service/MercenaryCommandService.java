@@ -352,21 +352,19 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> deleteDetachment(@NonNull UUID detachmentId, String userId) {
-        return isAuthorizedToEditLedger(detachmentId, userId)
-                .flatMap(isAuthorized -> {
-                    if (!isAuthorized) {
-                        return Mono.error(new RuntimeException("Access Denied: You are not authorized to delete this detachment."));
-                    }
-                    return detachmentRepository.findById(detachmentId)
-                            .flatMap(detachment -> {
-                                UUID commandId = detachment.getMercenaryCommandId();
-                                if (commandId == null) {
-                                    return Mono.error(new RuntimeException("Detachment record is corrupted: No command ID"));
+        return detachmentRepository.findById(detachmentId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Detachment not found: " + detachmentId)))
+                .flatMap(detachment -> {
+                    UUID commandId = detachment.getMercenaryCommandId();
+                    return isAuthorizedToEditLedger(commandId, userId)
+                            .flatMap(isAuthorized -> {
+                                if (!isAuthorized) {
+                                    return Mono.error(new RuntimeException("Access Denied: You are not authorized to delete this detachment."));
                                 }
                                 return Mono.when(
                                         SqlUtils.bindUuid(databaseClient.sql("UPDATE combat_units SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
                                         SqlUtils.bindUuid(databaseClient.sql("UPDATE pilots SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
-                                        SqlUtils.bindUuid(databaseClient.sql("DELETE FROM ledger_entries WHERE detachment_id = :id"), "id", detachmentId).then(),
+                                        SqlUtils.bindUuid(databaseClient.sql("UPDATE ledger_entries SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
                                         detachmentRepository.deleteById(detachmentId)
                                 ).then(syncTotalSupportPoints(commandId)).then();
                             });
@@ -572,7 +570,7 @@ public class MercenaryCommandService {
                     + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
                     + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
                     + "  WHERE mc.id = :cmdId "
-                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId OR c.manager_id IS NULL)"
+                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
                     + ")";
 
             var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);

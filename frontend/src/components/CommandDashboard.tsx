@@ -38,6 +38,7 @@ const GET_UNIT_DOSSIER = gql`
       detachments {
         id
         name
+        campaignId
       }
       allLedgerEntries {
         id
@@ -104,6 +105,12 @@ const ADD_UNIT = gql`
       status
       detachmentId
     }
+  }
+`;
+
+const ASSIGN_DETACHMENT = gql`
+  mutation AssignDetachmentToCampaign($detachmentId: ID!, $campaignId: ID) {
+    assignDetachmentToCampaign(detachmentId: $detachmentId, campaignId: $campaignId)
   }
 `;
 
@@ -298,7 +305,11 @@ interface ManagedCampaign {
     name: string;
 }
 
-type Detachment = any; // Placeholder, as detachments are not yet fully typed from GraphQL
+interface Detachment {
+    id: string;
+    name: string;
+    campaignId?: string | null;
+}
 
 interface UnitDossierData {
     getCommand: {
@@ -320,9 +331,11 @@ interface CommandDashboardProps {
     commandId: string;
     detachmentId?: string;
     isManagerView?: boolean;
+    onViewCampaign?: (campaignId: string) => void;
+    onRefreshTree?: () => void;
 }
 
-export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView }) => {
+export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView, onViewCampaign, onRefreshTree }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
     // Form states
@@ -347,6 +360,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
     const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
     const [updatePilot] = useMutation<any, UpdatePilotVars>(UPDATE_PILOT);
+    const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [assignAsset] = useMutation<any, { assetType: string, assetId: string, detachmentId: string | null }>(ASSIGN_ASSET, {
         update(cache, { data: result }, { variables }) {
             if (result?.assignAsset && variables) {
@@ -607,6 +621,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         name: "NEW PILOT",
                         gunnery: 4,
                         piloting: 5,
+                        asSkill: 4,
                         status: 'Healthy',
                         detachmentId: selectedDetachmentId
                     }
@@ -661,8 +676,23 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             await joinCampaign({ variables: { token: inviteToken, detachmentId: selectedDetachmentId } });
             alert("RECRUITMENT SUCCESSFUL: DETACHMENT DEPLOYED.");
             setInviteToken('');
-            window.location.reload();
+            onRefreshTree?.();
         } catch (err) { alert("RECRUITMENT FAILURE: INVALID OR EXPIRED TOKEN."); }
+    };
+
+    const handleLeaveCampaign = async () => {
+        if (!selectedDetachmentId) return;
+        if (!window.confirm("ARE YOU SURE YOU WANT TO WITHDRAW FROM THIS THEATER? ALL PROGRESS IN THIS CAMPAIGN WILL BE SUSPENDED.")) return;
+
+        setIsSyncing(true);
+        try {
+            await assignDetachment({ variables: { detachmentId: selectedDetachmentId, campaignId: null } });
+            refetch();
+            onRefreshTree?.();
+        } catch (err) {
+            alert("COMMUNICATIONS FAILURE: UNABLE TO WITHDRAW.");
+        }
+        setIsSyncing(false);
     };
 
     const handleCreateDetachment = async () => {
@@ -677,6 +707,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     name
                 }
             });
+            onRefreshTree?.();
         } catch (err) { alert("Failed to create detachment."); }
     };
 
@@ -687,6 +718,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             if (selectedDetachmentId === id) {
                 setSelectedDetachmentId(null);
             }
+            onRefreshTree?.();
         } catch (err) {
             alert("Failed to delete detachment.");
         }
@@ -825,20 +857,48 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             </div>
                         ))}
 
-                    {selectedDetachmentId && !isManagerView && (
-                        <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
-                            <label htmlFor="invite-token" className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
-                            <input
-                                id="invite-token"
-                                className="table-input"
-                                placeholder="INVITE TOKEN..."
-                                value={inviteToken}
-                                onChange={(e) => setInviteToken(e.target.value)}
-                                title="Enter campaign invitation key"
-                            />
-                            <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
-                        </div>
-                    )}
+                    {selectedDetachmentId && !isManagerView && (() => {
+                        const currentDet = command.detachments?.find((d: any) => d.id === selectedDetachmentId);
+
+                        if (currentDet?.campaignId) {
+                            return (
+                                <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
+                                    <h4 className="restricted-text" style={{ fontSize: '0.6rem', marginBottom: '10px' }}>ACTIVE DEPLOYMENT</h4>
+                                    <div className="flex flex-gap-5">
+                                        <button
+                                            className="mode-btn"
+                                            style={{ flex: 2, fontSize: '0.7rem' }}
+                                            onClick={() => onViewCampaign?.(currentDet.campaignId!)}
+                                        >
+                                            VIEW THEATER
+                                        </button>
+                                        <button
+                                            className="mode-btn"
+                                            style={{ flex: 1, fontSize: '0.7rem', color: 'var(--terminal-alert)' }}
+                                            onClick={handleLeaveCampaign}
+                                        >
+                                            LEAVE
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
+                                <label htmlFor="invite-token" className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
+                                <input
+                                    id="invite-token"
+                                    className="table-input"
+                                    placeholder="INVITE TOKEN..."
+                                    value={inviteToken}
+                                    onChange={(e) => setInviteToken(e.target.value)}
+                                    title="Enter campaign invitation key"
+                                />
+                                <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
+                            </div>
+                        );
+                    })()}
                 </aside>
 
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>

@@ -56,6 +56,15 @@ public class UserService {
                 }));
     }
 
+    public Mono<User> updateDisplayName(String identity, String displayName) {
+        return resolveOrCreateUser(identity)
+                .flatMap(user -> {
+                    user.setDisplayName(displayName);
+                    user.setNew(false);
+                    return userRepository.save(user);
+                });
+    }
+
     /**
      * Upgrades an invited user to an authenticated manager.
      */

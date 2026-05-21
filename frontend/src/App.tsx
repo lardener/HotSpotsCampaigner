@@ -41,6 +41,7 @@ interface UserProfileData {
     id: string;
     name: string;
     email: string;
+    displayName?: string;
   } | null;
 }
 
@@ -50,12 +51,13 @@ const GET_USER_PROFILE = gql`
       id
       name
       email
+      displayName
     }
   }
 `;
 
 export function App() {
-  const [user, setUser] = useState<{ name: string; id: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; id: string; displayName?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,12 +81,15 @@ export function App() {
     document.title = "HSC-TACTICAL // CAMPAIGNER";
 
     // Check for an existing session on mount
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = () => {
     client.query<UserProfileData>({ query: GET_USER_PROFILE, fetchPolicy: 'network-only' })
       .then(result => {
         const profile = result.data?.userProfile;
         if (profile) {
-          // Use the internal UUID (id) as the user identifier
-          setUser({ name: profile.name, id: profile.id });
+          setUser({ name: profile.name, id: profile.id, displayName: profile.displayName });
         } else {
           setUser(null);
         }
@@ -94,7 +99,7 @@ export function App() {
         setUser(null);
         setLoading(false);
       });
-  }, []);
+  };
 
   const handleLogout = async () => {
     try {
@@ -122,7 +127,7 @@ export function App() {
   return (
     // 3. Provide the client to your component tree
     <ApolloProvider client={client}>
-      <MainDashboard user={user} onLogout={handleLogout} />
+      <MainDashboard user={user} onLogout={handleLogout} onRefreshProfile={fetchProfile} />
     </ApolloProvider>
   );
 }

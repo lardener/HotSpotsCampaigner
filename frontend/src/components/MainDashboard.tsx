@@ -95,6 +95,15 @@ const DELETE_COMMAND = gql`
   }
 `;
 
+const UPDATE_USER_PROFILE = gql`
+  mutation UpdateUserProfile($displayName: String!) {
+    updateUserProfile(displayName: $displayName) {
+      id
+      displayName
+    }
+  }
+`;
+
 interface GetMyCommandsData {
     myCommands: {
         id: string;
@@ -167,11 +176,12 @@ interface ManagedCampaignsData {
 }
 
 interface MainDashboardProps {
-    user: { name: string; id: string } | null;
+    user: { name: string; id: string; displayName?: string | null } | null;
     onLogout: () => void;
+    onRefreshProfile?: () => void;
 }
 
-export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) => {
+export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, onRefreshProfile }) => {
     const [activeTab, setActiveTab] = useState<TabType>('my-campaigns');
     const [commands, setCommands] = useState<GetMyCommandsData['myCommands']>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
@@ -180,6 +190,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isCreatingCommand, setIsCreatingCommand] = useState(false);
     const [campaignFilter, setCampaignFilter] = useState<string>('ACTIVE');
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editName, setEditName] = useState(user?.displayName || user?.name || '');
+
+    // Sync editName when user prop changes
+    useEffect(() => {
+        setEditName(user?.displayName || user?.name || '');
+    }, [user]);
 
     const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
         skip: !user,
@@ -199,6 +216,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
     }, [error]);
 
     const [deleteCommand] = useMutation(DELETE_COMMAND);
+    const [updateUserProfile] = useMutation(UPDATE_USER_PROFILE);
+
+    const handleNameUpdate = async () => {
+        if (!editName.trim()) return setIsEditingName(false);
+        try {
+            await updateUserProfile({ variables: { displayName: editName } });
+            setIsEditingName(false);
+            onRefreshProfile?.();
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     useEffect(() => {
         if (data?.myCommands) {
@@ -557,6 +586,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                         commandId={selectedCommandId}
                         detachmentId={selectedDetachmentId || undefined}
                         isManagerView={selectedNodeId?.startsWith('camp-det-')}
+                        onViewCampaign={(campaignId) => {
+                            setSelectedCampaignId(campaignId);
+                            setActiveTab('my-campaigns');
+                        }}
+                        onRefreshTree={() => {
+                            refetch();
+                            refetchManaged();
+                        }}
                     />
                 ) : null;
             case 'public-campaigns':
@@ -594,7 +631,22 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout }) 
                 />
                 <div className="sidebar-footer-main">
                     <div className="user-profile-mini sidebar-user-info">
-                        👤 {user.name}
+                        👤 {isEditingName ? (
+                            <input
+                                className="table-input"
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                onBlur={handleNameUpdate}
+                                onKeyDown={e => e.key === 'Enter' && handleNameUpdate()}
+                                autoFocus
+                                style={{ fontSize: '0.8rem', padding: '2px', width: '150px' }}
+                                title="Enter to save, click away to cancel"
+                            />
+                        ) : (
+                            <span onClick={() => setIsEditingName(true)} style={{ cursor: 'pointer' }} title="Click to set callsign">
+                                {user?.displayName || user?.name}
+                            </span>
+                        )}
                     </div>
                     <button type="button" className="mode-btn logout-btn sidebar-logout-btn" onClick={onLogout} title="Disconnect from the system">DISCONNECT NEURAL LINK</button>
                 </div>

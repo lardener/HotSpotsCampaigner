@@ -3,8 +3,8 @@ import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 
 const ESTABLISH_COMMAND = gql`
-  mutation EstablishCommand($name: String!, $commandingOfficer: String) {
-    establishCommand(name: $name, commandingOfficer: $commandingOfficer) {
+  mutation EstablishCommand($name: String!, $commandingOfficer: String, $totalSupportPoints: Int) {
+    establishCommand(name: $name, commandingOfficer: $commandingOfficer, totalSupportPoints: $totalSupportPoints) {
       id
       name
     }
@@ -19,35 +19,29 @@ interface EstablishCommandData {
 }
 
 interface CreateCommandFormProps {
-    user?: { name: string };
+    user: { name: string; id: string; displayName?: string | null } | null;
     onCancel: () => void;
     onSuccess: (cmd: any) => void;
 }
 
 export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCancel, onSuccess }) => {
     const [name, setName] = useState('');
-    const [experienceLevel, setExperienceLevel] = useState('REGULAR');
-    const [initialSP, setInitialSP] = useState(1000);
+    const [commandingOfficer, setCommandingOfficer] = useState(user?.displayName || user?.name || '');
+    const [scale, setScale] = useState(1);
+    const [initialSP, setInitialSP] = useState(3000);
     const [error] = useState<string | null>(null);
     const [establishCommand, { loading }] = useMutation<EstablishCommandData>(ESTABLISH_COMMAND);
 
-    const handleLevelChange = (level: string) => {
-        setExperienceLevel(level);
-        // Hinterlands/Chaos Campaign standard starting SP values
-        switch (level) {
-            case 'GREEN': setInitialSP(800); break;
-            case 'REGULAR': setInitialSP(1000); break;
-            case 'VETERAN': setInitialSP(1200); break;
-            case 'ELITE': setInitialSP(1500); break;
-            default: setInitialSP(1000);
-        }
+    const handleScaleChange = (val: number) => {
+        setScale(val);
+        setInitialSP(3000 * val);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const { data } = await establishCommand({
-                variables: { name, commandingOfficer: user?.name }
+                variables: { name, commandingOfficer, totalSupportPoints: initialSP }
             });
             if (data?.establishCommand) {
                 onSuccess(data.establishCommand);
@@ -81,27 +75,33 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                             />
                         </div>
                         <div className="form-group">
-                            <label className="zone-header block-label">COMMANDING OFFICER</label>
-                            <div className="mode-btn form-display-only" title="CO assigned from neural link profile">
-                                {user?.name || 'UNKNOWN COMMANDER'}
-                            </div>
+                            <label htmlFor="command-co" className="zone-header block-label">COMMANDING OFFICER</label>
+                            <input
+                                id="command-co"
+                                type="text"
+                                className="mode-btn text-left w-100 p-10"
+                                value={commandingOfficer}
+                                onChange={(e) => setCommandingOfficer(e.target.value)}
+                                placeholder="COMMANDER NAME..."
+                                title="Enter the name of the commanding officer"
+                                required
+                            />
                         </div>
                     </div>
 
                     <div className="grid-2-col mb-25">
                         <div className="form-group">
-                            <label htmlFor="exp-level" className="zone-header block-label">EXPERIENCE LEVEL</label>
+                            <label htmlFor="force-scale" className="zone-header block-label">FORCE SCALE</label>
                             <select
-                                id="exp-level"
+                                id="force-scale"
                                 className="mode-btn w-100 p-10"
-                                value={experienceLevel}
-                                onChange={(e) => handleLevelChange(e.target.value)}
-                                title="Select initial experience level"
+                                value={scale}
+                                onChange={(e) => handleScaleChange(parseInt(e.target.value))}
+                                title="Select the scale of the mercenary force"
                             >
-                                <option value="GREEN">GREEN (800 SP)</option>
-                                <option value="REGULAR">REGULAR (1000 SP)</option>
-                                <option value="VETERAN">VETERAN (1200 SP)</option>
-                                <option value="ELITE">ELITE (1500 SP)</option>
+                                <option value={1}>SCALE 1 (3000 SP)</option>
+                                <option value={2}>SCALE 2 (6000 SP)</option>
+                                <option value={3}>SCALE 3 (9000 SP)</option>
                             </select>
                         </div>
                         <div className="form-group">

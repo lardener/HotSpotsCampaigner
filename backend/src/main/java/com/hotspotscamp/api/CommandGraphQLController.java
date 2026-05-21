@@ -124,6 +124,7 @@ public class CommandGraphQLController {
     @MutationMapping
     public Mono<MercenaryCommand> establishCommand(@Argument String name,
             @Argument String commandingOfficer,
+            @Argument Integer totalSupportPoints,
             Principal principal) {
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required to establish command"));
@@ -132,6 +133,7 @@ public class CommandGraphQLController {
         MercenaryCommand command = new MercenaryCommand();
         command.setName(name);
         command.setCommandingOfficer(commandingOfficer);
+        command.setTotalSupportPoints(totalSupportPoints);
         return commandService.createCommand(command, userId);
     }
 
@@ -348,11 +350,13 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<List<CombatUnit>> importCombatUnitsFromLink(@Argument UUID commandId, 
-                                                          @Argument UUID detachmentId, 
-                                                          @Argument String link, 
-                                                          Principal principal) {
-        if (principal == null) return Mono.error(new RuntimeException("Unauthorized"));
+    public Mono<List<CombatUnit>> importCombatUnitsFromLink(@Argument UUID commandId,
+            @Argument UUID detachmentId,
+            @Argument String link,
+            Principal principal) {
+        if (principal == null) {
+            return Mono.error(new RuntimeException("Unauthorized"));
+        }
         return commandService.importAssetsFromLink(commandId, detachmentId, link, principal.getName())
                 .collectList();
     }

@@ -44,7 +44,7 @@ type Subscription {
 
 type Mutation {
     # Command Management
-    establishCommand(name: String!, commandingOfficer: String): MercenaryCommand
+    establishCommand(name: String!, commandingOfficer: String, totalSupportPoints: Int): MercenaryCommand
     updateCommand(id: ID!, commandingOfficer: String, totalSupportPoints: Int, reputation: Int): MercenaryCommand
     deleteCommand(commandId: ID!, force: Boolean): Boolean
     
@@ -68,6 +68,7 @@ type Mutation {
     createInvite(campaignId: ID!): CampaignInvite
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
     joinCampaign(token: String!, detachmentId: ID!): Boolean
+    updateUserProfile(displayName: String): UserProfile
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
@@ -158,6 +159,7 @@ type UserProfile {
     id: ID!
     name: String
     email: String
+    displayName: String
 }
 
 type User {
