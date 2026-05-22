@@ -1,13 +1,15 @@
-# Walking Skeleton: Battletech Campaign Manager
+# HotSpots: Campaigner
 
-This is a TDD-first project for the Battletech Campaign Manager—a multi-tenant SaaS platform for managing Mercenaries campaigns using Chaos Campaign and Hinterlands rules.
+A TDD-first multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using Chaos Campaign and Hinterlands rules.
 
 ## Features
 
  ✅ **Unified Identity System**: Support for both Google OAuth2 and "Invite-as-Identity" key-based access.
  ✅ **Invitation System**: Campaign Managers can generate secure tokens to invite players without requiring passwords or emails.
  ✅ **Role-Based Access Control (RBAC)**: Distinction between `ROLE_AUTHENTICATED` (Managers) and `ROLE_INVITED` (Players).
- ✅ **GraphQL API**: High-performance data fetching and real-time ledger updates via Spring GraphQL and Apollo Client.
+ ✅ **GraphQL API**: Unified reactive API entry point for all campaign, command, and ledger operations.
+ ✅ **Command & Control Navigation**: Hierarchical tree-based navigation for managing multiple detachments across different theaters.
+ ✅ **Theater Management Console**: Full control for Campaign Managers to schedule tracks, manage recruitment, and audit participating forces.
 
 ## Invitation & Login System
 
@@ -117,23 +119,27 @@ npm test
 │   │   ├── api/
 │   │   │   ├── CampaignGraphQLController.java
 │   │   │   ├── CommandGraphQLController.java
-│   │   │   ├── InviteGraphQLController.java
+│   │   │   ├── UserGraphQLController.java
 │   │   │   └── UserGraphQLController.java
 │   │   ├── config/
 │   │   │   └── SecurityConfig.java   # Reactive Security
 │   │   ├── entity/                   # R2DBC Entities (Campaign, Contract, Ledger, etc.)
 │   │   ├── repository/               # Reactive R2DBC Repositories
-│   │   └── service/                  # Business Logic (Campaign Generation, Ledger Sync)
+│   │   └── service/                  # Business Logic (Campaign Service, Command Service)
 │   ├── src/test/java/com/hotspotscamp/api/ # GraphQL Integration Tests
 │   └── pom.xml
 ├── frontend/                 # React + TypeScript frontend
 │   ├── src/
 │   │   ├── App.tsx
 │   │   ├── components/               # UI Components
+│   │   │   ├── CommandDashboard.tsx
+│   │   │   ├── NavigationTree.tsx
+│   │   │   ├── MyDeploymentsList.tsx
 │   │   │   ├── LedgerEntryForm.tsx
 │   │   │   ├── RandomCampaignGenerator.tsx
 │   │   │   └── Welcome.tsx
 │   │   ├── styles/
+│   │   │   ├── theme.css             # Dynamic CRT Terminal Theming
 │   │   │   ├── index.css
 │   │   │   └── ...
 │   │   └── main.tsx
@@ -153,16 +159,15 @@ npm test
 ## Architecture
 
 ### Backend (Spring Boot 3)
-- **Spring WebFlux** for high-concurrency, reactive, non-blocking I/O
-- **Spring Security** with OAuth2 for Google login
-- **Spring Data R2DBC** for reactive SQL persistence (MySQL)
-- **Spring GraphQL** for a unified API entry point with Subscription support
+- **Reactive Stack**: Spring WebFlux and Project Reactor for non-blocking I/O with direct relational persistence.
+- **Security**: Spring Security with dual OAuth2 and Token-based identity providers.
+- **Persistence**: Spring Data R2DBC for reactive SQL connectivity to MySQL.
+- **API**: Spring GraphQL acting as the sole gateway, reducing over-fetching and supporting real-time subscriptions.
 
 ### Frontend (React + TypeScript)
-- **Vite** for fast development and optimized builds
-- **Vitest** for component testing
-- **Apollo Client** for reactive data fetching and real-time subscriptions
-- **CSS-based responsive layout** with centered welcome message
+- **Apollo Client**: Manages local state and GraphQL communication with optimistic UI updates.
+- **Tactical UI**: Custom CSS Grid-based layout featuring a terminal aesthetic and a persistent "Command & Control" sidebar.
+- **TDD Tools**: Vitest and React Testing Library for component-level verification.
 
 ### Deployment
 - **Docker Multi-stage builds** for optimized images
@@ -173,8 +178,8 @@ npm test
 
 From this walking skeleton, you can:
 
-1. **Event Sourcing** — Implement event store with MySQL.
-2. **Kafka Integration** — Add event streaming for multi-service architecture.
+1. **Reporting Engine** — Implement automated force performance reports and operational history.
+2. **Real-time Complications** — Integration of dynamic weather and environmental factors into tracks.
 3. **S3 Integration** — Implement campaign snapshot storage.
 4. **JavaFX Desktop App** — Build local campaign viewer.
 

@@ -14,15 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hotspotscamp.domain.events.CombatUnitPurchased;
-import com.hotspotscamp.domain.events.CommandEstablished;
-import com.hotspotscamp.domain.events.LedgerEntryCreated;
-import com.hotspotscamp.domain.events.PilotHired;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.Detachment;
-import com.hotspotscamp.entity.EventStoreEntry;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
@@ -31,7 +26,6 @@ import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
-import com.hotspotscamp.repository.EventStoreRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
@@ -51,8 +45,6 @@ public class MercenaryCommandService {
 
     private final MercenaryCommandRepository commandRepository;
     private final DetachmentRepository detachmentRepository;
-    private final EventStoreRepository eventStoreRepository;
-    private final MercenaryCommandProjection projection;
     private final ObjectMapper objectMapper;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final CampaignTrackRepository campaignTrackRepository;
@@ -67,8 +59,6 @@ public class MercenaryCommandService {
     public MercenaryCommandService(
             MercenaryCommandRepository commandRepository,
             DetachmentRepository detachmentRepository,
-            EventStoreRepository eventStoreRepository,
-            @Lazy MercenaryCommandProjection projection,
             ObjectMapper objectMapper,
             LedgerEntryRepository ledgerEntryRepository,
             CampaignTrackRepository campaignTrackRepository,
@@ -81,8 +71,6 @@ public class MercenaryCommandService {
             ScraperFactory scraperFactory) {
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
-        this.eventStoreRepository = eventStoreRepository;
-        this.projection = projection;
         this.objectMapper = objectMapper;
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.campaignTrackRepository = campaignTrackRepository;
@@ -176,25 +164,6 @@ public class MercenaryCommandService {
         }));
     }
 
-    private Mono<Void> emitEvent(@NonNull UUID aggregateId, Object event, String userId) {
-        try {
-            String data = objectMapper.writeValueAsString(event);
-            EventStoreEntry entry = EventStoreEntry.builder()
-                    .aggregateId(aggregateId.toString())
-                    .eventType(event.getClass().getSimpleName())
-                    .eventData(data)
-                    .occurredAt(LocalDateTime.now())
-                    .userId(userId)
-                    .version(1) // Simplified versioning for now
-                    .build();
-
-            return eventStoreRepository.save(entry)
-                    .then(projection.apply(event, userId));
-        } catch (Exception e) {
-            return Mono.error(e);
-        }
-    }
-
     /**
      * Establishes a new mercenary command. Modeled on the initial setup of the
      * Mercenary Force Record Sheet.
@@ -203,15 +172,16 @@ public class MercenaryCommandService {
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
         return userService.resolveOrCreateUser(userId)
                 .flatMap(user -> {
-                    final UUID commandId = UUID.randomUUID();
-                    String co = command.getCommandingOfficer() != null ? command.getCommandingOfficer() : user.getDisplayName();
-                    int sp = command.getTotalSupportPoints() != null ? command.getTotalSupportPoints() : 1000;
-
-                    CommandEstablished event = new CommandEstablished(commandId, command.getName(), co, sp);
-
-                    return emitEvent(commandId, event, user.getId().toString())
-                            .then(commandRepository.findById(commandId))
-                            .switchIfEmpty(Mono.error(new RuntimeException("Command established but registry lookup failed.")));
+                    command.setId(UUID.randomUUID());
+                    command.setOwnerId(user.getId().toString());
+                    if (command.getCommandingOfficer() == null) {
+                        command.setCommandingOfficer(user.getDisplayName());
+                    }
+                    if (command.getTotalSupportPoints() == null) {
+                        command.setTotalSupportPoints(1000);
+                    }
+                    command.setNew(true);
+                    return commandRepository.save(command);
                 });
     }
 
@@ -511,10 +481,14 @@ public class MercenaryCommandService {
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
                         return Mono.<CombatUnit>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                     }
-                    UUID unitId = UUID.randomUUID();
-                    CombatUnitPurchased event = new CombatUnitPurchased(unitId, commandId, unit.getModel() != null ? unit.getModel() : "UNKNOWN", unit.getType() != null ? unit.getType() : "MECH", unit.getTonnage() != null ? unit.getTonnage() : 0, 0);
-                    return emitEvent(commandId, event, user.getId().toString())
-                            .then(combatUnitRepository.findById(unitId));
+                    unit.setId(UUID.randomUUID());
+                    unit.setCommandId(commandId);
+                    unit.setStatus("OPERATIONAL");
+                    unit.setNew(true);
+                    return combatUnitRepository.save(unit)
+                            .flatMap(u -> commandRepository.findById(commandId)
+                            .doOnNext(commandSink::tryEmitNext)
+                            .thenReturn(u));
                 })
         );
     }
@@ -529,10 +503,14 @@ public class MercenaryCommandService {
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
                         return Mono.<Pilot>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                     }
-                    UUID pilotId = UUID.randomUUID();
-                    PilotHired event = new PilotHired(pilotId, commandId, pilot.getName(), pilot.getGunnery() != null ? pilot.getGunnery() : 4, pilot.getPiloting() != null ? pilot.getPiloting() : 5);
-                    return emitEvent(commandId, event, user.getId().toString())
-                            .then(pilotRepository.findById(pilotId));
+                    pilot.setId(UUID.randomUUID());
+                    pilot.setCommandId(commandId);
+                    pilot.setStatus("ACTIVE");
+                    pilot.setNew(true);
+                    return pilotRepository.save(pilot)
+                            .flatMap(p -> commandRepository.findById(commandId)
+                            .doOnNext(commandSink::tryEmitNext)
+                            .thenReturn(p));
                 })
         );
     }
@@ -559,10 +537,14 @@ public class MercenaryCommandService {
                     if (!isAuthorized) {
                         return Mono.<LedgerEntry>error(new RuntimeException("Access Denied: You are not the owner or the campaign manager.")); // Explicitly type Mono.error
                     }
-                    UUID entryId = UUID.randomUUID();
-                    LedgerEntryCreated event = new LedgerEntryCreated(entryId, commandId, detachmentId, entry.getAmount() != null ? entry.getAmount() : 0, entry.getDescription());
-                    return emitEvent(commandId, event, user.getId().toString())
-                            .then(ledgerEntryRepository.findById(entryId));
+                    entry.setId(UUID.randomUUID());
+                    entry.setCommandId(commandId);
+                    entry.setDetachmentId(detachmentId);
+                    entry.setTimestamp(LocalDateTime.now());
+                    entry.setNew(true);
+                    return ledgerEntryRepository.save(entry)
+                            .flatMap(saved -> syncTotalSupportPoints(commandId)
+                            .thenReturn(saved));
                 })
         );
     }

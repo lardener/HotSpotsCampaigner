@@ -32,18 +32,6 @@ public class SchemaGenerator {
 
         sql.append("SET FOREIGN_KEY_CHECKS = 1;\n\n");
 
-        sql.append("-- Create event_store table for Event Sourcing\n");
-        sql.append("CREATE TABLE event_store (\n");
-        sql.append("    id BIGINT AUTO_INCREMENT PRIMARY KEY,\n");
-        sql.append("    aggregate_id VARCHAR(36) NOT NULL,\n");
-        sql.append("    event_type VARCHAR(255) NOT NULL,\n");
-        sql.append("    event_data JSON NOT NULL,\n");
-        sql.append("    occurred_at DATETIME DEFAULT CURRENT_TIMESTAMP,\n");
-        sql.append("    version INT NOT NULL,\n");
-        sql.append("    user_id VARCHAR(36),\n");
-        sql.append("    INDEX idx_aggregate (aggregate_id)\n");
-        sql.append(");\n\n");
-
         sql.append("-- Create app_users table (User.java)\n");
         sql.append("CREATE TABLE app_users (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
