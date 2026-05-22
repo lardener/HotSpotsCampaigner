@@ -30,6 +30,7 @@ import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.util.TypeUtils;
 import com.hotspotscamp.repository.CampaignInviteRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -436,6 +437,7 @@ public class CampaignService {
                 .name(finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
                 .trackCount(finalTracksCount)
+                .lengthInMonths(finalTracksCount)
                 .description("Theater established in the " + finalSystemName + " system.")
                 .payRate(primaryContract.getPayRate())
                 .payStep(primaryContract.getPayStep())
@@ -773,13 +775,13 @@ public class CampaignService {
             String employerCategory, String systemName, Double payRate,
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
-            Integer trackCount) {
+            Integer trackCount, Integer lengthInMonths) { // Accept lengthInMonths
 
         return userService.resolveOrCreateUser(managerId)
-                .flatMap(user -> {
+                .flatMap(user -> { // Compiler can infer Mono<User> from userService.resolveOrCreateUser
                     if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
-                        return Mono.error(new org.springframework.web.server.ResponseStatusException(
-                                org.springframework.http.HttpStatus.FORBIDDEN, "Only Managers can create campaigns"));
+                        return Mono.<Campaign>error(new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.FORBIDDEN, "Only Managers can create campaigns")); // Compiler can infer Mono<Campaign> from subsequent flatMap
                     }
 
                     CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName,
@@ -790,6 +792,9 @@ public class CampaignService {
                     if (campaign.getId() == null) {
                         campaign.setId(UUID.randomUUID());
                     }
+                    if (lengthInMonths != null) {
+                        campaign.setLengthInMonths(lengthInMonths);
+                    }
                     campaign.setManagerId(user.getId().toString());
                     campaign.setStatus("ACTIVE");
 
@@ -799,7 +804,7 @@ public class CampaignService {
 
                     return campaignRepository.save(campaign)
                             .onErrorResume(DuplicateKeyException.class, e -> campaignRepository.findById(campaign.getId()))
-                            .flatMap(savedCampaign -> {
+                            .flatMap(savedCampaign -> { // Compiler can infer Mono<Campaign>
                                 CampaignFaction empFaction = CampaignFaction.builder()
                                         .id(UUID.randomUUID())
                                         .campaignId(savedCampaign.getId())
@@ -816,7 +821,7 @@ public class CampaignService {
 
                                 return campaignFactionRepository.saveAll(java.util.Objects.requireNonNull(List.of(empFaction, oppFaction)))
                                         .collectList()
-                                        .flatMap(factions -> {
+                                        .flatMap(factions -> { // Compiler can infer Mono<List<CampaignFaction>>
                                             Flux<Contract> contractFlux = Flux.fromIterable(java.util.Objects.requireNonNull(proposal.contracts()))
                                                     .zipWith(Flux.fromIterable(java.util.Objects.requireNonNull(factions)))
                                                     .flatMap(tuple -> {
@@ -837,11 +842,12 @@ public class CampaignService {
                                                                 .campaignId(savedCampaign.getId())
                                                                 .trackName(tuple.getT2())
                                                                 .sequenceOrder(tuple.getT1().intValue())
+                                                                .monthIndex(tuple.getT1().intValue() + 1)
                                                                 .build();
                                                         return campaignTrackRepository.save(track);
                                                     });
 
-                                            return Flux.merge(contractFlux, trackFlux).then(Mono.just(savedCampaign));
+                                            return Mono.when(contractFlux.then(), trackFlux.then()).thenReturn(savedCampaign); // Use thenReturn for clarity
                                         });
                             });
                 });
@@ -875,21 +881,21 @@ public class CampaignService {
     public Mono<CampaignInvite> createInvite(UUID campaignId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> campaignRepository.findById(campaignId)
-                        .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found")))
-                        .flatMap(campaign -> {
-                            if (!campaign.getManagerId().equals(user.getId().toString())) {
-                                return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
-                            }
+                        .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found"))) // Added switchIfEmpty for clarity
+                        .<CampaignInvite>flatMap(campaign -> { // Explicitly type flatMap
+                    if (!campaign.getManagerId().equals(user.getId().toString())) {
+                        return Mono.<CampaignInvite>error(new RuntimeException("Access Denied: Not the campaign manager.")); // Explicitly type Mono.error
+                    }
 
-                            CampaignInvite invite = CampaignInvite.builder()
-                                    .id(UUID.randomUUID())
-                                    .campaignId(campaignId)
-                                    .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
-                                    .expiresAt(LocalDateTime.now().plusDays(7))
-                                    .used(false)
-                                    .build();
-                            return campaignInviteRepository.save(invite);
-                        })
+                    CampaignInvite invite = CampaignInvite.builder()
+                            .id(UUID.randomUUID())
+                            .campaignId(campaignId)
+                            .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
+                            .expiresAt(LocalDateTime.now().plusDays(7))
+                            .used(false)
+                            .build();
+                    return campaignInviteRepository.save(invite);
+                })
         );
     }
 
@@ -900,6 +906,10 @@ public class CampaignService {
         return campaignInviteRepository.findAllByCampaignId(campaignId);
     }
 
+    /**
+     * Updates specific details of a campaign track, including its month
+     * assignment.
+     */
     @Transactional
     public Mono<CampaignTrack> updateTrack(UUID trackId, Map<String, Object> input) {
         return campaignTrackRepository.findById(trackId)
@@ -918,7 +928,29 @@ public class CampaignService {
                     if (input.containsKey("attackerFactionId")) {
                         track.setAttackerFactionId(input.get("attackerFactionId") != null ? UUID.fromString((String) input.get("attackerFactionId")) : null);
                     }
+                    if (input.containsKey("monthIndex")) {
+                        track.setMonthIndex(TypeUtils.asInt(input.get("monthIndex")));
+                    }
                     return campaignTrackRepository.save(track);
+                });
+    }
+
+    /**
+     * Updates the sequence order for multiple tracks at once.
+     */
+    @Transactional
+    public Flux<CampaignTrack> reorderTracks(UUID campaignId, List<UUID> trackIds) {
+        return Flux.fromIterable(trackIds)
+                .index()
+                .flatMap(tuple -> {
+                    UUID trackId = tuple.getT2();
+                    int newIndex = tuple.getT1().intValue();
+                    return campaignTrackRepository.findById(trackId)
+                            .flatMap(track -> {
+                                track.setSequenceOrder(newIndex);
+                                track.setNew(false);
+                                return campaignTrackRepository.save(track);
+                            });
                 });
     }
 }

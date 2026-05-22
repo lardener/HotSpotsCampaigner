@@ -17,19 +17,31 @@ import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
+import org.springframework.context.annotation.Lazy;
 
-import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
 @Service
-@RequiredArgsConstructor
 public class MercenaryCommandProjection {
 
     private final MercenaryCommandRepository commandRepository;
     private final CombatUnitRepository unitRepository;
     private final PilotRepository pilotRepository;
     private final LedgerEntryRepository ledgerRepository;
-    private final MercenaryCommandService commandService; // For syncTotalSupportPoints logic
+    private final MercenaryCommandService commandService;
+
+    public MercenaryCommandProjection(
+            MercenaryCommandRepository commandRepository,
+            CombatUnitRepository unitRepository,
+            PilotRepository pilotRepository,
+            LedgerEntryRepository ledgerRepository,
+            @Lazy MercenaryCommandService commandService) {
+        this.commandRepository = commandRepository;
+        this.unitRepository = unitRepository;
+        this.pilotRepository = pilotRepository;
+        this.ledgerRepository = ledgerRepository;
+        this.commandService = commandService;
+    }
 
     public Mono<Void> apply(Object event, String userId) {
         if (event instanceof CommandEstablished e) {

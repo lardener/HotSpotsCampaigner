@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { gql } from '@apollo/client';
-import { useMutation } from '@apollo/client/react';
-import { useQuery } from '@apollo/client/react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { NodeType } from './NavigationTree';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -20,6 +19,8 @@ const UPDATE_CAMPAIGN = gql`
       id
       systemName
       description
+      lengthInMonths
+      trackCount
     }
   }
 `;
@@ -38,6 +39,16 @@ const UPDATE_TRACK = gql`
       location
       nextSession
       attackerFactionId
+      monthIndex
+    }
+  }
+`;
+
+const REORDER_TRACKS = gql`
+  mutation ReorderTracks($campaignId: ID!, $trackIds: [ID!]!) {
+    reorderTracks(campaignId: $campaignId, trackIds: $trackIds) {
+      id
+      sequenceOrder
     }
   }
 `;
@@ -45,6 +56,30 @@ const UPDATE_TRACK = gql`
 const GET_CAMPAIGN_INVITES = gql`
   query GetCampaignInvites($campaignId: ID!) {
     getCampaign(id: $campaignId) {
+      id
+      name
+      systemName
+      description
+      lengthInMonths
+      trackCount
+      factions {
+        id
+        factionName
+      }
+      tracks {
+        id
+        trackName
+        sequenceOrder
+        location
+        nextSession
+        attackerFactionId
+        monthIndex
+      }
+      participatingDetachments {
+        id
+        name
+        mercenaryCommandId
+      }
       campaignInvites {
         id
         token
@@ -72,16 +107,20 @@ interface CampaignInvite {
     used: boolean;
 }
 
-interface GetCampaignInvitesData {
-    getCampaign: {
-        campaignInvites: CampaignInvite[];
-    };
-}
-
 interface ParticipatingDetachment {
     id: string;
     name: string;
     mercenaryCommandId?: string;
+}
+
+interface TrackDetail {
+    id: string;
+    trackName: string;
+    sequenceOrder: number;
+    location?: string;
+    nextSession?: string;
+    attackerFactionId?: string;
+    monthIndex?: number;
 }
 
 interface CampaignDetail {
@@ -89,10 +128,11 @@ interface CampaignDetail {
     name: string;
     systemName: string;
     description?: string;
+    lengthInMonths?: number;
+    trackCount?: number;
     status: string;
     primaryEmployer: string;
     secondaryEmployer: string;
-    trackCount: number;
     payRate?: number;
     payStep?: number;
     salvageTerms?: string;
@@ -105,14 +145,7 @@ interface CampaignDetail {
     commandStep?: number;
     contracts?: any[];
     factions?: { id: string, factionName: string }[];
-    tracks?: {
-        id: string;
-        trackName: string;
-        sequenceOrder: number;
-        location?: string;
-        nextSession?: string;
-        attackerFactionId?: string;
-    }[];
+    tracks?: TrackDetail[];
     participatingDetachments?: ParticipatingDetachment[];
 }
 
@@ -139,47 +172,71 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onCreateNew,
     onSelectDetachment
 }) => {
-    const campaign = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
-    const opposition = campaign?.contracts?.find((c) => !c.primaryContract);
+    const campaignFromProps = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
     const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
-    const { data: invitesData, refetch: refetchInvites } = useQuery<GetCampaignInvitesData>(GET_CAMPAIGN_INVITES, {
+    const { data: campaignQueryData, refetch: refetchCampaign } = useQuery<any>(GET_CAMPAIGN_INVITES, {
         variables: { campaignId: selectedCampaignId || '' },
         skip: !selectedCampaignId,
         fetchPolicy: 'network-only'
     });
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
     const [updateTrack] = useMutation(UPDATE_TRACK);
+    const [reorderTracks] = useMutation(REORDER_TRACKS);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const saveTimeoutRef = useRef<Record<string, number>>({});
+    const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
-    const campaignInvites = invitesData?.getCampaign?.campaignInvites || [];
+    // Merge props data with fresh query data for theater management
+    const campaign = useMemo(() => ({
+        ...campaignFromProps,
+        ...(campaignQueryData?.getCampaign || {})
+    }), [campaignFromProps, campaignQueryData]);
+
+    const opposition = campaign?.contracts?.find((c: any) => !c.primaryContract);
+    const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(campaign?.lengthInMonths || 1);
+    const [campaignTrackCount, setCampaignTrackCount] = useState(campaign?.trackCount || 0);
+
+    const campaignInvites = campaignQueryData?.getCampaign?.campaignInvites || [];
 
     useEffect(() => {
         const timeouts = saveTimeoutRef.current;
         return () => Object.values(timeouts).forEach(clearTimeout);
     }, []);
 
+    useEffect(() => {
+        setCampaignLengthInMonths(campaign?.lengthInMonths || 1);
+        setCampaignTrackCount(campaign?.trackCount || 0);
+    }, [campaign]);
+
     const handleGenerateInvite = async () => {
         if (!selectedCampaignId) return;
         const { data } = await createInvite({ variables: { campaignId: selectedCampaignId } });
         if (data?.createInvite) {
             setActiveToken(data.createInvite.token);
-            refetchInvites(); // Refetch the list of invites to show the new one
+            refetchCampaign();
         }
     };
 
-    const handleUpdate = (field: string, value: string) => {
+    const handleUpdate = (field: string, value: string | number) => {
         if (!selectedCampaignId) return;
         const key = `camp-${field}`;
         if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
 
         saveTimeoutRef.current[key] = setTimeout(async () => {
             setIsSyncing(true);
-            await updateCampaign({ variables: { id: selectedCampaignId, input: { [field]: value } } });
+            const input: { [key: string]: any } = { [field]: value };
+            // Ensure numbers are parsed correctly for trackCount and lengthInMonths
+            if (field === 'trackCount' || field === 'lengthInMonths') {
+                input[field] = parseInt(value as string);
+            }
+            await updateCampaign({ variables: { id: selectedCampaignId, input } });
             setIsSyncing(false);
+            // Refetch to ensure local state is consistent, especially for month options
+            // This might be heavy, consider more granular updates if performance is an issue
+            // refetchInvites(); // This refetches invites, not campaign details. Need to refetch campaign itself.
         }, 1000) as unknown as number;
     };
 
@@ -189,9 +246,56 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
         saveTimeoutRef.current[key] = setTimeout(async () => {
             setIsSyncing(true);
-            await updateTrack({ variables: { id: trackId, input: { [field]: value } } });
+            const input: any = { [field]: value };
+            if (field === 'monthIndex') {
+                input[field] = parseInt(value);
+            }
+            await updateTrack({ variables: { id: trackId, input } });
             setIsSyncing(false);
         }, 1000) as unknown as number;
+    };
+
+    const handleDrop = async (e: React.DragEvent, targetMonth: number, targetTrackId?: string) => {
+        e.preventDefault();
+        setDragOverMonth(null);
+        const draggedTrackId = e.dataTransfer.getData("trackId");
+        if (!draggedTrackId || !campaign?.tracks) return;
+
+        // 1. Prepare sorted tracks list
+        const tracks = [...campaign.tracks].sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+        const draggedTrack = tracks.find(t => t.id === draggedTrackId);
+        if (!draggedTrack) return;
+
+        // 2. Filter out the dragged track to find insertion point
+        const remainingTracks = tracks.filter(t => t.id !== draggedTrackId);
+
+        // 3. Find insertion index
+        let insertIndex = remainingTracks.length;
+        if (targetTrackId) {
+            insertIndex = remainingTracks.findIndex(t => t.id === targetTrackId);
+        } else {
+            // dropped on panel, find the last track currently in that month or the boundary after previous month
+            const monthTracks = remainingTracks.filter(t => (t.monthIndex || 1) === targetMonth);
+            if (monthTracks.length > 0) {
+                const lastInMonth = monthTracks[monthTracks.length - 1];
+                insertIndex = remainingTracks.findIndex(t => t.id === lastInMonth.id) + 1;
+            } else {
+                const earlierMonthsTracks = remainingTracks.filter(t => (t.monthIndex || 1) < targetMonth);
+                insertIndex = earlierMonthsTracks.length;
+            }
+        }
+
+        // 4. Update the dragged track's monthIndex locally and insert it
+        draggedTrack.monthIndex = targetMonth;
+        remainingTracks.splice(insertIndex, 0, draggedTrack);
+        const orderedIds = remainingTracks.map(t => t.id);
+
+        // 5. Sync to backend
+        setIsSyncing(true);
+        await updateTrack({ variables: { id: draggedTrackId, input: { monthIndex: targetMonth } } });
+        await reorderTracks({ variables: { campaignId: campaign.id, trackIds: orderedIds } });
+        setIsSyncing(false);
+        refetchCampaign();
     };
 
     const handleRemoveDetachment = async (detId: string) => {
@@ -267,7 +371,33 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <h1 className="terminal-text">{campaign?.name}</h1>
                                 <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName?.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
                             </div>
-                            <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
+                            <div className="flex flex-gap-10">
+                                <div className="input-group">
+                                    <label htmlFor="campaign-months" className="restricted-text">MONTHS:</label>
+                                    <input
+                                        id="campaign-months"
+                                        type="number"
+                                        className="inline-edit inline-edit-input-small"
+                                        value={campaignLengthInMonths}
+                                        onChange={(e) => setCampaignLengthInMonths(parseInt(e.target.value) || 1)}
+                                        onBlur={(e) => handleUpdate('lengthInMonths', parseInt(e.target.value) || 1)}
+                                        title="Total duration of the campaign in months"
+                                    />
+                                </div>
+                                <div className="input-group">
+                                    <label htmlFor="campaign-tracks" className="restricted-text">TRACKS:</label>
+                                    <input
+                                        id="campaign-tracks"
+                                        type="number"
+                                        className="inline-edit inline-edit-input-small"
+                                        value={campaignTrackCount}
+                                        onChange={(e) => setCampaignTrackCount(parseInt(e.target.value) || 0)}
+                                        onBlur={(e) => handleUpdate('trackCount', parseInt(e.target.value) || 0)}
+                                        title="Total number of tracks in the campaign"
+                                    />
+                                </div>
+                                <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
+                            </div>
                         </div>
                     </header>
 
@@ -379,7 +509,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             {campaignInvites.length > 0 && (
                                 <div style={{ marginTop: '20px', borderTop: '1px dashed var(--accent-dim)', paddingTop: '15px' }}>
                                     <h4 className="restricted-text" style={{ fontSize: '0.7rem', marginBottom: '10px' }}>ACTIVE INVITES</h4>
-                                    {campaignInvites.map(invite => (
+                                    {campaignInvites.map((invite: CampaignInvite) => (
                                         <div key={invite.id} className="status-bar" style={{
                                             display: 'block', margin: '5px 0', fontSize: '0.8rem', width: '100%',
                                             // Subdued opacity and line-through for used or expired tokens
@@ -396,81 +526,106 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
                     <div className="dashboard-section tactical-panel mb-30">
                         <h3 className="section-title">TRACK OPERATIONS</h3>
-                        <div className="mt-15">
-                            <table className="tactical-table">
-                                <thead>
-                                    <tr>
-                                        <th className="text-center">#</th>
-                                        <th>TRACK DESIGNATION</th>
-                                        <th>REAL WORLD LOCATION</th>
-                                        <th>DEPLOYMENT TIME</th>
-                                        <th>ATTACKER</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {[...(campaign?.tracks || [])].sort((a, b) => a.sequenceOrder - b.sequenceOrder).map(track => (
-                                        <tr key={track.id}>
-                                            <td className="text-center">{track.sequenceOrder + 1}</td>
-                                            <td>
-                                                <input
-                                                    className="table-input"
-                                                    defaultValue={track.trackName}
-                                                    onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
-                                                    placeholder="Track designation..."
-                                                    title="Operational designation for this mission"
-                                                    aria-label={`Track ${track.sequenceOrder + 1} designation`}
-                                                />
-                                            </td>
-                                            <td>
-                                                <div className="flex flex-gap-5">
-                                                    <input
-                                                        className="table-input"
-                                                        defaultValue={track.location}
-                                                        onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
-                                                        placeholder="Real world address..."
-                                                        title="Physical meeting location for this game session"
-                                                        aria-label={`Track ${track.sequenceOrder + 1} physical location`}
-                                                    />
-                                                    {track.location && (
-                                                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(track.location)}`} target="_blank" rel="noopener noreferrer" className="mode-btn sm-text" style={{ padding: '2px 5px' }} title="Get directions via Google Maps">MAP</a>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="datetime-local"
-                                                    className="table-input"
-                                                    defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
-                                                    onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
-                                                    title="Scheduled deployment date and time"
-                                                    aria-label={`Track ${track.sequenceOrder + 1} deployment time`}
-                                                />
-                                            </td>
-                                            <td>
-                                                <select
-                                                    className="table-input"
-                                                    defaultValue={track.attackerFactionId || ""}
-                                                    onChange={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
-                                                    title="Select which employer is the aggressor for this track"
-                                                    aria-label={`Track ${track.sequenceOrder + 1} attacking faction`}
+                        <div className="month-panel-grid mt-15" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                            {Array.from({ length: Math.max(1, campaignLengthInMonths) }, (_, i) => i + 1).map(mIdx => {
+                                const monthTracks = (campaign?.tracks || []).filter((t: TrackDetail) => (t.monthIndex || 1) === mIdx)
+                                    .sort((a: TrackDetail, b: TrackDetail) => a.sequenceOrder - b.sequenceOrder);
+                                return (
+                                    <div
+                                        key={mIdx}
+                                        className="tactical-panel"
+                                        style={{
+                                            height: 'auto',
+                                            minHeight: '100px',
+                                            border: dragOverMonth === mIdx ? '1px solid var(--terminal-green)' : '1px dashed var(--accent-dim)',
+                                            padding: '10px',
+                                            backgroundColor: dragOverMonth === mIdx ? 'rgba(51, 255, 51, 0.05)' : 'rgba(255, 255, 255, 0.02)'
+                                        }}
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDragLeave={() => setDragOverMonth(null)}
+                                        onDrop={(e) => handleDrop(e, mIdx)}
+                                    >
+                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>[ MONTH {mIdx} ]</span>
+                                            <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
+                                        </h4>
+                                        <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            {monthTracks.map((track: TrackDetail) => (
+                                                <div
+                                                    key={track.id}
+                                                    draggable
+                                                    onDragStart={(e) => e.dataTransfer.setData("trackId", track.id)}
+                                                    onDrop={(e) => {
+                                                        e.stopPropagation(); // prevent panel drop from firing
+                                                        handleDrop(e, mIdx, track.id);
+                                                    }}
+                                                    className="asset-card"
+                                                    style={{ padding: '12px', cursor: 'grab', position: 'relative', border: '1px solid var(--accent-dim)', width: '100%', boxSizing: 'border-box' }}
                                                 >
-                                                    <option value="">[ SELECT ATTACKER ]</option>
-                                                    {campaign?.factions?.map(f => (
-                                                        <option key={f.id} value={f.id}>{f.factionName.toUpperCase()}</option>
-                                                    ))}
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                                    <div className="flex-between mb-5">
+                                                        <input
+                                                            className="inline-edit"
+                                                            style={{ fontWeight: 'bold', width: '75%' }}
+                                                            defaultValue={track.trackName}
+                                                            onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
+                                                            placeholder="DESIGNATION"
+                                                            title="Operational designation"
+                                                        />
+                                                        <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
+                                                    </div>
+                                                    <div className="flex flex-gap-5 mb-5">
+                                                        <input
+                                                            className="inline-edit"
+                                                            style={{ fontSize: '0.7rem', flex: 1 }}
+                                                            defaultValue={track.location}
+                                                            onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
+                                                            placeholder="LOCATION"
+                                                            title="Physical location"
+                                                        />
+                                                        {track.location && (
+                                                            <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(track.location)}`} target="_blank" rel="noopener noreferrer" className="mode-btn sm-text" style={{ padding: '0 4px', height: '16px' }}>MAP</a>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-between">
+                                                        <input
+                                                            type="datetime-local"
+                                                            className="inline-edit"
+                                                            style={{ fontSize: '0.7rem', width: '60%' }}
+                                                            defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
+                                                            onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
+                                                            title="Deployment time"
+                                                        />
+                                                        <select
+                                                            className="inline-edit"
+                                                            style={{ fontSize: '0.7rem', width: '35%' }}
+                                                            defaultValue={track.attackerFactionId || ""}
+                                                            onChange={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
+                                                            title="Attacker"
+                                                        >
+                                                            <option value="">[ ATK ]</option>
+                                                            {campaign?.factions?.map((f: { id: string, factionName: string }) => (
+                                                                <option key={f.id} value={f.id}>{f.factionName.substring(0, 3).toUpperCase()}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {monthTracks.length === 0 && (
+                                                <div className="restricted-text subdued" style={{ textAlign: 'center', padding: '20px', fontSize: '0.7rem' }}>
+                                                    NO OPS SCHEDULED
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
                     <div className="dashboard-section tactical-panel">
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                         <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                            {campaign?.participatingDetachments?.map((det) => (
+                            {campaign?.participatingDetachments?.map((det: ParticipatingDetachment) => (
                                 <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
                                     <div
                                         style={{ cursor: 'pointer' }}

@@ -20,6 +20,7 @@ import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
 import com.hotspotscamp.service.MercenaryCommandService;
+import com.hotspotscamp.util.TypeUtils;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -268,7 +269,7 @@ public class CommandGraphQLController {
             @Argument Integer reputationChange,
             @Argument UUID campaignId,
             @Argument String campaignName,
-            @Argument String contractMonth,
+            @Argument Integer monthIndex,
             Principal principal) {
         if (commandId == null) {
             return Mono.error(new IllegalArgumentException("Command ID is required"));
@@ -278,7 +279,7 @@ public class CommandGraphQLController {
         }
         LedgerEntry entry = LedgerEntry.builder().amount(amount).description(description)
                 .coverAmount(coverAmount).paidAmount(paidAmount).reputationChange(reputationChange)
-                .campaignId(campaignId).campaignName(campaignName).contractMonth(contractMonth).build();
+                .campaignId(campaignId).campaignName(campaignName).monthIndex(monthIndex).build();
         return commandService.addLedgerEntry(commandId, detachmentId, entry, principal.getName());
     }
 

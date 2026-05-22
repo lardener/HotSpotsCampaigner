@@ -56,6 +56,7 @@ type Mutation {
     # Asset Management
     importCombatUnitsFromLink(commandId: ID!, detachmentId: ID, link: String!): [CombatUnit]
     updateTrack(id: ID!, input: TrackInput!): CampaignTrack
+    reorderTracks(campaignId: ID!, trackIds: [ID!]!): [CampaignTrack!]!
     addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
     updateCombatUnit(id: ID!, input: CombatUnitInput!): CombatUnit
     deleteUnit(unitId: ID!): Boolean
@@ -83,7 +84,7 @@ type Mutation {
         reputationChange: Int,
         campaignId: ID,
         campaignName: String,
-        contractMonth: String
+        monthIndex: Int
     ): LedgerEntry
 }
 
@@ -147,7 +148,7 @@ type LedgerEntry {
     reputationChange: Int
     campaignId: ID
     campaignName: String
-    contractMonth: String
+    monthIndex: Int
 }
 
 type CommandAssetsResponse {
@@ -194,6 +195,7 @@ input CampaignInput {
     transportStep: Int
     commandStep: Int
     trackCount: Int
+    lengthInMonths: Int
 }
 
 input TrackInput {
@@ -202,6 +204,7 @@ input TrackInput {
     location: String
     nextSession: String
     attackerFactionId: ID
+    monthIndex: Int
 }
 
 type CampaignTrack {
@@ -212,6 +215,7 @@ type CampaignTrack {
     location: String
     nextSession: String
     attackerFactionId: ID
+    monthIndex: Int
 }
 
 type CampaignFaction {
@@ -276,6 +280,7 @@ type Campaign {
     description: String
     status: String
     trackCount: Int
+    lengthInMonths: Int
     managerId: String
     primaryEmployer: String
     secondaryEmployer: String

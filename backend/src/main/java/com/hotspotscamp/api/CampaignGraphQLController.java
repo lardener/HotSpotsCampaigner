@@ -13,18 +13,19 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.stereotype.Controller;
-import com.hotspotscamp.repository.CampaignTrackRepository;
-import com.hotspotscamp.entity.CampaignFaction;
 
 import com.hotspotscamp.entity.Campaign;
+import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
+import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
+import com.hotspotscamp.util.TypeUtils;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 import com.hotspotscamp.service.UserService;
@@ -196,14 +197,15 @@ public class CampaignGraphQLController {
 
     @QueryMapping
     public Mono<CampaignProposal> previewCampaign(@Argument Map<String, Object> input) {
+        Map<String, Object> finalInput = input != null ? input : Map.of();
         // Map helper for service call
         return Mono.just(campaignService.generateProposal(
-                (String) input.get("employer"), (String) input.get("opponent"), (String) input.get("mission"),
-                (String) input.get("employerCategory"), (String) input.get("systemName"), (Double) input.get("payRate"),
-                (String) input.get("salvageTerms"), (String) input.get("supportTerms"), (String) input.get("transportTerms"),
-                (String) input.get("commandRights"), (Integer) input.get("payStep"), (Integer) input.get("salvageStep"),
-                (Integer) input.get("supportStep"), (Integer) input.get("transportStep"), (Integer) input.get("commandStep"),
-                (Integer) input.get("trackCount")
+                (String) finalInput.get("employer"), (String) finalInput.get("opponent"), (String) finalInput.get("mission"),
+                (String) finalInput.get("employerCategory"), (String) finalInput.get("systemName"), TypeUtils.asDouble(finalInput.get("payRate")),
+                (String) finalInput.get("salvageTerms"), (String) finalInput.get("supportTerms"), (String) finalInput.get("transportTerms"),
+                (String) finalInput.get("commandRights"), TypeUtils.asInt(finalInput.get("payStep")), TypeUtils.asInt(finalInput.get("salvageStep")),
+                TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
+                TypeUtils.asInt(finalInput.get("trackCount"))
         ));
     }
 
@@ -214,15 +216,16 @@ public class CampaignGraphQLController {
         }
 
         return userService.resolveOrCreateUser(principal.getName())
-                .flatMap(user -> {
+                .<Campaign>flatMap(user -> {
                     String internalId = user.getId().toString();
+                    Map<String, Object> finalInput = input != null ? input : Map.of();
                     return campaignService.generateDoblessCampaign(internalId,
-                            (String) input.get("employer"), (String) input.get("opponent"), (String) input.get("mission"),
-                            (String) input.get("employerCategory"), (String) input.get("systemName"), (Double) input.get("payRate"),
-                            (String) input.get("salvageTerms"), (String) input.get("supportTerms"), (String) input.get("transportTerms"),
-                            (String) input.get("commandRights"), (Integer) input.get("payStep"), (Integer) input.get("salvageStep"),
-                            (Integer) input.get("supportStep"), (Integer) input.get("transportStep"), (Integer) input.get("commandStep"),
-                            (Integer) input.get("trackCount"));
+                            (String) finalInput.get("employer"), (String) finalInput.get("opponent"), (String) finalInput.get("mission"),
+                            (String) finalInput.get("employerCategory"), (String) finalInput.get("systemName"), TypeUtils.asDouble(finalInput.get("payRate")),
+                            (String) finalInput.get("salvageTerms"), (String) finalInput.get("supportTerms"), (String) finalInput.get("transportTerms"),
+                            (String) finalInput.get("commandRights"), TypeUtils.asInt(finalInput.get("payStep")), TypeUtils.asInt(finalInput.get("salvageStep")),
+                            TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
+                            TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")));
                 });
     }
 
@@ -239,7 +242,17 @@ public class CampaignGraphQLController {
 
     @MutationMapping
     public Mono<CampaignTrack> updateTrack(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
-        if (principal == null) return Mono.error(new RuntimeException("Unauthorized"));
+        if (principal == null) {
+            return Mono.error(new RuntimeException("Unauthorized"));
+        }
         return campaignService.updateTrack(id, input);
+    }
+
+    @MutationMapping
+    public Flux<CampaignTrack> reorderTracks(@Argument UUID campaignId, @Argument List<UUID> trackIds, Principal principal) {
+        if (principal == null) {
+            return Flux.error(new RuntimeException("Unauthorized"));
+        }
+        return campaignService.reorderTracks(campaignId, trackIds);
     }
 }

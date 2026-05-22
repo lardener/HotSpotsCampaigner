@@ -19,6 +19,7 @@ import com.hotspotscamp.domain.events.CommandEstablished;
 import com.hotspotscamp.domain.events.LedgerEntryCreated;
 import com.hotspotscamp.domain.events.PilotHired;
 import com.hotspotscamp.entity.Campaign;
+import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.EventStoreEntry;
@@ -26,6 +27,7 @@ import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
 import com.hotspotscamp.repository.CampaignRepository;
+import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
@@ -34,6 +36,7 @@ import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
+import com.hotspotscamp.util.TypeUtils;
 import com.hotspotscamp.util.SqlUtils;
 
 import lombok.NonNull;
@@ -52,6 +55,7 @@ public class MercenaryCommandService {
     private final MercenaryCommandProjection projection;
     private final ObjectMapper objectMapper;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final CampaignTrackRepository campaignTrackRepository;
     private final CampaignRepository campaignRepository;
     private final ContractRepository contractRepository;
     private final CombatUnitRepository combatUnitRepository;
@@ -67,6 +71,7 @@ public class MercenaryCommandService {
             @Lazy MercenaryCommandProjection projection,
             ObjectMapper objectMapper,
             LedgerEntryRepository ledgerEntryRepository,
+            CampaignTrackRepository campaignTrackRepository,
             CampaignRepository campaignRepository,
             ContractRepository contractRepository,
             CombatUnitRepository combatUnitRepository,
@@ -80,6 +85,7 @@ public class MercenaryCommandService {
         this.projection = projection;
         this.objectMapper = objectMapper;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.campaignTrackRepository = campaignTrackRepository;
         this.campaignRepository = campaignRepository;
         this.contractRepository = contractRepository;
         this.combatUnitRepository = combatUnitRepository;
@@ -117,16 +123,16 @@ public class MercenaryCommandService {
     public Mono<Void> deleteCommand(@NonNull UUID commandId, String userId, boolean force) {
         return userService.resolveOrCreateUser(userId)
                 .flatMap(user -> commandRepository.findById(commandId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Command not found")))
-                .flatMap(cmd -> {
+                .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Explicitly type Mono.error
+                .<Void>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                        return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+                        return Mono.<Void>error(new RuntimeException("Access Denied: You do not own this command.")); // Explicitly type Mono.error
                     }
 
                     return detachmentRepository.findAllByMercenaryCommandId(commandId).collectList()
-                            .flatMap(detachments -> {
+                            .<Void>flatMap(detachments -> { // Explicitly type flatMap
                                 if (!detachments.isEmpty() && !force) {
-                                    return Mono.error(new RuntimeException("WARNING_ACTIVE_CAMPAIGN"));
+                                    return Mono.<Void>error(new RuntimeException("WARNING_ACTIVE_CAMPAIGN")); // Explicitly type Mono.error
                                 }
                                 return commandRepository.delete(cmd);
                             });
@@ -136,11 +142,12 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, String co, Integer sp, Integer rep, String userId) {
         return commandRepository.findById(commandId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Command not found: " + commandId)))
-                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found: " + commandId))) // Explicitly type Mono.error
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).<MercenaryCommand>flatMap(user -> { // Explicitly type flatMap
             if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                return Mono.error(new RuntimeException("Access Denied"));
+                return Mono.<MercenaryCommand>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
             }
+
             if (co != null) {
                 cmd.setCommandingOfficer(co);
             }
@@ -164,9 +171,7 @@ public class MercenaryCommandService {
             return commandRepository.save(cmd)
                     .doOnNext(commandSink::tryEmitNext)
                     .onErrorResume(DuplicateKeyException.class, e -> {
-                        // If save fails due to R2DBC isNew logic, we fallback to a fetch 
-                        // but we've still missed the update, so we log it for debugging
-                        return Mono.error(new RuntimeException("Registry update failed: Persistence conflict."));
+                        return Mono.<MercenaryCommand>error(new RuntimeException("Registry update failed: Persistence conflict.")); // Explicitly type Mono.error
                     });
         }));
     }
@@ -182,6 +187,7 @@ public class MercenaryCommandService {
                     .userId(userId)
                     .version(1) // Simplified versioning for now
                     .build();
+
             return eventStoreRepository.save(entry)
                     .then(projection.apply(event, userId));
         } catch (Exception e) {
@@ -216,9 +222,9 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Detachment> createDetachment(@NonNull UUID commandId, UUID campaignId, String name, String userId) {
         return commandRepository.findById(commandId)
-                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId).<Detachment>flatMap(user -> { // Explicitly type flatMap
             if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                return Mono.error(new RuntimeException("Access Denied"));
+                return Mono.<Detachment>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
             }
             Detachment det = new Detachment();
             det.setId(UUID.randomUUID());
@@ -236,16 +242,17 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Void> deleteCombatUnit(@NonNull UUID unitId, String userId) {
         return combatUnitRepository.findById(unitId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Unit not found: " + unitId)))
-                .flatMap(unit -> {
+                .switchIfEmpty(Mono.<CombatUnit>error(new RuntimeException("Unit not found: " + unitId))) // Explicitly type Mono.error
+                .<Void>flatMap(unit -> { // Explicitly type flatMap
                     UUID commandId = unit.getCommandId();
                     if (commandId == null) {
-                        return Mono.error(new RuntimeException("Unit record is corrupted: No command ID"));
+                        return Mono.<Void>error(new RuntimeException("Unit record is corrupted: No command ID")); // Explicitly type Mono.error
                     }
                     return commandRepository.findById(commandId)
-                            .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Added for robustness
+                            .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> { // Explicitly type flatMap
                         if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                            return Mono.error(new RuntimeException("Access Denied"));
+                            return Mono.<Void>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                         }
                         return combatUnitRepository.delete(unit);
                     }));
@@ -258,16 +265,17 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Void> deletePilot(@NonNull UUID pilotId, String userId) {
         return pilotRepository.findById(pilotId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Pilot not found: " + pilotId)))
-                .flatMap(pilot -> {
+                .switchIfEmpty(Mono.<Pilot>error(new RuntimeException("Pilot not found: " + pilotId))) // Explicitly type Mono.error
+                .<Void>flatMap(pilot -> { // Explicitly type flatMap
                     UUID commandId = pilot.getCommandId();
                     if (commandId == null) {
-                        return Mono.error(new RuntimeException("Pilot record is corrupted: No command ID"));
+                        return Mono.<Void>error(new RuntimeException("Pilot record is corrupted: No command ID")); // Explicitly type Mono.error
                     }
                     return commandRepository.findById(commandId)
-                            .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Added for robustness
+                            .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> { // Explicitly type flatMap
                         if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                            return Mono.error(new RuntimeException("Access Denied"));
+                            return Mono.<Void>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                         }
                         return pilotRepository.delete(pilot);
                     }));
@@ -317,34 +325,35 @@ public class MercenaryCommandService {
 
         var selectSpec = databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id");
         return SqlUtils.bindUuid(selectSpec, "id", assetId)
-                .map((row, metadata) -> row.get("command_id", String.class))
+                .map((row, metadata) -> row.get("command_id", (Class<String>) String.class))
                 .one()
-                .map(id -> UUID.fromString((String) id))
-                .switchIfEmpty(Mono.error(new RuntimeException("Asset not found")))
-                .flatMap(commandId -> commandRepository.findById(commandId)
-                .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                .map(id -> UUID.fromString(id))
+                .switchIfEmpty(Mono.<UUID>error(new RuntimeException("Asset not found")))
+                .<Void>flatMap(commandId -> commandRepository.findById(commandId)
+                .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Added for robustness
+                .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> { // Explicitly type flatMap
             if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                return Mono.error(new RuntimeException("Access Denied: You do not own this command."));
+                return Mono.<Void>error(new RuntimeException("Access Denied: You do not own this command.")); // Explicitly type Mono.error
             }
 
             if (detachmentId != null) {
                 return detachmentRepository.findById(detachmentId)
-                        .switchIfEmpty(Mono.error(new RuntimeException("Detachment not found")))
-                        .flatMap(det -> {
+                        .switchIfEmpty(Mono.<Detachment>error(new RuntimeException("Detachment not found"))) // Explicitly type Mono.error
+                        .<Void>flatMap(det -> { // Explicitly type flatMap
                             if (!det.getMercenaryCommandId().equals(cmd.getId())) {
-                                return Mono.error(new RuntimeException("Access Denied: Detachment belongs to another command."));
+                                return Mono.<Void>error(new RuntimeException("Access Denied: Detachment belongs to another command.")); // Explicitly type Mono.error
                             }
-                            return Mono.just(true);
+                            return Mono.empty();
                         });
             }
-            return Mono.just(true);
+            return Mono.empty();
         }))
-                .flatMap(authorized -> {
+                .then(Mono.defer(() -> { // This then() is correctly typed by the preceding flatMap
                     var spec = databaseClient.sql("UPDATE " + table + " SET detachment_id = :detId WHERE id = :id");
                     spec = SqlUtils.bindUuid(spec, "id", assetId);
                     spec = SqlUtils.bindUuid(spec, "detId", detachmentId);
                     return spec.fetch().rowsUpdated().then();
-                }));
+                })));
     }
 
     /**
@@ -353,13 +362,13 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Void> deleteDetachment(@NonNull UUID detachmentId, String userId) {
         return detachmentRepository.findById(detachmentId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Detachment not found: " + detachmentId)))
-                .flatMap(detachment -> {
+                .switchIfEmpty(Mono.<Detachment>error(new RuntimeException("Detachment not found: " + detachmentId))) // Explicitly type Mono.error
+                .<Void>flatMap(detachment -> { // Explicitly type flatMap
                     UUID commandId = detachment.getMercenaryCommandId();
                     return isAuthorizedToEditLedger(commandId, userId)
-                            .flatMap(isAuthorized -> {
+                            .<Void>flatMap(isAuthorized -> { // Explicitly type flatMap
                                 if (!isAuthorized) {
-                                    return Mono.error(new RuntimeException("Access Denied: You are not authorized to delete this detachment."));
+                                    return Mono.<Void>error(new RuntimeException("Access Denied: You are not authorized to delete this detachment.")); // Explicitly type Mono.error
                                 }
                                 return Mono.when(
                                         SqlUtils.bindUuid(databaseClient.sql("UPDATE combat_units SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
@@ -384,16 +393,17 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<CombatUnit> updateCombatUnit(@NonNull UUID unitId, CombatUnit updatedData, String userId) {
         return combatUnitRepository.findById(unitId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Unit not found")))
-                .flatMap(unit -> {
+                .switchIfEmpty(Mono.<CombatUnit>error(new RuntimeException("Unit not found"))) // Explicitly type Mono.error
+                .<CombatUnit>flatMap(unit -> { // Explicitly type flatMap
                     UUID commandId = unit.getCommandId();
                     if (commandId == null) {
-                        return Mono.error(new RuntimeException("Unit record is corrupted: No command ID"));
+                        return Mono.<CombatUnit>error(new RuntimeException("Unit record is corrupted: No command ID")); // Explicitly type Mono.error
                     }
                     return commandRepository.findById(commandId)
-                            .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Added for robustness
+                            .<CombatUnit>flatMap(cmd -> userService.resolveOrCreateUser(userId).<CombatUnit>flatMap(user -> { // Explicitly type flatMap
                         if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                            return Mono.error(new RuntimeException("Access Denied"));
+                            return Mono.<CombatUnit>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                         }
                         unit.setNew(false);
                         if (updatedData.getType() != null) {
@@ -429,16 +439,17 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Pilot> updatePilot(@NonNull UUID pilotId, Pilot updatedData, String userId) {
         return pilotRepository.findById(pilotId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Pilot not found")))
-                .flatMap(pilot -> {
+                .switchIfEmpty(Mono.<Pilot>error(new RuntimeException("Pilot not found"))) // Explicitly type Mono.error
+                .<Pilot>flatMap(pilot -> { // Explicitly type flatMap
                     UUID commandId = pilot.getCommandId();
                     if (commandId == null) {
-                        return Mono.error(new RuntimeException("Pilot record is corrupted: No command ID"));
+                        return Mono.<Pilot>error(new RuntimeException("Pilot record is corrupted: No command ID")); // Explicitly type Mono.error
                     }
                     return commandRepository.findById(commandId)
-                            .flatMap(cmd -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Added for robustness
+                            .<Pilot>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Pilot>flatMap(user -> { // Explicitly type flatMap
                         if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                            return Mono.error(new RuntimeException("Access Denied"));
+                            return Mono.<Pilot>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                         }
                         pilot.setNew(false);
                         if (updatedData.getName() != null) {
@@ -496,12 +507,12 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<CombatUnit> addCombatUnit(@NonNull UUID commandId, CombatUnit unit, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user
-                -> commandRepository.findById(commandId).flatMap(cmd -> {
+                -> commandRepository.findById(commandId).switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))).<CombatUnit>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                        return Mono.error(new RuntimeException("Access Denied"));
+                        return Mono.<CombatUnit>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                     }
                     UUID unitId = UUID.randomUUID();
-                    CombatUnitPurchased event = new CombatUnitPurchased(unitId, commandId, unit.getModel(), unit.getType(), unit.getTonnage() != null ? unit.getTonnage() : 0, 0);
+                    CombatUnitPurchased event = new CombatUnitPurchased(unitId, commandId, unit.getModel() != null ? unit.getModel() : "UNKNOWN", unit.getType() != null ? unit.getType() : "MECH", unit.getTonnage() != null ? unit.getTonnage() : 0, 0);
                     return emitEvent(commandId, event, user.getId().toString())
                             .then(combatUnitRepository.findById(unitId));
                 })
@@ -514,9 +525,9 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<Pilot> hirePilot(@NonNull UUID commandId, Pilot pilot, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user
-                -> commandRepository.findById(commandId).flatMap(cmd -> {
+                -> commandRepository.findById(commandId).switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))).<Pilot>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                        return Mono.error(new RuntimeException("Access Denied"));
+                        return Mono.<Pilot>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                     }
                     UUID pilotId = UUID.randomUUID();
                     PilotHired event = new PilotHired(pilotId, commandId, pilot.getName(), pilot.getGunnery() != null ? pilot.getGunnery() : 4, pilot.getPiloting() != null ? pilot.getPiloting() : 5);
@@ -544,16 +555,15 @@ public class MercenaryCommandService {
     @Transactional // Assuming LedgerEntry entity is updated with new fields
     public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntry entry, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user
-                -> isAuthorizedToEditLedger(commandId, userId)
-                        .flatMap(isAuthorized -> {
-                            if (!isAuthorized) {
-                                return Mono.error(new RuntimeException("Access Denied: You are not the owner or the campaign manager."));
-                            }
-                            UUID entryId = UUID.randomUUID();
-                            LedgerEntryCreated event = new LedgerEntryCreated(entryId, commandId, detachmentId, entry.getAmount() != null ? entry.getAmount() : 0, entry.getDescription());
-                            return emitEvent(commandId, event, user.getId().toString())
-                                    .then(ledgerEntryRepository.findById(entryId));
-                        })
+                -> isAuthorizedToEditLedger(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
+                    if (!isAuthorized) {
+                        return Mono.<LedgerEntry>error(new RuntimeException("Access Denied: You are not the owner or the campaign manager.")); // Explicitly type Mono.error
+                    }
+                    UUID entryId = UUID.randomUUID();
+                    LedgerEntryCreated event = new LedgerEntryCreated(entryId, commandId, detachmentId, entry.getAmount() != null ? entry.getAmount() : 0, entry.getDescription());
+                    return emitEvent(commandId, event, user.getId().toString())
+                            .then(ledgerEntryRepository.findById(entryId));
+                })
         );
     }
 
@@ -563,7 +573,7 @@ public class MercenaryCommandService {
      * contracted to.
      */
     private Mono<Boolean> isAuthorizedToEditLedger(@NonNull UUID commandId, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMap(user -> {
+        return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
             String internalId = user.getId().toString();
             String sql = "SELECT EXISTS ("
                     + "  SELECT 1 FROM mercenary_commands mc "
@@ -589,40 +599,100 @@ public class MercenaryCommandService {
         return selectSpec
                 .map((row, meta) -> UUID.fromString(row.get("campaign_id", String.class)))
                 .one()
-                .switchIfEmpty(Mono.error(new RuntimeException("INVALID_OR_USED_TOKEN")))
-                .flatMap(campaignId -> detachmentRepository.findById(detachmentId)
-                .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT_NOT_FOUND")))
-                .flatMap(det -> {
+                .switchIfEmpty(Mono.<UUID>error(new RuntimeException("INVALID_OR_USED_TOKEN"))) // Explicitly type Mono.error
+                .<Boolean>flatMap(campaignId -> detachmentRepository.findById(detachmentId) // Explicitly type flatMap
+                .switchIfEmpty(Mono.<Detachment>error(new RuntimeException("DETACHMENT_NOT_FOUND"))) // Explicitly type Mono.error
+                .<Boolean>flatMap(det -> { // Explicitly type flatMap
                     det.setNew(false);
                     det.setCampaignId(campaignId);
-                    return detachmentRepository.save(det).then(
+                    Mono<Long> saveCompleted = detachmentRepository.save(det).then(
                             SqlUtils.bindString(databaseClient.sql("UPDATE campaign_invites SET used = true WHERE token = :token"), "token", token)
                                     .fetch().rowsUpdated());
+                    return saveCompleted.map(rows -> rows > 0);
                 }))
                 .thenReturn(true);
     }
 
     @Transactional
     public Mono<Campaign> updateCampaignDetails(@NonNull UUID campaignId, Map<String, Object> input, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMap(user
+        return userService.resolveOrCreateUser(userId).<Campaign>flatMap(user
                 -> campaignRepository.findById(campaignId)
-                        .flatMap(camp -> {
-                            // Validation: Ensure the user is the manager
+                        .<Campaign>flatMap(camp -> {
                             if (!camp.getManagerId().equals(user.getId().toString())) {
-                                return Mono.error(new RuntimeException("Access Denied: Not the theater manager."));
+                                return Mono.<Campaign>error(new RuntimeException("Access Denied: Not the theater manager."));
                             }
 
-                            camp.setNew(false); // Mark as existing for R2DBC
+                            camp.setNew(false);
                             if (input.containsKey("systemName")) {
                                 camp.setSystemName((String) input.get("systemName"));
                             }
                             if (input.containsKey("description")) {
                                 camp.setDescription((String) input.get("description"));
                             }
-                            // Add more field updates as needed for parity
-                            return campaignRepository.save(camp);
+
+                            Integer newMonths = TypeUtils.asInt(input.get("lengthInMonths"));
+                            Integer newTrackCountInput = TypeUtils.asInt(input.get("trackCount"));
+
+                            Mono<Campaign> chain = Mono.just(camp);
+
+                            // Logic: If a month is deleted, delete tracks in it and recompute trackCount
+                            if (newMonths != null && newMonths < camp.getLengthInMonths()) {
+                                chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
+                                        .filter(t -> t.getMonthIndex() > newMonths)
+                                        .flatMap(campaignTrackRepository::delete)
+                                        .then(Mono.defer(() -> {
+                                            camp.setLengthInMonths(newMonths);
+                                            return campaignTrackRepository.findAllByCampaignId(camp.getId()).count()
+                                                    .map(count -> {
+                                                        camp.setTrackCount(count.intValue());
+                                                        return camp;
+                                                    });
+                                        }));
+                            } else if (newMonths != null) {
+                                camp.setLengthInMonths(newMonths);
+                            }
+
+                            return chain.flatMap(c -> {
+                                if (newTrackCountInput != null && !newTrackCountInput.equals(c.getTrackCount())) {
+                                    return reconcileTracks(c, newTrackCountInput);
+                                }
+                                return campaignRepository.save(c);
+                            });
                         })
         );
+    }
+
+    private Mono<Campaign> reconcileTracks(Campaign camp, int newCount) {
+        return campaignTrackRepository.findAllByCampaignId(camp.getId()).collectList()
+                .flatMap(existing -> {
+                    int actualCount = existing.size();
+                    camp.setTrackCount(newCount);
+
+                    if (newCount > actualCount) {
+                        // Requirement: Add all new tracks to the last month
+                        int lastMonth = camp.getLengthInMonths() != null ? camp.getLengthInMonths() : 1;
+                        return Flux.range(actualCount, newCount - actualCount)
+                                .flatMap(i -> campaignTrackRepository.save(CampaignTrack.builder()
+                                .id(UUID.randomUUID())
+                                .campaignId(camp.getId())
+                                .trackName("NEW OPERATIONAL TRACK")
+                                .sequenceOrder(i)
+                                .monthIndex(lastMonth)
+                                .isNew(true)
+                                .build()))
+                                .then(campaignRepository.save(camp));
+                    } else if (newCount < actualCount) {
+                        // Requirement: Reducing number of tracks deletes tracks with higher sequence numbers
+                        List<CampaignTrack> toDelete = existing.stream()
+                                .sorted((a, b) -> b.getSequenceOrder().compareTo(a.getSequenceOrder()))
+                                .limit(actualCount - newCount)
+                                .toList();
+                        return Flux.fromIterable(toDelete)
+                                .flatMap(campaignTrackRepository::delete)
+                                .then(campaignRepository.save(camp));
+                    }
+                    return campaignRepository.save(camp);
+                });
     }
 
     @Transactional
@@ -643,7 +713,7 @@ public class MercenaryCommandService {
      * manager of a campaign where the command has at least one detachment.
      */
     public Mono<Boolean> isAuthorizedForCommand(@NonNull UUID commandId, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMap(user -> {
+        return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
             String internalId = user.getId().toString();
             String sql = "SELECT EXISTS ("
                     + "  SELECT 1 FROM mercenary_commands mc "
@@ -669,13 +739,11 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Flux<CombatUnit> importAssetsFromLink(@NonNull UUID commandId, UUID detachmentId, String link, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMapMany(user
-                -> commandRepository.findById(commandId).flatMapMany(cmd -> {
+        return userService.resolveOrCreateUser(userId).<CombatUnit>flatMapMany(user
+                -> commandRepository.findById(commandId).<CombatUnit>flatMapMany(cmd -> {
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
                         return Flux.error(new RuntimeException("Access Denied"));
                     }
-
-                    log.info("[SCRAPER] Initiating import from: {}", link);
 
                     return scraperFactory.getScraper(link)
                             .flatMapMany(scraper -> scraper.scrape(link))

@@ -62,6 +62,7 @@ public class SchemaGenerator {
         sql.append("    `system_name` VARCHAR(255),\n");
         sql.append("    `description` TEXT,\n");
         sql.append("    `track_count` INT,\n");
+        sql.append("    `length_in_months` INT,\n");
         sql.append("    `pay_rate` DOUBLE,\n");
         sql.append("    `pay_step` INT,\n");
         sql.append("    `salvage_terms` VARCHAR(255),\n");
@@ -94,6 +95,7 @@ public class SchemaGenerator {
         sql.append("    `location` VARCHAR(255),\n");
         sql.append("    `next_session` DATETIME,\n");
         sql.append("    `attacker_faction_id` VARCHAR(36),\n");
+        sql.append("    `month_index` INT,\n");
         sql.append("    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
@@ -167,7 +169,7 @@ public class SchemaGenerator {
         sql.append("    `reputation_change` INT,\n");
         sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `campaign_name` VARCHAR(255),\n");
-        sql.append("    `contract_month` VARCHAR(50),\n");
+        sql.append("    `month_index` INT,\n");
         sql.append("    CONSTRAINT fk_ledger_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");

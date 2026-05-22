@@ -1,6 +1,5 @@
 package com.hotspotscamp.entity;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
@@ -40,6 +39,8 @@ public class Campaign implements Persistable<UUID> {
     private String description;
     @Column("track_count")
     private Integer trackCount;
+    @Column("length_in_months")
+    private Integer lengthInMonths;
     @Column("pay_rate")
     private Double payRate;
     @Column("pay_step")

@@ -154,7 +154,7 @@ CREATE TABLE ledger_entries (
     `reputation_change` INT,
     `campaign_id` VARCHAR(36),
     `campaign_name` VARCHAR(255),
-    `contract_month` VARCHAR(50),
+    `month_index` INT,
     CONSTRAINT fk_ledger_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_ledger_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
 );

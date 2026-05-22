@@ -49,8 +49,8 @@ public class LedgerEntry implements Persistable<UUID> {
     private UUID campaignId;
     @Column("campaign_name")
     private String campaignName;
-    @Column("contract_month")
-    private String contractMonth;
+    @Column("month_index")
+    private Integer monthIndex;
 
     @Column("running_total") // SP total after this transaction
     private Integer runningTotal;

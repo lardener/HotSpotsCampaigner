@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { NavigationTree, TreeItem, NodeType } from './NavigationTree';
@@ -13,6 +13,7 @@ import { CampaignTheaterView } from './CampaignTheaterView';
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const INACTIVITY_TIMEOUT_MS = Number(import.meta.env.VITE_INACTIVITY_TIMEOUT_MS) || 30 * 60 * 1000;
 
 const GET_MY_COMMANDS = gql`
   query GetMyCommands {
@@ -79,6 +80,7 @@ const GET_MANAGED_CAMPAIGNS = gql`
         location
         nextSession
         attackerFactionId
+        monthIndex
       }
       participatingDetachments {
         id
@@ -166,6 +168,7 @@ interface ManagedCampaignsData {
             location?: string;
             nextSession?: string;
             attackerFactionId?: string;
+            monthIndex?: number;
         }[];
         participatingDetachments?: {
             id: string;
@@ -192,6 +195,36 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [campaignFilter, setCampaignFilter] = useState<string>('ACTIVE');
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
+
+    const lastActivityTimeRef = useRef(Date.now());
+
+    const resetActivityTimer = () => {
+        lastActivityTimeRef.current = Date.now();
+    };
+
+    useEffect(() => {
+        // Set up event listeners for user activity
+        const activityEvents = ['mousemove', 'keydown', 'click'];
+        activityEvents.forEach(event => {
+            document.addEventListener(event, resetActivityTimer);
+        });
+
+        // Set up interval to check for inactivity
+        const inactivityInterval = setInterval(() => {
+            if (user && Date.now() - lastActivityTimeRef.current > INACTIVITY_TIMEOUT_MS) {
+                console.log("User inactive for over 30 minutes. Logging out.");
+                onLogout(); // Trigger logout
+            }
+        }, 15 * 1000); // Check every 15 seconds
+
+        // Clean up event listeners and interval on component unmount
+        return () => {
+            activityEvents.forEach(event => {
+                document.removeEventListener(event, resetActivityTimer);
+            });
+            clearInterval(inactivityInterval);
+        };
+    }, [user, onLogout]); // Re-run effect if user or onLogout changes
 
     // Sync editName when user prop changes
     useEffect(() => {

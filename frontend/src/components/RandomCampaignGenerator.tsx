@@ -33,6 +33,7 @@ export const PREVIEW_CAMPAIGN = gql`
         name
         systemName
         trackCount
+        lengthInMonths
       }
       contracts {
         employerCategory
@@ -91,7 +92,8 @@ interface Proposal {
     campaign: {
         name: string,
         systemName: string,
-        trackCount: number
+        trackCount: number,
+        lengthInMonths: number
     };
     contracts: ContractPreview[];
     tracks: string[];
@@ -239,7 +241,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             supportStep: primary.supportStep,
             transportStep: primary.transportStep,
             commandStep: primary.commandStep,
-            trackCount: proposal.campaign.trackCount
+            trackCount: proposal.campaign.trackCount,
+            lengthInMonths: proposal.campaign.lengthInMonths
         };
     };
 
@@ -279,6 +282,10 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             }
 
             const updatedCampaign = { ...prev.campaign, [field]: updatedVal };
+
+            if (field === 'trackCount' && !isNaN(updatedVal as number)) {
+                updatedCampaign.lengthInMonths = updatedVal as number;
+            }
 
             if (field === 'systemName' && !isNameManuallyEdited) {
                 const primary = prev.contracts[0];
