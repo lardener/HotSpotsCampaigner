@@ -133,6 +133,7 @@ type Detachment {
     callsign: String
     mercenaryCommandId: ID
     campaignId: ID
+    campaignName: String
 }
 
 type LedgerEntry {

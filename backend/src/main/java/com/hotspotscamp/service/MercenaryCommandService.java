@@ -549,6 +549,13 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Resolves a campaign name by its ID.
+     */
+    public Mono<String> getCampaignName(@NonNull UUID campaignId) {
+        return campaignRepository.findById(campaignId).map(Campaign::getName);
+    }
+
+    /**
      * Adds a new ledger entry after validating that the user is either the
      * command owner or the campaign manager.
      */

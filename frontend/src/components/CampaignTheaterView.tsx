@@ -261,8 +261,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         const draggedTrackId = e.dataTransfer.getData("trackId");
         if (!draggedTrackId || !campaign?.tracks) return;
 
-        // 1. Prepare sorted tracks list
-        const tracks = [...campaign.tracks].sort((a, b) => a.sequenceOrder - b.sequenceOrder);
+        // 1. Prepare sorted tracks list (prioritize month, then existing sequence)
+        const tracks = [...campaign.tracks].sort((a, b) => {
+            if (a.monthIndex !== b.monthIndex) return (a.monthIndex || 1) - (b.monthIndex || 1);
+            return a.sequenceOrder - b.sequenceOrder;
+        });
+
         const draggedTrack = tracks.find(t => t.id === draggedTrackId);
         if (!draggedTrack) return;
 
@@ -274,28 +278,28 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         if (targetTrackId) {
             insertIndex = remainingTracks.findIndex(t => t.id === targetTrackId);
         } else {
-            // dropped on panel, find the last track currently in that month or the boundary after previous month
-            const monthTracks = remainingTracks.filter(t => (t.monthIndex || 1) === targetMonth);
-            if (monthTracks.length > 0) {
-                const lastInMonth = monthTracks[monthTracks.length - 1];
-                insertIndex = remainingTracks.findIndex(t => t.id === lastInMonth.id) + 1;
-            } else {
-                const earlierMonthsTracks = remainingTracks.filter(t => (t.monthIndex || 1) < targetMonth);
-                insertIndex = earlierMonthsTracks.length;
-            }
+            // dropped on panel, place at the end of the target month
+            const tracksBeforeTarget = remainingTracks.filter(t => (t.monthIndex || 1) <= targetMonth);
+            insertIndex = tracksBeforeTarget.length;
         }
 
         // 4. Update the dragged track's monthIndex locally and insert it
-        draggedTrack.monthIndex = targetMonth;
-        remainingTracks.splice(insertIndex, 0, draggedTrack);
-        const orderedIds = remainingTracks.map(t => t.id);
+        const updatedTrack = { ...draggedTrack, monthIndex: targetMonth };
+        const finalOrderedTracks = [...remainingTracks];
+        finalOrderedTracks.splice(insertIndex, 0, updatedTrack as any);
+        const orderedIds = finalOrderedTracks.map(t => t.id);
 
         // 5. Sync to backend
         setIsSyncing(true);
-        await updateTrack({ variables: { id: draggedTrackId, input: { monthIndex: targetMonth } } });
-        await reorderTracks({ variables: { campaignId: campaign.id, trackIds: orderedIds } });
-        setIsSyncing(false);
-        refetchCampaign();
+        try {
+            await updateTrack({ variables: { id: draggedTrackId, input: { monthIndex: targetMonth } } });
+            await reorderTracks({ variables: { campaignId: campaign.id, trackIds: orderedIds } });
+            await refetchCampaign();
+        } catch (err) {
+            console.error("Failed to reorder tracks", err);
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     const handleRemoveDetachment = async (detId: string) => {

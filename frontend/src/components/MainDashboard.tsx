@@ -9,8 +9,9 @@ import { LedgerDashboard } from './LedgerDashboard';
 import { CreateCommandForm } from './CreateCommandForm';
 import { CommandDashboard } from './CommandDashboard';
 import { CampaignTheaterView } from './CampaignTheaterView';
+import { MyDeploymentsList } from './MyDeploymentsList';
 
-export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard';
+export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard' | 'intel-hub' | 'my-deployments';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const INACTIVITY_TIMEOUT_MS = Number(import.meta.env.VITE_INACTIVITY_TIMEOUT_MS) || 30 * 60 * 1000;
@@ -28,6 +29,7 @@ const GET_MY_COMMANDS = gql`
         id
         name
         campaignId
+        campaignName
       }
     }
   }
@@ -234,13 +236,40 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
     const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
         skip: !user,
-        fetchPolicy: 'network-only' // Ensure we don't just hit the cache after a save
+        fetchPolicy: 'network-only'
     });
 
     const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<ManagedCampaignsData>(GET_MANAGED_CAMPAIGNS, {
         variables: { status: campaignFilter },
-        skip: !user // Removed activeTab restriction so the Tree always has data
+        skip: !user
     });
+
+    // Priority-based initial branch expansion and selection
+    const initialJumpPerformed = useRef(false);
+    useEffect(() => {
+        if (!loading && !loadingManaged && !initialJumpPerformed.current && data && managedData) {
+            const myCmds = data.myCommands || [];
+            const hasDeployments = myCmds.some(cmd => cmd.detachments?.some((det: any) => det.campaignId));
+            const hasCommands = myCmds.length > 0;
+            const hasManaged = (managedData?.managedCampaigns?.length ?? 0) > 0;
+
+            if (hasDeployments) {
+                setSelectedNodeId('root-deployments');
+                setActiveTab('my-deployments');
+            } else if (hasCommands) {
+                setSelectedNodeId('root-commands');
+                setActiveTab('commands');
+            } else if (hasManaged) {
+                setSelectedNodeId('root-campaigns');
+                setActiveTab('my-campaigns');
+            } else {
+                // Fallback to Global Intel Hub
+                setSelectedNodeId('root-intel');
+                setActiveTab('intel-hub');
+            }
+            initialJumpPerformed.current = true;
+        }
+    }, [loading, loadingManaged, data, managedData]);
 
     // Add logging to catch the specific reason for the "COMMUNICATIONS BREAKDOWN"
     useEffect(() => {
@@ -292,17 +321,30 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             }
         });
 
+        const hasDeployments = deploymentNodes.length > 0;
+        const hasCommands = commands.length > 0;
+        const hasManaged = (managedData?.managedCampaigns?.length ?? 0) > 0;
+        const isLoaded = !loading && !loadingManaged;
+
+        // Priority logic for initial expansion
+        const expandDeployments = hasDeployments;
+        const expandCommands = !expandDeployments && hasCommands;
+        const expandManaged = !expandDeployments && !expandCommands && hasManaged;
+        const expandIntel = isLoaded && !expandDeployments && !expandCommands && !expandManaged;
+
         return [
             {
                 id: 'root-deployments',
                 label: 'CURRENT DEPLOYMENTS',
                 type: 'ROOT' as NodeType,
+                initiallyExpanded: expandDeployments,
                 children: deploymentNodes
             },
             {
                 id: 'root-commands',
                 label: 'MERCENARY COMMANDS',
                 type: 'ROOT' as NodeType,
+                initiallyExpanded: expandCommands,
                 children: commands.map(cmd => ({
                     id: cmd.id,
                     label: cmd.name || 'UNNAMED UNIT',
@@ -319,6 +361,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 id: 'root-campaigns',
                 label: 'MANAGED CAMPAIGNS',
                 type: 'ROOT' as NodeType,
+                initiallyExpanded: expandManaged,
                 children: managedData?.managedCampaigns.map(camp => ({
                     id: camp.id,
                     label: camp.name,
@@ -340,13 +383,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 id: 'root-intel',
                 label: 'GLOBAL INTEL',
                 type: 'ROOT' as NodeType,
+                initiallyExpanded: expandIntel,
                 children: [
                     { id: 'public-intel', label: 'AVAILABLE CONTRACTS', type: 'INTEL' as NodeType },
                     { id: 'create-campaign', label: 'NEW CAMPAIGN', type: 'INTEL' as NodeType }
                 ]
             }
         ];
-    }, [commands, managedData]);
+    }, [commands, managedData, loading, loadingManaged]);
 
     const handleTreeSelect = (item: TreeItem) => {
         // 1. Always exit creation mode when navigating via the tree
@@ -354,7 +398,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         setSelectedNodeId(item.id);
 
         // 2. Map tree nodes to the specific pages described in the plan
-        if (item.id === 'root-commands') {
+        if (item.id === 'root-deployments') {
+            setActiveTab('my-deployments');
+        } else if (item.id === 'root-commands') {
             setSelectedDetachmentId(null);
             setActiveTab('commands'); // Registry / Aggregate View
         } else if (item.type === 'COMMAND') {
@@ -370,6 +416,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 return;
             }
             setActiveTab('command-dashboard'); // Focus the unit dossier for this detachment
+        } else if (item.id === 'root-intel') {
+            setActiveTab('intel-hub'); // Intelligence Overview
         } else if (item.id === 'root-campaigns') {
             setSelectedCampaignId(null);
             setSelectedDetachmentId(null);
@@ -393,6 +441,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         if (selectedNodeId) return selectedNodeId;
         if (activeTab === 'create-campaign') return 'create-campaign';
         if (activeTab === 'public-campaigns') return 'public-intel';
+        if (activeTab === 'my-deployments') return 'root-deployments';
+        if (activeTab === 'intel-hub') return 'root-intel';
         if (activeTab === 'my-campaigns') return 'root-campaigns';
         if (activeTab === 'commands') return 'root-commands';
         if (['command-dashboard', 'ledger'].includes(activeTab)) return selectedCommandId || undefined;
@@ -641,6 +691,40 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         <ActiveCampaignsList />
                     </div>
                 );
+            case 'my-deployments':
+                return (
+                    <MyDeploymentsList
+                        commands={commands}
+                        onSelectDetachment={handleTreeSelect}
+                    />
+                );
+            case 'intel-hub':
+                return (
+                    <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                        <header className="dashboard-header">
+                            <h1 className="terminal-text">HINTERLANDS INTELLIGENCE HUB</h1>
+                            <p className="restricted-text">GLOBAL SIGNAL INTERCEPT ACTIVE</p>
+                        </header>
+                        <div className="grid-2-col mt-30">
+                            <div
+                                className="dashboard-section establish-command-placeholder"
+                                style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
+                                onClick={() => { setActiveTab('public-campaigns'); setSelectedNodeId('public-intel'); }}
+                            >
+                                <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>AVAILABLE CONTRACTS</h2>
+                                <p className="sm-text">BROWSE THEATERS RECRUITING MERCENARY COMMANDS</p>
+                            </div>
+                            <div
+                                className="dashboard-section establish-command-placeholder"
+                                style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
+                                onClick={() => { setActiveTab('create-campaign'); setSelectedNodeId('create-campaign'); }}
+                            >
+                                <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>NEW CAMPAIGN PROTOCOL</h2>
+                                <p className="sm-text">AUTHORIZE AND ESTABLISH A NEW CAMPAIGN THEATER</p>
+                            </div>
+                        </div>
+                    </div>
+                );
             default:
                 return <Welcome userName={user.name} />;
         }
@@ -661,7 +745,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     <div className="restricted-text sidebar-subtitle">COMMAND & CONTROL INTERFACE</div>
                 </div>
                 <div className="sidebar-content-scroll" style={{ overflowY: 'auto', padding: '10px 0' }}>
-                    <div className="nav-header" style={{ marginBottom: '10px', paddingLeft: '5px' }}>COMMAND & CONTROL</div>
                     <NavigationTree
                         data={treeData}
                         onSelect={handleTreeSelect}

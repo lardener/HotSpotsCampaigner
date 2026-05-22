@@ -100,6 +100,15 @@ public class CommandGraphQLController {
         return commandService.getDetachmentsByCommandId(id);
     }
 
+    @SchemaMapping(typeName = "Detachment", field = "campaignName")
+    public Mono<String> getCampaignName(Detachment detachment) {
+        UUID campaignId = detachment.getCampaignId();
+        if (campaignId == null) {
+            return Mono.empty();
+        }
+        return commandService.getCampaignName(campaignId);
+    }
+
     @SchemaMapping(typeName = "MercenaryCommand", field = "allLedgerEntries")
     public Flux<LedgerEntry> getAllLedgerEntries(MercenaryCommand command) {
         UUID id = command.getId();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './navigation-tree.css';
 
 export type NodeType = 'ROOT' | 'DEPLOYMENT' | 'COMMAND' | 'DETACHMENT' | 'CAMPAIGN' | 'INTEL';
@@ -8,6 +8,7 @@ export interface TreeItem {
     label: string;
     type: NodeType;
     children?: TreeItem[];
+    initiallyExpanded?: boolean;
     metadata?: Record<string, any>;
 }
 
@@ -19,10 +20,14 @@ interface TreeNodeProps {
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({ item, level, onSelect, selectedId }) => {
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(item.initiallyExpanded ?? false);
     const hasChildren = item.children && item.children.length > 0;
     const isSelected = selectedId === item.id;
     const isRoot = item.type === 'ROOT';
+
+    useEffect(() => {
+        setIsOpen(item.initiallyExpanded ?? false);
+    }, [item.initiallyExpanded]);
 
     const handleToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
