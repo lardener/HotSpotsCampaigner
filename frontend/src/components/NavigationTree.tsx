@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import '../styles/navigation-tree.css';
+import './navigation-tree.css';
 
 export type NodeType = 'ROOT' | 'DEPLOYMENT' | 'COMMAND' | 'DETACHMENT' | 'CAMPAIGN' | 'INTEL';
 

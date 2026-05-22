@@ -5,7 +5,7 @@
 }
 
 .sidebar-content-scroll::-webkit-scrollbar-track {
-    background: var(--terminal-bg-dark);
+    background: var(--terminal-bg);
     /* color of the track */
     border-radius: 10px;
 }
@@ -15,7 +15,7 @@
     /* color of the scroll thumb */
     border-radius: 10px;
     /* roundness of the scroll thumb */
-    border: 2px solid var(--terminal-bg-dark);
+    border: 2px solid var(--terminal-bg);
     /* creates padding around scroll thumb */
 }
 
@@ -23,7 +23,7 @@
 .sidebar-content-scroll {
     scrollbar-width: thin;
     /* "auto" or "thin" */
-    scrollbar-color: var(--terminal-amber) var(--terminal-bg-dark);
+    scrollbar-color: var(--terminal-amber) var(--terminal-bg);
     /* thumb and track color */
 }
 
