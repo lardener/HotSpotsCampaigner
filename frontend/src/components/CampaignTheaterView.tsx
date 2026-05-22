@@ -372,30 +372,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName?.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
                             </div>
                             <div className="flex flex-gap-10">
-                                <div className="input-group">
-                                    <label htmlFor="campaign-months" className="restricted-text">MONTHS:</label>
-                                    <input
-                                        id="campaign-months"
-                                        type="number"
-                                        className="inline-edit inline-edit-input-small"
-                                        value={campaignLengthInMonths}
-                                        onChange={(e) => setCampaignLengthInMonths(parseInt(e.target.value) || 1)}
-                                        onBlur={(e) => handleUpdate('lengthInMonths', parseInt(e.target.value) || 1)}
-                                        title="Total duration of the campaign in months"
-                                    />
-                                </div>
-                                <div className="input-group">
-                                    <label htmlFor="campaign-tracks" className="restricted-text">TRACKS:</label>
-                                    <input
-                                        id="campaign-tracks"
-                                        type="number"
-                                        className="inline-edit inline-edit-input-small"
-                                        value={campaignTrackCount}
-                                        onChange={(e) => setCampaignTrackCount(parseInt(e.target.value) || 0)}
-                                        onBlur={(e) => handleUpdate('trackCount', parseInt(e.target.value) || 0)}
-                                        title="Total number of tracks in the campaign"
-                                    />
-                                </div>
                                 <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
                             </div>
                         </div>
@@ -403,7 +379,35 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
                     <div className="grid-3-col mb-30">
                         <div className="tactical-panel" style={{ gridColumn: 'span 2' }}>
-                            <h3 className="zone-header">THEATER INTEL</h3>
+                            <div className="flex-between mb-10">
+                                <h3 className="zone-header">THEATER COMMAND DATA</h3>
+                                <div className="flex flex-gap-15">
+                                    <div className="input-group">
+                                        <label htmlFor="campaign-months" className="restricted-text" style={{ fontSize: '0.7rem' }}>MONTHS:</label>
+                                        <input
+                                            id="campaign-months"
+                                            type="number"
+                                            className="inline-edit inline-edit-input-small"
+                                            value={campaignLengthInMonths}
+                                            onChange={(e) => setCampaignLengthInMonths(parseInt(e.target.value) || 1)}
+                                            onBlur={(e) => handleUpdate('lengthInMonths', parseInt(e.target.value) || 1)}
+                                            title="Total duration of the campaign in months"
+                                        />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="campaign-tracks" className="restricted-text" style={{ fontSize: '0.7rem' }}>TRACKS:</label>
+                                        <input
+                                            id="campaign-tracks"
+                                            type="number"
+                                            className="inline-edit inline-edit-input-small"
+                                            value={campaignTrackCount}
+                                            onChange={(e) => setCampaignTrackCount(parseInt(e.target.value) || 0)}
+                                            onBlur={(e) => handleUpdate('trackCount', parseInt(e.target.value) || 0)}
+                                            title="Total number of tracks in the campaign"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className="mt-10" style={{ width: '100%' }}>
                                 {isEditingDescription ? (

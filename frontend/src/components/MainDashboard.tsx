@@ -648,8 +648,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
     return (
         <div className="dashboard-layout vw-100 vh-100 flex overflow-hidden">
-            <aside className="sidebar-container flex-col h-100">
-                <div className="sidebar-header-main">
+            <aside className="sidebar-container" style={{ display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100vh', width: '280px', borderRight: '1px solid var(--terminal-border)' }}>
+                <div className="sidebar-header-main" style={{ padding: '20px', borderBottom: '1px solid var(--terminal-border)', position: 'static' }}>
                     <div className="flex-center mb-5">
                         <svg width="24" height="24" viewBox="0 0 100 100" className="sidebar-icon-svg">
                             <polygon points="50,10 85,30 85,70 50,90 15,70 15,30" fill="none" stroke="var(--terminal-amber)" strokeWidth="8" />
@@ -660,12 +660,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     </div>
                     <div className="restricted-text sidebar-subtitle">COMMAND & CONTROL INTERFACE</div>
                 </div>
-                <NavigationTree
-                    data={treeData}
-                    onSelect={handleTreeSelect}
-                    selectedId={getSelectedNodeId()}
-                />
-                <div className="sidebar-footer-main">
+                <div className="sidebar-content-scroll" style={{ overflowY: 'auto', padding: '10px 0' }}>
+                    <div className="nav-header" style={{ marginBottom: '10px', paddingLeft: '5px' }}>COMMAND & CONTROL</div>
+                    <NavigationTree
+                        data={treeData}
+                        onSelect={handleTreeSelect}
+                        selectedId={getSelectedNodeId()}
+                    />
+                </div>
+                <div className="sidebar-footer-main" style={{ padding: '20px', borderTop: '1px solid var(--terminal-border)', backgroundColor: 'rgba(0,0,0,0.3)', position: 'static' }}>
                     <div className="user-profile-mini sidebar-user-info">
                         👤 {isEditingName ? (
                             <input

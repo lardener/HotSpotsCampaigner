@@ -1,18 +1,30 @@
-.sidebar-nav {
-    width: 280px;
-    height: 100vh;
-    background-color: var(--terminal-bg);
-    border-right: 1px solid var(--terminal-border);
-    display: flex;
-    flex-direction: column;
-    color: #e0e0e0;
-    -webkit-user-select: none;
-    user-select: none;
-    /* Custom Scrollbar Styles for Webkit (Chrome, Safari) */
-    .sidebar-content-scroll::-webkit-scrollbar {
-        width: 8px;
-        /* width of the scrollbar */
-    }
+/* Custom Scrollbar Styles for Webkit (Chrome, Safari) */
+.sidebar-content-scroll::-webkit-scrollbar {
+    width: 8px;
+    /* width of the scrollbar */
+}
+
+.sidebar-content-scroll::-webkit-scrollbar-track {
+    background: var(--terminal-bg-dark);
+    /* color of the track */
+    border-radius: 10px;
+}
+
+.sidebar-content-scroll::-webkit-scrollbar-thumb {
+    background-color: var(--terminal-amber);
+    /* color of the scroll thumb */
+    border-radius: 10px;
+    /* roundness of the scroll thumb */
+    border: 2px solid var(--terminal-bg-dark);
+    /* creates padding around scroll thumb */
+}
+
+/* Custom Scrollbar Styles for Firefox */
+.sidebar-content-scroll {
+    scrollbar-width: thin;
+    /* "auto" or "thin" */
+    scrollbar-color: var(--terminal-amber) var(--terminal-bg-dark);
+    /* thumb and track color */
 }
 
 .nav-header {
@@ -21,14 +33,6 @@
     font-weight: 800;
     letter-spacing: 0.1em;
     color: var(--terminal-green-dim);
-    border-bottom: 1px solid var(--terminal-border);
-    background-color: rgba(0, 0, 0, 0.5);
-}
-
-.tree-scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 0 20px 0;
 }
 
 .children-container {

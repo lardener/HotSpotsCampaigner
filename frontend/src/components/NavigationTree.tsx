@@ -70,19 +70,16 @@ export const NavigationTree: React.FC<{
     selectedId?: string;
 }> = ({ data, onSelect, selectedId }) => {
     return (
-        <aside className="sidebar-nav">
-            <div className="nav-header">COMMAND & CONTROL</div>
-            <div className="tree-scroll-area">
-                {data.map((item) => (
-                    <TreeNode
-                        key={item.id}
-                        item={item}
-                        level={0}
-                        onSelect={onSelect}
-                        selectedId={selectedId}
-                    />
-                ))}
-            </div>
-        </aside>
+        <div style={{ padding: '0 10px' }}>
+            {data.map((item) => (
+                <TreeNode
+                    key={item.id}
+                    item={item}
+                    level={0}
+                    onSelect={onSelect}
+                    selectedId={selectedId}
+                />
+            ))}
+        </div>
     );
 };
