@@ -27,6 +27,7 @@ const GET_MY_COMMANDS = gql`
       detachments {
         id
         name
+        campaignId
       }
     }
   }
@@ -279,12 +280,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         commands.forEach(cmd => {
             if (cmd.detachments) {
                 cmd.detachments.forEach((det: any) => {
-                    deploymentNodes.push({
-                        id: `deployment-${det.id}`,
-                        label: `${cmd.name} - ${det.name}`,
-                        type: 'DEPLOYMENT' as NodeType,
-                        metadata: { detachmentId: det.id, commandId: cmd.id }
-                    });
+                    if (det.campaignId) {
+                        deploymentNodes.push({
+                            id: `deployment-${det.id}`,
+                            label: `${cmd.name} - ${det.name}`,
+                            type: 'DEPLOYMENT' as NodeType,
+                            metadata: { detachmentId: det.id, commandId: cmd.id }
+                        });
+                    }
                 });
             }
         });

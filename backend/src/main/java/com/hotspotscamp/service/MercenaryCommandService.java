@@ -36,8 +36,8 @@ import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
-import com.hotspotscamp.util.TypeUtils;
 import com.hotspotscamp.util.SqlUtils;
+import com.hotspotscamp.util.TypeUtils;
 
 import lombok.NonNull;
 import reactor.core.publisher.Flux;
@@ -605,12 +605,14 @@ public class MercenaryCommandService {
                 .<Boolean>flatMap(det -> { // Explicitly type flatMap
                     det.setNew(false);
                     det.setCampaignId(campaignId);
-                    Mono<Long> saveCompleted = detachmentRepository.save(det).then(
+                    return detachmentRepository.save(det).then(
                             SqlUtils.bindString(databaseClient.sql("UPDATE campaign_invites SET used = true WHERE token = :token"), "token", token)
-                                    .fetch().rowsUpdated());
-                    return saveCompleted.map(rows -> rows > 0);
+                                    .fetch().rowsUpdated())
+                            .then(commandRepository.findById(det.getMercenaryCommandId()))
+                            .doOnNext(commandSink::tryEmitNext)
+                            .thenReturn(true);
                 }))
-                .thenReturn(true);
+                .defaultIfEmpty(false);
     }
 
     @Transactional
@@ -703,7 +705,9 @@ public class MercenaryCommandService {
                     // For now, allow owner to clear or join via invite, and manager to eject
                     det.setNew(false);
                     det.setCampaignId(campaignId);
-                    return detachmentRepository.save(det);
+                    return detachmentRepository.save(det)
+                            .then(commandRepository.findById(det.getMercenaryCommandId()))
+                            .doOnNext(commandSink::tryEmitNext);
                 }).then();
     }
 
