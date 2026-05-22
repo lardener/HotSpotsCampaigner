@@ -881,21 +881,21 @@ public class CampaignService {
     public Mono<CampaignInvite> createInvite(UUID campaignId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> campaignRepository.findById(campaignId)
-                        .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found"))) // Added switchIfEmpty for clarity
+                        .switchIfEmpty(Mono.<Campaign>error(new RuntimeException("Campaign not found"))) // Added switchIfEmpty for clarity
                         .<CampaignInvite>flatMap(campaign -> { // Explicitly type flatMap
-                    if (!campaign.getManagerId().equals(user.getId().toString())) {
-                        return Mono.<CampaignInvite>error(new RuntimeException("Access Denied: Not the campaign manager.")); // Explicitly type Mono.error
-                    }
+                            if (!campaign.getManagerId().equals(user.getId().toString())) {
+                                return Mono.<CampaignInvite>error(new RuntimeException("Access Denied: Not the campaign manager.")); // Explicitly type Mono.error
+                            }
 
-                    CampaignInvite invite = CampaignInvite.builder()
-                            .id(UUID.randomUUID())
-                            .campaignId(campaignId)
-                            .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
-                            .expiresAt(LocalDateTime.now().plusDays(7))
-                            .used(false)
-                            .build();
-                    return campaignInviteRepository.save(invite);
-                })
+                            CampaignInvite invite = CampaignInvite.builder()
+                                    .id(UUID.randomUUID())
+                                    .campaignId(campaignId)
+                                    .token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()) // Simple 12-char token
+                                    .expiresAt(LocalDateTime.now().plusDays(7))
+                                    .used(false)
+                                    .build();
+                            return campaignInviteRepository.save(invite);
+                        })
         );
     }
 
