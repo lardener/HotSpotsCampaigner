@@ -42,6 +42,7 @@ interface UserProfileData {
     name: string;
     email: string;
     displayName?: string;
+    role: string;
   } | null;
 }
 
@@ -52,12 +53,13 @@ const GET_USER_PROFILE = gql`
       name
       email
       displayName
+      role
     }
   }
 `;
 
 export function App() {
-  const [user, setUser] = useState<{ name: string; id: string; displayName?: string | null } | null>(null);
+  const [user, setUser] = useState<{ name: string; id: string; role?: string; displayName?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,13 +91,15 @@ export function App() {
       .then(result => {
         const profile = result.data?.userProfile;
         if (profile) {
-          setUser({ name: profile.name, id: profile.id, displayName: profile.displayName });
+          setUser({ name: profile.name, id: profile.id, role: profile.role, displayName: profile.displayName });
         } else {
           setUser(null);
         }
         setLoading(false);
       })
       .catch(() => {
+        // Profile fetch failing is normal for guests; proceed with null user state
+        console.log("[AUTH] Guest access initialized (No active session)");
         setUser(null);
         setLoading(false);
       });

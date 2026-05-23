@@ -105,7 +105,14 @@ const UPDATE_USER_PROFILE = gql`
     updateUserProfile(displayName: $displayName) {
       id
       displayName
+      role
     }
+  }
+`;
+
+const LOGIN_WITH_TOKEN = gql`
+  mutation LoginWithToken($token: String!) {
+    loginWithToken(token: $token)
   }
 `;
 
@@ -182,13 +189,13 @@ interface ManagedCampaignsData {
 }
 
 interface MainDashboardProps {
-    user: { name: string; id: string; displayName?: string | null } | null;
+    user: { name: string; id: string; role?: string; displayName?: string | null } | null;
     onLogout: () => void;
     onRefreshProfile?: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, onRefreshProfile }) => {
-    const [activeTab, setActiveTab] = useState<TabType>('my-campaigns');
+    const [activeTab, setActiveTab] = useState<TabType>('intel-hub');
     const [commands, setCommands] = useState<GetMyCommandsData['myCommands']>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -200,6 +207,24 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
 
     const lastActivityTimeRef = useRef(Date.now());
+    const [inviteToken, setInviteToken] = useState('');
+    const [loginWithToken] = useMutation(LOGIN_WITH_TOKEN);
+
+    // Centralize role check
+    const isManager = useMemo(() => {
+        return user?.role === 'ROLE_AUTHENTICATED';
+    }, [user]);
+
+    const handleTokenLogin = async () => {
+        if (!inviteToken.trim()) return;
+        try {
+            await loginWithToken({ variables: { token: inviteToken } });
+            window.location.reload(); // Refresh to pick up the new session/role
+        } catch (err) {
+            console.error("Login failed:", err);
+            alert("INVALID OR EXPIRED INVITATION KEY.");
+        }
+    };
 
     const resetActivityTimer = () => {
         lastActivityTimeRef.current = Date.now();
@@ -256,12 +281,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             if (hasDeployments) {
                 setSelectedNodeId('root-deployments');
                 setActiveTab('my-deployments');
+            } else if (isManager && hasManaged) {
+                setSelectedNodeId('root-campaigns');
+                setActiveTab('my-campaigns');
             } else if (hasCommands) {
                 setSelectedNodeId('root-commands');
                 setActiveTab('commands');
-            } else if (hasManaged) {
-                setSelectedNodeId('root-campaigns');
-                setActiveTab('my-campaigns');
             } else {
                 // Fallback to Global Intel Hub
                 setSelectedNodeId('root-intel');
@@ -269,7 +294,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             }
             initialJumpPerformed.current = true;
         }
-    }, [loading, loadingManaged, data, managedData]);
+    }, [loading, loadingManaged, data, managedData, isManager]);
 
     // Add logging to catch the specific reason for the "COMMUNICATIONS BREAKDOWN"
     useEffect(() => {
@@ -357,7 +382,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     }))
                 }))
             },
-            {
+            ...(isManager ? [{
                 id: 'root-campaigns',
                 label: 'MANAGED CAMPAIGNS',
                 type: 'ROOT' as NodeType,
@@ -378,7 +403,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         }
                     }))
                 }))
-            },
+            }] : []),
             {
                 id: 'root-intel',
                 label: 'GLOBAL INTEL',
@@ -386,11 +411,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 initiallyExpanded: expandIntel,
                 children: [
                     { id: 'public-intel', label: 'AVAILABLE CONTRACTS', type: 'INTEL' as NodeType },
-                    { id: 'create-campaign', label: 'NEW CAMPAIGN', type: 'INTEL' as NodeType }
+                    ...(isManager ? [
+                        { id: 'create-campaign', label: 'NEW CAMPAIGN', type: 'INTEL' as NodeType }
+                    ] : [])
                 ]
             }
         ];
-    }, [commands, managedData, loading, loadingManaged]);
+    }, [commands, managedData, loading, loadingManaged, isManager]);
 
     const handleTreeSelect = (item: TreeItem) => {
         // 1. Always exit creation mode when navigating via the tree
@@ -490,9 +517,29 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             <div className="public-landing">
                 <div className="landing-header">
                     <h1 className="main-title">HOTSPOTS: CAMPAIGNER</h1>
-                    <button type="button" className="login-button" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account">
-                        COMMANDER LOGIN
-                    </button>
+                    <div className="login-options" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                        <button type="button" className="login-button" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account">
+                            FEDERATED LOGIN
+                        </button>
+                        <div className="token-login-box" style={{ borderLeft: '2px solid var(--terminal-border)', paddingLeft: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <input
+                                type="text"
+                                className="table-input"
+                                placeholder="ENTER INVITE KEY"
+                                value={inviteToken}
+                                onChange={(e) => setInviteToken(e.target.value.toUpperCase())}
+                                style={{ width: '180px', textTransform: 'uppercase' }}
+                            />
+                            <button
+                                type="button"
+                                className="login-button"
+                                onClick={handleTokenLogin}
+                                style={{ fontSize: '0.8rem', padding: '5px 15px' }}
+                            >
+                                JOIN
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div className="container landing-section">
                     <h2 className="section-title">AVAILABLE CAMPAIGNS</h2>
@@ -557,6 +604,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
         switch (activeTab) {
             case 'my-campaigns':
+                if (!isManager) {
+                    return (
+                        <div className="placeholder-content">
+                            <h2 style={{ color: 'var(--terminal-alert)' }}>UNAUTHORIZED ACCESS</h2>
+                            <p className="restricted-text">THEATER MANAGEMENT PROTOCOLS ARE RESTRICTED TO CERTIFIED MANAGERS.</p>
+                            <button className="mode-btn" onClick={() => setActiveTab('commands')}>RETURN TO REGISTRY</button>
+                        </div>
+                    );
+                }
                 return (
                     <CampaignTheaterView
                         managedData={managedData as any}
@@ -571,6 +627,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     />
                 );
             case 'create-campaign':
+                if (!isManager) {
+                    return (
+                        <div className="placeholder-content">
+                            <h2 style={{ color: 'var(--terminal-alert)' }}>UNAUTHORIZED ACCESS</h2>
+                            <p className="restricted-text">CAMPAIGN AUTHORIZATION REQUIRES COMMAND LEVEL CLEARANCE.</p>
+                            <button className="mode-btn" onClick={() => setActiveTab('commands')}>RETURN TO REGISTRY</button>
+                        </div>
+                    );
+                }
                 return (
                     <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <header className="dashboard-header">
@@ -714,14 +779,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                                 <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>AVAILABLE CONTRACTS</h2>
                                 <p className="sm-text">BROWSE THEATERS RECRUITING MERCENARY COMMANDS</p>
                             </div>
-                            <div
+                            {isManager && <div
                                 className="dashboard-section establish-command-placeholder"
                                 style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
                                 onClick={() => { setActiveTab('create-campaign'); setSelectedNodeId('create-campaign'); }}
                             >
                                 <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>NEW CAMPAIGN PROTOCOL</h2>
                                 <p className="sm-text">AUTHORIZE AND ESTABLISH A NEW CAMPAIGN THEATER</p>
-                            </div>
+                            </div>}
                         </div>
                     </div>
                 );

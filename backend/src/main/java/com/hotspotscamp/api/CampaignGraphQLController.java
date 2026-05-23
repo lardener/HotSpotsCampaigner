@@ -49,7 +49,10 @@ public class CampaignGraphQLController {
     private final UserService userService;
 
     @QueryMapping
-    public Flux<Campaign> activeCampaigns(@Argument Integer page, @Argument Integer size) {
+    public Flux<Campaign> activeCampaigns(@Argument Integer page, @Argument Integer size, Principal principal) {
+        if (isAnonymous(principal)) {
+            return Flux.empty();
+        }
         int pageSize = (size != null) ? size : 5;
         int offset = (page != null) ? page * pageSize : 0;
         return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset);
@@ -58,13 +61,13 @@ public class CampaignGraphQLController {
     @QueryMapping
     public Flux<Campaign> managedCampaigns(@Argument String status, Principal principal) {
         log.info("[GQL] managedCampaigns query received. Principal: {}", principal != null ? principal.getName() : "NULL");
-        if (principal == null) {
+        String identity = principal != null ? principal.getName() : null;
+        if (identity == null || "anonymousUser".equals(identity)) {
             return Flux.empty();
         }
-        return userService.resolveOrCreateUser(principal.getName())
+        return userService.resolveOrCreateUser(identity)
                 .flatMapMany(user -> {
                     String internalId = user.getId().toString();
-                    log.info("[GQL] Querying campaigns for manager UUID: {}", internalId);
                     if (status != null && !status.isEmpty() && !status.equals("ALL")) {
                         return campaignRepository.findAllByManagerIdAndStatus(internalId, status);
                     }
@@ -159,7 +162,10 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
-    public CampaignMetadata campaignMetadata() {
+    public CampaignMetadata campaignMetadata(Principal principal) {
+        if (isAnonymous(principal)) {
+            return null;
+        }
         Map<String, List<String>> missions = campaignService.getAvailableMissions();
         return new CampaignMetadata(
                 new MissionMetadata(missions.get("primary"), missions.get("opponent")),
@@ -196,7 +202,10 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
-    public Mono<CampaignProposal> previewCampaign(@Argument Map<String, Object> input) {
+    public Mono<CampaignProposal> previewCampaign(@Argument Map<String, Object> input, Principal principal) {
+        if (isAnonymous(principal)) {
+            return Mono.empty();
+        }
         Map<String, Object> finalInput = input != null ? input : Map.of();
         // Map helper for service call
         return Mono.just(campaignService.generateProposal(
@@ -207,6 +216,37 @@ public class CampaignGraphQLController {
                 TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
                 TypeUtils.asInt(finalInput.get("trackCount"))
         ));
+    }
+
+    @QueryMapping
+    public Flux<Campaign> publicActiveCampaigns(@Argument Integer page, @Argument Integer size) {
+        int pageSize = (size != null) ? size : 5;
+        int offset = (page != null) ? page * pageSize : 0;
+        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset);
+    }
+
+    @QueryMapping
+    public CampaignMetadata publicCampaignMetadata() {
+        return campaignMetadata(new java.security.Principal() {
+            @Override
+            public String getName() {
+                return "SYSTEM";
+            }
+        });
+    }
+
+    @QueryMapping
+    public Mono<CampaignProposal> publicPreviewCampaign(@Argument Map<String, Object> input) {
+        return previewCampaign(input, new java.security.Principal() {
+            @Override
+            public String getName() {
+                return "SYSTEM";
+            }
+        });
+    }
+
+    private boolean isAnonymous(Principal principal) {
+        return principal == null || "anonymousUser".equals(principal.getName());
     }
 
     @MutationMapping

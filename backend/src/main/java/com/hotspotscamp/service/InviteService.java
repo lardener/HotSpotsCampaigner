@@ -1,10 +1,16 @@
 package com.hotspotscamp.service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.web.server.context.WebSessionServerSecurityContextRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ServerWebExchange;
 
 import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.User;
@@ -32,23 +38,30 @@ public class InviteService {
                 .build());
     }
 
-    public Mono<User> loginWithToken(String token, String displayName) {
+    /**
+     * Authenticates a user based on an invitation token and establishes a
+     * session. The token serves as the external identity for the user.
+     */
+    public Mono<Boolean> authenticateViaToken(String token, ServerWebExchange exchange) {
         return inviteRepository.findByToken(token)
-                .filter(invite -> !Boolean.TRUE.equals(invite.getUsed()) && invite.getExpiresAt().isAfter(LocalDateTime.now()))
-                .switchIfEmpty(Mono.error(new RuntimeException("Invalid or expired token")))
+                .filter(invite -> invite.getExpiresAt().isAfter(LocalDateTime.now()))
+                .switchIfEmpty(Mono.error(new RuntimeException("INVALID OR EXPIRED INVITATION KEY")))
                 .flatMap(invite -> {
-                    // Identity-as-Invite: We hash the token to create a consistent user ID for this invite
-                    UUID userId = UUID.nameUUIDFromBytes(token.getBytes());
-                    return userRepository.findById(userId)
-                            .switchIfEmpty(userRepository.save(User.builder()
-                                    .id(userId)
-                                    .displayName(displayName)
-                                    .role("ROLE_INVITED")
-                                    .isNew(true)
-                                    .build()))
+                    return userRepository.findByExternalId(token)
+                            .switchIfEmpty(Mono.defer(() -> userRepository.save(User.builder()
+                            .id(UUID.randomUUID())
+                            .externalId(token)
+                            .displayName("Mercenary Commander")
+                            .role("ROLE_INVITED")
+                            .isNew(true)
+                            .build())))
                             .flatMap(user -> {
-                                // Mark used? Optionally allow reuse for "device switching" as per README
-                                return Mono.just(user);
+                                var authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
+                                var auth = new UsernamePasswordAuthenticationToken(user.getExternalId(), null, authorities);
+                                var securityContext = new SecurityContextImpl(auth);
+
+                                WebSessionServerSecurityContextRepository repo = new WebSessionServerSecurityContextRepository();
+                                return repo.save(exchange, securityContext).thenReturn(true);
                             });
                 });
     }

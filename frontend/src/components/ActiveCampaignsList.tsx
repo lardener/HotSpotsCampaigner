@@ -4,7 +4,7 @@ import { useQuery } from '@apollo/client/react';
 
 const GET_ACTIVE_CAMPAIGNS = gql`
   query GetActiveCampaigns($page: Int, $size: Int) {
-    activeCampaigns(page: $page, size: $size) {
+    publicActiveCampaigns(page: $page, size: $size) {
       id
       name
       systemName
@@ -17,7 +17,7 @@ const GET_ACTIVE_CAMPAIGNS = gql`
 `;
 
 interface ActiveCampaignsData {
-    activeCampaigns: {
+    publicActiveCampaigns: {
         id: string;
         name: string;
         systemName: string;
@@ -39,7 +39,7 @@ export const ActiveCampaignsList: React.FC = () => {
         <div className="error-message">COMMUNICATIONS FAILURE: UNABLE TO ACCESS THEATER DATA.</div>
     );
 
-    const campaigns = data?.activeCampaigns || [];
+    const campaigns = data?.publicActiveCampaigns || [];
 
     return (
         <section className="active-campaigns-container">

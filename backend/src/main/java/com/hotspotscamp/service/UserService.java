@@ -27,24 +27,45 @@ public class UserService {
      * one is created.
      */
     public Mono<User> resolveOrCreateUser(String identity) {
+        return resolveOrCreateUser(identity, "ROLE_AUTHENTICATED");
+    }
+
+    /**
+     * Overloaded to allow specifying the initial role for new users.
+     */
+    public Mono<User> resolveOrCreateUser(String identity, String role) {
+        if (identity == null || identity.isBlank() || identity.equals("anonymousUser")) {
+            return Mono.empty();
+        }
+
         log.info("[AUTH] Attempting to resolve identity: {}", identity);
         return userRepository.findByExternalId(identity)
                 .doOnNext(u -> log.info("[AUTH] Found User via External ID: {} (UUID: {})", identity, u.getId()))
                 .switchIfEmpty(Mono.defer(() -> {
+                    if (!identity.contains("-") || identity.length() != 36) {
+                        return Mono.empty();
+                    }
                     log.info("[AUTH] Identity not found in external_id, checking internal UUIDs for: {}", identity);
                     try {
                         return userRepository.findById(UUID.fromString(identity));
                     } catch (IllegalArgumentException e) {
-                        log.warn("[AUTH] Identity '{}' is not a valid UUID format.", identity);
                         return Mono.empty();
                     }
                 }))
+                .flatMap(user -> {
+                    if (user.getRole() == null || user.getRole().isBlank()) {
+                        log.info("[AUTH] Repairing missing role for user: {}", user.getId());
+                        user.setRole(role);
+                        return userRepository.save(user);
+                    }
+                    return Mono.just(user);
+                })
                 .switchIfEmpty(Mono.defer(() -> {
                     // Onboarding new Google users
                     User newUser = User.builder()
                             .id(UUID.randomUUID())
                             .externalId(identity)
-                            .role("ROLE_AUTHENTICATED")
+                            .role(role)
                             .isNew(true)
                             .build();
 

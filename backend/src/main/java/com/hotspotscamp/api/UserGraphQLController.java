@@ -1,8 +1,13 @@
 package com.hotspotscamp.api;
 
+import java.security.Principal;
+import java.util.Map;
+
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
@@ -19,36 +24,90 @@ public class UserGraphQLController {
     private final UserService userService;
 
     @QueryMapping
-    public Mono<UserProfile> userProfile(@AuthenticationPrincipal OAuth2User principal) {
-        if (principal == null) {
+    public Mono<UserProfile> userProfile(@AuthenticationPrincipal Object principal) {
+        String identity = resolveIdentity(principal);
+        if (identity == null || identity.equals("anonymousUser")) {
+            // Gracefully return empty for anonymous users to avoid triggering security exceptions
             return Mono.empty();
         }
 
         // Resolve the user to get the internal DB UUID
-        return userService.resolveOrCreateUser(principal.getName())
-                .map(user -> new UserProfile(
-                user.getId().toString(),
-                principal.getAttribute("name") != null ? principal.getAttribute("name").toString() : "Mercenary Commander",
-                principal.getAttribute("email") != null ? principal.getAttribute("email").toString() : "unknown@merc.net",
-                user.getDisplayName()
-        ));
+        return userService.resolveOrCreateUser(identity)
+                .map(user -> {
+                    String name = "Mercenary Commander";
+                    String email = "unknown@merc.net";
+
+                    // Safely extract attributes regardless of the principal wrapper
+                    OAuth2User oauth2User = null;
+                    if (principal instanceof OAuth2User o) {
+                        oauth2User = o;
+                    } else if (principal instanceof Authentication auth && auth.getPrincipal() instanceof OAuth2User o) {
+                        oauth2User = o;
+                    }
+
+                    if (oauth2User != null) {
+                        Map<String, Object> attrs = oauth2User.getAttributes();
+                        name = attrs.getOrDefault("name", name).toString();
+                        email = attrs.getOrDefault("email", email).toString();
+                    }
+
+                    return new UserProfile(
+                            user.getId().toString(),
+                            name,
+                            email,
+                            user.getDisplayName(),
+                            user.getRole()
+                    );
+                });
     }
 
     @MutationMapping
-    public Mono<UserProfile> updateUserProfile(@Argument String displayName, @AuthenticationPrincipal OAuth2User principal) {
+    public Mono<UserProfile> updateUserProfile(@Argument String displayName, @AuthenticationPrincipal Object principal) {
         if (principal == null) {
             return Mono.empty();
         }
-        return userService.updateDisplayName(principal.getName(), displayName)
-                .map(user -> new UserProfile(
-                user.getId().toString(),
-                principal.getAttribute("name") != null ? principal.getAttribute("name").toString() : "Mercenary Commander",
-                principal.getAttribute("email") != null ? principal.getAttribute("email").toString() : "unknown@merc.net",
-                user.getDisplayName()
-        ));
+
+        return userService.updateDisplayName(resolveIdentity(principal), displayName)
+                .flatMap(user -> userProfile(principal));
     }
 
-    public record UserProfile(String id, String name, String email, String displayName) {
+    private String resolveIdentity(Object principal) {
+        if (principal == null) {
+            return null;
+        }
+
+        // 1. Handle OAuth2User (often injected via @AuthenticationPrincipal)
+        if (principal instanceof OAuth2User o) {
+            return o.getName();
+        }
+
+        // 2. Handle Authentication objects (Spring Security wrapper)
+        if (principal instanceof Authentication auth) {
+            if (auth instanceof AnonymousAuthenticationToken) {
+                return null;
+            }
+            Object innerPrincipal = auth.getPrincipal();
+            if (innerPrincipal instanceof OAuth2User o) {
+                return o.getName();
+            }
+            return auth.getName();
+        }
+
+        // 3. Handle raw Principal (Standard Java Security)
+        if (principal instanceof Principal p) {
+            String name = p.getName();
+            return "anonymousUser".equals(name) ? null : name;
+        }
+
+        // 4. Handle raw Identity Strings (Invite-as-Identity flow)
+        if (principal instanceof String s) {
+            return s.equals("anonymousUser") ? null : s;
+        }
+
+        return null;
+    }
+
+    public record UserProfile(String id, String name, String email, String displayName, String role) {
 
     }
 }

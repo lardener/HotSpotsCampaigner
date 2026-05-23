@@ -4,7 +4,7 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 
 export const GET_METADATA = gql`
   query GetCampaignMetadata {
-    campaignMetadata {
+    publicCampaignMetadata {
       missions {
         primary
         opponent
@@ -28,7 +28,7 @@ export const GET_METADATA = gql`
 
 export const PREVIEW_CAMPAIGN = gql`
   query PreviewCampaign($input: CampaignInput!) {
-    previewCampaign(input: $input) {
+    publicPreviewCampaign(input: $input) {
       campaign {
         name
         systemName
@@ -100,7 +100,7 @@ interface Proposal {
 }
 
 interface MetadataData {
-    campaignMetadata: {
+    publicCampaignMetadata: {
         missions: {
             primary: string[];
             opponent: string[];
@@ -116,7 +116,7 @@ interface MetadataData {
 }
 
 interface PreviewData {
-    previewCampaign: Proposal;
+    publicPreviewCampaign: Proposal;
 }
 
 interface GenerateTracksData {
@@ -150,13 +150,13 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<MetadataData>(GET_METADATA);
 
     useEffect(() => {
-        if (metadataData) {
-            setPrimaryMissions(metadataData.campaignMetadata.missions.primary);
-            setOpponentMissions(metadataData.campaignMetadata.missions.opponent);
-            setTrackTypes(metadataData.campaignMetadata.trackTypes);
+        if (metadataData?.publicCampaignMetadata) {
+            setPrimaryMissions(metadataData.publicCampaignMetadata.missions.primary);
+            setOpponentMissions(metadataData.publicCampaignMetadata.missions.opponent);
+            setTrackTypes(metadataData.publicCampaignMetadata.trackTypes);
 
             const steps: Record<number, any> = {};
-            metadataData.campaignMetadata.resolvedSteps.forEach((entry: any) => {
+            metadataData.publicCampaignMetadata.resolvedSteps.forEach((entry: any) => {
                 steps[entry.step] = entry.values;
             });
             setResolvedSteps(steps);
@@ -169,8 +169,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const [getTracks] = useLazyQuery<GenerateTracksData>(GENERATE_TRACKS);
 
     useEffect(() => {
-        if (previewData) {
-            setProposal(previewData.previewCampaign);
+        if (previewData?.publicPreviewCampaign) {
+            setProposal(previewData.publicPreviewCampaign);
         }
     }, [previewData]);
 
