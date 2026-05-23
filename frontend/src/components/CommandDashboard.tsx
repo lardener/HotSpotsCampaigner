@@ -638,6 +638,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         gunnery: 4,
                         piloting: 5,
                         asSkill: 4,
+                        unitType: 'BM',
                         status: 'Healthy',
                         detachmentId: selectedDetachmentId
                     }
@@ -775,16 +776,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         setOverlay({
             title: "NEW DETACHMENT AUTHORIZATION",
             message: "ENTER CALLSIGN FOR NEW OPERATIONAL ELEMENT:",
-            onConfirm: async () => {
-                if (!newName.trim()) return;
-                try {
-                    await createDetachment({
-                        variables: { commandId, campaignId: null, name: newName }
-                    });
-                    setOverlay(null);
-                    onRefreshTree?.();
-                } catch (err) { console.error(err); }
-            },
             onConfirm: confirmAction,
             children: (
                 <input

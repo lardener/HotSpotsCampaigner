@@ -59,7 +59,7 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                         <div className="overlay-header">
                             <span className="blink-fast">▶</span> {title}
                         </div>
-                        <div style={{ border: '1px solid var(--terminal-border)', margin: '0 10px 10px 10px', padding: '15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+                        <div style={{ border: `1px solid var(${variant === 'alert' ? '--terminal-alert' : '--terminal-border'})`, margin: '0 10px 10px 10px', padding: '15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
                             <div className="overlay-body">
                                 <p>{message}</p>
                                 {children}
