@@ -7,6 +7,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 import com.hotspotscamp.service.InviteService;
 
+import graphql.GraphQLContext;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
@@ -17,7 +18,9 @@ public class InviteGraphQLController {
     private final InviteService inviteService;
 
     @MutationMapping
-    public Mono<Boolean> loginWithToken(@Argument String token, ServerWebExchange exchange) {
-        return inviteService.authenticateViaToken(token, exchange);
+    public Mono<Boolean> loginWithToken(@Argument String token, GraphQLContext context) {
+        ServerWebExchange exchange = context.get(ServerWebExchange.class);
+        return exchange.getSession()
+                .flatMap(session -> inviteService.authenticateViaToken(token, session));
     }
 }
