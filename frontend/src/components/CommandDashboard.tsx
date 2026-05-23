@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { LedgerEntryForm } from './LedgerEntryForm';
+import { TerminalOverlay } from './TerminalOverlay';
 
 const GET_UNIT_DOSSIER = gql`
   query GetUnitDossier($commandId: ID!) {
@@ -345,6 +346,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [inviteToken, setInviteToken] = useState('');
     const [importLink, setImportLink] = useState('');
 
+    const [overlay, setOverlay] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        variant?: 'alert' | 'info';
+        children?: React.ReactNode;
+    } | null>(null);
+
     // Synchronize selection with prop changes (e.g. from Navigation Tree)
     useEffect(() => {
         setSelectedDetachmentId(detachmentId || null);
@@ -609,7 +618,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 }
             });
             if (addData?.addCombatUnit?.id) setJustAddedId(addData.addCombatUnit.id);
-        } catch (err) { alert("Failed to add unit."); }
+        } catch (err) {
+            setOverlay({
+                title: "PROCUREMENT ERROR",
+                message: "LOGISTICS FAILURE: UNABLE TO PROCURE NEW UNIT. CHECK NETWORK LINK.",
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+        }
     };
 
     const handleHirePilot = async () => {
@@ -628,7 +644,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 }
             });
             if (hireData?.hirePilot?.id) setJustAddedId(hireData.hirePilot.id);
-        } catch (err) { alert("Failed to hire pilot."); }
+        } catch (err) {
+            setOverlay({
+                title: "RECRUITMENT ERROR",
+                message: "PERSONNEL ACQUISITION FAILURE: UNABLE TO HIRE PILOT.",
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+        }
     };
 
     const handleImport = async () => {
@@ -639,23 +662,38 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             setImportLink('');
             refetch();
         } catch (err) {
-            alert("Scraping failure: Link format not recognized or site unreachable.");
+            setOverlay({
+                title: "DATA SCRAPE FAILURE",
+                message: "LINK FORMAT NOT RECOGNIZED OR SITE UNREACHABLE.",
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
         }
         setIsSyncing(false);
     };
 
     const handleDeleteUnit = async (id: string) => {
-        if (!window.confirm("SCRAP THIS ASSET? THIS ACTION IS PERMANENT.")) return;
-        try {
-            await deleteUnit({ variables: { unitId: id } });
-        } catch (err) { alert("Failed to scrap unit."); }
+        setOverlay({
+            title: "CONFIRM ASSET DESTRUCTION",
+            message: "SCRAP THIS ASSET? THIS ACTION IS PERMANENT.",
+            variant: 'alert',
+            onConfirm: () => {
+                deleteUnit({ variables: { unitId: id } });
+                setOverlay(null);
+            }
+        });
     };
 
     const handleDeletePilot = async (id: string) => {
-        if (!window.confirm("DISCHARGE THIS PERSONNEL? THIS ACTION IS PERMANENT.")) return;
-        try {
-            await deletePilot({ variables: { pilotId: id } });
-        } catch (err) { alert("Failed to discharge pilot."); }
+        setOverlay({
+            title: "PERSONNEL DISCHARGE",
+            message: "DISCHARGE THIS PERSONNEL? THIS ACTION IS PERMANENT.",
+            variant: 'alert',
+            onConfirm: () => {
+                deletePilot({ variables: { pilotId: id } });
+                setOverlay(null);
+            }
+        });
     };
 
     const handleAssignAsset = async (assetType: 'UNIT' | 'PILOT', assetId: string, detId: string) => {
@@ -667,61 +705,113 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     detachmentId: detId === "" ? null : detId
                 }
             });
-        } catch (err) { alert("Assignment failed."); }
+        } catch (err) {
+            setOverlay({
+                title: "ASSIGNMENT FAILURE",
+                message: "COMMUNICATIONS ERROR: UNABLE TO REASSIGN ASSET.",
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+        }
     };
 
     const handleJoinCampaign = async () => {
         if (!selectedDetachmentId || !inviteToken) return;
         try {
             await joinCampaign({ variables: { token: inviteToken, detachmentId: selectedDetachmentId } });
-            alert("RECRUITMENT SUCCESSFUL: DETACHMENT DEPLOYED.");
-            setInviteToken('');
-            onRefreshTree?.();
-        } catch (err) { alert("RECRUITMENT FAILURE: INVALID OR EXPIRED TOKEN."); }
+            setOverlay({
+                title: "RECRUITMENT SUCCESSFUL",
+                message: "DETACHMENT DEPLOYED TO THEATER.",
+                onConfirm: () => {
+                    setOverlay(null);
+                    setInviteToken('');
+                    onRefreshTree?.();
+                }
+            });
+        } catch (err) {
+            setOverlay({
+                title: "RECRUITMENT FAILURE",
+                message: "INVALID OR EXPIRED TOKEN. ACCESS DENIED.",
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+        }
     };
 
     const handleLeaveCampaign = async () => {
         if (!selectedDetachmentId) return;
-        if (!window.confirm("ARE YOU SURE YOU WANT TO WITHDRAW FROM THIS THEATER? ALL PROGRESS IN THIS CAMPAIGN WILL BE SUSPENDED.")) return;
-
-        setIsSyncing(true);
-        try {
-            await assignDetachment({ variables: { detachmentId: selectedDetachmentId, campaignId: null } });
-            refetch();
-            onRefreshTree?.();
-        } catch (err) {
-            alert("COMMUNICATIONS FAILURE: UNABLE TO WITHDRAW.");
-        }
-        setIsSyncing(false);
+        setOverlay({
+            title: "THEATER WITHDRAWAL",
+            message: "ARE YOU SURE YOU WANT TO WITHDRAW? ALL PROGRESS IN THIS THEATER WILL BE SUSPENDED.",
+            variant: 'alert',
+            onConfirm: async () => {
+                setOverlay(null);
+                setIsSyncing(true);
+                try {
+                    await assignDetachment({ variables: { detachmentId: selectedDetachmentId, campaignId: null } });
+                    refetch();
+                    onRefreshTree?.();
+                } catch (err) {
+                    console.error(err);
+                }
+                setIsSyncing(false);
+            }
+        });
     };
 
-    const handleCreateDetachment = async () => {
-        const name = prompt("Enter Detachment Callsign:");
-        if (!name) return;
+    const handleCreateDetachment = () => {
+        let newName = '';
+        const confirmAction = async () => {
+            if (!newName.trim()) return;
+            try {
+                await createDetachment({
+                    variables: { commandId, campaignId: null, name: newName }
+                });
+                setOverlay(null);
+                onRefreshTree?.();
+            } catch (err) { console.error(err); }
+        };
 
-        try {
-            await createDetachment({
-                variables: {
-                    commandId,
-                    campaignId: null,
-                    name
-                }
-            });
-            onRefreshTree?.();
-        } catch (err) { alert("Failed to create detachment."); }
+        setOverlay({
+            title: "NEW DETACHMENT AUTHORIZATION",
+            message: "ENTER CALLSIGN FOR NEW OPERATIONAL ELEMENT:",
+            onConfirm: async () => {
+                if (!newName.trim()) return;
+                try {
+                    await createDetachment({
+                        variables: { commandId, campaignId: null, name: newName }
+                    });
+                    setOverlay(null);
+                    onRefreshTree?.();
+                } catch (err) { console.error(err); }
+            },
+            onConfirm: confirmAction,
+            children: (
+                <input
+                    className="table-input mt-15"
+                    autoFocus
+                    onChange={(e) => { newName = e.target.value.toUpperCase(); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') confirmAction(); }}
+                    placeholder="DESIGNATION..."
+                />
+            )
+        });
     };
 
     const handleDeleteDetachment = async (id: string) => {
-        if (!window.confirm("Delete detachment? Assets will return to pool.")) return;
-        try {
-            await deleteDetachment({ variables: { detachmentId: id } });
-            if (selectedDetachmentId === id) {
-                setSelectedDetachmentId(null);
+        setOverlay({
+            title: "DECOMMISSION DETACHMENT",
+            message: "DELETE DETACHMENT? ASSETS WILL RETURN TO HANGAR POOL.",
+            variant: 'alert',
+            onConfirm: async () => {
+                try {
+                    await deleteDetachment({ variables: { detachmentId: id } });
+                    if (selectedDetachmentId === id) setSelectedDetachmentId(null);
+                    setOverlay(null);
+                    onRefreshTree?.();
+                } catch (err) { console.error(err); }
             }
-            onRefreshTree?.();
-        } catch (err) {
-            alert("Failed to delete detachment.");
-        }
+        });
     };
 
     if (loading && !data) return <div className="loading-intel">RETRIEVING UNIT DOSSIER...</div>;
@@ -1217,6 +1307,18 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     </table>
                 </section>
             </div>
+
+            {overlay && (
+                <TerminalOverlay
+                    title={overlay.title}
+                    message={overlay.message}
+                    variant={overlay.variant}
+                    onConfirm={overlay.onConfirm}
+                    onCancel={() => setOverlay(null)}
+                    themeClass="theme-amber"
+                    children={overlay.children}
+                />
+            )}
         </div>
     );
 };

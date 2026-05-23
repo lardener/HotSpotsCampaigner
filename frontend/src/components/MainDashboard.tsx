@@ -10,6 +10,7 @@ import { CreateCommandForm } from './CreateCommandForm';
 import { CommandDashboard } from './CommandDashboard';
 import { CampaignTheaterView } from './CampaignTheaterView';
 import { MyDeploymentsList } from './MyDeploymentsList';
+import { TerminalOverlay } from './TerminalOverlay';
 
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard' | 'intel-hub' | 'my-deployments';
 
@@ -206,6 +207,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
 
+    const [overlay, setOverlay] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        onCancel?: () => void;
+        variant?: 'alert' | 'info';
+    } | null>(null);
+
     const lastActivityTimeRef = useRef(Date.now());
     const [inviteToken, setInviteToken] = useState('');
     const [loginWithToken] = useMutation(LOGIN_WITH_TOKEN);
@@ -222,7 +231,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             window.location.reload(); // Refresh to pick up the new session/role
         } catch (err) {
             console.error("Login failed:", err);
-            alert("INVALID OR EXPIRED INVITATION KEY.");
+            setOverlay({
+                title: "COMMUNICATIONS ERROR",
+                message: "INVALID OR EXPIRED INVITATION KEY. ACCESS DENIED.",
+                onConfirm: () => setOverlay(null)
+            });
         }
     };
 
@@ -477,10 +490,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     };
 
     const handleDeleteCommand = async (commandId: string, force = false) => {
-        if (!force && !window.confirm("ARE YOU SURE YOU WANT TO SCRAP THIS COMMAND? THIS ACTION IS IRREVERSIBLE.")) {
+        if (!force) {
+            setOverlay({
+                title: "CONFIRM UNIT DECOMMISSION",
+                message: "ARE YOU SURE YOU WANT TO SCRAP THIS COMMAND? THIS ACTION IS IRREVERSIBLE.",
+                variant: 'alert',
+                onConfirm: () => { setOverlay(null); handleDeleteCommand(commandId, true); },
+                onCancel: () => setOverlay(null)
+            });
             return;
         }
-
         try {
             await deleteCommand({ variables: { commandId, force } });
             if (selectedCommandId === commandId) {
@@ -490,12 +509,21 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         } catch (err: any) {
             // GraphQL errors are handled differently; we look for specific message or extension
             if (err.message?.includes("WARNING_ACTIVE_CAMPAIGN")) {
-                if (window.confirm("WARNING: THIS COMMAND HAS ACTIVE DETACHMENTS IN ONGOING CAMPAIGNS. DELETING WILL FORCE THEIR WITHDRAWAL. PROCEED?")) {
-                    handleDeleteCommand(commandId, true);
-                }
+                setOverlay({
+                    title: "ACTIVE DEPLOYMENT WARNING",
+                    message: "WARNING: THIS COMMAND HAS ACTIVE DETACHMENTS IN ONGOING CAMPAIGNS. DELETING WILL FORCE THEIR WITHDRAWAL. PROCEED?",
+                    variant: 'alert',
+                    onConfirm: () => { setOverlay(null); handleDeleteCommand(commandId, true); },
+                    onCancel: () => setOverlay(null)
+                });
             } else {
                 console.error("Failed to delete command", err);
-                alert("COMMUNICATIONS FAILURE: UNABLE TO SCRAP COMMAND.");
+                setOverlay({
+                    title: "SYSTEM FAILURE",
+                    message: "COMMUNICATIONS FAILURE: UNABLE TO SCRAP COMMAND.",
+                    variant: 'alert',
+                    onConfirm: () => setOverlay(null)
+                });
             }
         }
     };
@@ -840,6 +868,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             </aside>
             <main className={`main-content-wrapper ${getThemeClass()} h-100`}>
                 {renderTabContent()}
+                {overlay && (
+                    <TerminalOverlay
+                        title={overlay.title}
+                        message={overlay.message}
+                        variant={overlay.variant}
+                        onConfirm={overlay.onConfirm}
+                        onCancel={overlay.onCancel}
+                        themeClass={getThemeClass()}
+                    />
+                )}
             </main>
         </div>
     );
