@@ -24,7 +24,6 @@ const GET_MY_COMMANDS = gql`
       name
       totalSupportPoints
       reputation
-      experienceLevel
       commandingOfficer
       detachments {
         id
@@ -123,7 +122,6 @@ interface GetMyCommandsData {
         name: string;
         totalSupportPoints: number;
         reputation: number;
-        experienceLevel: string;
         commandingOfficer: string;
         detachments?: {
             id: string;
@@ -709,7 +707,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                                         <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMANDING OFFICER</span> {cmd.commandingOfficer || 'UNKNOWN'}</div>
                                         <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SUPPORT POINTS</span> {cmd.totalSupportPoints || 0}</div>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div> {/* Added title to button */}
+                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0}</div> {/* Added title to button */}
                                     </div> {/* Added type="button" */}
 
                                     {selectedCommandId === cmd.id && (

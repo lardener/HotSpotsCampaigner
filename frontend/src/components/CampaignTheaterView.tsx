@@ -21,6 +21,10 @@ const UPDATE_CAMPAIGN = gql`
       description
       lengthInMonths
       trackCount
+      monthlyPay
+      monthlyMaintenance
+      transportationCost
+      combatPay
     }
   }
 `;
@@ -40,6 +44,17 @@ const UPDATE_TRACK = gql`
       nextSession
       attackerFactionId
       monthIndex
+      complications
+    }
+  }
+`;
+
+const REROLL_TRACK = gql`
+  mutation RerollTrack($id: ID!) {
+    rerollTrack(id: $id) {
+      id
+      trackName
+      complications
     }
   }
 `;
@@ -47,47 +62,52 @@ const UPDATE_TRACK = gql`
 const REORDER_TRACKS = gql`
   mutation ReorderTracks($campaignId: ID!, $trackIds: [ID!]!) {
     reorderTracks(campaignId: $campaignId, trackIds: $trackIds) {
-      id
-      sequenceOrder
+        id
+        sequenceOrder
     }
-  }
+}
 `;
 
 const GET_CAMPAIGN_INVITES = gql`
   query GetCampaignInvites($campaignId: ID!) {
     getCampaign(id: $campaignId) {
-      id
-      name
-      systemName
-      description
-      lengthInMonths
-      trackCount
-      factions {
-        id
-        factionName
-      }
-      tracks {
-        id
-        trackName
-        sequenceOrder
-        location
-        nextSession
-        attackerFactionId
-        monthIndex
-      }
-      participatingDetachments {
         id
         name
-        mercenaryCommandId
-      }
+        systemName
+        description
+        lengthInMonths
+        trackCount
+        monthlyPay
+        monthlyMaintenance
+        transportationCost
+        combatPay
+      factions {
+            id
+            factionName
+        }
+      tracks {
+            id
+            trackName
+            sequenceOrder
+            location
+            nextSession
+            attackerFactionId
+            monthIndex
+            complications
+        }
+      participatingDetachments {
+            id
+            name
+            mercenaryCommandId
+        }
       campaignInvites {
-        id
-        token
-        expiresAt
-        used
-      }
+            id
+            token
+            expiresAt
+            used
+        }
     }
-  }
+}
 `;
 
 interface CreateInviteData {
@@ -121,6 +141,7 @@ interface TrackDetail {
     nextSession?: string;
     attackerFactionId?: string;
     monthIndex?: number;
+    complications?: string;
 }
 
 interface CampaignDetail {
@@ -143,6 +164,10 @@ interface CampaignDetail {
     transportStep?: number;
     commandRights?: string;
     commandStep?: number;
+    monthlyPay?: number;
+    monthlyMaintenance?: number;
+    transportationCost?: number;
+    combatPay?: number;
     contracts?: any[];
     factions?: { id: string, factionName: string }[];
     tracks?: TrackDetail[];
@@ -181,6 +206,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     });
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
     const [updateTrack] = useMutation(UPDATE_TRACK);
+    const [rerollTrack] = useMutation(REROLL_TRACK);
     const [reorderTracks] = useMutation(REORDER_TRACKS);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [activeToken, setActiveToken] = useState<string | null>(null);
@@ -229,14 +255,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             setIsSyncing(true);
             const input: { [key: string]: any } = { [field]: value };
             // Ensure numbers are parsed correctly for trackCount and lengthInMonths
-            if (field === 'trackCount' || field === 'lengthInMonths') {
+            const numericFields = ['trackCount', 'lengthInMonths', 'monthlyPay', 'monthlyMaintenance', 'transportationCost', 'combatPay'];
+            if (numericFields.includes(field)) {
                 input[field] = parseInt(value as string);
             }
             await updateCampaign({ variables: { id: selectedCampaignId, input } });
+            await refetchCampaign();
             setIsSyncing(false);
-            // Refetch to ensure local state is consistent, especially for month options
-            // This might be heavy, consider more granular updates if performance is an issue
-            // refetchInvites(); // This refetches invites, not campaign details. Need to refetch campaign itself.
         }, 1000) as unknown as number;
     };
 
@@ -255,6 +280,14 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         }, 1000) as unknown as number;
     };
 
+    const handleReroll = async (trackId: string) => {
+        setIsSyncing(true);
+        try {
+            await rerollTrack({ variables: { id: trackId } });
+            await refetchCampaign();
+        } catch (err) { console.error(err); }
+        setIsSyncing(false);
+    };
     const handleDrop = async (e: React.DragEvent, targetMonth: number, targetTrackId?: string) => {
         e.preventDefault();
         setDragOverMonth(null);
@@ -391,10 +424,11 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <input
                                             id="campaign-months"
                                             type="number"
+                                            min="1"
                                             className="inline-edit inline-edit-input-small"
                                             value={campaignLengthInMonths}
-                                            onChange={(e) => setCampaignLengthInMonths(parseInt(e.target.value) || 1)}
-                                            onBlur={(e) => handleUpdate('lengthInMonths', parseInt(e.target.value) || 1)}
+                                            onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                                            onBlur={(e) => handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1))}
                                             title="Total duration of the campaign in months"
                                         />
                                     </div>
@@ -403,12 +437,35 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <input
                                             id="campaign-tracks"
                                             type="number"
+                                            min="1"
                                             className="inline-edit inline-edit-input-small"
                                             value={campaignTrackCount}
-                                            onChange={(e) => setCampaignTrackCount(parseInt(e.target.value) || 0)}
-                                            onBlur={(e) => handleUpdate('trackCount', parseInt(e.target.value) || 0)}
+                                            onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                            onBlur={(e) => handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1))}
                                             title="Total number of tracks in the campaign"
                                         />
+                                    </div>
+                                </div>
+                                <div className="flex flex-gap-15 mt-10">
+                                    <div className="input-group">
+                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>BASE PAY:</label>
+                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.monthlyPay}
+                                            onBlur={(e) => handleUpdate('monthlyPay', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>MAINT:</label>
+                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.monthlyMaintenance}
+                                            onBlur={(e) => handleUpdate('monthlyMaintenance', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS COST:</label>
+                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.transportationCost}
+                                            onBlur={(e) => handleUpdate('transportationCost', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>COMBAT:</label>
+                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.combatPay}
+                                            onBlur={(e) => handleUpdate('combatPay', e.target.value)} />
                                     </div>
                                 </div>
                             </div>
@@ -553,9 +610,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         onDragLeave={() => setDragOverMonth(null)}
                                         onDrop={(e) => handleDrop(e, mIdx)}
                                     >
-                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between' }}>
+                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span>[ MONTH {mIdx} ]</span>
-                                            <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
+                                            <div className="flex flex-gap-10 items-center">
+                                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
+                                                <button className="mode-btn theme-green" style={{ fontSize: '0.6rem', padding: '2px 6px' }}>[ EXPENSES ]</button>
+                                            </div>
                                         </h4>
                                         <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                             {monthTracks.map((track: TrackDetail) => (
@@ -573,6 +633,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     <div className="flex-between mb-5">
                                                         <input
                                                             className="inline-edit"
+                                                            key={`${track.id}-name-${track.trackName}`}
                                                             style={{ fontWeight: 'bold', width: '75%' }}
                                                             defaultValue={track.trackName}
                                                             onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
@@ -580,6 +641,22 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                             title="Operational designation"
                                                         />
                                                         <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
+                                                    </div>
+                                                    <div className="flex flex-gap-5 mb-5">
+                                                        <input
+                                                            className="inline-edit"
+                                                            key={`${track.id}-comp-${track.complications}`}
+                                                            style={{ fontSize: '0.7rem', flex: 1, color: 'var(--terminal-amber)' }}
+                                                            defaultValue={track.complications}
+                                                            onChange={(e) => handleTrackUpdate(track.id, 'complications', e.target.value)}
+                                                            placeholder="COMPLICATIONS"
+                                                            title="Mission complications or modifiers"
+                                                        />
+                                                        <button
+                                                            className="mode-btn theme-amber sm-text"
+                                                            style={{ padding: '0 5px', height: '18px', fontSize: '0.6rem' }}
+                                                            onClick={() => handleReroll(track.id)}
+                                                        >REROLL</button>
                                                     </div>
                                                     <div className="flex flex-gap-5 mb-5">
                                                         <input
@@ -593,7 +670,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         {track.location && (
                                                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(track.location)}`} target="_blank" rel="noopener noreferrer" className="mode-btn sm-text" style={{ padding: '0 4px', height: '16px' }}>MAP</a>
                                                         )}
-                                                    </div>
+                                                    </div >
                                                     <div className="flex-between">
                                                         <input
                                                             type="datetime-local"
@@ -616,19 +693,26 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                             ))}
                                                         </select>
                                                     </div>
-                                                </div>
+                                                    <div className="mt-10 pt-5" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
+                                                        <button className="mode-btn theme-red w-100" style={{ fontSize: '0.65rem', padding: '4px' }}>
+                                                            [ AFTER ACTION REPORT ]
+                                                        </button>
+                                                    </div>
+                                                </div >
                                             ))}
-                                            {monthTracks.length === 0 && (
-                                                <div className="restricted-text subdued" style={{ textAlign: 'center', padding: '20px', fontSize: '0.7rem' }}>
-                                                    NO OPS SCHEDULED
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                                            {
+                                                monthTracks.length === 0 && (
+                                                    <div className="restricted-text subdued" style={{ textAlign: 'center', padding: '20px', fontSize: '0.7rem' }}>
+                                                        NO OPS SCHEDULED
+                                                    </div>
+                                                )
+                                            }
+                                        </div >
+                                    </div >
                                 );
                             })}
-                        </div>
-                    </div>
+                        </div >
+                    </div >
 
                     <div className="dashboard-section tactical-panel">
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
@@ -657,6 +741,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     </div>
                 </>
             )}
-        </div>
+        </div >
     );
 };

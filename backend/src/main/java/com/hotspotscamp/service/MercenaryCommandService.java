@@ -31,6 +31,7 @@ import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
 import com.hotspotscamp.util.SqlUtils;
+import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.util.TypeUtils;
 
 import lombok.NonNull;
@@ -55,6 +56,7 @@ public class MercenaryCommandService {
     private final UserService userService;
     private final DatabaseClient databaseClient;
     private final ScraperFactory scraperFactory;
+    private final CampaignService campaignService;
 
     public MercenaryCommandService(
             MercenaryCommandRepository commandRepository,
@@ -68,7 +70,8 @@ public class MercenaryCommandService {
             PilotRepository pilotRepository,
             UserService userService,
             DatabaseClient databaseClient,
-            ScraperFactory scraperFactory) {
+            ScraperFactory scraperFactory,
+            @Lazy CampaignService campaignService) {
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
         this.objectMapper = objectMapper;
@@ -81,6 +84,7 @@ public class MercenaryCommandService {
         this.userService = userService;
         this.databaseClient = databaseClient;
         this.scraperFactory = scraperFactory;
+        this.campaignService = campaignService;
     }
 
     /**
@@ -144,16 +148,6 @@ public class MercenaryCommandService {
             }
             if (rep != null) {
                 cmd.setReputation(rep);
-                // Derive experience level from Hinterlands reputation thresholds
-                if (rep >= 9) {
-                    cmd.setExperienceLevel("Elite");
-                } else if (rep >= 6) {
-                    cmd.setExperienceLevel("Veteran");
-                } else if (rep >= 3) {
-                    cmd.setExperienceLevel("Regular");
-                } else {
-                    cmd.setExperienceLevel("Green");
-                }
             }
             cmd.setNew(false);
             return commandRepository.save(cmd)
@@ -172,16 +166,34 @@ public class MercenaryCommandService {
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
         return userService.resolveOrCreateUser(userId)
                 .flatMap(user -> {
-                    command.setId(UUID.randomUUID());
+                    UUID commandId = UUID.randomUUID();
+                    command.setId(commandId);
                     command.setOwnerId(user.getId().toString());
                     if (command.getCommandingOfficer() == null) {
                         command.setCommandingOfficer(user.getDisplayName());
                     }
-                    if (command.getTotalSupportPoints() == null) {
-                        command.setTotalSupportPoints(1000);
-                    }
+
+                    // Initial values are handled via ledger entry
+                    int startingSp = command.getTotalSupportPoints() != null ? command.getTotalSupportPoints() : RulesConstants.STARTING_SUPPORT_POINTS;
+                    int startingRep = command.getReputation() != null ? command.getReputation() : RulesConstants.STARTING_REPUTATION;
+
+                    command.setTotalSupportPoints(0);
+                    command.setReputation(0);
                     command.setNew(true);
-                    return commandRepository.save(command);
+
+                    return commandRepository.save(command)
+                            .flatMap(savedCmd -> {
+                                LedgerEntry initialEntry = LedgerEntry.builder()
+                                        .commandId(commandId)
+                                        .amount(startingSp)
+                                        .reputationChange(startingRep)
+                                        .description("INITIAL COMMAND ESTABLISHMENT")
+                                        .timestamp(LocalDateTime.now())
+                                        .isNew(true)
+                                        .build();
+                                return addLedgerEntry(commandId, null, initialEntry, userId)
+                                        .thenReturn(savedCmd);
+                            });
                 });
     }
 
@@ -335,7 +347,7 @@ public class MercenaryCommandService {
                 .switchIfEmpty(Mono.<Detachment>error(new RuntimeException("Detachment not found: " + detachmentId))) // Explicitly type Mono.error
                 .<Void>flatMap(detachment -> { // Explicitly type flatMap
                     UUID commandId = detachment.getMercenaryCommandId();
-                    return isAuthorizedToEditLedger(commandId, userId)
+                    return isAuthorizedForCommand(commandId, userId)
                             .<Void>flatMap(isAuthorized -> { // Explicitly type flatMap
                                 if (!isAuthorized) {
                                     return Mono.<Void>error(new RuntimeException("Access Denied: You are not authorized to delete this detachment.")); // Explicitly type Mono.error
@@ -399,6 +411,10 @@ public class MercenaryCommandService {
                         }
                         if (updatedData.getPv() != null) {
                             unit.setPv(updatedData.getPv());
+                        }
+                        if (updatedData.getAvailableFromMonth() != null) {
+                            // This field was added earlier, but was not part of the initial diff provided in the problem description. Adding it here for completeness with the entity.
+                            unit.setAvailableFromMonth(updatedData.getAvailableFromMonth());
                         }
                         return combatUnitRepository.save(unit)
                                 .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
@@ -533,7 +549,7 @@ public class MercenaryCommandService {
     @Transactional // Assuming LedgerEntry entity is updated with new fields
     public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntry entry, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user
-                -> isAuthorizedToEditLedger(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
+                -> isAuthorizedForCommand(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
                     if (!isAuthorized) {
                         return Mono.<LedgerEntry>error(new RuntimeException("Access Denied: You are not the owner or the campaign manager.")); // Explicitly type Mono.error
                     }
@@ -544,34 +560,55 @@ public class MercenaryCommandService {
                     entry.setNew(true);
                     return ledgerEntryRepository.save(entry)
                             .flatMap(saved -> syncTotalSupportPoints(commandId)
+                            .then(syncReputation(commandId))
                             .thenReturn(saved));
                 })
         );
     }
 
     /**
-     * Validates permissions based on Hinterlands rules: 1. User owns the
-     * MercenaryCommand. 2. User manages the Campaign the detachment is
-     * contracted to.
+     * Recalculates and updates the Command's total Reputation by summing all
+     * ledger entries.
      */
-    private Mono<Boolean> isAuthorizedToEditLedger(@NonNull UUID commandId, String userId) {
-        return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
-            String internalId = user.getId().toString();
-            String sql = "SELECT EXISTS ("
-                    + "  SELECT 1 FROM mercenary_commands mc "
-                    + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
-                    + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
-                    + "  WHERE mc.id = :cmdId "
-                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
-                    + ")";
+    @Transactional
+    public Mono<MercenaryCommand> syncReputation(@NonNull UUID commandId) {
+        String sql = "SELECT COALESCE(SUM(reputation_change), 0) as total FROM ledger_entries "
+                + "WHERE command_id = :id";
 
-            var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);
-            spec = SqlUtils.bindString(spec, "userId", internalId);
-            spec = SqlUtils.bindString(spec, "externalId", userId);
-            return spec.map((row, metadata) -> row.get(0, Number.class))
-                    .one()
-                    .map(n -> n != null && n.longValue() > 0)
-                    .defaultIfEmpty(false);
+        return SqlUtils.bindUuid(databaseClient.sql(sql), "id", commandId)
+                .map((row, metadata) -> row.get("total", Number.class))
+                .one()
+                .map(total -> Math.max(0, total != null ? total.intValue() : 0))
+                .flatMap(totalRep -> commandRepository.findById(commandId)
+                .flatMap(command -> {
+                    command.setReputation(totalRep);
+                    command.setNew(false);
+                    return commandRepository.save(command)
+                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
+                            .doOnNext(commandSink::tryEmitNext);
+                }));
+    }
+
+    /**
+     * Performs a monthly financial closeout for a detachment. Calculates upkeep
+     * and payroll based on the current roster.
+     */
+    @Transactional
+    public Mono<Void> processMonthlyUpkeep(@NonNull UUID commandId, @NonNull UUID detachmentId, int monthIndex, String userId) {
+        return getAssetsByCommandId(commandId).flatMap(assets -> {
+            // Filter assets assigned to this detachment
+            long unitCount = assets.units().stream().filter(u -> detachmentId.equals(u.getDetachmentId())).count();
+            long pilotCount = assets.pilots().stream().filter(p -> detachmentId.equals(p.getDetachmentId())).count();
+
+            int totalCost = (int) ((unitCount * RulesConstants.BASE_UNIT_UPKEEP) + (pilotCount * RulesConstants.BASE_PILOT_UPKEEP)) * -1;
+
+            LedgerEntry upkeep = LedgerEntry.builder()
+                    .description("AUTOMATED MONTHLY UPKEEP: MO " + monthIndex)
+                    .amount(totalCost)
+                    .monthIndex(monthIndex)
+                    .build();
+
+            return addLedgerEntry(commandId, detachmentId, upkeep, userId).then();
         });
     }
 
@@ -620,32 +657,52 @@ public class MercenaryCommandService {
                             if (input.containsKey("description")) {
                                 camp.setDescription((String) input.get("description"));
                             }
+                            if (input.containsKey("monthlyPay")) {
+                                camp.setMonthlyPay(TypeUtils.asInt(input.get("monthlyPay")));
+                            }
+                            if (input.containsKey("monthlyMaintenance")) {
+                                camp.setMonthlyMaintenance(TypeUtils.asInt(input.get("monthlyMaintenance")));
+                            }
+                            if (input.containsKey("transportationCost")) {
+                                camp.setTransportationCost(TypeUtils.asInt(input.get("transportationCost")));
+                            }
+                            if (input.containsKey("combatPay")) {
+                                camp.setCombatPay(TypeUtils.asInt(input.get("combatPay")));
+                            }
 
-                            Integer newMonths = TypeUtils.asInt(input.get("lengthInMonths"));
+                            Integer newMonthsInput = TypeUtils.asInt(input.get("lengthInMonths"));
                             Integer newTrackCountInput = TypeUtils.asInt(input.get("trackCount"));
 
                             Mono<Campaign> chain = Mono.just(camp);
 
-                            // Logic: If a month is deleted, delete tracks in it and recompute trackCount
-                            if (newMonths != null && newMonths < camp.getLengthInMonths()) {
-                                chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
-                                        .filter(t -> t.getMonthIndex() > newMonths)
-                                        .flatMap(campaignTrackRepository::delete)
-                                        .then(Mono.defer(() -> {
-                                            camp.setLengthInMonths(newMonths);
-                                            return campaignTrackRepository.findAllByCampaignId(camp.getId()).count()
-                                                    .map(count -> {
-                                                        camp.setTrackCount(count.intValue());
-                                                        return camp;
-                                                    });
-                                        }));
-                            } else if (newMonths != null) {
-                                camp.setLengthInMonths(newMonths);
+                            if (newMonthsInput != null) {
+                                int targetMonths = Math.max(1, newMonthsInput);
+                                int currentMonths = camp.getLengthInMonths() != null ? camp.getLengthInMonths() : 1;
+
+                                if (targetMonths < currentMonths) {
+                                    // Move tracks from removed months to the highest remaining month
+                                    chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
+                                            .filter(t -> (t.getMonthIndex() != null ? t.getMonthIndex() : 1) > targetMonths)
+                                            .flatMap(t -> {
+                                                t.setMonthIndex(targetMonths);
+                                                t.setNew(false);
+                                                return campaignTrackRepository.save(t);
+                                            })
+                                            .then(Mono.fromCallable(() -> {
+                                                camp.setLengthInMonths(targetMonths);
+                                                return camp;
+                                            }));
+                                } else {
+                                    camp.setLengthInMonths(targetMonths);
+                                }
                             }
 
                             return chain.flatMap(c -> {
-                                if (newTrackCountInput != null && !newTrackCountInput.equals(c.getTrackCount())) {
-                                    return reconcileTracks(c, newTrackCountInput);
+                                if (newTrackCountInput != null) {
+                                    int targetTracks = Math.max(1, newTrackCountInput);
+                                    if (targetTracks != (c.getTrackCount() != null ? c.getTrackCount() : 0)) {
+                                        return reconcileTracks(c, targetTracks);
+                                    }
                                 }
                                 return campaignRepository.save(c);
                             });
@@ -656,13 +713,36 @@ public class MercenaryCommandService {
     private Mono<Campaign> reconcileTracks(Campaign camp, int newCount) {
         return campaignTrackRepository.findAllByCampaignId(camp.getId()).collectList()
                 .flatMap(existing -> {
+                    int targetCount = Math.max(1, newCount);
                     int actualCount = existing.size();
-                    camp.setTrackCount(newCount);
+                    camp.setTrackCount(targetCount);
 
-                    if (newCount > actualCount) {
-                        // Requirement: Add all new tracks to the last month
+                    if (targetCount > actualCount) {
+                        int numToAdd = targetCount - actualCount;
                         int lastMonth = camp.getLengthInMonths() != null ? camp.getLengthInMonths() : 1;
-                        return Flux.range(actualCount, newCount - actualCount)
+
+                        return contractRepository.findAllByCampaignId(camp.getId())
+                                .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
+                                .next()
+                                .flatMap(primary -> {
+                                    List<CampaignService.GeneratedTrack> generated = campaignService.generateTracks(
+                                            primary.getMissionType(),
+                                            primary.getCommandRights(),
+                                            numToAdd);
+                                    return Flux.fromIterable(generated)
+                                            .index()
+                                            .flatMap(tuple -> campaignTrackRepository.save(CampaignTrack.builder()
+                                            .id(UUID.randomUUID())
+                                            .campaignId(camp.getId())
+                                            .trackName(tuple.getT2().name())
+                                            .complications(tuple.getT2().complication())
+                                            .sequenceOrder(actualCount + tuple.getT1().intValue())
+                                            .monthIndex(lastMonth)
+                                            .isNew(true)
+                                            .build()))
+                                            .then(campaignRepository.save(camp));
+                                })
+                                .switchIfEmpty(Mono.defer(() -> Flux.range(actualCount, numToAdd)
                                 .flatMap(i -> campaignTrackRepository.save(CampaignTrack.builder()
                                 .id(UUID.randomUUID())
                                 .campaignId(camp.getId())
@@ -671,12 +751,12 @@ public class MercenaryCommandService {
                                 .monthIndex(lastMonth)
                                 .isNew(true)
                                 .build()))
-                                .then(campaignRepository.save(camp));
-                    } else if (newCount < actualCount) {
+                                .then(campaignRepository.save(camp))));
+                    } else if (targetCount < actualCount) {
                         // Requirement: Reducing number of tracks deletes tracks with higher sequence numbers
                         List<CampaignTrack> toDelete = existing.stream()
                                 .sorted((a, b) -> b.getSequenceOrder().compareTo(a.getSequenceOrder()))
-                                .limit(actualCount - newCount)
+                                .limit(actualCount - targetCount)
                                 .toList();
                         return Flux.fromIterable(toDelete)
                                 .flatMap(campaignTrackRepository::delete)

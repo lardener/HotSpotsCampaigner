@@ -56,6 +56,7 @@ type Mutation {
     # Campaign Management
     createCampaign(input: CampaignInput!): Campaign
     updateCampaign(id: ID!, input: CampaignInput!): Campaign
+    rerollTrack(id: ID!): CampaignTrack
     assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
     
     # Asset Management
@@ -84,10 +85,7 @@ type Mutation {
         detachmentId: ID, 
         amount: Int!, 
         description: String!,
-        coverAmount: Int,
-        paidAmount: Int,
         reputationChange: Int,
-        campaignId: ID,
         campaignName: String,
         monthIndex: Int
     ): LedgerEntry
@@ -99,7 +97,6 @@ type MercenaryCommand {
     ownerId: String
     totalSupportPoints: Int
     reputation: Int
-    experienceLevel: String
     commandingOfficer: String
     units: [CombatUnit]
     pilots: [Pilot]
@@ -118,6 +115,7 @@ type CombatUnit {
     bv: Int
     pv: Int
     status: String
+    availableFromMonth: Int
     detachmentId: ID
 }
 
@@ -148,11 +146,7 @@ type LedgerEntry {
     amount: Int
     description: String
     timestamp: String
-    runningTotal: Int
-    coverAmount: Int
-    paidAmount: Int
     reputationChange: Int
-    campaignId: ID
     campaignName: String
     monthIndex: Int
 }
@@ -203,6 +197,10 @@ input CampaignInput {
     commandStep: Int
     trackCount: Int
     lengthInMonths: Int
+    monthlyPay: Int
+    monthlyMaintenance: Int
+    transportationCost: Int
+    combatPay: Int
 }
 
 input TrackInput {
@@ -212,6 +210,7 @@ input TrackInput {
     nextSession: String
     attackerFactionId: ID
     monthIndex: Int
+    complications: String
 }
 
 type CampaignTrack {
@@ -223,6 +222,7 @@ type CampaignTrack {
     nextSession: String
     attackerFactionId: ID
     monthIndex: Int
+    complications: String
 }
 
 type CampaignFaction {
@@ -243,6 +243,7 @@ input CombatUnitInput {
     bv: Int
     pv: Int
     status: String
+    availableFromMonth: Int
     detachmentId: ID
 }
 
@@ -307,4 +308,8 @@ type Campaign {
     supportStep: Int
     transportStep: Int
     commandStep: Int
+    monthlyPay: Int
+    monthlyMaintenance: Int
+    transportationCost: Int
+    combatPay: Int
 }

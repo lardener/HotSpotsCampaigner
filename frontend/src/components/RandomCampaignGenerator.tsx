@@ -34,6 +34,10 @@ export const PREVIEW_CAMPAIGN = gql`
         systemName
         trackCount
         lengthInMonths
+        monthlyPay
+        monthlyMaintenance
+        transportationCost
+        combatPay
       }
       contracts {
         employerCategory
@@ -93,7 +97,11 @@ interface Proposal {
         name: string,
         systemName: string,
         trackCount: number,
-        lengthInMonths: number
+        lengthInMonths: number,
+        monthlyPay?: number,
+        monthlyMaintenance?: number,
+        transportationCost?: number,
+        combatPay?: number
     };
     contracts: ContractPreview[];
     tracks: string[];
@@ -242,7 +250,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             transportStep: primary.transportStep,
             commandStep: primary.commandStep,
             trackCount: proposal.campaign.trackCount,
-            lengthInMonths: proposal.campaign.lengthInMonths
+            lengthInMonths: proposal.campaign.lengthInMonths,
+            monthlyPay: proposal.campaign.monthlyPay,
+            monthlyMaintenance: proposal.campaign.monthlyMaintenance,
+            transportationCost: proposal.campaign.transportationCost,
+            combatPay: proposal.campaign.combatPay
         };
     };
 
@@ -304,8 +316,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
     const updateProposalTrack = (index: number, value: string) => {
         if (!proposal) return;
         const currentTrack = proposal.tracks[index];
-        // Detect if there's an existing complication suffix (e.g., " (Forced Complication)")
-        const suffixMatch = currentTrack.match(/\s\(.*\)$/);
+        // Detect if there's an existing complication suffix (e.g., " (Forced Complication)" or " [Dense Jungle]")
+        const suffixMatch = currentTrack.match(/\s[([].*?[)\]]$/);
         const suffix = suffixMatch ? suffixMatch[0] : '';
 
         const newTracks = [...proposal.tracks];
@@ -425,7 +437,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`}>TRACK {idx + 1}:</label> {/* Added title to select */}
                                     {/* Strip suffix for the value so it matches the options in trackTypes */}
-                                    <select id={`track-${idx}`} value={t.split(' (')[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="input-group-gap" title={`Select track type for track ${idx + 1}`}>
+                                    <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="input-group-gap" title={`Select track type for track ${idx + 1}`}>
                                         {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                     </select>
                                 </div>

@@ -1,6 +1,6 @@
 # HotSpots: Campaigner
 
-A TDD-first multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using Chaos Campaign and Hinterlands rules.
+A TDD-first multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using Chaos Campaign, Hinterlands, and **Hot Spots: Draconis Reach** rules.
 
 ## Features
 
@@ -10,6 +10,8 @@ A TDD-first multi-tenant SaaS platform for managing Battletech Mercenaries campa
  ✅ **GraphQL API**: Unified reactive API entry point for all campaign, command, and ledger operations.
  ✅ **Command & Control Navigation**: Hierarchical tree-based navigation for managing multiple detachments across different theaters.
  ✅ **Theater Management Console**: Full control for Campaign Managers to schedule tracks, manage recruitment, and audit participating forces.
+ ✅ **Temporal Logistics**: Track unit availability and repairs across campaign months.
+ ✅ **Automated Upkeep**: Advanced financial simulation including monthly maintenance, payroll, and transportation costs.
 
 ## Invitation & Login System
 
@@ -115,7 +117,7 @@ npm test
 ├── backend/                  # Spring Boot 3 GraphQL backend
 │   ├── src/main/java/com/hotspotscamp/
 │   │   ├── BattletechCampaignApplication.java
-│   │   ├── SchemaGenerator.java      # MySQL Schema utility
+│   │   ├── SchemaGenerator.java      # MySQL Schema utility (aligned with R2DBC)
 │   │   ├── api/
 │   │   │   ├── CampaignGraphQLController.java
 │   │   │   ├── CommandGraphQLController.java
@@ -159,8 +161,9 @@ npm test
 ## Architecture
 
 ### Backend (Spring Boot 3)
-- **Reactive Stack**: Spring WebFlux and Project Reactor for non-blocking I/O with direct relational persistence.
-- **Security**: Spring Security with dual OAuth2 and Token-based identity providers.
+- **Reactive Stack**: Spring WebFlux and Project Reactor for non-blocking I/O.
+- **Persistence**: Direct relational persistence using **Spring Data R2DBC** for reactive SQL connectivity to MySQL. (Event Sourcing has been deprecated in favor of this model).
+- **Security**: Spring Security with dual OAuth2 (Google) and Token-based (Invite Key) identity providers.
 - **Persistence**: Spring Data R2DBC for reactive SQL connectivity to MySQL.
 - **API**: Spring GraphQL acting as the sole gateway, reducing over-fetching and supporting real-time subscriptions.
 
@@ -176,10 +179,10 @@ npm test
 
 ## Next Steps
 
-From this walking skeleton, you can:
+Upcoming development milestones:
 
-1. **Reporting Engine** — Implement automated force performance reports and operational history.
-2. **Real-time Complications** — Integration of dynamic weather and environmental factors into tracks.
+1. **Monthly Closeout Engine** — Automated generation of ledger entries for upkeep and payroll based on detachment rosters.
+2. **After-Action Workflow** — Specialized interface for resolving combat pay, repairs, and pilot recovery.
 3. **S3 Integration** — Implement campaign snapshot storage.
 4. **JavaFX Desktop App** — Build local campaign viewer.
 

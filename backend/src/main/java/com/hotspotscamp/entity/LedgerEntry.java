@@ -39,21 +39,12 @@ public class LedgerEntry implements Persistable<UUID> {
     private String description; // e.g. "Repairing Warhammer WHM-6R", "Mission Reward"
     @Column("amount")
     private Integer amount; // Can be negative for costs
-    @Column("cover_amount")
-    private Integer coverAmount;
-    @Column("paid_amount")
-    private Integer paidAmount;
     @Column("reputation_change")
     private Integer reputationChange;
-    @Column("campaign_id")
-    private UUID campaignId;
     @Column("campaign_name")
     private String campaignName;
     @Column("month_index")
     private Integer monthIndex;
-
-    @Column("running_total") // SP total after this transaction
-    private Integer runningTotal;
 
     @Transient
     @Builder.Default

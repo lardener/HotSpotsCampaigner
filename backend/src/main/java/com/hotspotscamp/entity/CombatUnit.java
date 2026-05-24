@@ -45,6 +45,8 @@ public class CombatUnit implements Persistable<UUID> {
 
     private Integer bv;
     private Integer pv;
+    @Column("available_from_month")
+    private Integer availableFromMonth;
     private String status;
 
     @Transient

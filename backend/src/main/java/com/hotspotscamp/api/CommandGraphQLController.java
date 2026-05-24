@@ -273,10 +273,7 @@ public class CommandGraphQLController {
             @Argument UUID detachmentId,
             @Argument Integer amount,
             @Argument String description,
-            @Argument Integer coverAmount,
-            @Argument Integer paidAmount,
             @Argument Integer reputationChange,
-            @Argument UUID campaignId,
             @Argument String campaignName,
             @Argument Integer monthIndex,
             Principal principal) {
@@ -287,8 +284,8 @@ public class CommandGraphQLController {
             return Mono.error(new RuntimeException("Authentication required to add ledger entry"));
         }
         LedgerEntry entry = LedgerEntry.builder().amount(amount).description(description)
-                .coverAmount(coverAmount).paidAmount(paidAmount).reputationChange(reputationChange)
-                .campaignId(campaignId).campaignName(campaignName).monthIndex(monthIndex).build();
+                .reputationChange(reputationChange)
+                .campaignName(campaignName).monthIndex(monthIndex).build();
         return commandService.addLedgerEntry(commandId, detachmentId, entry, principal.getName());
     }
 
@@ -309,6 +306,7 @@ public class CommandGraphQLController {
                 .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : 0)
                 .bv(input.get("bv") != null ? (Integer) input.get("bv") : 0)
                 .pv(input.get("pv") != null ? (Integer) input.get("pv") : 0)
+                .availableFromMonth(input.get("availableFromMonth") != null ? (Integer) input.get("availableFromMonth") : 1)
                 .status((String) input.get("status"))
                 .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
                 .build();
@@ -328,10 +326,11 @@ public class CommandGraphQLController {
                 .model((String) input.get("model"))
                 .variant((String) input.get("variant"))
                 .techBase((String) input.get("techBase"))
-                .tonnage(input.get("tonnage") != null ? (Integer) input.get("tonnage") : null)
-                .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : null)
-                .bv(input.get("bv") != null ? (Integer) input.get("bv") : null)
-                .pv(input.get("pv") != null ? (Integer) input.get("pv") : null)
+                .tonnage(TypeUtils.asInt(input.get("tonnage")))
+                .asSize(TypeUtils.asInt(input.get("asSize")))
+                .bv(TypeUtils.asInt(input.get("bv")))
+                .pv(TypeUtils.asInt(input.get("pv")))
+                .availableFromMonth(TypeUtils.asInt(input.get("availableFromMonth")))
                 .status((String) input.get("status"))
                 .build();
         return commandService.updateCombatUnit(id, unit, principal.getName());

@@ -16,7 +16,7 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY,
-                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
+                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', reputationChange: null },
                 },
                 result: {
                     data: { addLedgerEntry: { id: 'entry-123' } },
@@ -37,8 +37,6 @@ describe('LedgerEntryForm', () => {
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } }); // Added title to input
         fireEvent.change(screen.getByLabelText(/support points \(sp\)/i), { target: { value: '50' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } }); // Added title to input
         fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } }); // Added title to input
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
@@ -53,7 +51,7 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY, // Assuming the mutation variables will be updated in the test
-                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', coverAmount: null, paidAmount: null, reputationChange: null },
+                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', reputationChange: null },
                 },
                 error: new Error('GraphQL error'),
             },
@@ -72,8 +70,6 @@ describe('LedgerEntryForm', () => {
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } }); // Added title to input
         fireEvent.change(screen.getByLabelText(/support points \(sp\)/i), { target: { value: '50' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/cover \(sp\)/i), { target: { value: '' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/paid \(sp\)/i), { target: { value: '' } }); // Added title to input
         fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } }); // Added title to input
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 

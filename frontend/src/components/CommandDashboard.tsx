@@ -11,7 +11,6 @@ const GET_UNIT_DOSSIER = gql`
       name
       totalSupportPoints
       reputation
-      experienceLevel
       commandingOfficer
       units {
         id
@@ -47,10 +46,14 @@ const GET_UNIT_DOSSIER = gql`
         detachmentId
         description
         amount
-        coverAmount
-        paidAmount
         reputationChange
+        campaignName
+        monthIndex
       }
+    }
+    managedCampaigns(status: "ACTIVE") {
+      id
+      name
     }
   }
 `;
@@ -147,7 +150,6 @@ const UPDATE_COMMAND = gql`
       commandingOfficer
       totalSupportPoints
       reputation
-      experienceLevel
     }
   }
 `;
@@ -200,6 +202,7 @@ interface CombatUnit {
     bv: number;
     pv: number;
     status: string;
+    availableFromMonth: number;
     detachmentId?: string | null;
 }
 
@@ -220,9 +223,9 @@ interface LedgerEntry {
     amount: number;
     description: string;
     timestamp: string;
-    coverAmount?: number;
-    paidAmount?: number;
     reputationChange?: number;
+    campaignName?: string;
+    monthIndex?: number;
 }
 
 interface UpdateCommandVars {
@@ -241,6 +244,7 @@ interface CombatUnitInput {
     asSize?: number;
     bv?: number;
     pv?: number;
+    availableFromMonth?: number;
     status?: string;
     detachmentId?: string | null;
 }
@@ -507,14 +511,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
             const current = data?.getCommand;
 
-            // Calculate optimistic experience level
-            const optRep = vars.rep ?? current?.reputation ?? 1;
-            let optLevel = current?.experienceLevel || "Green";
-            if (optRep >= 9) optLevel = "Elite";
-            else if (optRep >= 6) optLevel = "Veteran";
-            else if (optRep >= 3) optLevel = "Regular";
-            else optLevel = "Green";
-
             updateCommand({
                 variables: vars,
                 optimisticResponse: current ? {
@@ -523,7 +519,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         commandingOfficer: vars.co ?? current.commandingOfficer,
                         totalSupportPoints: vars.sp ?? current.totalSupportPoints,
                         reputation: vars.rep ?? current.reputation,
-                        experienceLevel: optLevel,
                         __typename: 'MercenaryCommand'
                     }
                 } : undefined
@@ -547,7 +542,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             setIsSyncing(true);
             // Only send the field that was actually modified to prevent race conditions 
             // overwriting other fields with stale cache data.
-            const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);
+            const isNumeric = ['tonnage', 'asSize', 'bv', 'pv', 'availableFromMonth'].includes(field);
             const input = {
                 [field]: isNumeric ? (parseInt(value) || 0) : value
             };
@@ -882,12 +877,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         <label htmlFor="header-sp" className="restricted-text">WARCHEST (SP):</label>
                         <input
                             id="header-sp"
-                            disabled={isManagerView}
+                            readOnly
                             type="number"
                             className="inline-edit inline-edit-input"
-                            defaultValue={command.totalSupportPoints}
-                            onChange={(e) => handleHeaderUpdate('SP', e.target.value, false)}
-                            onBlur={(e) => handleHeaderUpdate('SP', e.target.value, true)}
+                            value={command.totalSupportPoints}
                             title="Total Support Points"
                         />
                     </div>
@@ -895,15 +888,12 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         <label htmlFor="header-rep" className="restricted-text">REPUTATION:</label>
                         <input
                             id="header-rep"
-                            disabled={isManagerView}
+                            readOnly
                             type="number"
                             className="inline-edit inline-edit-input-small"
-                            defaultValue={command.reputation}
-                            onChange={(e) => handleHeaderUpdate('REP', e.target.value, false)}
-                            onBlur={(e) => handleHeaderUpdate('REP', e.target.value, true)}
+                            value={command.reputation}
                             title="Force Reputation Score"
                         />
-                        <span className="restricted-text input-group-gap">[ LVL: {command.experienceLevel.toUpperCase()} ]</span>
                     </div>
                 </div>
             </div>
@@ -1071,6 +1061,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     <th className="text-center" title="Alpha Strike Size">SZ</th>
                                     <th className="text-center" title="Battle Value">BV</th>
                                     <th className="text-center" title="Point Value">PV</th>
+                                    <th className="text-center" title="Available from Month">MO</th>
                                     <th className="text-center">STATUS</th>
                                     {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
@@ -1130,6 +1121,12 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.pv} title="Point Value"
                                             onChange={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, false)}
                                             onBlur={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, true)} /></td>
+                                        <td className="text-center">
+                                            <input className="table-input text-center" style={{ width: '3em' }} type="number"
+                                                defaultValue={u.availableFromMonth} title="Available from Month"
+                                                onChange={(e) => handleUnitUpdate(u.id, 'availableFromMonth', e.target.value, false)}
+                                                onBlur={(e) => handleUnitUpdate(u.id, 'availableFromMonth', e.target.value, true)} />
+                                        </td>
                                         <td className="text-center">
                                             <select
                                                 className="table-input"
@@ -1260,38 +1257,48 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 <section className="dashboard-section tactical-panel" data-id={selectedDetachmentId ? "DETACHMENT-LEDGER" : "COMMAND-LEDGER"} style={{ gridColumn: '1 / -1', marginTop: '30px' }}>
                     <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT LEDGER' : 'COMMAND LEDGER'}</h3>
 
-                    <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
-                        <LedgerEntryForm
-                            commandId={commandId}
-                            detachmentId={selectedDetachmentId}
-                            onEntryAdded={() => refetch()}
-                        />
-                    </div>
+                    {!selectedDetachmentId && (
+                        <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
+                            <LedgerEntryForm
+                                commandId={commandId}
+                                detachmentId={selectedDetachmentId}
+                                onEntryAdded={() => refetch()}
+                            />
+                        </div>
+                    )}
 
                     <table className="tactical-table">
                         <thead>
                             <tr>
                                 <th style={{ width: '10%' }}>DATE</th>
-                                <th style={{ width: '40%' }}>EVENT</th>
-                                <th className="text-right" style={{ width: '10%' }}>SPENT (SP)</th>
-                                <th className="text-right" style={{ width: '10%' }}>PAID (SP)</th>
-                                <th className="text-right" style={{ width: '10%' }}>REP</th>
+                                <th style={{ width: '35%' }}>DESCRIPTION</th>
+                                <th className="text-right" style={{ width: '10%' }}>SP (+/-)</th>
+                                <th className="text-right" style={{ width: '10%' }}>REP (+/-)</th>
+                                <th className="text-center" style={{ width: '25%' }}>CONTRACT</th>
+                                <th className="text-center" style={{ width: '10%' }}>MO</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredLedger.length > 0 ? (
-                                filteredLedger.map(entry => (
+                                [...filteredLedger].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(entry => (
                                     <tr key={entry.id}>
                                         <td>{new Date(entry.timestamp).toLocaleDateString()}</td>
                                         <td>{entry.description}</td>
-                                        <td className="text-right">{(entry.amount || 0) - (entry.coverAmount || 0)}</td>
-                                        <td className="text-right">{entry.paidAmount !== undefined ? entry.paidAmount : '-'}</td>
-                                        <td className="text-right">{entry.reputationChange !== undefined ? entry.reputationChange : '-'}</td>
+                                        <td className="text-right" style={{ color: (entry.amount || 0) >= 0 ? 'var(--terminal-green)' : 'var(--terminal-alert)' }}>
+                                            {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
+                                        </td>
+                                        <td className="text-right" style={{ color: (entry.reputationChange || 0) > 0 ? 'var(--terminal-green)' : (entry.reputationChange || 0) < 0 ? 'var(--terminal-alert)' : 'inherit' }}>
+                                            {entry.reputationChange !== undefined && entry.reputationChange !== 0
+                                                ? (entry.reputationChange > 0 ? `+${entry.reputationChange}` : entry.reputationChange)
+                                                : '-'}
+                                        </td>
+                                        <td className="text-center">{entry.campaignName || '-'}</td>
+                                        <td className="text-center">{entry.monthIndex || '-'}</td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="text-center restricted-text">NO TRANSACTIONS RECORDED</td>
+                                    <td colSpan={6} className="text-center restricted-text">NO TRANSACTIONS RECORDED</td>
                                 </tr>
                             )}
                         </tbody>

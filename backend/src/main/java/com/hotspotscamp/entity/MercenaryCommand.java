@@ -35,10 +35,6 @@ public class MercenaryCommand implements Persistable<UUID> {
     @Column("total_support_points")
     private Integer totalSupportPoints; // Derived from ledger entries
 
-    @Builder.Default
-    @Column("experience_level")
-    private String experienceLevel = "Green";
-
     @Column("commanding_officer")
     private String commandingOfficer;
 

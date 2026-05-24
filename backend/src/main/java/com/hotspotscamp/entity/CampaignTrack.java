@@ -47,6 +47,9 @@ public class CampaignTrack implements Persistable<UUID> {
     @Column("month_index")
     private Integer monthIndex;
 
+    @Column("complications")
+    private String complications;
+
     @Transient
     @Builder.Default
     @JsonIgnore

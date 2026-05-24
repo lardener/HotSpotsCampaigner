@@ -19,18 +19,6 @@ DEALLOCATE PREPARE stmt;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- Create event_store table for Event Sourcing
-CREATE TABLE event_store (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    aggregate_id VARCHAR(36) NOT NULL,
-    event_type VARCHAR(255) NOT NULL,
-    event_data JSON NOT NULL,
-    occurred_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    version INT NOT NULL,
-    user_id VARCHAR(36),
-    INDEX idx_aggregate (aggregate_id)
-);
-
 -- Create app_users table (User.java)
 CREATE TABLE app_users (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -49,6 +37,7 @@ CREATE TABLE campaigns (
     `system_name` VARCHAR(255),
     `description` TEXT,
     `track_count` INT,
+    `length_in_months` INT,
     `pay_rate` DOUBLE,
     `pay_step` INT,
     `salvage_terms` VARCHAR(255),
@@ -59,6 +48,10 @@ CREATE TABLE campaigns (
     `transport_step` INT,
     `command_rights` VARCHAR(255),
     `command_step` INT,
+    `monthly_pay` INT DEFAULT 500,
+    `monthly_maintenance` INT DEFAULT 500,
+    `transportation_cost` INT DEFAULT 300,
+    `combat_pay` INT DEFAULT 500,
     CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)
 );
 
@@ -81,6 +74,8 @@ CREATE TABLE campaign_tracks (
     `location` VARCHAR(255),
     `next_session` DATETIME,
     `attacker_faction_id` VARCHAR(36),
+    `month_index` INT,
+    `complications` VARCHAR(1000),
     CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
 
@@ -124,7 +119,6 @@ CREATE TABLE mercenary_commands (
     `owner_id` VARCHAR(36) NOT NULL,
     `total_support_points` INT DEFAULT 0,
     `reputation` INT DEFAULT 1,
-    `experience_level` VARCHAR(50),
     `commanding_officer` VARCHAR(255),
     CONSTRAINT fk_command_owner FOREIGN KEY (owner_id) REFERENCES app_users(id)
 );
@@ -140,6 +134,17 @@ CREATE TABLE detachments (
     CONSTRAINT fk_detachment_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
 
+-- Track which contract a detachment is working under for a specific month
+CREATE TABLE detachment_contract_assignments (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    detachment_id VARCHAR(36) NOT NULL,
+    contract_id VARCHAR(36) NOT NULL,
+    month_index INT NOT NULL,
+    CONSTRAINT fk_assign_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_assign_contract FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
+    UNIQUE KEY idx_det_month_contract (detachment_id, month_index)
+);
+
 -- Create ledger_entries table (LedgerEntry.java)
 CREATE TABLE ledger_entries (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -148,11 +153,7 @@ CREATE TABLE ledger_entries (
     `amount` INT,
     `short_description` VARCHAR(1000),
     `timestamp` DATETIME,
-    `running_total` INT,
-    `cover_amount` INT,
-    `paid_amount` INT,
     `reputation_change` INT,
-    `campaign_id` VARCHAR(36),
     `campaign_name` VARCHAR(255),
     `month_index` INT,
     CONSTRAINT fk_ledger_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
@@ -172,6 +173,7 @@ CREATE TABLE combat_units (
     `as_size` INT,
     `bv` INT,
     `pv` INT,
+    `available_from_month` INT DEFAULT 1,
     `status` VARCHAR(255),
     CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL

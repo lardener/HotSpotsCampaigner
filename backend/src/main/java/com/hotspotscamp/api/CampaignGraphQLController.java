@@ -161,6 +161,13 @@ public class CampaignGraphQLController {
         return campaignService.getCampaignInvites(id);
     }
 
+    @SchemaMapping(typeName = "CampaignProposal", field = "tracks")
+    public List<String> getProposalTracks(CampaignProposal proposal) {
+        return proposal.tracks().stream()
+                .map(t -> t.name() + (t.complication().equals("None") ? "" : " [" + t.complication() + "]"))
+                .collect(Collectors.toList());
+    }
+
     @QueryMapping
     public CampaignMetadata campaignMetadata(Principal principal) {
         if (isAnonymous(principal)) {
@@ -173,8 +180,18 @@ public class CampaignGraphQLController {
                 campaignService.getAvailableFactions(),
                 campaignService.getEmployerTypes(),
                 campaignService.getResolvedStepsTable().entrySet().stream()
-                        .map(e -> new ResolvedStepEntry(e.getKey(), e.getValue()))
+                        .map(e -> new ResolvedStepEntry(e.getKey(), mapToValues(e.getValue())))
                         .collect(Collectors.toList())
+        );
+    }
+
+    private ContractStepValues mapToValues(Map<String, String> map) {
+        return new ContractStepValues(
+                map.get("payRate"),
+                map.get("salvageRights"),
+                map.get("supportRights"),
+                map.get("transportation"),
+                map.get("commandRights")
         );
     }
 
@@ -192,13 +209,26 @@ public class CampaignGraphQLController {
 
     }
 
-    public record ResolvedStepEntry(Integer step, Map<String, String> values) {
+    public record ResolvedStepEntry(Integer step, ContractStepValues values) {
+
+    }
+
+    public record ContractStepValues(
+            String payRate,
+            String salvageRights,
+            String supportRights,
+            String transportation,
+            String commandRights
+            ) {
 
     }
 
     @QueryMapping
     public Mono<java.util.List<String>> generateTracks(@Argument String mission, @Argument String commandRights, @Argument Integer count) {
-        return Mono.just(campaignService.generateTracks(mission, commandRights, count));
+        return Mono.just(campaignService.generateTracks(mission, commandRights, count).stream()
+                .map(t -> t.name() + (t.complication().equals("None") ? "" : " [" + t.complication() + "]"))
+                .collect(Collectors.toList())
+        );
     }
 
     @QueryMapping
@@ -214,7 +244,9 @@ public class CampaignGraphQLController {
                 (String) finalInput.get("salvageTerms"), (String) finalInput.get("supportTerms"), (String) finalInput.get("transportTerms"),
                 (String) finalInput.get("commandRights"), TypeUtils.asInt(finalInput.get("payStep")), TypeUtils.asInt(finalInput.get("salvageStep")),
                 TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
-                TypeUtils.asInt(finalInput.get("trackCount"))
+                TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")),
+                TypeUtils.asInt(finalInput.get("monthlyPay")), TypeUtils.asInt(finalInput.get("monthlyMaintenance")),
+                TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay"))
         ));
     }
 
@@ -265,7 +297,9 @@ public class CampaignGraphQLController {
                             (String) finalInput.get("salvageTerms"), (String) finalInput.get("supportTerms"), (String) finalInput.get("transportTerms"),
                             (String) finalInput.get("commandRights"), TypeUtils.asInt(finalInput.get("payStep")), TypeUtils.asInt(finalInput.get("salvageStep")),
                             TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
-                            TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")));
+                            TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")),
+                            TypeUtils.asInt(finalInput.get("monthlyPay")), TypeUtils.asInt(finalInput.get("monthlyMaintenance")),
+                            TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay")));
                 });
     }
 
@@ -286,6 +320,14 @@ public class CampaignGraphQLController {
             return Mono.error(new RuntimeException("Unauthorized"));
         }
         return campaignService.updateTrack(id, input);
+    }
+
+    @MutationMapping
+    public Mono<CampaignTrack> rerollTrack(@Argument UUID id, Principal principal) {
+        if (principal == null) {
+            return Mono.error(new RuntimeException("Unauthorized"));
+        }
+        return campaignService.rerollTrack(id, principal.getName());
     }
 
     @MutationMapping

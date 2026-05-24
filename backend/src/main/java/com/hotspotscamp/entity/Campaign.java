@@ -61,6 +61,14 @@ public class Campaign implements Persistable<UUID> {
     private String commandRights;
     @Column("command_step")
     private Integer commandStep;
+    @Column("monthly_pay")
+    private Integer monthlyPay;
+    @Column("monthly_maintenance")
+    private Integer monthlyMaintenance;
+    @Column("transportation_cost")
+    private Integer transportationCost;
+    @Column("combat_pay")
+    private Integer combatPay;
 
     @Transient
     @Builder.Default

@@ -61,6 +61,10 @@ public class SchemaGenerator {
         sql.append("    `transport_step` INT,\n");
         sql.append("    `command_rights` VARCHAR(255),\n");
         sql.append("    `command_step` INT,\n");
+        sql.append("    `monthly_pay` INT DEFAULT 500,\n");
+        sql.append("    `monthly_maintenance` INT DEFAULT 500,\n");
+        sql.append("    `transportation_cost` INT DEFAULT 300,\n");
+        sql.append("    `combat_pay` INT DEFAULT 500,\n");
         sql.append("    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 
@@ -84,6 +88,7 @@ public class SchemaGenerator {
         sql.append("    `next_session` DATETIME,\n");
         sql.append("    `attacker_faction_id` VARCHAR(36),\n");
         sql.append("    `month_index` INT,\n");
+        sql.append("    `complications` VARCHAR(1000),\n");
         sql.append("    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
@@ -127,7 +132,6 @@ public class SchemaGenerator {
         sql.append("    `owner_id` VARCHAR(36) NOT NULL,\n");
         sql.append("    `total_support_points` INT DEFAULT 0,\n");
         sql.append("    `reputation` INT DEFAULT 1,\n");
-        sql.append("    `experience_level` VARCHAR(50),\n");
         sql.append("    `commanding_officer` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_command_owner FOREIGN KEY (owner_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
@@ -143,6 +147,17 @@ public class SchemaGenerator {
         sql.append("    CONSTRAINT fk_detachment_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
+        sql.append("-- Track which contract a detachment is working under for a specific month\n");
+        sql.append("CREATE TABLE detachment_contract_assignments (\n");
+        sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
+        sql.append("    detachment_id VARCHAR(36) NOT NULL,\n");
+        sql.append("    contract_id VARCHAR(36) NOT NULL,\n");
+        sql.append("    month_index INT NOT NULL,\n");
+        sql.append("    CONSTRAINT fk_assign_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE,\n");
+        sql.append("    CONSTRAINT fk_assign_contract FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,\n");
+        sql.append("    UNIQUE KEY idx_det_month_contract (detachment_id, month_index)\n");
+        sql.append(");\n\n");
+
         sql.append("-- Create ledger_entries table (LedgerEntry.java)\n");
         sql.append("CREATE TABLE ledger_entries (\n");
         sql.append("    id VARCHAR(36) NOT NULL PRIMARY KEY,\n");
@@ -151,11 +166,7 @@ public class SchemaGenerator {
         sql.append("    `amount` INT,\n");
         sql.append("    `short_description` VARCHAR(1000),\n");
         sql.append("    `timestamp` DATETIME,\n");
-        sql.append("    `running_total` INT,\n");
-        sql.append("    `cover_amount` INT,\n");
-        sql.append("    `paid_amount` INT,\n");
         sql.append("    `reputation_change` INT,\n");
-        sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `campaign_name` VARCHAR(255),\n");
         sql.append("    `month_index` INT,\n");
         sql.append("    CONSTRAINT fk_ledger_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
@@ -175,6 +186,7 @@ public class SchemaGenerator {
         sql.append("    `as_size` INT,\n");
         sql.append("    `bv` INT,\n");
         sql.append("    `pv` INT,\n");
+        sql.append("    `available_from_month` INT DEFAULT 1,\n");
         sql.append("    `status` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
