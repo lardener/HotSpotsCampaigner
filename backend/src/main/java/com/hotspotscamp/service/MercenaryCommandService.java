@@ -132,7 +132,7 @@ public class MercenaryCommandService {
     }
 
     @Transactional
-    public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, String co, Integer sp, Integer rep, String userId) {
+    public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, String name, String co, Integer sp, Integer rep, String userId) {
         return commandRepository.findById(commandId)
                 .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found: " + commandId))) // Explicitly type Mono.error
                 .flatMap(cmd -> userService.resolveOrCreateUser(userId).<MercenaryCommand>flatMap(user -> { // Explicitly type flatMap
@@ -140,6 +140,9 @@ public class MercenaryCommandService {
                 return Mono.<MercenaryCommand>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
             }
 
+            if (name != null) {
+                cmd.setName(name);
+            }
             if (co != null) {
                 cmd.setCommandingOfficer(co);
             }
@@ -360,6 +363,14 @@ public class MercenaryCommandService {
                                 ).then(syncTotalSupportPoints(commandId)).then();
                             });
                 });
+    }
+
+    public Flux<CombatUnit> getUnitsByDetachmentId(@NonNull UUID detachmentId) {
+        return combatUnitRepository.findAllByDetachmentId(detachmentId);
+    }
+
+    public Flux<Pilot> getPilotsByDetachmentId(@NonNull UUID detachmentId) {
+        return pilotRepository.findAllByDetachmentId(detachmentId);
     }
 
     /**

@@ -50,7 +50,7 @@ type Subscription {
 type Mutation {
     # Command Management
     establishCommand(name: String!, commandingOfficer: String, totalSupportPoints: Int): MercenaryCommand
-    updateCommand(id: ID!, commandingOfficer: String, totalSupportPoints: Int, reputation: Int): MercenaryCommand
+    updateCommand(id: ID!, name: String, commandingOfficer: String, totalSupportPoints: Int, reputation: Int): MercenaryCommand
     deleteCommand(commandId: ID!, force: Boolean): Boolean
     
     # Campaign Management
@@ -137,6 +137,9 @@ type Detachment {
     mercenaryCommandId: ID
     campaignId: ID
     campaignName: String
+    mercenaryCommandName: String
+    units: [CombatUnit]
+    pilots: [Pilot]
 }
 
 type LedgerEntry {

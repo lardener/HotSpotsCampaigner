@@ -25,6 +25,7 @@ import com.hotspotscamp.util.TypeUtils;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import java.util.Comparator;
 
 @Controller
 @RequiredArgsConstructor
@@ -35,19 +36,15 @@ public class CommandGraphQLController {
     @QueryMapping
     public Flux<MercenaryCommand> myCommands(Principal principal) {
         if (principal == null) {
-            // Log warning: GraphQL query attempted without valid session
             return Flux.empty();
         }
-        // getName() returns the 'sub' for OAuth2 and the unique username for invited players
+        // principal.getName() returns the 'sub' for OAuth2 and the unique username for invited players
         return commandService.getCommandsByUser(principal.getName());
     }
 
     @QueryMapping
     public Mono<MercenaryCommand> getCommand(@Argument UUID id, Principal principal) {
-        if (id == null) {
-            return Mono.empty();
-        }
-        if (principal == null) {
+        if (id == null || principal == null) {
             return Mono.empty();
         }
         String userId = principal.getName();
@@ -56,11 +53,11 @@ public class CommandGraphQLController {
     }
 
     @QueryMapping
-    public Mono<Object> commandAssets(@Argument UUID commandId, Principal principal) {
+    public Mono<MercenaryCommandService.CommandAssetsResponse> commandAssets(@Argument UUID commandId, Principal principal) {
         if (commandId == null) {
             return Mono.empty();
         }
-        return commandService.getAssetsByCommandId(commandId).cast(Object.class);
+        return commandService.getAssetsByCommandId(commandId);
     }
 
     @SubscriptionMapping
@@ -109,6 +106,21 @@ public class CommandGraphQLController {
         return commandService.getCampaignName(campaignId);
     }
 
+    @SchemaMapping(typeName = "Detachment", field = "mercenaryCommandName")
+    public Mono<String> getDetachmentCommandName(Detachment detachment) {
+        return commandService.getCommandById(detachment.getMercenaryCommandId()).map(MercenaryCommand::getName);
+    }
+
+    @SchemaMapping(typeName = "Detachment", field = "units")
+    public Flux<CombatUnit> getDetachmentUnits(Detachment detachment) {
+        return commandService.getUnitsByDetachmentId(detachment.getId());
+    }
+
+    @SchemaMapping(typeName = "Detachment", field = "pilots")
+    public Flux<Pilot> getDetachmentPilots(Detachment detachment) {
+        return commandService.getPilotsByDetachmentId(detachment.getId());
+    }
+
     @SchemaMapping(typeName = "MercenaryCommand", field = "allLedgerEntries")
     public Flux<LedgerEntry> getAllLedgerEntries(MercenaryCommand command) {
         UUID id = command.getId();
@@ -116,7 +128,7 @@ public class CommandGraphQLController {
             return Flux.empty();
         }
         return commandService.getLedgerEntriesByCommandId(id)
-                .sort(Comparator.comparing(LedgerEntry::getTimestamp, Comparator.nullsLast(Comparator.reverseOrder())));
+                .sort(Comparator.comparing(LedgerEntry::getTimestamp).reversed());
     }
 
     @MutationMapping
@@ -149,66 +161,51 @@ public class CommandGraphQLController {
 
     @MutationMapping
     public Mono<MercenaryCommand> updateCommand(@Argument UUID id,
+            @Argument String name,
             @Argument String commandingOfficer,
             @Argument Integer totalSupportPoints,
             @Argument Integer reputation,
             Principal principal) {
-        if (id == null) {
-            return Mono.error(new IllegalArgumentException("Command ID is required"));
+        if (id == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to update command"));
-        }
-        return commandService.updateCommandDetails(id, commandingOfficer, totalSupportPoints, reputation, principal.getName());
+        return commandService.updateCommandDetails(id, name, commandingOfficer, totalSupportPoints, reputation, principal.getName());
     }
 
     @MutationMapping
     public Mono<Campaign> updateCampaign(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
-        // Note: Reusing Command service for campaign management as per current architecture
-        if (id == null) {
-            return Mono.error(new IllegalArgumentException("Campaign ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to update campaign"));
+        if (id == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.updateCampaignDetails(id, input, principal.getName());
     }
 
     @MutationMapping
     public Mono<Boolean> assignDetachmentToCampaign(@Argument UUID detachmentId, @Argument UUID campaignId, Principal principal) {
-        if (detachmentId == null) {
-            return Mono.error(new IllegalArgumentException("Detachment ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to assign detachment"));
+        if (detachmentId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.assignDetachmentToCampaign(detachmentId, campaignId, principal.getName()).thenReturn(true);
     }
 
     @MutationMapping
     public Mono<Boolean> deleteUnit(@Argument UUID unitId, Principal principal) {
-        if (unitId == null) {
-            return Mono.error(new IllegalArgumentException("Unit ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to delete unit"));
+        if (unitId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.deleteCombatUnit(unitId, principal.getName()).thenReturn(true);
     }
 
     @MutationMapping
     public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
-        if (commandId == null) {
-            return Mono.error(new IllegalArgumentException("Command ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to hire pilot"));
+        if (commandId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         Pilot pilot = Pilot.builder()
                 .name((String) input.get("name"))
-                .gunnery((Integer) input.get("gunnery"))
-                .piloting((Integer) input.get("piloting"))
-                .asSkill(input.get("asSkill") != null ? (Integer) input.get("asSkill") : null)
+                .gunnery(TypeUtils.asInt(input.get("gunnery")))
+                .piloting(TypeUtils.asInt(input.get("piloting")))
+                .asSkill(TypeUtils.asInt(input.get("asSkill")))
                 .unitType((String) input.get("unitType"))
                 .status((String) input.get("status"))
                 .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
@@ -218,17 +215,14 @@ public class CommandGraphQLController {
 
     @MutationMapping
     public Mono<Pilot> updatePilot(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
-        if (id == null) {
-            return Mono.error(new IllegalArgumentException("Pilot ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to update pilot"));
+        if (id == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         Pilot pilot = Pilot.builder()
                 .name((String) input.get("name"))
-                .gunnery((Integer) input.get("gunnery"))
-                .piloting((Integer) input.get("piloting"))
-                .asSkill(input.get("asSkill") != null ? (Integer) input.get("asSkill") : null)
+                .gunnery(TypeUtils.asInt(input.get("gunnery")))
+                .piloting(TypeUtils.asInt(input.get("piloting")))
+                .asSkill(TypeUtils.asInt(input.get("asSkill")))
                 .unitType((String) input.get("unitType"))
                 .status((String) input.get("status"))
                 .build();
@@ -237,33 +231,24 @@ public class CommandGraphQLController {
 
     @MutationMapping
     public Mono<Boolean> deletePilot(@Argument UUID pilotId, Principal principal) {
-        if (pilotId == null) {
-            return Mono.error(new IllegalArgumentException("Pilot ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to delete pilot"));
+        if (pilotId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.deletePilot(pilotId, principal.getName()).thenReturn(true);
     }
 
     @MutationMapping
     public Mono<Detachment> createDetachment(@Argument UUID commandId, @Argument UUID campaignId, @Argument String name, Principal principal) {
-        if (commandId == null) {
-            return Mono.error(new IllegalArgumentException("Command ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to create detachment"));
+        if (commandId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.createDetachment(commandId, campaignId, name, principal.getName());
     }
 
     @MutationMapping
     public Mono<Boolean> deleteDetachment(@Argument UUID detachmentId, Principal principal) {
-        if (detachmentId == null) {
-            return Mono.error(new IllegalArgumentException("Detachment ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to delete detachment"));
+        if (detachmentId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.deleteDetachment(detachmentId, principal.getName()).thenReturn(true);
     }
@@ -277,36 +262,34 @@ public class CommandGraphQLController {
             @Argument String campaignName,
             @Argument Integer monthIndex,
             Principal principal) {
-        if (commandId == null) {
-            return Mono.error(new IllegalArgumentException("Command ID is required"));
+        if (commandId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to add ledger entry"));
-        }
-        LedgerEntry entry = LedgerEntry.builder().amount(amount).description(description)
+        LedgerEntry entry = LedgerEntry.builder()
+                .amount(amount)
+                .description(description)
                 .reputationChange(reputationChange)
-                .campaignName(campaignName).monthIndex(monthIndex).build();
+                .campaignName(campaignName)
+                .monthIndex(monthIndex)
+                .build();
         return commandService.addLedgerEntry(commandId, detachmentId, entry, principal.getName());
     }
 
     @MutationMapping
     public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
-        if (commandId == null) {
-            return Mono.error(new IllegalArgumentException("Command ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to add combat unit"));
+        if (commandId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         CombatUnit unit = CombatUnit.builder()
-                .type(input.get("type") != null ? (String) input.get("type") : "MECH")
+                .type((String) input.get("type"))
                 .model((String) input.get("model"))
                 .variant((String) input.get("variant"))
                 .techBase((String) input.get("techBase"))
-                .tonnage(input.get("tonnage") != null ? (Integer) input.get("tonnage") : 0)
-                .asSize(input.get("asSize") != null ? (Integer) input.get("asSize") : 0)
-                .bv(input.get("bv") != null ? (Integer) input.get("bv") : 0)
-                .pv(input.get("pv") != null ? (Integer) input.get("pv") : 0)
-                .availableFromMonth(input.get("availableFromMonth") != null ? (Integer) input.get("availableFromMonth") : 1)
+                .tonnage(TypeUtils.asInt(input.get("tonnage")))
+                .asSize(TypeUtils.asInt(input.get("asSize")))
+                .bv(TypeUtils.asInt(input.get("bv")))
+                .pv(TypeUtils.asInt(input.get("pv")))
+                .availableFromMonth(TypeUtils.asInt(input.get("availableFromMonth")))
                 .status((String) input.get("status"))
                 .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
                 .build();
@@ -315,11 +298,8 @@ public class CommandGraphQLController {
 
     @MutationMapping
     public Mono<CombatUnit> updateCombatUnit(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
-        if (id == null) {
-            return Mono.error(new IllegalArgumentException("Unit ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to update combat unit"));
+        if (id == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         CombatUnit unit = CombatUnit.builder()
                 .type((String) input.get("type"))
@@ -338,22 +318,16 @@ public class CommandGraphQLController {
 
     @MutationMapping
     public Mono<Boolean> assignAsset(@Argument String assetType, @Argument UUID assetId, @Argument UUID detachmentId, Principal principal) {
-        if (assetId == null) {
-            return Mono.error(new IllegalArgumentException("Asset ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to assign asset"));
+        if (assetId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.assignAssetToDetachment(assetType, assetId, detachmentId, principal.getName()).thenReturn(true);
     }
 
     @MutationMapping
     public Mono<Boolean> joinCampaign(@Argument String token, @Argument UUID detachmentId, Principal principal) {
-        if (detachmentId == null) {
-            return Mono.error(new IllegalArgumentException("Detachment ID is required"));
-        }
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to join campaign"));
+        if (detachmentId == null || principal == null) {
+            return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.joinCampaign(token, detachmentId, principal.getName());
     }

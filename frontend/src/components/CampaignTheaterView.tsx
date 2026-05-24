@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { NodeType } from './NavigationTree';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 
 const CREATE_INVITE = gql`
   mutation CreateInvite($campaignId: ID!) {
@@ -99,6 +100,22 @@ const GET_CAMPAIGN_INVITES = gql`
             id
             name
             mercenaryCommandId
+            mercenaryCommandName
+            units {
+                id
+                type
+                tonnage
+                asSize
+                bv
+                pv
+            }
+            pilots {
+                id
+                unitType
+                gunnery
+                piloting
+                asSkill
+            }
         }
       campaignInvites {
             id
@@ -131,6 +148,9 @@ interface ParticipatingDetachment {
     id: string;
     name: string;
     mercenaryCommandId?: string;
+    mercenaryCommandName?: string;
+    units?: any[];
+    pilots?: any[];
 }
 
 interface TrackDetail {
@@ -212,14 +232,20 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
-    const saveTimeoutRef = useRef<Record<string, number>>({});
-    const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
     // Merge props data with fresh query data for theater management
     const campaign = useMemo(() => ({
         ...campaignFromProps,
         ...(campaignQueryData?.getCampaign || {})
     }), [campaignFromProps, campaignQueryData]);
+
+    const [editingField, setEditingField] = useState<string | null>(null);
+    const [monthlyPay, setMonthlyPay] = useState(campaign?.monthlyPay || 500);
+    const [monthlyMaintenance, setMonthlyMaintenance] = useState(campaign?.monthlyMaintenance || 500);
+    const [transportationCost, setTransportationCost] = useState(campaign?.transportationCost || 300);
+    const [combatPay, setCombatPay] = useState(campaign?.combatPay || 500);
+    const saveTimeoutRef = useRef<Record<string, number>>({});
+    const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
     const opposition = campaign?.contracts?.find((c: any) => !c.primaryContract);
     const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(campaign?.lengthInMonths || 1);
@@ -235,6 +261,10 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     useEffect(() => {
         setCampaignLengthInMonths(campaign?.lengthInMonths || 1);
         setCampaignTrackCount(campaign?.trackCount || 0);
+        setMonthlyPay(campaign?.monthlyPay || 500);
+        setMonthlyMaintenance(campaign?.monthlyMaintenance || 500);
+        setTransportationCost(campaign?.transportationCost || 300);
+        setCombatPay(campaign?.combatPay || 500);
     }, [campaign]);
 
     const handleGenerateInvite = async () => {
@@ -257,7 +287,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             // Ensure numbers are parsed correctly for trackCount and lengthInMonths
             const numericFields = ['trackCount', 'lengthInMonths', 'monthlyPay', 'monthlyMaintenance', 'transportationCost', 'combatPay'];
             if (numericFields.includes(field)) {
-                input[field] = parseInt(value as string);
+                const val = parseInt(value as string) || 0;
+                // Months and Tracks cannot be below 1 (enforced at call site but safe to repeat)
+                if (field === 'trackCount' || field === 'lengthInMonths') {
+                    input[field] = Math.max(1, val);
+                } else {
+                    input[field] = Math.max(0, val);
+                }
             }
             await updateCampaign({ variables: { id: selectedCampaignId, input } });
             await refetchCampaign();
@@ -418,56 +454,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         <div className="tactical-panel" style={{ gridColumn: 'span 2' }}>
                             <div className="flex-between mb-10">
                                 <h3 className="zone-header">THEATER COMMAND DATA</h3>
-                                <div className="flex flex-gap-15">
-                                    <div className="input-group">
-                                        <label htmlFor="campaign-months" className="restricted-text" style={{ fontSize: '0.7rem' }}>MONTHS:</label>
-                                        <input
-                                            id="campaign-months"
-                                            type="number"
-                                            min="1"
-                                            className="inline-edit inline-edit-input-small"
-                                            value={campaignLengthInMonths}
-                                            onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
-                                            onBlur={(e) => handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1))}
-                                            title="Total duration of the campaign in months"
-                                        />
-                                    </div>
-                                    <div className="input-group">
-                                        <label htmlFor="campaign-tracks" className="restricted-text" style={{ fontSize: '0.7rem' }}>TRACKS:</label>
-                                        <input
-                                            id="campaign-tracks"
-                                            type="number"
-                                            min="1"
-                                            className="inline-edit inline-edit-input-small"
-                                            value={campaignTrackCount}
-                                            onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
-                                            onBlur={(e) => handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1))}
-                                            title="Total number of tracks in the campaign"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="flex flex-gap-15 mt-10">
-                                    <div className="input-group">
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>BASE PAY:</label>
-                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.monthlyPay}
-                                            onBlur={(e) => handleUpdate('monthlyPay', e.target.value)} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>MAINT:</label>
-                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.monthlyMaintenance}
-                                            onBlur={(e) => handleUpdate('monthlyMaintenance', e.target.value)} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS COST:</label>
-                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.transportationCost}
-                                            onBlur={(e) => handleUpdate('transportationCost', e.target.value)} />
-                                    </div>
-                                    <div className="input-group">
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>COMBAT:</label>
-                                        <input type="number" className="inline-edit-input-small" defaultValue={campaign?.combatPay}
-                                            onBlur={(e) => handleUpdate('combatPay', e.target.value)} />
-                                    </div>
-                                </div>
                             </div>
 
                             <div className="mt-10" style={{ width: '100%' }}>
@@ -494,6 +480,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             lineHeight: '1.4'
                                         }}
                                         onClick={() => setIsEditingDescription(true)}
+                                        onFocus={() => setIsEditingDescription(true)}
+                                        tabIndex={0}
                                         title="Click to edit theater command briefing"
                                     >
                                         {campaign?.description ? (
@@ -505,28 +493,133 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 )}
                             </div>
 
+                            <div className="grid-6-col mt-20 pt-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', borderTop: '1px solid var(--terminal-border)' }}>
+                                <div>
+                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
+                                    {editingField === 'lengthInMonths' ? (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                            <input type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                value={campaignLengthInMonths} autoFocus
+                                                onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                onBlur={(e) => { handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }} />
+                                        </div>
+                                    ) : (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setEditingField('lengthInMonths')} onFocus={() => setEditingField('lengthInMonths')} tabIndex={0}>
+                                            {campaignLengthInMonths}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
+                                    {editingField === 'trackCount' ? (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                            <input type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                value={campaignTrackCount} autoFocus
+                                                onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                onBlur={(e) => { handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }} />
+                                        </div>
+                                    ) : (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setEditingField('trackCount')} onFocus={() => setEditingField('trackCount')} tabIndex={0}>
+                                            {campaignTrackCount}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>BASE PAY</label>
+                                    {editingField === 'monthlyPay' ? (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                            <input type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                value={monthlyPay} autoFocus
+                                                onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                onBlur={(e) => { handleUpdate('monthlyPay', e.target.value); setEditingField(null); }} />
+                                        </div>
+                                    ) : (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setEditingField('monthlyPay')} onFocus={() => setEditingField('monthlyPay')} tabIndex={0}>
+                                            {monthlyPay}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>MAINTENANCE</label>
+                                    {editingField === 'monthlyMaintenance' ? (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                            <input type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                value={monthlyMaintenance} autoFocus
+                                                onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                onBlur={(e) => { handleUpdate('monthlyMaintenance', e.target.value); setEditingField(null); }} />
+                                        </div>
+                                    ) : (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setEditingField('monthlyMaintenance')} onFocus={() => setEditingField('monthlyMaintenance')} tabIndex={0}>
+                                            {monthlyMaintenance}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS COST</label>
+                                    {editingField === 'transportationCost' ? (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                            <input type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                value={transportationCost} autoFocus
+                                                onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                onBlur={(e) => { handleUpdate('transportationCost', e.target.value); setEditingField(null); }} />
+                                        </div>
+                                    ) : (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setEditingField('transportationCost')} onFocus={() => setEditingField('transportationCost')} tabIndex={0}>
+                                            {transportationCost}
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>COMBAT PAY</label>
+                                    {editingField === 'combatPay' ? (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                            <input type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                value={combatPay} autoFocus
+                                                onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                onBlur={(e) => { handleUpdate('combatPay', e.target.value); setEditingField(null); }} />
+                                        </div>
+                                    ) : (
+                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
+                                            {combatPay}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             <div className="mt-15">
                                 <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
                                 <div className="grid-5-col mt-5">
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY (STEP {campaign?.payStep})</label>
-                                        <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem' }}>{Math.round((campaign?.payRate || 0) * 100)}%</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{Math.round((campaign?.payRate || 0) * 100)}%</div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SALVAGE ({campaign?.salvageStep})</label>
-                                        <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem' }}>{campaign?.salvageTerms}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.salvageTerms}</div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SUPPORT ({campaign?.supportStep})</label>
-                                        <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem' }}>{campaign?.supportTerms}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.supportTerms}</div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS ({campaign?.transportStep})</label>
-                                        <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem' }}>{campaign?.transportTerms}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.transportTerms}</div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CMD ({campaign?.commandStep})</label>
-                                        <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem' }}>{campaign?.commandRights}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.commandRights}</div>
                                     </div>
                                 </div>
                             </div>
@@ -568,7 +661,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     {activeToken}
                                 </div>
                             ) : (
-                                <button type="button" className="login-button" style={{ marginTop: '15px' }} onClick={handleGenerateInvite} title="Generate a new invitation key">GENERATE INVITE KEY</button>
+                                <button type="button" className="mode-btn theme-blue text-left" style={{ marginTop: '15px', width: '100%' }} onClick={handleGenerateInvite} title="Generate a new invitation key">GENERATE INVITE KEY</button>
                             )}
 
                             {campaignInvites.length > 0 && (
@@ -716,7 +809,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
                     <div className="dashboard-section tactical-panel">
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
-                        <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
+                        <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '15px', marginTop: '15px' }}>
                             {campaign?.participatingDetachments?.map((det: ParticipatingDetachment) => (
                                 <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
                                     <div
@@ -728,8 +821,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: campaign?.id, managerView: true }
                                         })}
                                     >
-                                        <div className="asset-type">DETACHMENT</div>
-                                        <div className="asset-label">{det.name}</div>
+                                        <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
+                                        <div className="asset-label" style={{ marginBottom: '10px' }}>{det.name}</div>
+                                        <DetachmentReadinessSummary units={det.units || []} pilots={det.pilots || []} />
                                     </div>
                                     <button type="button" className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>
                                 </div>
