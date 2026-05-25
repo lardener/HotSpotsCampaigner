@@ -8,6 +8,7 @@ A TDD-first multi-tenant SaaS platform for managing Battletech Mercenaries campa
  ✅ **Invitation System**: Campaign Managers can generate secure tokens to invite players without requiring passwords or emails.
  ✅ **Role-Based Access Control (RBAC)**: Distinction between `ROLE_AUTHENTICATED` (Managers) and `ROLE_INVITED` (Players).
  ✅ **GraphQL API**: Unified reactive API entry point for all campaign, command, and ledger operations.
+ ✅ **Production-Ready Persistence**: Designed for Managed MySQL and S3-compatible object storage.
  ✅ **Command & Control Navigation**: Hierarchical tree-based navigation for managing multiple detachments across different theaters.
  ✅ **Theater Management Console**: Full control for Campaign Managers to schedule tracks, manage recruitment, and audit participating forces.
  ✅ **Temporal Logistics**: Track unit availability and repairs across campaign months.
@@ -159,6 +160,26 @@ npm test
 ```
 
 ## Architecture
+
+### Production Deployment (OVHcloud)
+
+The platform is designed to run on **Managed Kubernetes (MKS)**.
+
+1.  **Secrets**: Managed via K8s Secrets (not `.env` files).
+2.  **Ingress**: NGINX Ingress with TLS termination via `cert-manager`.
+3.  **Database**: OVHcloud Managed MySQL (Business Plan) for HA.
+4.  **Snapshots**: S3-compatible Object Storage for immutable campaign backups.
+
+### Security Roadmap
+
+*   **Encryption**: All traffic must be served over HTTPS (TLS 1.3).
+*   **GraphQL Safety**: 
+    *   Query Depth Limiting (Max depth: 10).
+    *   Query Complexity Analysis.
+*   **Rate Limiting**: 
+    *   Global API throttling.
+    *   Specific brute-force protection on the `joinCampaign` mutation.
+*   **Audit Logging**: All Campaign Manager actions (Invite generation, Detachment removal) are logged to an immutable audit trail.
 
 ### Backend (Spring Boot 3)
 - **Reactive Stack**: Spring WebFlux and Project Reactor for non-blocking I/O.

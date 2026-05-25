@@ -52,6 +52,7 @@ public class CampaignService {
     private final CampaignInviteRepository campaignInviteRepository;
     private final DetachmentRepository detachmentRepository;
     private final UserService userService;
+    private final InviteService inviteService;
 
     // DTOs for Configuration Tables
     private record RollEntry(int minRoll, int maxRoll, String value) {
@@ -637,13 +638,42 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<CampaignInvite> createInvite(UUID campaignId, String userId) {
+    public Mono<CampaignInvite> createInvite(UUID campaignId, String recipientName, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> campaignRepository.findById(campaignId).switchIfEmpty(Mono.error(new RuntimeException("Campaign not found"))).flatMap(camp -> {
             if (!camp.getManagerId().equals(user.getId().toString())) {
                 return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
             }
-            return campaignInviteRepository.save(CampaignInvite.builder().id(UUID.randomUUID()).campaignId(campaignId).token(UUID.randomUUID().toString().substring(0, 12).toUpperCase()).expiresAt(LocalDateTime.now().plusDays(7)).used(false).build());
+            return inviteService.generateInvite(campaignId, recipientName);
         }));
+    }
+
+    @Transactional
+    public Mono<Boolean> joinCampaign(String token, UUID detachmentId) {
+        return inviteService.validateAndConsumeInvite(token)
+                .flatMap(invite -> detachmentRepository.findById(detachmentId)
+                        .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT NOT FOUND")))
+                        .flatMap(detachment -> {
+                            detachment.setCampaignId(invite.getCampaignId());
+                            // In R2DBC, setting campaignId on a loaded detachment and saving performs an update.
+                            return detachmentRepository.save(detachment).thenReturn(true);
+                        })
+                );
+    }
+
+    @Transactional
+    public Mono<Boolean> deleteInvite(UUID inviteId, String userId) {
+        return userService.resolveOrCreateUser(userId).flatMap(user -> 
+            campaignInviteRepository.findById(inviteId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Invite not found")))
+                .flatMap(invite -> campaignRepository.findById(invite.getCampaignId())
+                    .flatMap(camp -> {
+                        if (!camp.getManagerId().equals(user.getId().toString())) {
+                            return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
+                        }
+                        return campaignInviteRepository.delete(invite).thenReturn(true);
+                    })
+                )
+        );
     }
 
     public Flux<CampaignInvite> getCampaignInvites(UUID campaignId) {

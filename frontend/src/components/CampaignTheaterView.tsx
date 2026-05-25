@@ -7,10 +7,17 @@ import remarkGfm from 'remark-gfm';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 
 const CREATE_INVITE = gql`
-  mutation CreateInvite($campaignId: ID!) {
-    createInvite(campaignId: $campaignId) {
+  mutation CreateInvite($campaignId: ID!, $recipientName: String) {
+    createInvite(campaignId: $campaignId, recipientName: $recipientName) {
       token
+      recipientName
     }
+  }
+`;
+
+const DELETE_INVITE = gql`
+  mutation DeleteInvite($id: ID!) {
+    deleteInvite(id: $id)
   }
 `;
 
@@ -120,6 +127,7 @@ const GET_CAMPAIGN_INVITES = gql`
       campaignInvites {
             id
             token
+            recipientName
             expiresAt
             used
         }
@@ -127,19 +135,60 @@ const GET_CAMPAIGN_INVITES = gql`
 }
 `;
 
+/**
+ * Custom Terminal-themed overlay to replace native browser popups.
+ */
+const TerminalOverlay: React.FC<{
+    title: string;
+    message: string;
+    showInput?: boolean;
+    onConfirm: (val?: string) => void;
+    onCancel: () => void;
+}> = ({ title, message, showInput, onConfirm, onCancel }) => {
+    const [input, setInput] = React.useState('');
+    return (
+        <div className="terminal-overlay-backdrop" style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+            <div className="tactical-panel theme-amber" style={{ width: '400px', border: '1px solid var(--terminal-amber)' }}>
+                <h3 className="zone-header">{title}</h3>
+                <p className="restricted-text mt-10">{message}</p>
+                {showInput && (
+                    <input
+                        type="text"
+                        className="table-input mt-10 w-100"
+                        autoFocus
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && onConfirm(input)}
+                    />
+                )}
+                <div className="flex flex-gap-10 mt-20 justify-end">
+                    <button className="mode-btn" onClick={onCancel}>CANCEL</button>
+                    <button className="mode-btn theme-amber" onClick={() => onConfirm(input)}>CONFIRM</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 interface CreateInviteData {
     createInvite: {
         token: string;
+        recipientName: string;
     };
 }
 
 interface CreateInviteVars {
     campaignId: string;
+    recipientName?: string | null;
 }
 
 interface CampaignInvite {
     id: string;
     token: string;
+    recipientName?: string;
     expiresAt: string;
     used: boolean;
 }
@@ -226,12 +275,22 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     });
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
     const [updateTrack] = useMutation(UPDATE_TRACK);
+    const [deleteInvite] = useMutation(DELETE_INVITE);
     const [rerollTrack] = useMutation(REROLL_TRACK);
     const [reorderTracks] = useMutation(REORDER_TRACKS);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
+    const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+    const [overlay, setOverlay] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        showInput?: boolean;
+        onConfirm: (val?: string) => void;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     // Merge props data with fresh query data for theater management
     const campaign = useMemo(() => ({
@@ -267,13 +326,29 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         setCombatPay(campaign?.combatPay || 500);
     }, [campaign]);
 
-    const handleGenerateInvite = async () => {
+    const handleGenerateInvite = () => {
         if (!selectedCampaignId) return;
-        const { data } = await createInvite({ variables: { campaignId: selectedCampaignId } });
-        if (data?.createInvite) {
-            setActiveToken(data.createInvite.token);
-            refetchCampaign();
-        }
+        setOverlay({
+            isOpen: true,
+            title: "RECRUITMENT PROTOCOL",
+            message: "ENTER RECIPIENT NAME (OR IDENTIFIER):",
+            showInput: true,
+            onConfirm: async (recipientName) => {
+                const { data } = await createInvite({ variables: { campaignId: selectedCampaignId, recipientName } });
+                if (data?.createInvite) {
+                    setActiveToken(data.createInvite.token);
+                    refetchCampaign();
+                }
+                setOverlay(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const handleCopyToken = (token: string) => {
+        navigator.clipboard.writeText(token).then(() => {
+            setCopiedToken(token);
+            setTimeout(() => setCopiedToken(null), 2000);
+        });
     };
 
     const handleUpdate = (field: string, value: string | number) => {
@@ -299,6 +374,21 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             await refetchCampaign();
             setIsSyncing(false);
         }, 1000) as unknown as number;
+    };
+
+    const handleDeleteInvite = (inviteId: string) => {
+        setOverlay({
+            isOpen: true,
+            title: "SECURITY REVOCATION",
+            message: "DELETE THIS INVITATION KEY? IT WILL NO LONGER BE VALID.",
+            onConfirm: async () => {
+                try {
+                    await deleteInvite({ variables: { id: inviteId } });
+                    await refetchCampaign();
+                } catch (err) { console.error(err); }
+                setOverlay(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     const handleTrackUpdate = (trackId: string, field: string, value: string) => {
@@ -371,11 +461,17 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         }
     };
 
-    const handleRemoveDetachment = async (detId: string) => {
-        if (window.confirm("EJECT THIS DETACHMENT FROM THE THEATER?")) {
-            await assignDetachment({ variables: { detachmentId: detId, campaignId: null } });
-            window.location.reload();
-        }
+    const handleRemoveDetachment = (detId: string) => {
+        setOverlay({
+            isOpen: true,
+            title: "COMMAND PROTOCOL",
+            message: "EJECT THIS DETACHMENT FROM THE THEATER?",
+            onConfirm: async () => {
+                await assignDetachment({ variables: { detachmentId: detId, campaignId: null } });
+                window.location.reload();
+                setOverlay(prev => ({ ...prev, isOpen: false }));
+            }
+        });
     };
 
     return (
@@ -657,8 +753,17 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             <h3 className="zone-header">RECRUITMENT</h3>
                             <p className="restricted-text" style={{ fontSize: '0.7rem' }}>ISSUE AN INVITATION KEY TO ALLOW MERCENARY COMMANDS TO JOIN THIS THEATER.</p>
                             {activeToken ? (
-                                <div className="status-bar theme-amber" style={{ width: '100%', textAlign: 'center', fontSize: '1.2rem', marginTop: '15px' }}>
-                                    {activeToken}
+                                <div className="flex flex-gap-10 mt-15">
+                                    <div className="status-bar theme-amber flex-grow" style={{ textAlign: 'center', fontSize: '1.2rem', margin: 0 }}>
+                                        {activeToken}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="mode-btn theme-amber"
+                                        onClick={() => handleCopyToken(activeToken)}
+                                    >
+                                        {copiedToken === activeToken ? 'COPIED' : 'COPY'}
+                                    </button>
                                 </div>
                             ) : (
                                 <button type="button" className="mode-btn theme-blue text-left" style={{ marginTop: '15px', width: '100%' }} onClick={handleGenerateInvite} title="Generate a new invitation key">GENERATE INVITE KEY</button>
@@ -669,12 +774,25 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     <h4 className="restricted-text" style={{ fontSize: '0.7rem', marginBottom: '10px' }}>ACTIVE INVITES</h4>
                                     {campaignInvites.map((invite: CampaignInvite) => (
                                         <div key={invite.id} className="status-bar" style={{
-                                            display: 'block', margin: '5px 0', fontSize: '0.8rem', width: '100%',
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '5px 0', fontSize: '0.8rem', width: '100%',
                                             // Subdued opacity and line-through for used or expired tokens
                                             opacity: (invite.used || new Date(invite.expiresAt) < new Date()) ? 0.5 : 1,
                                             textDecoration: (invite.used || new Date(invite.expiresAt) < new Date()) ? 'line-through' : 'none'
                                         }}>
-                                            {invite.token} {invite.used && '(USED)'} {new Date(invite.expiresAt) < new Date() && '(EXPIRED)'}
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>
+                                                {invite.recipientName || 'ANONYMOUS'}: {invite.token.length > 12 ? invite.token.substring(0, 8) + '...' : invite.token} {invite.used && '(USED)'} {new Date(invite.expiresAt) < new Date() && '(EXPIRED)'}
+                                            </span>
+                                            <div className="flex flex-gap-5">
+                                                <button
+                                                    className="mode-btn sm-text"
+                                                    style={{ padding: '0 4px', height: '18px' }}
+                                                    onClick={() => handleCopyToken(invite.token)}
+                                                    title="Copy token reference"
+                                                >
+                                                    {copiedToken === invite.token ? 'OK' : 'COPY'}
+                                                </button>
+                                                <button className="mode-btn sm-text" style={{ padding: '0 4px', height: '18px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }} onClick={() => handleDeleteInvite(invite.id)}>X</button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -834,6 +952,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         </div>
                     </div>
                 </>
+            )}
+            {overlay.isOpen && (
+                <TerminalOverlay
+                    title={overlay.title}
+                    message={overlay.message}
+                    showInput={overlay.showInput}
+                    onConfirm={overlay.onConfirm}
+                    onCancel={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
+                />
             )}
         </div >
     );

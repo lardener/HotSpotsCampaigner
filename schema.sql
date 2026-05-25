@@ -21,8 +21,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- Create app_users table (User.java)
 CREATE TABLE app_users (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
-    `external_id` VARCHAR(255) UNIQUE,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+    `external_id` VARCHAR(64) NOT NULL UNIQUE,
     `display_name` VARCHAR(255),
     `email` VARCHAR(255),
     `role` VARCHAR(50)
@@ -30,7 +30,7 @@ CREATE TABLE app_users (
 
 -- Create campaigns table (Campaign.java)
 CREATE TABLE campaigns (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
     `manager_id` VARCHAR(36) NOT NULL,
     `status` VARCHAR(50),
@@ -57,9 +57,10 @@ CREATE TABLE campaigns (
 
 -- Create campaign_invites table (CampaignInvite.java)
 CREATE TABLE campaign_invites (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
-    `token` VARCHAR(255) UNIQUE,
+    `token` VARCHAR(64) NOT NULL UNIQUE,
+    `recipient_name` VARCHAR(255),
     `expires_at` DATETIME,
     `used` BOOLEAN DEFAULT FALSE,
     CONSTRAINT fk_invite_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
@@ -67,7 +68,7 @@ CREATE TABLE campaign_invites (
 
 -- Create campaign_tracks table (CampaignTrack.java)
 CREATE TABLE campaign_tracks (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `track_name` VARCHAR(255),
     `sequence_order` INT,
@@ -76,12 +77,13 @@ CREATE TABLE campaign_tracks (
     `attacker_faction_id` VARCHAR(36),
     `month_index` INT,
     `complications` VARCHAR(1000),
-    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
+    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
+    CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL
 );
 
 -- Create campaign_factions table (CampaignFaction.java)
 CREATE TABLE campaign_factions (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `faction_name` VARCHAR(255),
     `offers_contracts` BOOLEAN,
@@ -91,7 +93,7 @@ CREATE TABLE campaign_factions (
 
 -- Create contracts table (Contract.java)
 CREATE TABLE contracts (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `employer_faction_id` VARCHAR(36),
     `employer_category` VARCHAR(255),
@@ -109,12 +111,12 @@ CREATE TABLE contracts (
     `command_step` INT,
     `track_count` INT,
     CONSTRAINT fk_contract_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
-    CONSTRAINT fk_contract_faction FOREIGN KEY (employer_faction_id) REFERENCES campaign_factions(id)
+    CONSTRAINT fk_contract_faction FOREIGN KEY (employer_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE
 );
 
 -- Create mercenary_commands table (MercenaryCommand.java)
 CREATE TABLE mercenary_commands (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
     `owner_id` VARCHAR(36) NOT NULL,
     `total_support_points` INT DEFAULT 0,
@@ -125,7 +127,7 @@ CREATE TABLE mercenary_commands (
 
 -- Create detachments table (Detachment.java)
 CREATE TABLE detachments (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `mercenary_command_id` VARCHAR(36) NOT NULL,
     `campaign_id` VARCHAR(36),
     `name` VARCHAR(255),
@@ -136,10 +138,10 @@ CREATE TABLE detachments (
 
 -- Track which contract a detachment is working under for a specific month
 CREATE TABLE detachment_contract_assignments (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     detachment_id VARCHAR(36) NOT NULL,
     contract_id VARCHAR(36) NOT NULL,
-    month_index INT NOT NULL,
+    `month_index` INT NOT NULL,
     CONSTRAINT fk_assign_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE CASCADE,
     CONSTRAINT fk_assign_contract FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE,
     UNIQUE KEY idx_det_month_contract (detachment_id, month_index)
@@ -147,7 +149,7 @@ CREATE TABLE detachment_contract_assignments (
 
 -- Create ledger_entries table (LedgerEntry.java)
 CREATE TABLE ledger_entries (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
     `amount` INT,
@@ -162,7 +164,7 @@ CREATE TABLE ledger_entries (
 
 -- Create combat_units table (CombatUnit.java)
 CREATE TABLE combat_units (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
     `model` VARCHAR(255),
@@ -181,7 +183,7 @@ CREATE TABLE combat_units (
 
 -- Create pilots table (Pilot.java)
 CREATE TABLE pilots (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
     `name` VARCHAR(255),
@@ -196,7 +198,7 @@ CREATE TABLE pilots (
 
 -- Create faction_reputations table (FactionReputation.java)
 CREATE TABLE faction_reputations (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `campaign_faction_id` VARCHAR(36) NOT NULL,
     `mercenary_command_id` VARCHAR(36) NOT NULL,
     `score` INT,
@@ -204,3 +206,4 @@ CREATE TABLE faction_reputations (
     CONSTRAINT fk_reputation_faction FOREIGN KEY (campaign_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE,
     CONSTRAINT fk_reputation_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE
 );
+

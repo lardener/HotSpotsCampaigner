@@ -72,7 +72,9 @@ type Mutation {
 
     # Identity & Invites
     loginWithToken(token: String!): Boolean
-    createInvite(campaignId: ID!): CampaignInvite
+    createInvite(campaignId: ID!, recipientName: String): CampaignInvite
+    assignDetachmentToContract(detachmentId: ID!, contractId: ID!, monthIndex: Int!): Boolean
+    deleteInvite(id: ID!): Boolean
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
     joinCampaign(token: String!, detachmentId: ID!): Boolean
     updateUserProfile(displayName: String): UserProfile
@@ -101,6 +103,7 @@ type MercenaryCommand {
     units: [CombatUnit]
     pilots: [Pilot]
     detachments: [Detachment]
+    factionReputations: [FactionReputation]
     allLedgerEntries: [LedgerEntry]
 }
 
@@ -137,6 +140,7 @@ type Detachment {
     mercenaryCommandId: ID
     campaignId: ID
     campaignName: String
+    contractAssignments: [ContractAssignment]
     mercenaryCommandName: String
     units: [CombatUnit]
     pilots: [Pilot]
@@ -152,6 +156,20 @@ type LedgerEntry {
     reputationChange: Int
     campaignName: String
     monthIndex: Int
+}
+
+type FactionReputation {
+    id: ID!
+    campaignFactionId: ID!
+    mercenaryCommandId: ID!
+    score: Int
+    standing: String
+}
+
+type ContractAssignment {
+    id: ID!
+    contractId: ID!
+    monthIndex: Int!
 }
 
 type CommandAssetsResponse {
@@ -177,6 +195,7 @@ type CampaignInvite {
     id: ID!
     campaignId: ID!
     token: String
+    recipientName: String
     expiresAt: String
     used: Boolean
 }

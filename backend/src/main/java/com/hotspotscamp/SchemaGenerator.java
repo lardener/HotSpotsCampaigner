@@ -35,7 +35,7 @@ public class SchemaGenerator {
         sql.append("-- Create app_users table (User.java)\n");
         sql.append("CREATE TABLE app_users (\n");
         sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");
-        sql.append("    `external_id` VARCHAR(255) UNIQUE,\n");
+        sql.append("    `external_id` VARCHAR(64) NOT NULL UNIQUE,\n");
         sql.append("    `display_name` VARCHAR(255),\n");
         sql.append("    `email` VARCHAR(255),\n");
         sql.append("    `role` VARCHAR(50)\n");
@@ -68,11 +68,22 @@ public class SchemaGenerator {
         sql.append("    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 
+        sql.append("-- Create campaign_factions table (CampaignFaction.java)\n");
+        sql.append("CREATE TABLE campaign_factions (\n");
+        sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");
+        sql.append("    campaign_id VARCHAR(36) NOT NULL,\n");
+        sql.append("    `faction_name` VARCHAR(255),\n");
+        sql.append("    `offers_contracts` BOOLEAN,\n");
+        sql.append("    `short_description` VARCHAR(1000),\n");
+        sql.append("    CONSTRAINT fk_faction_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
+        sql.append(");\n\n");
+
         sql.append("-- Create campaign_invites table (CampaignInvite.java)\n");
         sql.append("CREATE TABLE campaign_invites (\n");
         sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    campaign_id VARCHAR(36) NOT NULL,\n");
-        sql.append("    `token` VARCHAR(255) UNIQUE,\n");
+        sql.append("    `token` VARCHAR(64) NOT NULL UNIQUE,\n");
+        sql.append("    `recipient_name` VARCHAR(255),\n");
         sql.append("    `expires_at` DATETIME,\n");
         sql.append("    `used` BOOLEAN DEFAULT FALSE,\n");
         sql.append("    CONSTRAINT fk_invite_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
@@ -91,16 +102,6 @@ public class SchemaGenerator {
         sql.append("    `complications` VARCHAR(1000),\n");
         sql.append("    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL\n");
-        sql.append(");\n\n");
-
-        sql.append("-- Create campaign_factions table (CampaignFaction.java)\n");
-        sql.append("CREATE TABLE campaign_factions (\n");
-        sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");
-        sql.append("    campaign_id VARCHAR(36) NOT NULL,\n");
-        sql.append("    `faction_name` VARCHAR(255),\n");
-        sql.append("    `offers_contracts` BOOLEAN,\n");
-        sql.append("    `short_description` VARCHAR(1000),\n");
-        sql.append("    CONSTRAINT fk_faction_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
         sql.append(");\n\n");
 
         sql.append("-- Create contracts table (Contract.java)\n");

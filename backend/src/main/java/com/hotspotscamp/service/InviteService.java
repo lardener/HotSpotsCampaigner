@@ -1,7 +1,11 @@
 package com.hotspotscamp.service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HexFormat;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -23,6 +27,7 @@ import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
+
 public class InviteService {
 
     private static final Logger log = LoggerFactory.getLogger(InviteService.class);
@@ -30,13 +35,25 @@ public class InviteService {
     private final CampaignInviteRepository inviteRepository;
     private final UserRepository userRepository;
 
-    public Mono<CampaignInvite> generateInvite(UUID campaignId) {
-        String token = RandomStringUtils.secure().nextAlphanumeric(12).toUpperCase();
+    public Mono<CampaignInvite> generateInvite(UUID campaignId, String recipientName) {
+        String rawToken = RandomStringUtils.secure().nextAlphanumeric(12).toUpperCase();
+        String hashedToken = hashToken(rawToken);
+        LocalDateTime expiry = LocalDateTime.now().plusDays(7);
+
         return inviteRepository.save(CampaignInvite.builder()
                 .id(UUID.randomUUID())
                 .campaignId(campaignId)
-                .token(token)
-                .expiresAt(LocalDateTime.now().plusDays(7))
+                .token(hashedToken)
+                .recipientName(recipientName)
+                .expiresAt(expiry)
+                .used(false)
+                .build())
+                .map(saved -> CampaignInvite.builder()
+                .id(saved.getId())
+                .campaignId(campaignId)
+                .token(rawToken)
+                .recipientName(recipientName)
+                .expiresAt(expiry)
                 .used(false)
                 .build());
     }
@@ -51,37 +68,69 @@ public class InviteService {
         }
 
         String normalizedToken = token.trim().toUpperCase();
-        log.info("[AUTH] Attempting login with token: {}", normalizedToken);
+        String hashedToken = hashToken(normalizedToken);
+        log.info("[AUTH] Attempting login with invitation token hash: {}", hashedToken.substring(0, 8) + "...");
 
-        return inviteRepository.findByToken(normalizedToken)
+        return inviteRepository.findByToken(hashedToken)
                 .flatMap(invite -> {
-                    if (invite.getExpiresAt() != null && invite.getExpiresAt().isBefore(LocalDateTime.now())) {
-                        log.warn("[AUTH] Token {} expired at {}", normalizedToken, invite.getExpiresAt());
+                    // Security check: ensure token isn't expired (with 5-min buffer for clock drift)
+                    if (invite.getExpiresAt() != null && invite.getExpiresAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
+                        log.warn("[AUTH] Token hash {} expired at {}", hashedToken.substring(0, 8), invite.getExpiresAt());
                         return Mono.error(new RuntimeException("INVALID OR EXPIRED INVITATION KEY"));
                     }
                     return Mono.just(invite);
                 })
                 .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("[AUTH] Token not found in database: {}", normalizedToken);
+                    log.error("[AUTH] Token hash not found in DB: {}. Check if column 'token' is VARCHAR(64).", hashedToken.substring(0, 8));
                     return Mono.error(new RuntimeException("INVALID OR EXPIRED INVITATION KEY"));
                 }))
                 .flatMap(invite -> {
-                    return userRepository.findByExternalId(normalizedToken)
+                    // Identity resolution: link token hash to a persistent user
+                    return userRepository.findByExternalId(invite.getToken())
                             .switchIfEmpty(Mono.defer(() -> userRepository.save(User.builder()
-                            .id(UUID.randomUUID())
-                            .externalId(normalizedToken)
-                            .displayName("Mercenary Commander")
-                            .role("ROLE_INVITED")
-                            .isNew(true)
-                            .build())))
-                            .flatMap(user -> {
-                                var authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
-                                var auth = new UsernamePasswordAuthenticationToken(user.getExternalId(), null, authorities);
+                                    .id(UUID.randomUUID())
+                                    .externalId(invite.getToken())
+                                    .displayName("Mercenary Commander")
+                                    .role("ROLE_INVITED")
+                                    .isNew(true)
+                                    .build())))
+                            .flatMap(u -> {
+                                var authorities = Collections.singletonList(new SimpleGrantedAuthority(u.getRole()));
+                                var auth = new UsernamePasswordAuthenticationToken(u.getExternalId(), null, authorities);
                                 var securityContext = new SecurityContextImpl(auth);
 
                                 session.getAttributes().put("SPRING_SECURITY_CONTEXT", securityContext);
                                 return session.changeSessionId().thenReturn(true);
                             });
                 });
+    }
+
+    public Mono<CampaignInvite> validateAndConsumeInvite(String token) {
+        String normalizedToken = token.trim().toUpperCase();
+        String hashedToken = hashToken(normalizedToken);
+
+        return inviteRepository.findByToken(hashedToken)
+                .flatMap(invite -> {
+                    if (Boolean.TRUE.equals(invite.getUsed())) {
+                        return Mono.error(new RuntimeException("INVITATION KEY HAS ALREADY BEEN USED"));
+                    }
+                    if (invite.getExpiresAt() != null && invite.getExpiresAt().isBefore(LocalDateTime.now())) {
+                        return Mono.error(new RuntimeException("INVITATION KEY HAS EXPIRED"));
+                    }
+                    return inviteRepository.save(invite.toBuilder().used(true).isNew(false).build());
+                })
+                .switchIfEmpty(Mono.error(new RuntimeException("INVALID INVITATION KEY")));
+    }
+
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedHash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().withUpperCase().formatHex(encodedHash);
+        } catch (NoSuchAlgorithmException e) {
+
+            log.error("SHA-256 algorithm not found", e);
+            throw new RuntimeException("CRITICAL: SECURITY CONFIGURATION ERROR");
+        }
     }
 }

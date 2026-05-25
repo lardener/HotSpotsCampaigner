@@ -71,6 +71,8 @@ export const CREATE_CAMPAIGN = gql`
     createCampaign(input: $input) {
       id
       name
+      lengthInMonths
+      trackCount
     }
   }
 `;

@@ -304,14 +304,30 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, Principal principal) {
+    public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, @Argument String recipientName, Principal principal) {
         if (campaignId == null) {
             return Mono.error(new IllegalArgumentException("Campaign ID is required"));
         }
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required to create invite"));
         }
-        return campaignService.createInvite(campaignId, principal.getName());
+        return campaignService.createInvite(campaignId, recipientName, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<Boolean> deleteInvite(@Argument UUID id, Principal principal) {
+        if (id == null) {
+            return Mono.error(new IllegalArgumentException("Invite ID is required"));
+        }
+        if (principal == null) {
+            return Mono.error(new RuntimeException("Authentication required"));
+        }
+        return campaignService.deleteInvite(id, principal.getName());
+    }
+
+    @MutationMapping
+    public Mono<Boolean> joinCampaign(@Argument String token, @Argument UUID detachmentId) {
+        return campaignService.joinCampaign(token, detachmentId);
     }
 
     @MutationMapping

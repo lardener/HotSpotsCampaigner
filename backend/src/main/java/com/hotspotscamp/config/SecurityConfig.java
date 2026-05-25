@@ -2,6 +2,7 @@ package com.hotspotscamp.config;
 
 import java.util.Arrays;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -31,10 +32,13 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(
             ServerHttpSecurity http,
             ServerOAuth2AuthorizedClientRepository authorizedClientRepository,
-            ReactiveClientRegistrationRepository clientRegistrationRepository) {
+            ReactiveClientRegistrationRepository clientRegistrationRepository,
+            CorsConfigurationSource corsConfigurationSource,
+            ServerAuthenticationSuccessHandler successHandler,
+            ServerAuthenticationFailureHandler failureHandler) {
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable) // Disable CSRF for now, or configure properly for SPA
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Enable CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource)) // Enable CORS
                 .authorizeExchange(exchanges -> exchanges
                 .pathMatchers("/graphql", "/graphql/**").permitAll() // Allow public access; resolvers handle authorization
                 .pathMatchers("/api/user/profile").authenticated() // Protect profile endpoint
@@ -48,8 +52,8 @@ public class SecurityConfig {
                 .requestCache(cache -> cache.requestCache(NoOpServerRequestCache.getInstance())) // Disable saved requests
                 .oauth2Login(oauth2 -> oauth2
                 .authorizationRequestResolver(authorizationRequestResolver(clientRegistrationRepository))
-                .authenticationSuccessHandler(oauth2AuthenticationSuccessHandler())
-                .authenticationFailureHandler(oauth2AuthenticationFailureHandler())
+                .authenticationSuccessHandler(successHandler)
+                .authenticationFailureHandler(failureHandler)
                 .authorizedClientRepository(authorizedClientRepository)
                 )
                 .logout(logout -> logout
@@ -70,13 +74,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public ServerAuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
-        return new RedirectServerAuthenticationSuccessHandler("http://localhost:3000/");
+    public ServerAuthenticationSuccessHandler oauth2AuthenticationSuccessHandler(@Value("${CORS_ALLOWED_ORIGINS}") String origins) {
+        String baseUrl = origins.split(",")[0];
+        return new RedirectServerAuthenticationSuccessHandler(baseUrl + "/");
     }
 
     @Bean
-    public ServerAuthenticationFailureHandler oauth2AuthenticationFailureHandler() {
-        return new RedirectServerAuthenticationFailureHandler("http://localhost:3000/?error=auth_failed");
+    public ServerAuthenticationFailureHandler oauth2AuthenticationFailureHandler(@Value("${CORS_ALLOWED_ORIGINS}") String origins) {
+        String baseUrl = origins.split(",")[0];
+        return new RedirectServerAuthenticationFailureHandler(baseUrl + "/?error=auth_failed");
     }
 
     @Bean
@@ -89,9 +95,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${CORS_ALLOWED_ORIGINS}") String origins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList(origins.split(",")));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

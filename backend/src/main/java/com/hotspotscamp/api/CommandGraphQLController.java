@@ -25,7 +25,6 @@ import com.hotspotscamp.util.TypeUtils;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import java.util.Comparator;
 
 @Controller
 @RequiredArgsConstructor
@@ -322,14 +321,6 @@ public class CommandGraphQLController {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
         return commandService.assignAssetToDetachment(assetType, assetId, detachmentId, principal.getName()).thenReturn(true);
-    }
-
-    @MutationMapping
-    public Mono<Boolean> joinCampaign(@Argument String token, @Argument UUID detachmentId, Principal principal) {
-        if (detachmentId == null || principal == null) {
-            return Mono.error(new IllegalArgumentException("Invalid arguments"));
-        }
-        return commandService.joinCampaign(token, detachmentId, principal.getName());
     }
 
     @MutationMapping

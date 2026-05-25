@@ -891,26 +891,12 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         )}
                     </div>
                     <div className="input-group">
-                        <label htmlFor="header-sp" className="restricted-text">WARCHEST (SP):</label>
-                        <input
-                            id="header-sp"
-                            readOnly
-                            type="number"
-                            className="inline-edit inline-edit-input"
-                            value={command.totalSupportPoints}
-                            title="Total Support Points"
-                        />
+                        <span className="restricted-text">WARCHEST (SP):</span>
+                        <div className="inline-edit" style={{ cursor: 'default' }}>{command.totalSupportPoints}</div>
                     </div>
                     <div className="input-group">
-                        <label htmlFor="header-rep" className="restricted-text">REPUTATION:</label>
-                        <input
-                            id="header-rep"
-                            readOnly
-                            type="number"
-                            className="inline-edit inline-edit-input-small"
-                            value={command.reputation}
-                            title="Force Reputation Score"
-                        />
+                        <span className="restricted-text">REPUTATION:</span>
+                        <div className="inline-edit" style={{ cursor: 'default' }}>{command.reputation}</div>
                     </div>
                 </div>
             </div>
