@@ -1,6 +1,6 @@
 # HotSpots: Campaigner
 
-A TDD-first multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using Chaos Campaign, Hinterlands, and **Hot Spots: Draconis Reach** rules.
+A multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using Chaos Campaign, Hinterlands, Draconis Reach rules.  The goal is not strict rules enforcement.  Rather, the program aims to reduce the congnitive load when dealing with the "bookkeeping" of the campaign.  Common computaitons should be precomputed but give the user the opportunity to override.  Uncommon entries can be managed by direct ledger entries.  The desired end state will allow a player group to complete their bookkeeping for a given track in just a couple of minutes after completing the game, while the game store staff is trying to close up.
 
 ## Features
 
@@ -210,6 +210,7 @@ Upcoming development milestones:
 ## Testing Strategy
 
 This project follows **Test-Driven Development (TDD)**:
+Not exactly.  The test strategy for this project needs revision.  It's become difficult to generate tests that can exercise the individual components and the full stack.
 
 1. **Backend**: JUnit 5 with Spring Test, Mockito, Reactor Test
 2. **Frontend**: Vitest with React Testing Library

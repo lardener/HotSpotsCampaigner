@@ -206,7 +206,13 @@ public class CommandGraphQLController {
                 .piloting(TypeUtils.asInt(input.get("piloting")))
                 .asSkill(TypeUtils.asInt(input.get("asSkill")))
                 .unitType((String) input.get("unitType"))
-                .status((String) input.get("status"))
+                .wounds(TypeUtils.asInt(input.get("wounds")))
+                .handicap((String) input.get("handicap"))
+                .totalSpEarned(TypeUtils.asInt(input.get("totalSpEarned")))
+                .gunnerySpEarned(TypeUtils.asInt(input.get("gunnerySpEarned")))
+                .pilotingSpEarned(TypeUtils.asInt(input.get("pilotingSpEarned")))
+                .edgeTokensSpEarned(TypeUtils.asInt(input.get("edgeTokensSpEarned")))
+                .edgeAbilitySpEarned(TypeUtils.asInt(input.get("edgeAbilitySpEarned")))
                 .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
                 .build();
         return commandService.hirePilot(commandId, pilot, principal.getName());
@@ -223,7 +229,13 @@ public class CommandGraphQLController {
                 .piloting(TypeUtils.asInt(input.get("piloting")))
                 .asSkill(TypeUtils.asInt(input.get("asSkill")))
                 .unitType((String) input.get("unitType"))
-                .status((String) input.get("status"))
+                .wounds(TypeUtils.asInt(input.get("wounds")))
+                .handicap((String) input.get("handicap"))
+                .totalSpEarned(TypeUtils.asInt(input.get("totalSpEarned")))
+                .gunnerySpEarned(TypeUtils.asInt(input.get("gunnerySpEarned")))
+                .pilotingSpEarned(TypeUtils.asInt(input.get("pilotingSpEarned")))
+                .edgeTokensSpEarned(TypeUtils.asInt(input.get("edgeTokensSpEarned")))
+                .edgeAbilitySpEarned(TypeUtils.asInt(input.get("edgeAbilitySpEarned")))
                 .build();
         return commandService.updatePilot(id, pilot, principal.getName());
     }

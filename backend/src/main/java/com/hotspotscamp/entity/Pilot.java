@@ -41,7 +41,18 @@ public class Pilot implements Persistable<UUID> {
     @Column("unit_type")
     private String unitType;
 
-    private String status;
+    private Integer wounds;
+    private String handicap;
+    @Column("total_sp_earned")
+    private Integer totalSpEarned;
+    @Column("gunnery_sp_earned")
+    private Integer gunnerySpEarned;
+    @Column("piloting_sp_earned")
+    private Integer pilotingSpEarned;
+    @Column("edge_tokens_sp_earned")
+    private Integer edgeTokensSpEarned;
+    @Column("edge_ability_sp_earned")
+    private Integer edgeAbilitySpEarned;
 
     @Transient
     @Builder.Default

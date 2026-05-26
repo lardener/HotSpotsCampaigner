@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { gql } from '@apollo/client';
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { NodeType } from './NavigationTree';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

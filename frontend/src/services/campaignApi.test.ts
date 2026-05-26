@@ -11,7 +11,7 @@ describe('campaignApi', () => {
             ok: true,
             json: () => Promise.resolve(['Expedition', 'Raid']),
         } as unknown as Response);
-        global.fetch = fetchMock as unknown as typeof fetch;
+        vi.stubGlobal('fetch', fetchMock);
 
         const missions = await campaignApi.getMissions();
 
@@ -28,7 +28,7 @@ describe('campaignApi', () => {
             ok: true,
             json: () => Promise.resolve(resolvedSteps),
         } as unknown as Response);
-        global.fetch = fetchMock as unknown as typeof fetch;
+        vi.stubGlobal('fetch', fetchMock);
 
         const result = await campaignApi.getResolvedSteps();
 
@@ -57,7 +57,6 @@ describe('campaignApi', () => {
                     transportStep: 1,
                     commandRights: 'None',
                     commandStep: 1,
-                    lengthInMonths: 6,
                     trackCount: 3,
                 },
             ],
@@ -67,7 +66,7 @@ describe('campaignApi', () => {
             ok: true,
             json: () => Promise.resolve(proposal),
         } as unknown as Response);
-        global.fetch = fetchMock as unknown as typeof fetch;
+        vi.stubGlobal('fetch', fetchMock);
 
         const result = await campaignApi.previewCampaign({ mission: 'Expedition' });
 
@@ -80,7 +79,7 @@ describe('campaignApi', () => {
 
     it('sends a POST request when saving a campaign', async () => {
         const fetchMock = vi.fn().mockResolvedValue({ ok: true } as Response);
-        global.fetch = fetchMock as unknown as typeof fetch;
+        vi.stubGlobal('fetch', fetchMock);
 
         await campaignApi.saveCampaign({ mission: 'Raid', lengthInMonths: 4 });
 
@@ -92,7 +91,7 @@ describe('campaignApi', () => {
 
     it('calls logout endpoint with POST', async () => {
         const fetchMock = vi.fn().mockResolvedValue({ ok: true } as Response);
-        global.fetch = fetchMock as unknown as typeof fetch;
+        vi.stubGlobal('fetch', fetchMock);
 
         await campaignApi.logout();
 

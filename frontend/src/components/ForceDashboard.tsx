@@ -23,7 +23,13 @@ const GET_FORCE_DATA = gql`
         name
         gunnery
         piloting
-        status
+        wounds
+        handicap
+        totalSpEarned
+        gunnerySpEarned
+        pilotingSpEarned
+        edgeTokensSpEarned
+        edgeAbilitySpEarned
         detachmentId
       }
       detachments {
@@ -69,14 +75,37 @@ const HIRE_PILOT = gql`
   }
 `;
 
+interface CombatUnit {
+    id: string;
+    model: string;
+    tonnage: number;
+    status: string;
+    detachmentId?: string | null;
+}
+
+interface Pilot {
+    id: string;
+    name: string;
+    gunnery: number;
+    piloting: number;
+    wounds: number;
+    handicap: string;
+    totalSpEarned: number;
+    gunnerySpEarned: number;
+    pilotingSpEarned: number;
+    edgeTokensSpEarned: number;
+    edgeAbilitySpEarned: number;
+    detachmentId?: string | null;
+}
+
 interface ForceData {
     getCommand: {
         id: string;
         name: string;
         totalSupportPoints: number;
         reputation: number;
-        units: any[];
-        pilots: any[];
+        units: CombatUnit[];
+        pilots: Pilot[];
         detachments: any[];
     };
     managedCampaigns: any[];
@@ -136,8 +165,8 @@ const DroppableZone: React.FC<{ id: string; title: string; children: React.React
 type ViewMode = 'ORGANIZATION' | 'OPERATIONS';
 
 export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMode }> = ({ commandId, initialMode = 'ORGANIZATION' }) => {
-    const [units, setUnits] = useState<any[]>([]);
-    const [pilots, setPilots] = useState<any[]>([]);
+    const [units, setUnits] = useState<CombatUnit[]>([]);
+    const [pilots, setPilots] = useState<Pilot[]>([]);
     const [detachments, setDetachments] = useState<any[]>([]);
     const [managedCampaigns, setManagedCampaigns] = useState<any[]>([]);
     const [participatingCampaigns, setParticipatingCampaigns] = useState<any[]>([]);
@@ -218,7 +247,14 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         name,
                         gunnery: 4,
                         piloting: 5,
-                        status: 'ACTIVE'
+                        asSkill: 4,
+                        unitType: 'BM',
+                        wounds: 0,
+                        totalSpEarned: 0,
+                        gunnerySpEarned: 0,
+                        pilotingSpEarned: 0,
+                        edgeTokensSpEarned: 0,
+                        edgeAbilitySpEarned: 0
                     }
                 }
             });
@@ -238,7 +274,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         LINK: ACTIVE | REPUTATION: {data?.getCommand?.reputation} | WARCHEST: {data?.getCommand?.totalSupportPoints} SP
                     </div>
 
-                <nav className="mode-switcher mt-1rem">
+                    <nav className="mode-switcher mt-1rem">
                         <button type="button"
                             className={`mode-btn ${viewMode === 'ORGANIZATION' ? 'active' : ''}`}
                             onClick={() => setViewMode('ORGANIZATION')}
@@ -260,8 +296,8 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         <DroppableZone id="pool" title="RESERVE POOL">
                             <div className="asset-group">
                                 <div className="flex-between">
-                                    <h4 title="Combat Units">COMBAT UNITS</h4> {/* Added type="button" */}
-                                <button type="button" className="mode-btn sm-text" onClick={handleAddUnit}>+</button>
+                                    <h4 title="Combat Units">COMBAT UNITS</h4>
+                                    <button type="button" className="mode-btn sm-text" onClick={handleAddUnit}>+</button>
                                 </div>
                                 {units.filter(u => !u.detachmentId).map(u => (
                                     <DraggableAsset
@@ -275,7 +311,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                             </div>
                             <div className="asset-group">
                                 <div className="flex-between">
-                                    <h4 title="Pilot Barracks">PILOT BARRACKS</h4> {/* Added type="button" */}
+                                    <h4 title="Pilot Barracks">PILOT BARRACKS</h4>
                                     <button type="button" className="mode-btn sm-text" onClick={handleHirePilot}>+</button>
                                 </div>
                                 {pilots.filter(p => !p.detachmentId).map(p => (
@@ -284,7 +320,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                         id={p.id}
                                         type="PILOT"
                                         label={p.name}
-                                        subLabel={`G:${p.gunnery} P:${p.piloting}`}
+                                        subLabel={`G/P: ${p.gunnery}/${p.piloting} | W:${p.wounds}`}
                                     />
                                 ))}
                             </div>
@@ -310,7 +346,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                                 id={p.id}
                                                 type="PILOT"
                                                 label={p.name}
-                                                subLabel={`G/P: ${p.gunnery}/${p.piloting}`}
+                                                subLabel={`G/P: ${p.gunnery}/${p.piloting} | SP:${p.totalSpEarned}`}
                                             />
                                         ))}
                                         {units.filter(u => u.detachmentId === det.id).length === 0 &&
@@ -336,7 +372,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                     <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-status" title={`System: ${camp.systemName} | Tracks: ${camp.trackCount}`}>SYSTEM: {camp.systemName} | TRACKS: {camp.trackCount}</div>
-                                        <button type="button" className="mode-btn sm-text mt-05rem">MANAGE THEATER</button>
+                                        <button type="button" className="mode-btn sm-text mt-05rem">VIEW THEATER</button>
                                     </div>
                                 ))}
                                 {managedCampaigns.length === 0 && (
@@ -354,7 +390,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-meta" title={`Employer: ${camp.primaryEmployer}`}>EMPLOYER: {camp.primaryEmployer}</div>
                                         <div className="ops-meta">CURRENT WARCHEST: 4500 SP</div>
-                                        <div className="ops-actions flex flex-gap-10"> {/* Added type="button" */}
+                                        <div className="ops-actions flex flex-gap-10">
                                             <button type="button" className="mode-btn sm-text mt-05rem">OPEN LOGBOOK</button>
                                         </div>
                                     </div>

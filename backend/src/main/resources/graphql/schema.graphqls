@@ -73,6 +73,8 @@ type Mutation {
     # Identity & Invites
     loginWithToken(token: String!): Boolean
     createInvite(campaignId: ID!, recipientName: String): CampaignInvite
+    assignDetachmentToContract(detachmentId: ID!, contractId: ID!, monthIndex: Int!): Boolean
+    deleteInvite(id: ID!): Boolean
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
     joinCampaign(token: String!, detachmentId: ID!): Boolean
     updateUserProfile(displayName: String): UserProfile
@@ -127,7 +129,13 @@ type Pilot {
     piloting: Int
     asSkill: Int
     unitType: String
-    status: String
+    wounds: Int
+    handicap: String
+    totalSpEarned: Int
+    gunnerySpEarned: Int
+    pilotingSpEarned: Int
+    edgeTokensSpEarned: Int
+    edgeAbilitySpEarned: Int
     detachmentId: ID
 }
 
@@ -273,7 +281,13 @@ input PilotInput {
     piloting: Int
     asSkill: Int
     unitType: String
-    status: String
+    wounds: Int
+    handicap: String
+    totalSpEarned: Int
+    gunnerySpEarned: Int
+    pilotingSpEarned: Int
+    edgeTokensSpEarned: Int
+    edgeAbilitySpEarned: Int
     detachmentId: ID
 }
 

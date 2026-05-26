@@ -464,6 +464,27 @@ public class MercenaryCommandService {
                         if (updatedData.getUnitType() != null) {
                             pilot.setUnitType(updatedData.getUnitType());
                         }
+                        if (updatedData.getWounds() != null) {
+                            pilot.setWounds(updatedData.getWounds());
+                        }
+                        if (updatedData.getHandicap() != null) {
+                            pilot.setHandicap(updatedData.getHandicap());
+                        }
+                        if (updatedData.getTotalSpEarned() != null) {
+                            pilot.setTotalSpEarned(updatedData.getTotalSpEarned());
+                        }
+                        if (updatedData.getGunnerySpEarned() != null) {
+                            pilot.setGunnerySpEarned(updatedData.getGunnerySpEarned());
+                        }
+                        if (updatedData.getPilotingSpEarned() != null) {
+                            pilot.setPilotingSpEarned(updatedData.getPilotingSpEarned());
+                        }
+                        if (updatedData.getEdgeTokensSpEarned() != null) {
+                            pilot.setEdgeTokensSpEarned(updatedData.getEdgeTokensSpEarned());
+                        }
+                        if (updatedData.getEdgeAbilitySpEarned() != null) {
+                            pilot.setEdgeAbilitySpEarned(updatedData.getEdgeAbilitySpEarned());
+                        }
                         return pilotRepository.save(pilot)
                                 .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
                     }));
@@ -532,7 +553,6 @@ public class MercenaryCommandService {
                     }
                     pilot.setId(UUID.randomUUID());
                     pilot.setCommandId(commandId);
-                    pilot.setStatus("ACTIVE");
                     pilot.setNew(true);
                     return pilotRepository.save(pilot)
                             .flatMap(p -> commandRepository.findById(commandId)

@@ -55,6 +55,16 @@ CREATE TABLE campaigns (
     CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)
 );
 
+-- Create campaign_factions table (CampaignFaction.java)
+CREATE TABLE campaign_factions (
+    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
+    campaign_id VARCHAR(36) NOT NULL,
+    `faction_name` VARCHAR(255),
+    `offers_contracts` BOOLEAN,
+    `short_description` VARCHAR(1000),
+    CONSTRAINT fk_faction_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
+);
+
 -- Create campaign_invites table (CampaignInvite.java)
 CREATE TABLE campaign_invites (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
@@ -79,16 +89,6 @@ CREATE TABLE campaign_tracks (
     `complications` VARCHAR(1000),
     CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
     CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL
-);
-
--- Create campaign_factions table (CampaignFaction.java)
-CREATE TABLE campaign_factions (
-    `id` VARCHAR(36) NOT NULL PRIMARY KEY,
-    campaign_id VARCHAR(36) NOT NULL,
-    `faction_name` VARCHAR(255),
-    `offers_contracts` BOOLEAN,
-    `short_description` VARCHAR(1000),
-    CONSTRAINT fk_faction_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
 
 -- Create contracts table (Contract.java)
@@ -191,7 +191,13 @@ CREATE TABLE pilots (
     `piloting` INT,
     `as_skill` INT,
     `unit_type` VARCHAR(50),
-    `status` VARCHAR(255),
+    `wounds` INT DEFAULT 0,
+    `handicap` VARCHAR(255),
+    `total_sp_earned` INT DEFAULT 0,
+    `gunnery_sp_earned` INT DEFAULT 0,
+    `piloting_sp_earned` INT DEFAULT 0,
+    `edge_tokens_sp_earned` INT DEFAULT 0,
+    `edge_ability_sp_earned` INT DEFAULT 0,
     CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
 );

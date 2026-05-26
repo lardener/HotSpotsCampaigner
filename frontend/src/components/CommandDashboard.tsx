@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { gql } from '@apollo/client';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { gql, ApolloCache } from "@apollo/client";
+import { useQuery, useMutation } from "@apollo/client/react";
 import { LedgerEntryForm } from './LedgerEntryForm';
 import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
+import { PilotEditor } from './PilotEditor';
 
 const GET_UNIT_DOSSIER = gql`
   query GetUnitDossier($commandId: ID!) {
@@ -34,7 +35,13 @@ const GET_UNIT_DOSSIER = gql`
         piloting
         asSkill
         unitType
-        status
+        wounds
+        handicap
+        totalSpEarned
+        gunnerySpEarned
+        pilotingSpEarned
+        edgeTokensSpEarned
+        edgeAbilitySpEarned
         detachmentId
       }
       detachments {
@@ -78,21 +85,6 @@ const ASSIGN_ASSET = gql`
 const DELETE_DETACHMENT = gql`
   mutation DeleteDetachment($detachmentId: ID!) {
     deleteDetachment(detachmentId: $detachmentId)
-  }
-`;
-
-const HIRE_PILOT = gql`
-  mutation HirePilot($commandId: ID!, $input: PilotInput!) {
-    hirePilot(commandId: $commandId, input: $input) {
-      id
-      name
-      gunnery
-      piloting
-      asSkill
-      unitType
-      status
-      detachmentId
-    }
   }
 `;
 
@@ -176,20 +168,6 @@ const UPDATE_UNIT = gql`
   }
 `;
 
-const UPDATE_PILOT = gql`
-  mutation UpdatePilot($id: ID!, $input: PilotInput!) {
-    updatePilot(id: $id, input: $input) { 
-      id
-      name
-      gunnery
-      piloting
-      asSkill
-      unitType
-      status
-    }
-  }
-`;
-
 const JOIN_CAMPAIGN = gql`
   mutation JoinCampaign($token: String!, $detachmentId: ID!) {
     joinCampaign(token: $token, detachmentId: $detachmentId)
@@ -218,7 +196,13 @@ interface Pilot {
     piloting: number;
     asSkill: number;
     unitType: string;
-    status: string;
+    wounds: number;
+    handicap: string;
+    totalSpEarned: number;
+    gunnerySpEarned: number;
+    pilotingSpEarned: number;
+    edgeTokensSpEarned: number;
+    edgeAbilitySpEarned: number;
     detachmentId?: string | null;
 }
 
@@ -259,30 +243,11 @@ interface UpdateUnitVars {
     input: CombatUnitInput;
 }
 
-interface PilotInput {
-    name?: string;
-    gunnery?: number;
-    piloting?: number;
-    asSkill?: number;
-    unitType?: string;
-    status?: string;
-    detachmentId?: string | null;
-}
-
-interface UpdatePilotVars {
-    id: string;
-    input: PilotInput;
-}
-
 interface AddUnitVars {
     commandId: string;
     input: CombatUnitInput;
 }
 
-interface HirePilotVars {
-    commandId: string;
-    input: PilotInput;
-}
 
 interface DeleteUnitVars {
     unitId: string;
@@ -304,10 +269,6 @@ interface CreateDetachmentVars {
 
 interface AddUnitData {
     addCombatUnit: CombatUnit;
-}
-
-interface HirePilotData {
-    hirePilot: Pilot;
 }
 
 interface ManagedCampaign {
@@ -347,6 +308,11 @@ interface CommandDashboardProps {
 export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView, onViewCampaign, onRefreshTree }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
+    // Pilot Editor State
+    const [showPilotEditor, setShowPilotEditor] = useState(false);
+    const [pilotEditorMode, setPilotEditorMode] = useState<'create' | 'edit'>('create');
+    const [editingPilot, setEditingPilot] = useState<Pilot | null>(null);
+
     // Form states
     const [isSyncing, setIsSyncing] = useState(false);
     const [justAddedId, setJustAddedId] = useState<string | null>(null);
@@ -369,7 +335,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         setSelectedDetachmentId(detachmentId || null);
     }, [detachmentId]);
 
-    const { loading, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
+    const { loading, error, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId }
     });
 
@@ -378,10 +344,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
     const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
-    const [updatePilot] = useMutation<any, UpdatePilotVars>(UPDATE_PILOT);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [assignAsset] = useMutation<any, { assetType: string, assetId: string, detachmentId: string | null }>(ASSIGN_ASSET, {
-        update(cache, { data: result }, { variables }) {
+        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
             if (result?.assignAsset && variables) {
                 const queryVars = { commandId };
                 const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: queryVars });
@@ -389,9 +354,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     const { assetType, assetId, detachmentId } = variables;
                     const getCommand = { ...existing.getCommand };
                     if (assetType === 'UNIT') {
-                        getCommand.units = getCommand.units.map(u => u.id === assetId ? { ...u, detachmentId } : u);
+                        getCommand.units = getCommand.units.map((u: CombatUnit) => u.id === assetId ? { ...u, detachmentId } : u);
                     } else {
-                        getCommand.pilots = getCommand.pilots.map(p => p.id === assetId ? { ...p, detachmentId } : p);
+                        getCommand.pilots = getCommand.pilots.map((p: Pilot) => p.id === assetId ? { ...p, detachmentId } : p);
                     }
                     cache.writeQuery({ query: GET_UNIT_DOSSIER, variables: queryVars, data: { ...existing, getCommand } });
                 }
@@ -400,7 +365,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     });
 
     const [addUnit] = useMutation<AddUnitData, AddUnitVars>(ADD_UNIT, {
-        update(cache, { data: addData }) {
+        update(cache: ApolloCache, { data: addData }: any) {
             if (!addData?.addCombatUnit) return;
             const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
             if (existing?.getCommand) {
@@ -419,28 +384,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         }
     });
 
-    const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT, {
-        update(cache, { data: hireData }) {
-            if (!hireData?.hirePilot) return;
-            const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
-            if (existing?.getCommand) {
-                cache.writeQuery({
-                    query: GET_UNIT_DOSSIER,
-                    variables: { commandId },
-                    data: {
-                        ...existing,
-                        getCommand: {
-                            ...existing.getCommand,
-                            pilots: [...existing.getCommand.pilots, hireData.hirePilot]
-                        }
-                    }
-                });
-            }
-        }
-    });
-
     const [deleteDetachment] = useMutation<any, DeleteDetachmentVars>(DELETE_DETACHMENT, {
-        update(cache, { data: result }, { variables }) {
+        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
             if (result?.deleteDetachment && variables?.detachmentId) {
                 cache.evict({ id: cache.identify({ __typename: 'Detachment', id: variables.detachmentId }) });
                 cache.gc();
@@ -449,7 +394,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     });
 
     const [deleteUnit] = useMutation<any, DeleteUnitVars>(DELETE_UNIT, {
-        update(cache, { data: result }, { variables }) {
+        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
             if (result?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
                 cache.gc();
@@ -458,7 +403,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     });
 
     const [deletePilot] = useMutation<any, DeletePilotVars>(DELETE_PILOT, {
-        update(cache, { data: result }, { variables }) {
+        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
             if (result?.deletePilot && variables?.pilotId) {
                 cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
                 cache.gc();
@@ -467,7 +412,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     });
 
     const [createDetachment] = useMutation<any, CreateDetachmentVars>(CREATE_DETACHMENT, {
-        update(cache, { data: createData }) {
+        update(cache: ApolloCache, { data: createData }: any) {
             if (!createData?.createDetachment) return;
             const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
             if (existing?.getCommand) {
@@ -486,7 +431,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         }
     });
 
-    const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({});
+    const saveTimeoutRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
     const markSaved = () => {
         setIsSyncing(false);
@@ -533,7 +478,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     markSaved();
                     if (field === 'NAME') onRefreshTree?.();
                 })
-                .catch((err) => { console.error(err); setIsSyncing(false); });
+                .catch((err: Error) => { console.error(err); setIsSyncing(false); });
         };
 
         if (immediate) execute();
@@ -555,7 +500,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             const input = {
                 [field]: isNumeric ? (parseInt(value) || 0) : value
             };
-            const currentUnit = data?.getCommand.units.find(u => u.id === id);
+            const currentUnit = data?.getCommand.units.find((u: CombatUnit) => u.id === id);
             updateUnit({
                 variables: { id, input },
                 optimisticResponse: currentUnit ? {
@@ -567,40 +512,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 } : undefined
             })
                 .then(() => { markSaved(); })
-                .catch((err) => { console.error(err); setIsSyncing(false); });
-        };
-
-        if (immediate) execute();
-        else saveTimeoutRef.current[key] = setTimeout(execute, 1000);
-    };
-
-    const handlePilotUpdate = (id: string, field: string, value: any, immediate = true) => {
-        const key = `pilot-${id}-${field}`;
-        if (saveTimeoutRef.current[key]) {
-            clearTimeout(saveTimeoutRef.current[key]);
-            delete saveTimeoutRef.current[key];
-        }
-
-        const execute = () => {
-            setIsSyncing(true);
-            // Only send the changed field for pilots as well
-            const isNumeric = ['gunnery', 'piloting', 'asSkill'].includes(field);
-            const input = {
-                [field]: isNumeric ? (parseInt(value) || 0) : value
-            };
-            const currentPilot = data?.getCommand.pilots.find(p => p.id === id);
-            updatePilot({
-                variables: { id, input },
-                optimisticResponse: currentPilot ? {
-                    updatePilot: {
-                        ...currentPilot,
-                        ...input,
-                        __typename: 'Pilot'
-                    }
-                } : undefined
-            })
-                .then(() => { markSaved(); })
-                .catch((err) => { console.error(err); setIsSyncing(false); });
+                .catch((err: Error) => { console.error(err); setIsSyncing(false); });
         };
 
         if (immediate) execute();
@@ -633,30 +545,25 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     };
 
     const handleHirePilot = async () => {
-        try {
-            const { data: hireData } = await hirePilot({
-                variables: {
-                    commandId,
-                    input: {
-                        name: "NEW PILOT",
-                        gunnery: 4,
-                        piloting: 5,
-                        asSkill: 4,
-                        unitType: 'BM',
-                        status: 'Healthy',
-                        detachmentId: selectedDetachmentId
-                    }
-                }
-            });
-            if (hireData?.hirePilot?.id) setJustAddedId(hireData.hirePilot.id);
-        } catch (err) {
-            setOverlay({
-                title: "RECRUITMENT ERROR",
-                message: "PERSONNEL ACQUISITION FAILURE: UNABLE TO HIRE PILOT.",
-                variant: 'alert',
-                onConfirm: () => setOverlay(null)
-            });
-        }
+        setPilotEditorMode('create');
+        setEditingPilot(null);
+        setShowPilotEditor(true);
+    };
+
+    const handleEditPilot = (pilot: Pilot) => {
+        setPilotEditorMode('edit');
+        setEditingPilot(pilot);
+        setShowPilotEditor(true);
+    };
+
+    const handlePilotEditorSave = () => {
+        setShowPilotEditor(false);
+        refetch();
+    };
+
+    const handlePilotEditorCancel = () => {
+        setShowPilotEditor(false);
+        setEditingPilot(null);
     };
 
     const handleImport = async () => {
@@ -809,21 +716,29 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         });
     };
 
-    if (loading && !data) return <div className="loading-intel">RETRIEVING UNIT DOSSIER...</div>;
+    if (loading && !data) return <div className="loading-intel pulse"> RETRIEVING UNIT DOSSIER...</div>;
+
+    if (error) return (
+        <div className="error-message alert-border">
+            <h2 className="terminal-text">COMMUNICATIONS FAILURE</h2>
+            <p className="restricted-text">{error.message.toUpperCase()}</p>
+        </div>
+    );
+
     const command = data?.getCommand;
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
 
     // Filter rosters for the focused detachment
     const filteredUnits = selectedDetachmentId
-        ? command.units.filter(u => u.detachmentId === selectedDetachmentId)
+        ? command.units.filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
         : command.units;
 
     const filteredPilots = selectedDetachmentId
-        ? command.pilots.filter(p => p.detachmentId === selectedDetachmentId)
+        ? command.pilots.filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
         : command.pilots;
 
     const filteredLedger = selectedDetachmentId
-        ? command.allLedgerEntries.filter(e => e.detachmentId === selectedDetachmentId)
+        ? command.allLedgerEntries.filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
         : command.allLedgerEntries;
 
     const detachments: Detachment[] = command.detachments || [];
@@ -831,7 +746,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
     const TECH_BASES = ['Inner Sphere', 'Clan', 'Mixed'];
     const UNIT_STATUS_OPTIONS = ["Nominal", "Armor Damage", "Internal Damage", "Crippled", "Destroyed", "Truly Destroyed"];
-    const PILOT_STATUS_OPTIONS = ["Healthy", "Injured", "Injured x 2", "Injured x 3", "Injured x 4", "Injured x 5", "Dead"];
 
     return (
         <div key={commandId} className="container unit-profile theme-amber">
@@ -1010,7 +924,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredUnits.map(u => (
+                                {filteredUnits.map((u: CombatUnit) => (
                                     <tr key={u.id}>
                                         <td className="text-center">
                                             <select
@@ -1121,52 +1035,20 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     <th className="text-center">PILOTING</th>
                                     <th className="text-center">AS SKILL</th>
                                     <th className="text-center">UNIT SPECIALTY</th>
-                                    <th className="text-center">STATUS</th>
+                                    <th className="text-center">WOUNDS</th>
                                     {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredPilots.map(p => (
+                                {filteredPilots.map((p: Pilot) => (
                                     <tr key={p.id}>
-                                        <td><input
-                                            className="table-input"
-                                            title="Pilot Name"
-                                            autoFocus={p.id === justAddedId}
-                                            onFocus={() => setJustAddedId(null)}
-                                            defaultValue={p.name}
-                                            onChange={(e) => handlePilotUpdate(p.id, 'name', e.target.value, false)}
-                                            onBlur={(e) => handlePilotUpdate(p.id, 'name', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.gunnery} title="Gunnery Skill"
-                                            onChange={(e) => handlePilotUpdate(p.id, 'gunnery', e.target.value, false)}
-                                            onBlur={(e) => handlePilotUpdate(p.id, 'gunnery', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.piloting} title="Piloting Skill"
-                                            onChange={(e) => handlePilotUpdate(p.id, 'piloting', e.target.value, false)}
-                                            onBlur={(e) => handlePilotUpdate(p.id, 'piloting', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={p.asSkill} title="Alpha Strike Skill"
-                                            onChange={(e) => handlePilotUpdate(p.id, 'asSkill', e.target.value, false)}
-                                            onBlur={(e) => handlePilotUpdate(p.id, 'asSkill', e.target.value, true)} /></td>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                defaultValue={p.unitType}
-                                                title="Pilot Specialty"
-                                                onChange={(e) => handlePilotUpdate(p.id, 'unitType', e.target.value)}
-                                                onBlur={(e) => handlePilotUpdate(p.id, 'unitType', e.target.value, true)}>
-                                                {UNIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </td>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                title="Pilot Health Status"
-                                                defaultValue={p.status}
-                                                onChange={(e) => handlePilotUpdate(p.id, 'status', e.target.value)}
-                                                onBlur={(e) => handlePilotUpdate(p.id, 'status', e.target.value, true)}
-                                            >
-                                                {PILOT_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                            </select>
-                                        </td>
+                                        <td>{p.name}</td>
+                                        <td className="text-center">{p.gunnery}</td>
+                                        <td className="text-center">{p.piloting}</td>
+                                        <td className="text-center">{p.asSkill}</td>
+                                        <td className="text-center">{p.unitType}</td>
+                                        <td className="text-center">{p.wounds}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
                                                 <select
@@ -1182,11 +1064,19 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         )}
                                         {!isManagerView && (
                                             <td className="text-center">
-                                                <button
-                                                    className="mode-btn"
-                                                    style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
-                                                    onClick={() => handleDeletePilot(p.id)}
-                                                >X</button>
+                                                <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                                                    <button
+                                                        className="mode-btn"
+                                                        style={{ padding: '2px 8px', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green)', fontSize: '0.65rem' }}
+                                                        onClick={() => handleEditPilot(p)}
+                                                        title="Edit pilot record"
+                                                    >EDIT</button>
+                                                    <button
+                                                        className="mode-btn"
+                                                        style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
+                                                        onClick={() => handleDeletePilot(p.id)}
+                                                    >X</button>
+                                                </div>
                                             </td>
                                         )}
                                     </tr>
@@ -1256,7 +1146,18 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     onConfirm={overlay.onConfirm}
                     onCancel={() => setOverlay(null)}
                     themeClass="theme-amber"
-                    children={overlay.children}
+                >
+                    {overlay.children}
+                </TerminalOverlay>
+            )}
+
+            {showPilotEditor && (
+                <PilotEditor
+                    pilot={editingPilot}
+                    commandId={commandId}
+                    mode={pilotEditorMode}
+                    onSave={handlePilotEditorSave}
+                    onCancel={handlePilotEditorCancel}
                 />
             )}
         </div>

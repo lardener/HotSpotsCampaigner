@@ -37,7 +37,7 @@ ADD COLUMN complications VARCHAR(1000);
 
 ### 1. [x] `generateProposal` Logic Update
 - **Modification**: Set the `lengthInMonths` field of the `Campaign` object to be equal to `trackCount` during proposal generation. - **COMPLETE**
-- **Rationale**: Ensures that newly generated campaigns have a default duration that matches the number of tracks, aligning with the initial 1:1 month-to-track mapping.
+- **Rationale**: Ensures that newly generated campaigns have a default duration that matches the number of tracks, aligning with the initial 1:1 month-to-track mapping.  This is only true for newly generated campaigns and does not need to be enforced for existing campaigns.
 
 ### 2. [x] `generateDoblessCampaign` Mutation Handler
 - **Modification**: - **COMPLETE**

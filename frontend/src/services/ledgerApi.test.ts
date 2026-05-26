@@ -8,7 +8,7 @@ describe('ledgerApi', () => {
 
     it('posts a ledger entry to the backend', async () => {
         const fetchMock = vi.fn().mockResolvedValue({ ok: true } as Response);
-        global.fetch = fetchMock as unknown as typeof fetch;
+        vi.stubGlobal('fetch', fetchMock);
 
         await createLedgerEntry('detachment-123', { description: 'Test', amount: 42 });
 

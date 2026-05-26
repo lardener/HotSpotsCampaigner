@@ -129,7 +129,13 @@ type Pilot {
     piloting: Int
     asSkill: Int
     unitType: String
-    status: String
+    wounds: Int
+    handicap: String
+    totalSpEarned: Int
+    gunnerySpEarned: Int
+    pilotingSpEarned: Int
+    edgeTokensSpEarned: Int
+    edgeAbilitySpEarned: Int
     detachmentId: ID
 }
 
@@ -275,7 +281,13 @@ input PilotInput {
     piloting: Int
     asSkill: Int
     unitType: String
-    status: String
+    wounds: Int
+    handicap: String
+    totalSpEarned: Int
+    gunnerySpEarned: Int
+    pilotingSpEarned: Int
+    edgeTokensSpEarned: Int
+    edgeAbilitySpEarned: Int
     detachmentId: ID
 }
 

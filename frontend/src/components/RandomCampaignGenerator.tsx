@@ -166,7 +166,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             setTrackTypes(metadataData.publicCampaignMetadata.trackTypes);
 
             const steps: Record<number, any> = {};
-            metadataData.publicCampaignMetadata.resolvedSteps.forEach((entry: any) => {
+            metadataData.publicCampaignMetadata.resolvedSteps.forEach((entry) => {
                 steps[entry.step] = entry.values;
             });
             setResolvedSteps(steps);
@@ -199,7 +199,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     commandRights: primary.commandRights,
                     count: numToAdd
                 }
-            }).then(({ data: trackData }) => {
+            }).then(({ data: trackData }: any) => {
                 if (trackData?.generateTracks) {
                     setProposal(prev => prev ? { ...prev, tracks: [...prev.tracks, ...trackData.generateTracks] } : null);
                 }
@@ -435,7 +435,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     <div className="campaign-tracks bg-tracks-proposal mb-20 p-15">
                         <strong>THEATER OPERATIONAL TRACKS</strong>
                         <div className="mt-10 fs-09em">
-                            {proposal.tracks.map((t, idx) => (
+                            {proposal.tracks.map((t: string, idx: number) => (
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`}>TRACK {idx + 1}:</label> {/* Added title to select */}
                                     {/* Strip suffix for the value so it matches the options in trackTypes */}
