@@ -9,6 +9,9 @@ interface PilotData {
     gunnery: number;
     piloting: number;
     asSkill: number;
+    edgeTokensSkill?: number;
+    edgeAbilitySkill?: number;
+    edgeAbilities?: string;
     unitType: string;
     wounds: number;
     handicap: string;
@@ -36,6 +39,9 @@ const HIRE_PILOT = gql`
       gunnery
       piloting
       asSkill
+      edgeTokensSkill
+      edgeAbilitySkill
+      edgeAbilities
       unitType
       wounds
       handicap
@@ -57,6 +63,9 @@ const UPDATE_PILOT = gql`
       gunnery
       piloting
       asSkill
+      edgeTokensSkill
+      edgeAbilitySkill
+      edgeAbilities
       unitType
       wounds
       handicap
@@ -75,6 +84,9 @@ interface PilotInput {
     gunnery?: number;
     piloting?: number;
     asSkill?: number;
+    edgeTokensSkill?: number;
+    edgeAbilitySkill?: number;
+    edgeAbilities?: string;
     unitType?: string;
     wounds?: number;
     handicap?: string;
@@ -120,6 +132,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             gunnery: 4,
             piloting: 5,
             asSkill: 4,
+            edgeTokensSkill: 1,
+            edgeAbilitySkill: 0,
+            edgeAbilities: '',
             unitType: 'BM',
             wounds: 0,
             handicap: '',
@@ -143,12 +158,105 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
     const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT);
     const [updatePilot] = useMutation<UpdatePilotData, UpdatePilotVars>(UPDATE_PILOT);
 
+    // Canonical thresholds per skill (ascending by SP). Each entry: { sp, skill, handicap }
+    const gunneryThresholds = [
+        { sp: 0, skill: 4, handicap: 0 },
+        { sp: 300, skill: 3, handicap: 12 },
+        { sp: 700, skill: 2, handicap: 28 },
+        { sp: 1200, skill: 1, handicap: 48 },
+        { sp: 2200, skill: 0, handicap: 88 }
+    ];
+
+    const pilotingThresholds = [
+        { sp: 0, skill: 5, handicap: 0 },
+        { sp: 100, skill: 4, handicap: 4 },
+        { sp: 200, skill: 3, handicap: 8 },
+        { sp: 700, skill: 2, handicap: 28 },
+        { sp: 1200, skill: 1, handicap: 48 }
+    ];
+
+    const edgeTokensThresholds = [
+        { sp: 0, skill: 1, handicap: 0 },
+        { sp: 60, skill: 2, handicap: 2 },
+        { sp: 120, skill: 3, handicap: 5 },
+        { sp: 200, skill: 4, handicap: 8 },
+        { sp: 300, skill: 5, handicap: 13 },
+        { sp: 420, skill: 6, handicap: 17 },
+        { sp: 560, skill: 7, handicap: 22 },
+        { sp: 720, skill: 8, handicap: 29 },
+        { sp: 900, skill: 9, handicap: 36 },
+        { sp: 1100, skill: 10, handicap: 44 }
+    ];
+
+    const edgeAbilityThresholds = [
+        { sp: 0, skill: 0, handicap: 0 },
+        { sp: 60, skill: 1, handicap: 2 },
+        { sp: 180, skill: 2, handicap: 8 },
+        { sp: 360, skill: 3, handicap: 14 },
+        { sp: 600, skill: 4, handicap: 24 },
+        { sp: 900, skill: 5, handicap: 36 }
+    ];
+
+    const getActiveThreshold = (thresholds: { sp: number; skill: number; handicap: number }[], alloc: number) => {
+        for (let i = thresholds.length - 1; i >= 0; i--) {
+            if (alloc >= thresholds[i].sp) return thresholds[i];
+        }
+        return thresholds[0];
+    };
+
+    const recalcDerived = (next: PilotData, changedField?: keyof PilotData) => {
+        // If SP allocations changed, update corresponding skill levels from thresholds
+        if (changedField === 'gunnerySpEarned' || changedField === 'totalSpEarned') {
+            next.gunnery = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).skill;
+        }
+        if (changedField === 'pilotingSpEarned' || changedField === 'totalSpEarned') {
+            next.piloting = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).skill;
+        }
+        if (changedField === 'edgeTokensSpEarned' || changedField === 'totalSpEarned') {
+            next.edgeTokensSkill = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).skill;
+        }
+        if (changedField === 'edgeAbilitySpEarned' || changedField === 'totalSpEarned') {
+            next.edgeAbilitySkill = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).skill;
+        }
+
+        // AS skill must be floor((gunnery + piloting) / 2)
+        const as = Math.floor((next.gunnery + next.piloting) / 2);
+        next.asSkill = as;
+
+        // handicap is the sum of the single active H values for gunnery, piloting, edge tokens and edge abilities
+        const gHandicap = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).handicap;
+        const pHandicap = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).handicap;
+        const etHandicap = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).handicap;
+        const eaHandicap = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).handicap;
+        next.handicap = String(gHandicap + pHandicap + etHandicap + eaHandicap);
+
+        return next;
+    };
+
     const handleInputChange = (field: keyof PilotData, value: any) => {
         const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
-        setFormData(prev => ({
-            ...prev,
-            [field]: isNumeric ? parseInt(value) || 0 : value
-        }));
+        setFormData(prev => {
+            const next = { ...prev, [field]: isNumeric ? parseInt(value) || 0 : value } as PilotData;
+
+            // Enforce gunnery/piloting distance constraint
+            if (field === 'gunnery' || field === 'piloting') {
+                const g = field === 'gunnery' ? (isNumeric ? parseInt(value) || 0 : prev.gunnery) : next.gunnery;
+                const p = field === 'piloting' ? (isNumeric ? parseInt(value) || 0 : prev.piloting) : next.piloting;
+                if (Math.abs(g - p) > 2) {
+                    setOverlay({
+                        title: 'VALIDATION ERROR',
+                        message: 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.',
+                        variant: 'alert',
+                        onConfirm: () => setOverlay(null)
+                    });
+                    return prev;
+                }
+            }
+
+            // Recalculate AS and handicap when relevant fields changed
+            // Recalculate derived values. Pass changed field so we update skills when SP fields change.
+            return recalcDerived(next, field);
+        });
     };
 
     const handleSave = async () => {
@@ -216,6 +324,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                 gunnery: formData.gunnery,
                 piloting: formData.piloting,
                 asSkill: formData.asSkill,
+                edgeTokensSkill: formData.edgeTokensSkill,
+                edgeAbilitySkill: formData.edgeAbilitySkill,
                 unitType: formData.unitType,
                 wounds: formData.wounds,
                 handicap: formData.handicap,
@@ -223,7 +333,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                 gunnerySpEarned: formData.gunnerySpEarned,
                 pilotingSpEarned: formData.pilotingSpEarned,
                 edgeTokensSpEarned: formData.edgeTokensSpEarned,
-                edgeAbilitySpEarned: formData.edgeAbilitySpEarned
+                edgeAbilitySpEarned: formData.edgeAbilitySpEarned,
+                edgeAbilities: formData.edgeAbilities
             };
 
             if (mode === 'create') {
@@ -272,47 +383,58 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                 style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.97)', zIndex: 9998 }}
             />
 
-            <div className="pilot-card-form terminal-overlay-panel" style={{ zIndex: 9999 }}>
+            <div className="pilot-card-form terminal-overlay-panel" style={{ zIndex: 9999, maxWidth: '850px', width: '95%' }}>
                 <header className="pilot-card-header overlay-header">
                     <h2 className="terminal-text" style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
                         <span className="blink-fast" style={{ marginRight: '10px' }}>▶</span>
                         {mode === 'create' ? 'PILOT RECRUITMENT' : 'PILOT RECORD'}
                     </h2>
-                    <button
-                        className="mode-btn close-btn"
-                        onClick={onCancel}
-                        style={{ padding: '2px 8px', fontSize: '0.8rem' }}
-                        title="Cancel and return to dashboard"
-                    >
-                        ✕ CANCEL
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                            className="mode-btn"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem', borderColor: 'var(--terminal-green)', color: 'var(--terminal-green)' }}
+                            title="Confirm and save"
+                        >
+                            {isSaving ? '>> PROCESSING...' : (mode === 'create' ? '✓ HIRE' : '✓ SAVE')}
+                        </button>
+                        <button
+                            className="mode-btn"
+                            onClick={onCancel}
+                            disabled={isSaving}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem', borderColor: 'var(--terminal-alert)', color: 'var(--terminal-alert)' }}
+                            title="Discard changes and return"
+                        >
+                            ✕ DISCARD
+                        </button>
+                    </div>
                 </header>
 
-                <div style={{ border: '1px solid var(--terminal-border)', margin: '0 10px 10px 10px', padding: '15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+                <div style={{ border: '1px solid var(--terminal-border)', margin: '0 10px 8px 10px', padding: '10px 15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
                     <div className="pilot-card-body">
-                        {/* Name / Callsign Section */}
-                        <div className="pilot-name-section">
-                            <label htmlFor="pilot-name" className="restricted-text form-label">NAME / CALLSIGN:</label>
-                            <input
-                                id="pilot-name"
-                                type="text"
-                                className="table-input pilot-name-input"
-                                value={formData.name}
-                                onChange={(e) => handleInputChange('name', e.target.value)}
-                                placeholder="PILOT DESIGNATION"
-                                title="Pilot designation or callsign"
-                                maxLength={50}
-                                autoFocus
-                            />
-                        </div>
+                        <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>PERSONNEL DATA</h3>
+                        <div className="flex-col flex-gap-5 mb-10">
+                            <div className="input-group flex items-center">
+                                <label htmlFor="pilot-name" className="restricted-text sm-text" style={{ minWidth: '160px' }}>NAME / CALLSIGN</label>
+                                <input
+                                    id="pilot-name"
+                                    type="text"
+                                    className="table-input flex-grow"
+                                    value={formData.name}
+                                    onChange={(e) => handleInputChange('name', e.target.value)}
+                                    placeholder="PILOT DESIGNATION"
+                                    title="Pilot designation or callsign"
+                                    maxLength={50}
+                                    autoFocus
+                                />
+                            </div>
 
-                        {/* Unit Type / Status Section */}
-                        <div className="pilot-meta-section">
-                            <div className="input-group">
-                                <label htmlFor="pilot-unit-type" className="restricted-text form-label">UNIT TYPE:</label>
+                            <div className="input-group flex items-center">
+                                <label htmlFor="pilot-unit-type" className="restricted-text sm-text" style={{ minWidth: '160px' }}>UNIT SPECIALTY</label>
                                 <select
                                     id="pilot-unit-type"
-                                    className="table-input"
+                                    className="table-input flex-grow"
                                     value={formData.unitType}
                                     onChange={(e) => handleInputChange('unitType', e.target.value)}
                                     title="Select unit type specialization"
@@ -323,139 +445,105 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                 </select>
                             </div>
 
-                            <div className="input-group">
-                                <label htmlFor="pilot-wounds" className="restricted-text form-label">WOUNDS:</label>
-                                <input
+                            <div className="input-group flex items-center">
+                                <label htmlFor="pilot-wounds" className="restricted-text sm-text" style={{ minWidth: '160px' }}>WOUNDS</label>
+                                <select
                                     id="pilot-wounds"
-                                    type="number"
-                                    className="table-input"
+                                    className="table-input flex-grow"
                                     value={formData.wounds}
                                     onChange={(e) => handleInputChange('wounds', e.target.value)}
-                                    min="0"
-                                    max="6"
-                                    title="Pilot wounds (0-6)"
-                                />
+                                    title="Select pilot wounds (0-6)"
+                                >
+                                    {[0, 1, 2, 3, 4, 5, 6].map(v => (
+                                        <option key={v} value={v}>{v}</option>
+                                    ))}
+                                </select>
                             </div>
-                        </div>
-
-                        <div className="pilot-meta-section">
-                            <div className="input-group" style={{ width: '100%' }}>
-                                <label htmlFor="pilot-handicap" className="restricted-text form-label">HANDICAP / TRAITS:</label>
+                            <div className="input-group flex items-center">
+                                <label htmlFor="pilot-edge-ability-description" className="restricted-text sm-text" style={{ minWidth: '160px' }}>EDGE ABILITY</label>
                                 <input
-                                    id="pilot-handicap"
+                                    id="pilot-edge-abilities"
                                     type="text"
-                                    className="table-input"
-                                    value={formData.handicap}
-                                    onChange={(e) => handleInputChange('handicap', e.target.value)}
-                                    placeholder="NONE"
-                                    title="Pilot handicap or special traits"
+                                    className="table-input flex-grow"
+                                    value={formData.edgeAbilities}
+                                    onChange={(e) => handleInputChange('edgeAbilities', e.target.value)}
+                                    placeholder="EDGE ABILITIES"
+                                    title="Describe the pilot's edge abilities"
+                                    maxLength={120}
                                 />
                             </div>
                         </div>
 
-                        {/* Skills Grid - Modeled after Campaign Pilot Card */}
-                        <div className="pilot-skills-section">
-                            <div className="skills-grid">
-                                {/* Gunnery */}
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-gunnery" className="restricted-text skill-label">GUNNERY</label>
-                                    <input
-                                        id="pilot-gunnery"
-                                        type="number"
-                                        className="table-input skill-input"
-                                        value={formData.gunnery}
-                                        onChange={(e) => handleInputChange('gunnery', e.target.value)}
-                                        min="0"
-                                        max="12"
-                                        title="Gunnery skill (0-12)"
-                                    />
+                        <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>TACTICAL SKILLS</h3>
+                        <div className="flex flex-gap-10 mb-10">
+                            {[
+                                { label: 'GUNNERY', val: formData.gunnery },
+                                { label: 'PILOTING', val: formData.piloting },
+                                { label: 'AS SKILL', val: formData.asSkill },
+                                { label: 'EDGE TOK', val: formData.edgeTokensSkill },
+                                { label: 'EDGE ABIL', val: formData.edgeAbilitySkill },
+                                { label: 'HANDICAP', val: formData.handicap }
+                            ].map(s => (
+                                <div key={s.label} className="tactical-panel sm-text" style={{ padding: '5px 15px', textAlign: 'center', minWidth: '75px' }}>
+                                    <div className="restricted-text" style={{ fontSize: '0.55rem', opacity: 0.7, marginBottom: '2px' }}>{s.label}</div>
+                                    <div className="terminal-text" style={{ fontSize: '1.2rem' }}>{s.val}</div>
                                 </div>
-
-                                {/* Piloting */}
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-piloting" className="restricted-text skill-label">PILOTING</label>
-                                    <input
-                                        id="pilot-piloting"
-                                        type="number"
-                                        className="table-input skill-input"
-                                        value={formData.piloting}
-                                        onChange={(e) => handleInputChange('piloting', e.target.value)}
-                                        min="0"
-                                        max="12"
-                                        title="Piloting skill (0-12)"
-                                    />
-                                </div>
-
-                                {/* Alpha Strike Skill */}
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-as-skill" className="restricted-text skill-label">AS SKILL</label>
-                                    <input
-                                        id="pilot-as-skill"
-                                        type="number"
-                                        className="table-input skill-input"
-                                        value={formData.asSkill}
-                                        onChange={(e) => handleInputChange('asSkill', e.target.value)}
-                                        min="0"
-                                        max="12"
-                                        title="Alpha Strike skill (0-12)"
-                                    />
-                                </div>
-                            </div>
+                            ))}
                         </div>
 
-                        <div className="pilot-skills-section" style={{ borderTop: '1px dashed var(--terminal-border)', paddingTop: '15px', marginTop: '10px' }}>
-                            <label className="restricted-text form-label">SKILL POINT (SP) PROGRESSION:</label>
-                            <div className="skills-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-total-sp-earned" className="restricted-text skill-label">TOTAL</label>
+                        <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>CAREER PROGRESSION</h3>
+                        <div className="pilot-skills-section">
+                            <div className="flex-between flex-gap-10">
+                                <div className="skill-box flex items-center">
+                                    <label htmlFor="pilot-total-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>TOTAL SP</label>
                                     <input
                                         id="pilot-total-sp-earned"
                                         type="number"
-                                        className="table-input skill-input"
+                                        className="table-input text-right" style={{ width: '5em' }}
                                         value={formData.totalSpEarned}
                                         onChange={(e) => handleInputChange('totalSpEarned', e.target.value)}
                                         title="Total SP Earned"
                                     />
                                 </div>
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-gunnery-sp-earned" className="restricted-text skill-label">GUNNERY</label>
+                                <div className="skill-box flex items-center">
+                                    <label htmlFor="pilot-gunnery-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>GUNNERY</label>
                                     <input
                                         id="pilot-gunnery-sp-earned"
                                         type="number"
-                                        className="table-input skill-input"
+                                        className="table-input text-right" style={{ width: '5em' }}
                                         value={formData.gunnerySpEarned}
                                         onChange={(e) => handleInputChange('gunnerySpEarned', e.target.value)}
                                         title="Gunnery SP"
                                     />
                                 </div>
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-piloting-sp-earned" className="restricted-text skill-label">PILOTING</label>
+                                <div className="skill-box flex items-center">
+                                    <label htmlFor="pilot-piloting-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>PILOTING</label>
                                     <input
                                         id="pilot-piloting-sp-earned"
                                         type="number"
-                                        className="table-input skill-input"
+                                        className="table-input text-right" style={{ width: '5em' }}
                                         value={formData.pilotingSpEarned}
                                         onChange={(e) => handleInputChange('pilotingSpEarned', e.target.value)}
                                         title="Piloting SP"
                                     />
                                 </div>
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-edge-tokens-sp-earned" className="restricted-text skill-label">EDGE TOK</label>
+                                <div className="skill-box flex items-center">
+                                    <label htmlFor="pilot-edge-tokens-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>EDGE TOK</label>
                                     <input
                                         id="pilot-edge-tokens-sp-earned"
                                         type="number"
-                                        className="table-input skill-input"
+                                        className="table-input text-right" style={{ width: '5em' }}
                                         value={formData.edgeTokensSpEarned}
                                         onChange={(e) => handleInputChange('edgeTokensSpEarned', e.target.value)}
                                         title="Edge Tokens SP"
                                     />
                                 </div>
-                                <div className="skill-box">
-                                    <label htmlFor="pilot-edge-ability-sp-earned" className="restricted-text skill-label">EDGE ABIL</label>
+                                <div className="skill-box flex items-center">
+                                    <label htmlFor="pilot-edge-ability-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>EDGE ABIL</label>
                                     <input
                                         id="pilot-edge-ability-sp-earned"
                                         type="number"
-                                        className="table-input skill-input"
+                                        className="table-input text-right" style={{ width: '5em' }}
                                         value={formData.edgeAbilitySpEarned}
                                         onChange={(e) => handleInputChange('edgeAbilitySpEarned', e.target.value)}
                                         title="Edge Ability SP"
@@ -464,36 +552,39 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="pilot-actions-section">
-                            <button
-                                className="mode-btn"
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                style={{
-                                    flex: 1,
-                                    borderColor: 'var(--terminal-green)',
-                                    color: 'var(--terminal-green)'
-                                }}
-                            >
-                                {isSaving ? '>> PROCESSING...' : '✓ CONFIRM RECORD'}
-                            </button>
-                            <button
-                                className="mode-btn"
-                                onClick={onCancel}
-                                disabled={isSaving}
-                                style={{
-                                    flex: 1,
-                                    borderColor: 'var(--terminal-alert)',
-                                    color: 'var(--terminal-alert)'
-                                }}
-                            >
-                                ✕ DISCARD CHANGES
-                            </button>
+                        <div className="mt-5">
+                            <details className="tactical-panel sm-text" style={{ padding: '8px', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+                                <summary className="restricted-text cursor-pointer" style={{ fontSize: '0.65rem' }}>VIEW SP THRESHOLD REFERENCE DATA</summary>
+                                <div className="grid-4-col mt-10 flex-gap-20">
+                                    {[{ title: 'GUNNERY', data: gunneryThresholds }, { title: 'PILOTING', data: pilotingThresholds }, { title: 'EDGE TOK', data: edgeTokensThresholds }, { title: 'EDGE ABIL', data: edgeAbilityThresholds }].map(table => (
+                                        <div key={table.title}>
+                                            <span className="restricted-text xs-text">{table.title}</span>
+                                            <table className="tactical-table xs-text mt-5">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="text-center">LVL</th>
+                                                        <th className="text-center">SP</th>
+                                                        <th className="text-center">H</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {table.data.map((row, idx) => (
+                                                        <tr key={idx}>
+                                                            <td className="text-center">{row.skill}</td>
+                                                            <td className="text-center">{row.sp}</td>
+                                                            <td className="text-center">{row.handicap}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
                         </div>
                     </div>
 
-                    <footer className="pilot-card-footer overlay-body" style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--terminal-border)' }}>
+                    <footer className="pilot-card-footer overlay-body" style={{ marginTop: '5px', paddingTop: '5px', borderTop: '1px dashed var(--terminal-border)' }}>
                         <span className="restricted-text" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
                             {mode === 'create' ? 'NEW PERSONNEL FILE' : 'EXISTING PERSONNEL RECORD'}
                         </span>

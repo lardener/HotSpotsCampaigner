@@ -198,6 +198,9 @@ CREATE TABLE pilots (
     `piloting_sp_earned` INT DEFAULT 0,
     `edge_tokens_sp_earned` INT DEFAULT 0,
     `edge_ability_sp_earned` INT DEFAULT 0,
+    `edge_tokens_skill` INT DEFAULT 0,
+    `edge_ability_skill` INT DEFAULT 0,
+    `edge_abilities` VARCHAR(255),
     CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
 );

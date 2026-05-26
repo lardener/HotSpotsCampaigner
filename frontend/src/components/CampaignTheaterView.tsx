@@ -122,6 +122,9 @@ const GET_CAMPAIGN_INVITES = gql`
                 gunnery
                 piloting
                 asSkill
+                edgeTokensSkill
+                edgeAbilitySkill
+                edgeAbilities
             }
         }
       campaignInvites {

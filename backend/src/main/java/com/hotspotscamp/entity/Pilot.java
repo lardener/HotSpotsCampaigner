@@ -53,6 +53,12 @@ public class Pilot implements Persistable<UUID> {
     private Integer edgeTokensSpEarned;
     @Column("edge_ability_sp_earned")
     private Integer edgeAbilitySpEarned;
+    @Column("edge_tokens_skill")
+    private Integer edgeTokensSkill;
+    @Column("edge_ability_skill")
+    private Integer edgeAbilitySkill;
+    @Column("edge_abilities")
+    private String edgeAbilities;
 
     @Transient
     @Builder.Default

@@ -213,6 +213,9 @@ public class CommandGraphQLController {
                 .pilotingSpEarned(TypeUtils.asInt(input.get("pilotingSpEarned")))
                 .edgeTokensSpEarned(TypeUtils.asInt(input.get("edgeTokensSpEarned")))
                 .edgeAbilitySpEarned(TypeUtils.asInt(input.get("edgeAbilitySpEarned")))
+                .edgeTokensSkill(TypeUtils.asInt(input.get("edgeTokensSkill")))
+                .edgeAbilitySkill(TypeUtils.asInt(input.get("edgeAbilitySkill")))
+                .edgeAbilities((String) input.get("edgeAbilities"))
                 .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
                 .build();
         return commandService.hirePilot(commandId, pilot, principal.getName());
@@ -236,6 +239,9 @@ public class CommandGraphQLController {
                 .pilotingSpEarned(TypeUtils.asInt(input.get("pilotingSpEarned")))
                 .edgeTokensSpEarned(TypeUtils.asInt(input.get("edgeTokensSpEarned")))
                 .edgeAbilitySpEarned(TypeUtils.asInt(input.get("edgeAbilitySpEarned")))
+                .edgeTokensSkill(TypeUtils.asInt(input.get("edgeTokensSkill")))
+                .edgeAbilitySkill(TypeUtils.asInt(input.get("edgeAbilitySkill")))
+                .edgeAbilities((String) input.get("edgeAbilities"))
                 .build();
         return commandService.updatePilot(id, pilot, principal.getName());
     }

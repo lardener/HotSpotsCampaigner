@@ -23,6 +23,9 @@ const GET_FORCE_DATA = gql`
         name
         gunnery
         piloting
+        edgeTokensSkill
+        edgeAbilitySkill
+        edgeAbilities
         wounds
         handicap
         totalSpEarned

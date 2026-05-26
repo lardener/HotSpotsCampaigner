@@ -486,6 +486,15 @@ public class MercenaryCommandService {
                         if (updatedData.getEdgeAbilitySpEarned() != null) {
                             pilot.setEdgeAbilitySpEarned(updatedData.getEdgeAbilitySpEarned());
                         }
+                        if (updatedData.getEdgeTokensSkill() != null) {
+                            pilot.setEdgeTokensSkill(updatedData.getEdgeTokensSkill());
+                        }
+                        if (updatedData.getEdgeAbilitySkill() != null) {
+                            pilot.setEdgeAbilitySkill(updatedData.getEdgeAbilitySkill());
+                        }
+                        if (updatedData.getEdgeAbilities() != null) {
+                            pilot.setEdgeAbilities(updatedData.getEdgeAbilities());
+                        }
                         return pilotRepository.save(pilot)
                                 .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
                     }));

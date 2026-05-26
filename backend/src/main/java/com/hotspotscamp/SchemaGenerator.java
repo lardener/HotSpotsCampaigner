@@ -211,6 +211,9 @@ public class SchemaGenerator {
         sql.append("    `piloting_sp_earned` INT DEFAULT 0,\n");
         sql.append("    `edge_tokens_sp_earned` INT DEFAULT 0,\n");
         sql.append("    `edge_ability_sp_earned` INT DEFAULT 0,\n");
+        sql.append("    `edge_tokens_skill` INT DEFAULT 0,\n");
+        sql.append("    `edge_ability_skill` INT DEFAULT 0,\n");
+        sql.append("    `edge_abilities` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_pilot_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_pilot_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");

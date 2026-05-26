@@ -34,6 +34,9 @@ const GET_UNIT_DOSSIER = gql`
         gunnery
         piloting
         asSkill
+        edgeTokensSkill
+        edgeAbilitySkill
+        edgeAbilities
         unitType
         wounds
         handicap
@@ -195,6 +198,9 @@ interface Pilot {
     gunnery: number;
     piloting: number;
     asSkill: number;
+    edgeTokensSkill?: number;
+    edgeAbilitySkill?: number;
+    edgeAbilities?: string;
     unitType: string;
     wounds: number;
     handicap: string;
@@ -556,8 +562,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         setShowPilotEditor(true);
     };
 
-    const handlePilotEditorSave = () => {
+    const handlePilotEditorSave = (pilot?: Pilot) => {
         setShowPilotEditor(false);
+        if (pilot?.id) setJustAddedId(pilot.id);
         refetch();
     };
 
@@ -797,7 +804,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                                 placeholder="COMMANDING OFFICER..."
                                 title="Enter commanding officer name"
-                                aria-label="Commanding officer" 
+                                aria-label="Commanding officer"
                             />
                         ) : (
                             <div
