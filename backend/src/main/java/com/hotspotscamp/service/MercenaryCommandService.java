@@ -3,6 +3,7 @@ package com.hotspotscamp.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -30,8 +31,8 @@ import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
-import com.hotspotscamp.util.SqlUtils;
 import com.hotspotscamp.util.RulesConstants;
+import com.hotspotscamp.util.SqlUtils;
 import com.hotspotscamp.util.TypeUtils;
 
 import lombok.NonNull;
@@ -177,8 +178,8 @@ public class MercenaryCommandService {
                     }
 
                     // Initial values are handled via ledger entry
-                    int startingSp = command.getTotalSupportPoints() != null ? command.getTotalSupportPoints() : RulesConstants.STARTING_SUPPORT_POINTS;
-                    int startingRep = command.getReputation() != null ? command.getReputation() : RulesConstants.STARTING_REPUTATION;
+                    int startingSp = Objects.requireNonNullElse(command.getTotalSupportPoints(), RulesConstants.STARTING_SUPPORT_POINTS);
+                    int startingRep = Objects.requireNonNullElse(command.getReputation(), RulesConstants.STARTING_REPUTATION);
 
                     command.setTotalSupportPoints(0);
                     command.setReputation(0);
@@ -217,7 +218,7 @@ public class MercenaryCommandService {
             det.setCampaignId(campaignId);
             det.setName(name);
             return detachmentRepository.save(det)
-                    .onErrorResume(DuplicateKeyException.class, e -> detachmentRepository.findById(det.getId()));
+                    .onErrorResume(DuplicateKeyException.class, e -> detachmentRepository.findById(Objects.requireNonNull(det.getId())));
         }));
     }
 
@@ -314,7 +315,7 @@ public class MercenaryCommandService {
                 .one()
                 .map(id -> UUID.fromString(id))
                 .switchIfEmpty(Mono.<UUID>error(new RuntimeException("Asset not found")))
-                .<Void>flatMap(commandId -> commandRepository.findById(commandId)
+                .<Void>flatMap(commandId -> commandRepository.findById(Objects.requireNonNull(commandId))
                 .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Added for robustness
                 .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> { // Explicitly type flatMap
             if (!cmd.getOwnerId().equals(user.getId().toString())) {
@@ -665,7 +666,7 @@ public class MercenaryCommandService {
                     return detachmentRepository.save(det).then(
                             SqlUtils.bindString(databaseClient.sql("UPDATE campaign_invites SET used = true WHERE token = :token"), "token", token)
                                     .fetch().rowsUpdated())
-                            .then(commandRepository.findById(det.getMercenaryCommandId()))
+                            .then(commandRepository.findById(Objects.requireNonNull(det.getMercenaryCommandId())))
                             .doOnNext(commandSink::tryEmitNext)
                             .thenReturn(true);
                 }))
@@ -708,12 +709,12 @@ public class MercenaryCommandService {
 
                             if (newMonthsInput != null) {
                                 int targetMonths = Math.max(1, newMonthsInput);
-                                int currentMonths = camp.getLengthInMonths() != null ? camp.getLengthInMonths() : 1;
+                                int currentMonths = Objects.requireNonNullElse(camp.getLengthInMonths(), 1);
 
                                 if (targetMonths < currentMonths) {
                                     // Move tracks from removed months to the highest remaining month
                                     chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
-                                            .filter(t -> (t.getMonthIndex() != null ? t.getMonthIndex() : 1) > targetMonths)
+                                            .filter(t -> (Objects.requireNonNullElse(t.getMonthIndex(), 1)) > targetMonths)
                                             .flatMap(t -> {
                                                 t.setMonthIndex(targetMonths);
                                                 t.setNew(false);
@@ -731,11 +732,11 @@ public class MercenaryCommandService {
                             return chain.flatMap(c -> {
                                 if (newTrackCountInput != null) {
                                     int targetTracks = Math.max(1, newTrackCountInput);
-                                    if (targetTracks != (c.getTrackCount() != null ? c.getTrackCount() : 0)) {
+                                    if (targetTracks != Objects.requireNonNullElse(c.getTrackCount(), 0)) {
                                         return reconcileTracks(c, targetTracks);
                                     }
                                 }
-                                return campaignRepository.save(c);
+                                return campaignRepository.save(Objects.requireNonNull(c));
                             });
                         })
         );
@@ -750,7 +751,7 @@ public class MercenaryCommandService {
 
                     if (targetCount > actualCount) {
                         int numToAdd = targetCount - actualCount;
-                        int lastMonth = camp.getLengthInMonths() != null ? camp.getLengthInMonths() : 1;
+                        int lastMonth = Objects.requireNonNullElse(camp.getLengthInMonths(), 1);
 
                         return contractRepository.findAllByCampaignId(camp.getId())
                                 .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
@@ -762,26 +763,28 @@ public class MercenaryCommandService {
                                             numToAdd);
                                     return Flux.fromIterable(generated)
                                             .index()
-                                            .flatMap(tuple -> campaignTrackRepository.save(CampaignTrack.builder()
-                                            .id(UUID.randomUUID())
-                                            .campaignId(camp.getId())
-                                            .trackName(tuple.getT2().name())
-                                            .complications(tuple.getT2().complication())
-                                            .sequenceOrder(actualCount + tuple.getT1().intValue())
-                                            .monthIndex(lastMonth)
-                                            .isNew(true)
-                                            .build()))
+                                            .flatMap(tuple -> campaignTrackRepository.save(Objects.requireNonNull(
+                                            CampaignTrack.builder()
+                                                    .id(UUID.randomUUID())
+                                                    .campaignId(camp.getId())
+                                                    .trackName(tuple.getT2().name())
+                                                    .complications(tuple.getT2().complication())
+                                                    .sequenceOrder(actualCount + tuple.getT1().intValue())
+                                                    .monthIndex(lastMonth)
+                                                    .isNew(true)
+                                                    .build())))
                                             .then(campaignRepository.save(camp));
                                 })
                                 .switchIfEmpty(Mono.defer(() -> Flux.range(actualCount, numToAdd)
-                                .flatMap(i -> campaignTrackRepository.save(CampaignTrack.builder()
-                                .id(UUID.randomUUID())
-                                .campaignId(camp.getId())
-                                .trackName("NEW OPERATIONAL TRACK")
-                                .sequenceOrder(i)
-                                .monthIndex(lastMonth)
-                                .isNew(true)
-                                .build()))
+                                .flatMap(i -> campaignTrackRepository.save(Objects.requireNonNull(
+                                CampaignTrack.builder()
+                                        .id(UUID.randomUUID())
+                                        .campaignId(camp.getId())
+                                        .trackName("NEW OPERATIONAL TRACK")
+                                        .sequenceOrder(i)
+                                        .monthIndex(lastMonth)
+                                        .isNew(true)
+                                        .build())))
                                 .then(campaignRepository.save(camp))));
                     } else if (targetCount < actualCount) {
                         // Requirement: Reducing number of tracks deletes tracks with higher sequence numbers
@@ -806,7 +809,7 @@ public class MercenaryCommandService {
                     det.setNew(false);
                     det.setCampaignId(campaignId);
                     return detachmentRepository.save(det)
-                            .then(commandRepository.findById(det.getMercenaryCommandId()))
+                            .then(commandRepository.findById(Objects.requireNonNull(det.getMercenaryCommandId())))
                             .doOnNext(commandSink::tryEmitNext);
                 }).then();
     }

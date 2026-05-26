@@ -292,13 +292,15 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     <div className="pilot-card-body">
                         {/* Name / Callsign Section */}
                         <div className="pilot-name-section">
-                            <label className="restricted-text form-label">NAME / CALLSIGN:</label>
+                            <label htmlFor="pilot-name" className="restricted-text form-label">NAME / CALLSIGN:</label>
                             <input
+                                id="pilot-name"
                                 type="text"
                                 className="table-input pilot-name-input"
                                 value={formData.name}
                                 onChange={(e) => handleInputChange('name', e.target.value)}
                                 placeholder="PILOT DESIGNATION"
+                                title="Pilot designation or callsign"
                                 maxLength={50}
                                 autoFocus
                             />
@@ -307,8 +309,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         {/* Unit Type / Status Section */}
                         <div className="pilot-meta-section">
                             <div className="input-group">
-                                <label className="restricted-text form-label">UNIT TYPE:</label>
+                                <label htmlFor="pilot-unit-type" className="restricted-text form-label">UNIT TYPE:</label>
                                 <select
+                                    id="pilot-unit-type"
                                     className="table-input"
                                     value={formData.unitType}
                                     onChange={(e) => handleInputChange('unitType', e.target.value)}
@@ -321,27 +324,31 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             </div>
 
                             <div className="input-group">
-                                <label className="restricted-text form-label">WOUNDS:</label>
+                                <label htmlFor="pilot-wounds" className="restricted-text form-label">WOUNDS:</label>
                                 <input
+                                    id="pilot-wounds"
                                     type="number"
                                     className="table-input"
                                     value={formData.wounds}
                                     onChange={(e) => handleInputChange('wounds', e.target.value)}
                                     min="0"
                                     max="6"
+                                    title="Pilot wounds (0-6)"
                                 />
                             </div>
                         </div>
 
                         <div className="pilot-meta-section">
                             <div className="input-group" style={{ width: '100%' }}>
-                                <label className="restricted-text form-label">HANDICAP / TRAITS:</label>
+                                <label htmlFor="pilot-handicap" className="restricted-text form-label">HANDICAP / TRAITS:</label>
                                 <input
+                                    id="pilot-handicap"
                                     type="text"
                                     className="table-input"
                                     value={formData.handicap}
                                     onChange={(e) => handleInputChange('handicap', e.target.value)}
                                     placeholder="NONE"
+                                    title="Pilot handicap or special traits"
                                 />
                             </div>
                         </div>
@@ -351,8 +358,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             <div className="skills-grid">
                                 {/* Gunnery */}
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">GUNNERY</label>
+                                    <label htmlFor="pilot-gunnery" className="restricted-text skill-label">GUNNERY</label>
                                     <input
+                                        id="pilot-gunnery"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.gunnery}
@@ -365,8 +373,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 
                                 {/* Piloting */}
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">PILOTING</label>
+                                    <label htmlFor="pilot-piloting" className="restricted-text skill-label">PILOTING</label>
                                     <input
+                                        id="pilot-piloting"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.piloting}
@@ -379,8 +388,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 
                                 {/* Alpha Strike Skill */}
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">AS SKILL</label>
+                                    <label htmlFor="pilot-as-skill" className="restricted-text skill-label">AS SKILL</label>
                                     <input
+                                        id="pilot-as-skill"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.asSkill}
@@ -397,8 +407,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             <label className="restricted-text form-label">SKILL POINT (SP) PROGRESSION:</label>
                             <div className="skills-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">TOTAL</label>
+                                    <label htmlFor="pilot-total-sp-earned" className="restricted-text skill-label">TOTAL</label>
                                     <input
+                                        id="pilot-total-sp-earned"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.totalSpEarned}
@@ -407,8 +418,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     />
                                 </div>
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">GUNNERY</label>
+                                    <label htmlFor="pilot-gunnery-sp-earned" className="restricted-text skill-label">GUNNERY</label>
                                     <input
+                                        id="pilot-gunnery-sp-earned"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.gunnerySpEarned}
@@ -417,8 +429,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     />
                                 </div>
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">PILOTING</label>
+                                    <label htmlFor="pilot-piloting-sp-earned" className="restricted-text skill-label">PILOTING</label>
                                     <input
+                                        id="pilot-piloting-sp-earned"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.pilotingSpEarned}
@@ -427,8 +440,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     />
                                 </div>
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">EDGE TOK</label>
+                                    <label htmlFor="pilot-edge-tokens-sp-earned" className="restricted-text skill-label">EDGE TOK</label>
                                     <input
+                                        id="pilot-edge-tokens-sp-earned"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.edgeTokensSpEarned}
@@ -437,8 +451,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     />
                                 </div>
                                 <div className="skill-box">
-                                    <label className="restricted-text skill-label">EDGE ABIL</label>
+                                    <label htmlFor="pilot-edge-ability-sp-earned" className="restricted-text skill-label">EDGE ABIL</label>
                                     <input
+                                        id="pilot-edge-ability-sp-earned"
                                         type="number"
                                         className="table-input skill-input"
                                         value={formData.edgeAbilitySpEarned}

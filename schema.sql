@@ -1,7 +1,7 @@
 -- HotSpots Campaigner Database Schema
 -- Generated for MySQL / R2DBC Compatibility
 
-USE `BT_Campaigner`;
+USE BT_Campaigner;
 
 SET FOREIGN_KEY_CHECKS = 0;
 

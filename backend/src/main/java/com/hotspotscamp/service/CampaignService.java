@@ -6,12 +6,16 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.lang.NonNull;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -421,7 +425,7 @@ public class CampaignService {
             String clean = raw.replace("%", "").trim();
             double val = Double.parseDouble(clean);
             return raw.contains("%") ? val / 100.0 : val;
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             return 1.0;
         }
     }
@@ -614,7 +618,16 @@ public class CampaignService {
                         return contractRepository.save(c);
                     });
                     Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks()).index().flatMap(t -> {
-                        return campaignTrackRepository.save(CampaignTrack.builder().id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).sequenceOrder(t.getT1().intValue()).monthIndex(t.getT1().intValue() + 1).build());
+                        return campaignTrackRepository.save(Objects.requireNonNull(
+                                CampaignTrack.builder()
+                                        .id(UUID.randomUUID())
+                                        .campaignId(saved.getId())
+                                        .trackName(t.getT2().name())
+                                        .complications(t.getT2().complication())
+                                        .sequenceOrder(t.getT1().intValue())
+                                        .monthIndex(t.getT1().intValue() + 1)
+                                        .build()
+                        ));
                     });
                     return Mono.when(conFlux.then(), trackFlux.then()).thenReturn(saved);
                 });
@@ -648,31 +661,31 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<Boolean> joinCampaign(String token, UUID detachmentId) {
+    public Mono<Boolean> joinCampaign(String token, @NonNull UUID detachmentId) {
         return inviteService.validateAndConsumeInvite(token)
                 .flatMap(invite -> detachmentRepository.findById(detachmentId)
-                        .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT NOT FOUND")))
-                        .flatMap(detachment -> {
-                            detachment.setCampaignId(invite.getCampaignId());
-                            // In R2DBC, setting campaignId on a loaded detachment and saving performs an update.
-                            return detachmentRepository.save(detachment).thenReturn(true);
-                        })
+                .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT NOT FOUND")))
+                .flatMap(detachment -> {
+                    detachment.setCampaignId(invite.getCampaignId());
+                    // In R2DBC, setting campaignId on a loaded detachment and saving performs an update.
+                    return detachmentRepository.save(detachment).thenReturn(true);
+                })
                 );
     }
 
     @Transactional
-    public Mono<Boolean> deleteInvite(UUID inviteId, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMap(user -> 
-            campaignInviteRepository.findById(inviteId)
-                .switchIfEmpty(Mono.error(new RuntimeException("Invite not found")))
-                .flatMap(invite -> campaignRepository.findById(invite.getCampaignId())
-                    .flatMap(camp -> {
-                        if (!camp.getManagerId().equals(user.getId().toString())) {
-                            return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
-                        }
-                        return campaignInviteRepository.delete(invite).thenReturn(true);
-                    })
-                )
+    public Mono<Boolean> deleteInvite(@NonNull UUID inviteId, String userId) {
+        return userService.resolveOrCreateUser(userId).flatMap(user
+                -> campaignInviteRepository.findById(inviteId)
+                        .switchIfEmpty(Mono.error(new RuntimeException("Invite not found")))
+                        .flatMap(invite -> campaignRepository.findById(Objects.requireNonNull(invite.getCampaignId()))
+                        .flatMap(camp -> {
+                            if (!camp.getManagerId().equals(user.getId().toString())) {
+                                return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
+                            }
+                            return campaignInviteRepository.delete(invite).thenReturn(true);
+                        })
+                        )
         );
     }
 
@@ -681,7 +694,7 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<CampaignTrack> updateTrack(UUID trackId, Map<String, Object> input) {
+    public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, Map<String, Object> input) {
         return campaignTrackRepository.findById(trackId).flatMap(track -> {
             track.setNew(false);
             if (input.containsKey("trackName")) {
@@ -708,12 +721,12 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<CampaignTrack> rerollTrack(UUID trackId, String managerId) {
+    public Mono<CampaignTrack> rerollTrack(@NonNull UUID trackId, String managerId) {
         log.info("[REROLL] Initializing track reroll for ID: {} by manager: {}", trackId, managerId);
         return userService.resolveOrCreateUser(managerId)
                 .flatMap(user -> campaignTrackRepository.findById(trackId)
                 .switchIfEmpty(Mono.error(new RuntimeException("Track not found: " + trackId)))
-                .flatMap(track -> campaignRepository.findById(track.getCampaignId())
+                .flatMap(track -> campaignRepository.findById(Objects.requireNonNull(track.getCampaignId()))
                 .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found")))
                 .flatMap(campaign -> {
                     // Security: Ensure only the manager can trigger automation
@@ -752,7 +765,7 @@ public class CampaignService {
     @Transactional
     public Flux<CampaignTrack> reorderTracks(UUID campaignId, List<UUID> trackIds) {
         return Flux.fromIterable(trackIds).index().flatMap(tuple -> {
-            return campaignTrackRepository.findById(tuple.getT2()).flatMap(track -> {
+            return campaignTrackRepository.findById(Objects.requireNonNull(tuple.getT2())).flatMap(track -> {
                 track.setSequenceOrder(tuple.getT1().intValue());
                 track.setNew(false);
                 return campaignTrackRepository.save(track);

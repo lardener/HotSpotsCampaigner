@@ -1,6 +1,5 @@
 package com.hotspotscamp.service.scraper;
 
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,14 +20,6 @@ import reactor.core.scheduler.Schedulers;
 public class MulScraper implements UnitScraper {
 
     private static final Logger log = LoggerFactory.getLogger(MulScraper.class);
-    private static final Map<String, String> TYPE_MAP = Map.of(
-            "BattleMech", "BM",
-            "Combat Vehicle", "CV",
-            "ProtoMech", "PM",
-            "IndustrialMech", "IM",
-            "Battle Armor", "BA",
-            "Conventional Infantry", "CI"
-    );
 
     @Override
     public boolean supports(String url) {
@@ -106,16 +97,12 @@ public class MulScraper implements UnitScraper {
             String val = dd.text().trim();
 
             switch (label) {
-                case "Tonnage":
+                case "Tonnage" ->
                     unit.setTonnage(parseSafeInt(val));
-                    break;
-                case "Battle Value":
-                case "Battle Value 2.0":
+                case "Battle Value", "Battle Value 2.0" ->
                     unit.setBv(parseSafeInt(val.replace(",", "")));
-                    break;
-                case "Technology":
+                case "Technology" ->
                     unit.setTechBase(val);
-                    break;
             }
         }
     }
@@ -136,8 +123,8 @@ public class MulScraper implements UnitScraper {
 
     private Integer parseSafeInt(String val) {
         try {
-            return Integer.parseInt(val);
-        } catch (Exception e) {
+            return Integer.valueOf(val);
+        } catch (NumberFormatException e) {
             return 0;
         }
     }

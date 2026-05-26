@@ -497,8 +497,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     </div>
 
                     {saveError && <div className="error-message" style={{ marginTop: '12px' }}>{saveError}</div>}
-                    {user ? ( // Added type="button"
-                        <button onClick={handleSave} disabled={saveLoading || saved} className="login-button">
+                    {user ? (
+                        <button type="button" onClick={handleSave} disabled={saveLoading || saved} className="login-button">
                             {saved ? 'CAMPAIGN ARCHIVED' : 'CONFIRM & SAVE CAMPAIGN'}
                         </button>
                     ) : (

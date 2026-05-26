@@ -695,6 +695,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     onChange={(e) => { newName = e.target.value.toUpperCase(); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') confirmAction(); }}
                     placeholder="DESIGNATION..."
+                    title="Enter detachment designation"
+                    aria-label="New detachment callsign"
                 />
             )
         });
@@ -760,6 +762,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 autoFocus
                                 onBlur={(e) => { handleHeaderUpdate('NAME', e.target.value); setIsEditingName(false); }}
                                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                placeholder="COMMAND NAME..."
+                                title="Enter command name"
+                                aria-label="Command name"
                             />
                             <h1 className="terminal-text" style={{ margin: 0 }}> - COMMAND DASHBOARD</h1>
                         </div>
@@ -790,6 +795,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 autoFocus
                                 onBlur={(e) => { handleHeaderUpdate('CO', e.target.value); setIsEditingCO(false); }}
                                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                placeholder="COMMANDING OFFICER..."
+                                title="Enter commanding officer name"
+                                aria-label="Commanding officer" 
                             />
                         ) : (
                             <div

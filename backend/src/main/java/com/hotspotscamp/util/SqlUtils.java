@@ -1,8 +1,10 @@
 package com.hotspotscamp.util;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
+import org.springframework.lang.NonNull;
 import org.springframework.r2dbc.core.DatabaseClient;
 
 /**
@@ -13,17 +15,17 @@ public class SqlUtils {
 
     public static DatabaseClient.GenericExecuteSpec bindUuid(
             DatabaseClient.GenericExecuteSpec spec,
-            String name,
+            @NonNull String name,
             UUID value) {
         if (value == null) {
             return spec.bindNull(name, String.class);
         }
-        return spec.bind(name, (Object) value.toString());
+        return spec.bind(name, Objects.requireNonNull(value.toString()));
     }
 
     public static DatabaseClient.GenericExecuteSpec bindString(
             DatabaseClient.GenericExecuteSpec spec,
-            String name,
+            @NonNull String name,
             String value) {
         if (value == null) {
             return spec.bindNull(name, String.class);
@@ -33,7 +35,7 @@ public class SqlUtils {
 
     public static DatabaseClient.GenericExecuteSpec bindDateTime(
             DatabaseClient.GenericExecuteSpec spec,
-            String name,
+            @NonNull String name,
             LocalDateTime value) {
         if (value == null) {
             return spec.bindNull(name, LocalDateTime.class);

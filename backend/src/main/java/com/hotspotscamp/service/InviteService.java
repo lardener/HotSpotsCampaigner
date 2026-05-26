@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HexFormat;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -40,14 +41,14 @@ public class InviteService {
         String hashedToken = hashToken(rawToken);
         LocalDateTime expiry = LocalDateTime.now().plusDays(7);
 
-        return inviteRepository.save(CampaignInvite.builder()
+        return inviteRepository.save(Objects.requireNonNull(CampaignInvite.builder()
                 .id(UUID.randomUUID())
                 .campaignId(campaignId)
                 .token(hashedToken)
                 .recipientName(recipientName)
                 .expiresAt(expiry)
                 .used(false)
-                .build())
+                .build()))
                 .map(saved -> CampaignInvite.builder()
                 .id(saved.getId())
                 .campaignId(campaignId)
@@ -87,13 +88,16 @@ public class InviteService {
                 .flatMap(invite -> {
                     // Identity resolution: link token hash to a persistent user
                     return userRepository.findByExternalId(invite.getToken())
-                            .switchIfEmpty(Mono.defer(() -> userRepository.save(User.builder()
-                                    .id(UUID.randomUUID())
-                                    .externalId(invite.getToken())
-                                    .displayName("Mercenary Commander")
-                                    .role("ROLE_INVITED")
-                                    .isNew(true)
-                                    .build())))
+                            .switchIfEmpty(Mono.defer(() -> {
+                                User newUser = java.util.Objects.requireNonNull(User.builder()
+                                        .id(UUID.randomUUID())
+                                        .externalId(invite.getToken())
+                                        .displayName("Mercenary Commander")
+                                        .role("ROLE_INVITED")
+                                        .isNew(true)
+                                        .build());
+                                return userRepository.save(newUser);
+                            }))
                             .flatMap(u -> {
                                 var authorities = Collections.singletonList(new SimpleGrantedAuthority(u.getRole()));
                                 var auth = new UsernamePasswordAuthenticationToken(u.getExternalId(), null, authorities);
@@ -117,7 +121,7 @@ public class InviteService {
                     if (invite.getExpiresAt() != null && invite.getExpiresAt().isBefore(LocalDateTime.now())) {
                         return Mono.error(new RuntimeException("INVITATION KEY HAS EXPIRED"));
                     }
-                    return inviteRepository.save(invite.toBuilder().used(true).isNew(false).build());
+                    return inviteRepository.save(Objects.requireNonNull(invite.toBuilder().used(true).isNew(false).build()));
                 })
                 .switchIfEmpty(Mono.error(new RuntimeException("INVALID INVITATION KEY")));
     }
