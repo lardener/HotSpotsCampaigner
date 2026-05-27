@@ -126,6 +126,7 @@ const GET_CAMPAIGN_INVITES = gql`
                 edgeTokensSkill
                 edgeAbilitySkill
                 edgeAbilities
+                handicap
             }
         }
       campaignInvites {

@@ -331,7 +331,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                         id={p.id}
                                         type="PILOT"
                                         label={p.name}
-                                        subLabel={`G/P: ${p.gunnery}/${p.piloting} | W:${p.wounds}`}
+                                        subLabel={`G/P: ${p.gunnery}/${p.piloting} | W:${p.wounds} | H:${p.handicap}`}
                                     />
                                 ))}
                             </div>
@@ -357,7 +357,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                                 id={p.id}
                                                 type="PILOT"
                                                 label={p.name}
-                                                subLabel={`G/P: ${p.gunnery}/${p.piloting} | SP:${p.totalSpEarned}`}
+                                                subLabel={`G/P: ${p.gunnery}/${p.piloting} | H:${p.handicap}`}
                                             />
                                         ))}
                                         {units.filter(u => u.detachmentId === det.id).length === 0 &&

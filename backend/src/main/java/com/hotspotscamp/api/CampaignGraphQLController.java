@@ -12,6 +12,7 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
 
 import com.hotspotscamp.entity.Campaign;
@@ -26,6 +27,7 @@ import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.util.TypeUtils;
+
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 import com.hotspotscamp.service.UserService;
@@ -258,6 +260,7 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
+    @SuppressWarnings("Convert2Lambda")
     public CampaignMetadata publicCampaignMetadata() {
         return campaignMetadata(new java.security.Principal() {
             @Override
@@ -268,6 +271,7 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
+    @SuppressWarnings("Convert2Lambda")
     public Mono<CampaignProposal> publicPreviewCampaign(@Argument Map<String, Object> input) {
         return previewCampaign(input, new java.security.Principal() {
             @Override
@@ -326,12 +330,12 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Boolean> joinCampaign(@Argument String token, @Argument UUID detachmentId) {
+    public Mono<Boolean> joinCampaign(@Argument String token, @Argument @NonNull UUID detachmentId) {
         return campaignService.joinCampaign(token, detachmentId);
     }
 
     @MutationMapping
-    public Mono<CampaignTrack> updateTrack(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument Map<String, Object> input, Principal principal) {
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));
         }
@@ -339,7 +343,7 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CampaignTrack> rerollTrack(@Argument UUID id, Principal principal) {
+    public Mono<CampaignTrack> rerollTrack(@Argument @NonNull UUID id, Principal principal) {
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));
         }

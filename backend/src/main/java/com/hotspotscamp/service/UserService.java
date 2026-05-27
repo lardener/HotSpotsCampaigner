@@ -1,5 +1,6 @@
 package com.hotspotscamp.service;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -47,7 +48,7 @@ public class UserService {
                     }
                     log.info("[AUTH] Identity not found in external_id, checking internal UUIDs for: {}", identity);
                     try {
-                        return userRepository.findById(UUID.fromString(identity));
+                        return userRepository.findById(Objects.requireNonNull(UUID.fromString(identity)));
                     } catch (IllegalArgumentException e) {
                         return Mono.empty();
                     }
@@ -69,7 +70,7 @@ public class UserService {
                             .isNew(true)
                             .build();
 
-                    return userRepository.save(newUser)
+                    return userRepository.save(Objects.requireNonNull(newUser))
                             .onErrorResume(DuplicateKeyException.class, e -> {
                                 log.info("[AUTH] Concurrent registration detected for {}. Falling back to lookup.", identity);
                                 return userRepository.findByExternalId(identity);
@@ -90,7 +91,7 @@ public class UserService {
      * Upgrades an invited user to an authenticated manager.
      */
     public Mono<User> upgradeToManager(UUID userId, String externalId, String email) {
-        return userRepository.findById(userId)
+        return userRepository.findById(Objects.requireNonNull(userId))
                 .flatMap(user -> {
                     user.setNew(false);
                     user.setExternalId(externalId);

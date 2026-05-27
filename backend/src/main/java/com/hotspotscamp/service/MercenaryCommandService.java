@@ -14,7 +14,6 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.CombatUnit;
@@ -47,7 +46,6 @@ public class MercenaryCommandService {
 
     private final MercenaryCommandRepository commandRepository;
     private final DetachmentRepository detachmentRepository;
-    private final ObjectMapper objectMapper;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final CampaignTrackRepository campaignTrackRepository;
     private final CampaignRepository campaignRepository;
@@ -62,7 +60,6 @@ public class MercenaryCommandService {
     public MercenaryCommandService(
             MercenaryCommandRepository commandRepository,
             DetachmentRepository detachmentRepository,
-            ObjectMapper objectMapper,
             LedgerEntryRepository ledgerEntryRepository,
             CampaignTrackRepository campaignTrackRepository,
             CampaignRepository campaignRepository,
@@ -75,7 +72,6 @@ public class MercenaryCommandService {
             @Lazy CampaignService campaignService) {
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
-        this.objectMapper = objectMapper;
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.campaignTrackRepository = campaignTrackRepository;
         this.campaignRepository = campaignRepository;
@@ -104,8 +100,10 @@ public class MercenaryCommandService {
      * Fetches all mercenary commands belonging to the current user.
      */
     public Flux<MercenaryCommand> getCommandsByUser(String userId) {
+        log.trace("[TRACE] Starting getCommandsByUser for user: {}", userId);
         return userService.resolveOrCreateUser(userId)
-                .flatMapMany(user -> commandRepository.findAllByOwnerId(user.getId().toString()));
+                .flatMapMany(user -> commandRepository.findAllByOwnerId(user.getId().toString()))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getCommandsByUser for user: {}", userId));
     }
 
     /**
@@ -114,6 +112,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> deleteCommand(@NonNull UUID commandId, String userId, boolean force) {
+        log.trace("[TRACE] Starting deleteCommand: id={}, user={}, force={}", commandId, userId, force);
         return userService.resolveOrCreateUser(userId)
                 .flatMap(user -> commandRepository.findById(commandId)
                 .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))) // Explicitly type Mono.error
@@ -129,11 +128,13 @@ public class MercenaryCommandService {
                                 }
                                 return commandRepository.delete(cmd);
                             });
-                }));
+                }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished deleteCommand: id={}", commandId));
     }
 
     @Transactional
     public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, String name, String co, Integer sp, Integer rep, String userId) {
+        log.trace("[TRACE] Starting updateCommandDetails: id={}", commandId);
         return commandRepository.findById(commandId)
                 .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found: " + commandId))) // Explicitly type Mono.error
                 .flatMap(cmd -> userService.resolveOrCreateUser(userId).<MercenaryCommand>flatMap(user -> { // Explicitly type flatMap
@@ -159,7 +160,8 @@ public class MercenaryCommandService {
                     .onErrorResume(DuplicateKeyException.class, e -> {
                         return Mono.<MercenaryCommand>error(new RuntimeException("Registry update failed: Persistence conflict.")); // Explicitly type Mono.error
                     });
-        }));
+        }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateCommandDetails: id={}", commandId));
     }
 
     /**
@@ -168,6 +170,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
+        log.trace("[TRACE] Starting createCommand for user: {}", userId);
         return userService.resolveOrCreateUser(userId)
                 .flatMap(user -> {
                     UUID commandId = UUID.randomUUID();
@@ -198,7 +201,8 @@ public class MercenaryCommandService {
                                 return addLedgerEntry(commandId, null, initialEntry, userId)
                                         .thenReturn(savedCmd);
                             });
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished createCommand"));
     }
 
     /**
@@ -207,6 +211,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Detachment> createDetachment(@NonNull UUID commandId, UUID campaignId, String name, String userId) {
+        log.trace("[TRACE] Starting createDetachment: command={}, campaign={}", commandId, campaignId);
         return commandRepository.findById(commandId)
                 .flatMap(cmd -> userService.resolveOrCreateUser(userId).<Detachment>flatMap(user -> { // Explicitly type flatMap
             if (!cmd.getOwnerId().equals(user.getId().toString())) {
@@ -219,7 +224,8 @@ public class MercenaryCommandService {
             det.setName(name);
             return detachmentRepository.save(det)
                     .onErrorResume(DuplicateKeyException.class, e -> detachmentRepository.findById(Objects.requireNonNull(det.getId())));
-        }));
+        }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished createDetachment"));
     }
 
     /**
@@ -227,6 +233,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> deleteCombatUnit(@NonNull UUID unitId, String userId) {
+        log.trace("[TRACE] Starting deleteCombatUnit: unitId={}", unitId);
         return combatUnitRepository.findById(unitId)
                 .switchIfEmpty(Mono.<CombatUnit>error(new RuntimeException("Unit not found: " + unitId))) // Explicitly type Mono.error
                 .<Void>flatMap(unit -> { // Explicitly type flatMap
@@ -242,7 +249,8 @@ public class MercenaryCommandService {
                         }
                         return combatUnitRepository.delete(unit);
                     }));
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished deleteCombatUnit"));
     }
 
     /**
@@ -250,6 +258,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> deletePilot(@NonNull UUID pilotId, String userId) {
+        log.trace("[TRACE] Starting deletePilot: pilotId={}", pilotId);
         return pilotRepository.findById(pilotId)
                 .switchIfEmpty(Mono.<Pilot>error(new RuntimeException("Pilot not found: " + pilotId))) // Explicitly type Mono.error
                 .<Void>flatMap(pilot -> { // Explicitly type flatMap
@@ -265,7 +274,8 @@ public class MercenaryCommandService {
                         }
                         return pilotRepository.delete(pilot);
                     }));
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished deletePilot"));
     }
 
     /**
@@ -275,6 +285,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<MercenaryCommand> syncTotalSupportPoints(@NonNull UUID commandId) {
+        log.trace("[TRACE] Starting syncTotalSupportPoints: commandId={}", commandId);
         String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
                 + "WHERE command_id = :id";
 
@@ -290,15 +301,18 @@ public class MercenaryCommandService {
                             .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
                             .switchIfEmpty(Mono.error(new RuntimeException("Failed to sync SP: Command state lost.")))
                             .doOnNext(commandSink::tryEmitNext);
-                }));
+                }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));
     }
 
     /**
      * Returns a stream of updates for a specific command.
      */
     public Flux<MercenaryCommand> getCommandUpdates(@NonNull UUID commandId) {
+        log.trace("[TRACE] Starting getCommandUpdates: commandId={}", commandId);
         return commandSink.asFlux()
-                .filter(cmd -> cmd.getId().equals(commandId));
+                .filter(cmd -> cmd.getId().equals(commandId))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getCommandUpdates: commandId={}", commandId));
     }
 
     /**
@@ -307,6 +321,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> assignAssetToDetachment(String assetType, @NonNull UUID assetId, UUID detachmentId, String userId) {
+        log.trace("[TRACE] Starting assignAssetToDetachment: type={}, assetId={}, detId={}", assetType, assetId, detachmentId);
         String table = assetType.equalsIgnoreCase("UNIT") ? "combat_units" : "pilots";
 
         var selectSpec = databaseClient.sql("SELECT command_id FROM " + table + " WHERE id = :id");
@@ -339,7 +354,8 @@ public class MercenaryCommandService {
                     spec = SqlUtils.bindUuid(spec, "id", assetId);
                     spec = SqlUtils.bindUuid(spec, "detId", detachmentId);
                     return spec.fetch().rowsUpdated().then();
-                })));
+                })))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished assignAssetToDetachment"));
     }
 
     /**
@@ -347,6 +363,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> deleteDetachment(@NonNull UUID detachmentId, String userId) {
+        log.trace("[TRACE] Starting deleteDetachment: id={}", detachmentId);
         return detachmentRepository.findById(detachmentId)
                 .switchIfEmpty(Mono.<Detachment>error(new RuntimeException("Detachment not found: " + detachmentId))) // Explicitly type Mono.error
                 .<Void>flatMap(detachment -> { // Explicitly type flatMap
@@ -363,29 +380,36 @@ public class MercenaryCommandService {
                                         detachmentRepository.deleteById(detachmentId)
                                 ).then(syncTotalSupportPoints(commandId)).then();
                             });
-                });
+                }).doOnTerminate(() -> log.trace("[TRACE] Finished deleteDetachment"));
     }
 
     public Flux<CombatUnit> getUnitsByDetachmentId(@NonNull UUID detachmentId) {
-        return combatUnitRepository.findAllByDetachmentId(detachmentId);
+        log.trace("[TRACE] Starting getUnitsByDetachmentId: id={}", detachmentId);
+        return combatUnitRepository.findAllByDetachmentId(detachmentId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getUnitsByDetachmentId"));
     }
 
     public Flux<Pilot> getPilotsByDetachmentId(@NonNull UUID detachmentId) {
-        return pilotRepository.findAllByDetachmentId(detachmentId);
+        log.trace("[TRACE] Starting getPilotsByDetachmentId: id={}", detachmentId);
+        return pilotRepository.findAllByDetachmentId(detachmentId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getPilotsByDetachmentId"));
     }
 
     /**
      * Fetches all units and pilots for a given command.
      */
     public Mono<CommandAssetsResponse> getAssetsByCommandId(@NonNull UUID commandId) {
+        log.trace("[TRACE] Starting getAssetsByCommandId: id={}", commandId);
         return Mono.zip(
                 combatUnitRepository.findAllByCommandId(commandId).collectList(),
                 pilotRepository.findAllByCommandId(commandId).collectList()
-        ).map(tuple -> new CommandAssetsResponse(tuple.getT1(), tuple.getT2()));
+        ).map(tuple -> new CommandAssetsResponse(tuple.getT1(), tuple.getT2()))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getAssetsByCommandId"));
     }
 
     @Transactional
     public Mono<CombatUnit> updateCombatUnit(@NonNull UUID unitId, CombatUnit updatedData, String userId) {
+        log.trace("[TRACE] Starting updateCombatUnit: id={}", unitId);
         return combatUnitRepository.findById(unitId)
                 .switchIfEmpty(Mono.<CombatUnit>error(new RuntimeException("Unit not found"))) // Explicitly type Mono.error
                 .<CombatUnit>flatMap(unit -> { // Explicitly type flatMap
@@ -431,11 +455,13 @@ public class MercenaryCommandService {
                         return combatUnitRepository.save(unit)
                                 .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
                     }));
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateCombatUnit"));
     }
 
     @Transactional
     public Mono<Pilot> updatePilot(@NonNull UUID pilotId, Pilot updatedData, String userId) {
+        log.trace("[TRACE] Starting updatePilot: id={}", pilotId);
         return pilotRepository.findById(pilotId)
                 .switchIfEmpty(Mono.<Pilot>error(new RuntimeException("Pilot not found"))) // Explicitly type Mono.error
                 .<Pilot>flatMap(pilot -> { // Explicitly type flatMap
@@ -498,35 +524,44 @@ public class MercenaryCommandService {
                         return pilotRepository.save(pilot)
                                 .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
                     }));
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updatePilot"));
     }
 
     /**
      * Fetches all detachments belonging to a specific mercenary command.
      */
     public Flux<Detachment> getDetachmentsByCommandId(@NonNull UUID commandId) {
-        return detachmentRepository.findAllByMercenaryCommandId(commandId);
+        log.trace("[TRACE] Starting getDetachmentsByCommandId: id={}", commandId);
+        return detachmentRepository.findAllByMercenaryCommandId(commandId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getDetachmentsByCommandId"));
     }
 
     /**
      * Fetches all ledger entries for a specific detachment.
      */
     public Flux<LedgerEntry> getLedgerEntriesByDetachmentId(@NonNull UUID detachmentId) {
-        return ledgerEntryRepository.findAllByDetachmentId(detachmentId);
+        log.trace("[TRACE] Starting getLedgerEntriesByDetachmentId: id={}", detachmentId);
+        return ledgerEntryRepository.findAllByDetachmentId(detachmentId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getLedgerEntriesByDetachmentId"));
     }
 
     /**
      * Fetches all ledger entries for a specific command.
      */
     public Flux<LedgerEntry> getLedgerEntriesByCommandId(@NonNull UUID commandId) {
-        return ledgerEntryRepository.findAllByCommandId(commandId);
+        log.trace("[TRACE] Starting getLedgerEntriesByCommandId: id={}", commandId);
+        return ledgerEntryRepository.findAllByCommandId(commandId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getLedgerEntriesByCommandId"));
     }
 
     /**
      * Fetches a command by ID without owner filtering.
      */
     public Mono<MercenaryCommand> getCommandById(@NonNull UUID commandId) {
-        return commandRepository.findById(commandId);
+        log.trace("[TRACE] Starting getCommandById: id={}", commandId);
+        return commandRepository.findById(commandId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getCommandById"));
     }
 
     /**
@@ -534,6 +569,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<CombatUnit> addCombatUnit(@NonNull UUID commandId, CombatUnit unit, String userId) {
+        log.trace("[TRACE] Starting addCombatUnit: commandId={}", commandId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> commandRepository.findById(commandId).switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))).<CombatUnit>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
@@ -548,7 +584,8 @@ public class MercenaryCommandService {
                             .doOnNext(commandSink::tryEmitNext)
                             .thenReturn(u));
                 })
-        );
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished addCombatUnit"));
     }
 
     /**
@@ -556,6 +593,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Pilot> hirePilot(@NonNull UUID commandId, Pilot pilot, String userId) {
+        log.trace("[TRACE] Starting hirePilot: commandId={}", commandId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> commandRepository.findById(commandId).switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))).<Pilot>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
@@ -569,18 +607,21 @@ public class MercenaryCommandService {
                             .doOnNext(commandSink::tryEmitNext)
                             .thenReturn(p));
                 })
-        );
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished hirePilot"));
     }
 
     /**
      * Reputation logic: success/failure updates the parent command.
      */
     public Mono<Void> updateReputation(@NonNull UUID commandId, int modifier) {
+        log.trace("[TRACE] Starting updateReputation: id={}, mod={}", commandId, modifier);
         return commandRepository.findById(commandId)
                 .flatMap(cmd -> {
                     cmd.setReputation(Math.max(0, cmd.getReputation() + modifier));
                     return commandRepository.save(cmd);
-                }).then();
+                }).then()
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateReputation"));
     }
 
     /**
@@ -589,6 +630,7 @@ public class MercenaryCommandService {
      */
     @Transactional // Assuming LedgerEntry entity is updated with new fields
     public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntry entry, String userId) {
+        log.trace("[TRACE] Starting addLedgerEntry: cmdId={}, detId={}", commandId, detachmentId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> isAuthorizedForCommand(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
                     if (!isAuthorized) {
@@ -604,7 +646,8 @@ public class MercenaryCommandService {
                             .then(syncReputation(commandId))
                             .thenReturn(saved));
                 })
-        );
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished addLedgerEntry"));
     }
 
     /**
@@ -613,6 +656,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<MercenaryCommand> syncReputation(@NonNull UUID commandId) {
+        log.trace("[TRACE] Starting syncReputation: id={}", commandId);
         String sql = "SELECT COALESCE(SUM(reputation_change), 0) as total FROM ledger_entries "
                 + "WHERE command_id = :id";
 
@@ -627,7 +671,8 @@ public class MercenaryCommandService {
                     return commandRepository.save(command)
                             .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
                             .doOnNext(commandSink::tryEmitNext);
-                }));
+                }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished syncReputation"));
     }
 
     /**
@@ -636,6 +681,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Mono<Void> processMonthlyUpkeep(@NonNull UUID commandId, @NonNull UUID detachmentId, int monthIndex, String userId) {
+        log.trace("[TRACE] Starting processMonthlyUpkeep: cmdId={}, detId={}, month={}", commandId, detachmentId, monthIndex);
         return getAssetsByCommandId(commandId).flatMap(assets -> {
             // Filter assets assigned to this detachment
             long unitCount = assets.units().stream().filter(u -> detachmentId.equals(u.getDetachmentId())).count();
@@ -650,18 +696,22 @@ public class MercenaryCommandService {
                     .build();
 
             return addLedgerEntry(commandId, detachmentId, upkeep, userId).then();
-        });
+        })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished processMonthlyUpkeep"));
     }
 
     /**
      * Resolves a campaign name by its ID.
      */
     public Mono<String> getCampaignName(@NonNull UUID campaignId) {
-        return campaignRepository.findById(campaignId).map(Campaign::getName);
+        log.trace("[TRACE] Starting getCampaignName: id={}", campaignId);
+        return campaignRepository.findById(campaignId).map(Campaign::getName)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getCampaignName"));
     }
 
     @Transactional
     public Mono<Campaign> updateCampaignDetails(@NonNull UUID campaignId, Map<String, Object> input, String userId) {
+        log.trace("[TRACE] Starting updateCampaignDetails: id={}", campaignId);
         return userService.resolveOrCreateUser(userId).<Campaign>flatMap(user
                 -> campaignRepository.findById(campaignId)
                         .<Campaign>flatMap(camp -> {
@@ -726,7 +776,8 @@ public class MercenaryCommandService {
                                 return campaignRepository.save(Objects.requireNonNull(c));
                             });
                         })
-        );
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateCampaignDetails"));
     }
 
     private Mono<Campaign> reconcileTracks(Campaign camp, int newCount) {
@@ -789,6 +840,7 @@ public class MercenaryCommandService {
 
     @Transactional
     public Mono<Void> assignDetachmentToCampaign(@NonNull UUID detachmentId, UUID campaignId, String userId) {
+        log.trace("[TRACE] Starting assignDetachmentToCampaign: detId={}, campId={}", detachmentId, campaignId);
         return detachmentRepository.findById(detachmentId)
                 .flatMap(det -> {
                     // If setting a campaign, check manager permissions or owner permissions
@@ -798,7 +850,8 @@ public class MercenaryCommandService {
                     return detachmentRepository.save(det)
                             .then(commandRepository.findById(Objects.requireNonNull(det.getMercenaryCommandId())))
                             .doOnNext(commandSink::tryEmitNext);
-                }).then();
+                }).then()
+                .doOnTerminate(() -> log.trace("[TRACE] Finished assignDetachmentToCampaign"));
     }
 
     /**
@@ -807,6 +860,7 @@ public class MercenaryCommandService {
      * manager of a campaign where the command has at least one detachment.
      */
     public Mono<Boolean> isAuthorizedForCommand(@NonNull UUID commandId, String userId) {
+        log.trace("[TRACE] Starting isAuthorizedForCommand: cmdId={}, user={}", commandId, userId);
         return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
             String internalId = user.getId().toString();
             String sql = "SELECT EXISTS ("
@@ -823,7 +877,8 @@ public class MercenaryCommandService {
             return spec.map((row, metadata) -> row.get(0, Number.class))
                     .one()
                     .map(n -> n != null && n.longValue() > 0)
-                    .defaultIfEmpty(false);
+                    .defaultIfEmpty(false)
+                    .doOnTerminate(() -> log.trace("[TRACE] Finished isAuthorizedForCommand"));
         });
     }
 
@@ -833,6 +888,7 @@ public class MercenaryCommandService {
      */
     @Transactional
     public Flux<CombatUnit> importAssetsFromLink(@NonNull UUID commandId, UUID detachmentId, String link, String userId) {
+        log.trace("[TRACE] Starting importAssetsFromLink: cmdId={}, link={}", commandId, link);
         return userService.resolveOrCreateUser(userId).<CombatUnit>flatMapMany(user
                 -> commandRepository.findById(commandId).<CombatUnit>flatMapMany(cmd -> {
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
@@ -851,6 +907,7 @@ public class MercenaryCommandService {
                             })
                             .flatMap(combatUnitRepository::save);
                 })
-        );
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished importAssetsFromLink"));
     }
 }

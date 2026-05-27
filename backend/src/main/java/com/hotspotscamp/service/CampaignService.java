@@ -79,10 +79,6 @@ public class CampaignService {
 
     }
 
-    private record RoleTableConfig(int diceCount, int diceSides, int threshold, String attackerLabel, String defenderLabel, Map<String, Integer> missionModifiers) {
-
-    }
-
     private record SystemEntry(int roll, String name) {
 
     }
@@ -158,7 +154,6 @@ public class CampaignService {
     private EmployerTableConfig employerTableConfig;
     private SystemTableConfig systemTableConfig;
     private MissionTableConfig missionTableData;
-    private RoleTableConfig roleTableData;
     private TrackTableConfig trackTableData;
     private TrackCountTableConfig trackCountTableData;
     private ContractStepsTableConfig contractStepsTableConfig;
@@ -174,11 +169,6 @@ public class CampaignService {
     private List<String> availablePrimaryMissions;
     private List<String> availableOpponentMissions;
     private List<String> availableTrackTypes;
-    private List<String> availablePayRates;
-    private List<String> availableSalvage;
-    private List<String> availableSupport;
-    private List<String> availableTransport;
-    private List<String> availableCommand;
 
     private Map<String, List<String>> factionOrganizations;
     private List<String> corporateSuffixes;
@@ -187,15 +177,16 @@ public class CampaignService {
     @PostConstruct
     public void init() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
+        log.info("Starting initialization of campaign rules from JSON configuration files.");
 
         employerTableConfig = loadMapTyped("employerTable.json", mapper, new TypeReference<EmployerTableConfig>() {
         });
         systemTableConfig = loadMapTyped("systemTable.json", mapper, new TypeReference<SystemTableConfig>() {
         });
-        systemGroupDiceCount = systemTableConfig.groupDiceCount() != null ? systemTableConfig.groupDiceCount() : 2;
-        systemGroupDiceSides = systemTableConfig.groupDiceSides() != null ? systemTableConfig.groupDiceSides() : 6;
-        systemEntryDiceCount = systemTableConfig.entryDiceCount() != null ? systemTableConfig.entryDiceCount() : 2;
-        systemEntryDiceSides = systemTableConfig.entryDiceSides() != null ? systemTableConfig.entryDiceSides() : 6;
+        systemGroupDiceCount = Objects.requireNonNullElse(systemTableConfig.groupDiceCount(), 2);
+        systemGroupDiceSides = Objects.requireNonNullElse(systemTableConfig.groupDiceSides(), 6);
+        systemEntryDiceCount = Objects.requireNonNullElse(systemTableConfig.entryDiceCount(), 2);
+        systemEntryDiceSides = Objects.requireNonNullElse(systemTableConfig.entryDiceSides(), 6);
 
         missionTableData = loadMapTyped("missionTable.json", mapper, new TypeReference<MissionTableConfig>() {
         });
@@ -216,20 +207,12 @@ public class CampaignService {
                 .map(RollEntry::value)
                 .distinct().sorted().collect(Collectors.toList());
 
-        roleTableData = loadMapTyped("roleTable.json", mapper, new TypeReference<RoleTableConfig>() {
-        });
         trackCountTableData = loadMapTyped("trackCountTable.json", mapper, new TypeReference<TrackCountTableConfig>() {
         });
         contractStepsTableConfig = loadMapTyped("contractStepsTable.json", mapper, new TypeReference<ContractStepsTableConfig>() {
         });
         complicationsTableConfig = loadMapTyped("complicationsTable.json", mapper, new TypeReference<ComplicationsTableConfig>() {
         });
-
-        availablePayRates = contractStepsTableConfig.entries().stream().map(ContractStepEntry::payRate).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
-        availableSalvage = contractStepsTableConfig.entries().stream().map(ContractStepEntry::salvageRights).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
-        availableSupport = contractStepsTableConfig.entries().stream().map(ContractStepEntry::supportRights).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
-        availableTransport = contractStepsTableConfig.entries().stream().map(ContractStepEntry::transportation).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
-        availableCommand = contractStepsTableConfig.entries().stream().map(ContractStepEntry::commandRights).filter(v -> v != null && !"-".equals(v)).distinct().collect(Collectors.toList());
 
         factionOrganizations = loadMapTyped("factionOrganizations.json", mapper, new TypeReference<Map<String, List<String>>>() {
         });
@@ -242,38 +225,60 @@ public class CampaignService {
             });
             contractTables.put(key, config);
         }
+        log.info("Successfully loaded all campaign configuration tables.");
     }
 
     private <T> T loadMapTyped(String fileName, ObjectMapper mapper, TypeReference<T> typeReference) throws IOException {
+        log.debug("Loading rules file: rules/{}", fileName);
         try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
             return mapper.readValue(is, typeReference);
+        } catch (IOException e) {
+            log.error("CRITICAL: Failed to load campaign configuration file: rules/{}. The application cannot start without this file.", fileName, e);
+            throw e;
         }
     }
 
     private List<String> loadList(String fileName, ObjectMapper mapper) throws IOException {
+        log.debug("Loading rules list file: rules/{}", fileName);
         try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
             return mapper.readValue(is, new TypeReference<List<String>>() {
             });
+        } catch (IOException e) {
+            log.error("CRITICAL: Failed to load campaign configuration list: rules/{}. The application cannot start without this file.", fileName, e);
+            throw e;
         }
     }
 
     public List<String> getEmployerTypes() {
-        return employerTableConfig.entries().stream().map(EmployerEntry::type).distinct().sorted().collect(Collectors.toList());
+        log.trace("[TRACE] Starting getEmployerTypes");
+        List<String> result = employerTableConfig.entries().stream().map(EmployerEntry::type).distinct().sorted().collect(Collectors.toList());
+        log.trace("[TRACE] Finished getEmployerTypes");
+        return result;
     }
 
     public List<String> getAvailableFactions() {
-        return availableFactions;
+        log.trace("[TRACE] Starting getAvailableFactions");
+        List<String> result = availableFactions;
+        log.trace("[TRACE] Finished getAvailableFactions");
+        return result;
     }
 
     public Map<String, List<String>> getAvailableMissions() {
-        return Map.of("primary", availablePrimaryMissions, "opponent", availableOpponentMissions);
+        log.trace("[TRACE] Starting getAvailableMissions");
+        Map<String, List<String>> result = Map.of("primary", availablePrimaryMissions, "opponent", availableOpponentMissions);
+        log.trace("[TRACE] Finished getAvailableMissions");
+        return result;
     }
 
     public List<String> getAvailableTrackTypes() {
-        return availableTrackTypes;
+        log.trace("[TRACE] Starting getAvailableTrackTypes");
+        List<String> result = availableTrackTypes;
+        log.trace("[TRACE] Finished getAvailableTrackTypes");
+        return result;
     }
 
     public Map<Integer, Map<String, String>> getResolvedStepsTable() {
+        log.trace("[TRACE] Starting getResolvedStepsTable");
         Map<Integer, Map<String, String>> resolvedSteps = new HashMap<>();
         for (ContractStepEntry entry : contractStepsTableConfig.entries()) {
             Map<String, String> values = new HashMap<>();
@@ -284,15 +289,18 @@ public class CampaignService {
             values.put("commandRights", entry.commandRights());
             resolvedSteps.put(entry.step(), values);
         }
+        log.trace("[TRACE] Finished getResolvedStepsTable");
         return resolvedSteps;
     }
 
     public Flux<ActiveCampaignSummary> getParticipatingCampaigns(UUID commandId) {
+        log.trace("[TRACE] Starting getParticipatingCampaigns: commandId={}", commandId);
         return detachmentRepository.findAllByMercenaryCommandId(commandId)
                 .map(Detachment::getCampaignId)
                 .distinct()
                 .flatMap(campaignRepository::findById)
-                .flatMap(this::mapToSummary);
+                .flatMap(this::mapToSummary)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getParticipatingCampaigns"));
     }
 
     private Mono<ActiveCampaignSummary> mapToSummary(Campaign c) {
@@ -438,13 +446,6 @@ public class CampaignService {
         return mt.equals(t) || mt.contains(t) || t.contains(mt);
     }
 
-    private String determineUnitRole(String missionType, Random rand) {
-        int roll = rollDice(roleTableData.diceCount(), roleTableData.diceSides(), rand);
-        int mod = roleTableData.missionModifiers().entrySet().stream()
-                .filter(e -> missionMatches(missionType, e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
-        return (roll + mod >= roleTableData.threshold()) ? roleTableData.attackerLabel() : roleTableData.defenderLabel();
-    }
-
     private int rollTrackCount(String missionType, Random rand) {
         int roll = rollDice(trackCountTableData.diceCount(), trackCountTableData.diceSides(), rand);
         var group = trackCountTableData.groups().stream().filter(g -> g.missions().stream().anyMatch(m -> missionMatches(missionType, m))).findFirst().orElse(trackCountTableData.groups().get(0));
@@ -458,10 +459,9 @@ public class CampaignService {
 
     public List<GeneratedTrack> generateTracks(String missionType, String commandRights, int count) {
         Random rand = new Random();
-        String role = determineUnitRole(missionType, rand);
         List<GeneratedTrack> tracksList = new java.util.ArrayList<>();
         for (int i = 0; i < count; i++) {
-            tracksList.add(new GeneratedTrack(rollTrackType(role, missionType, rand), rollComplication(commandRights, rand)));
+            tracksList.add(new GeneratedTrack(rollTrackType(missionType, rand), rollComplication(commandRights, rand)));
         }
         return tracksList;
     }
@@ -476,7 +476,7 @@ public class CampaignService {
                 .filter(e -> roll >= e.minRoll() && roll <= e.maxRoll()).map(RollEntry::value).findFirst().orElse("None");
     }
 
-    private String rollTrackType(String role, String missionType, Random rand) {
+    private String rollTrackType(String missionType, Random rand) {
         int roll = rollDice(trackTableData.diceCount(), trackTableData.diceSides(), rand);
         var group = trackTableData.groups().stream()
                 .filter(g -> g.missions().stream().anyMatch(m -> missionMatches(missionType, m)))
@@ -593,6 +593,7 @@ public class CampaignService {
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
             Integer trackCount, Integer lengthInMonths,
             Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay) {
+        log.trace("[TRACE] Starting generateDoblessCampaign: managerId={}, system={}", managerId, systemName);
         return userService.resolveOrCreateUser(managerId).flatMap(user -> {
             if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
                 return Mono.error(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Only Managers can create campaigns"));
@@ -606,33 +607,37 @@ public class CampaignService {
             final String primaryEmp = proposal.contracts().get(0).getEmployerCategory().split(": ", 2)[0];
             final String oppositionEmp = proposal.contracts().get(1).getEmployerCategory().split(": ", 2)[0];
 
-            return campaignRepository.save(campaign).onErrorResume(DuplicateKeyException.class, e -> campaignRepository.findById(campaign.getId())).flatMap(saved -> {
-                CampaignFaction f1 = CampaignFaction.builder().id(UUID.randomUUID()).campaignId(saved.getId()).factionName(primaryEmp).offersContracts(true).build();
-                CampaignFaction f2 = CampaignFaction.builder().id(UUID.randomUUID()).campaignId(saved.getId()).factionName(oppositionEmp).offersContracts(true).build();
-                return campaignFactionRepository.saveAll(List.of(f1, f2)).collectList().flatMap(factions -> {
-                    Flux<Contract> conFlux = Flux.fromIterable(proposal.contracts()).zipWith(Flux.fromIterable(factions)).flatMap(t -> {
-                        Contract c = t.getT1();
-                        c.setId(c.getId() == null ? UUID.randomUUID() : c.getId());
-                        c.setCampaignId(saved.getId());
-                        c.setEmployerFactionId(t.getT2().getId());
-                        return contractRepository.save(c);
+            return campaignRepository.save(campaign).onErrorResume(DuplicateKeyException.class, e -> campaignRepository.findById(Objects.requireNonNull(campaign.getId())))
+                    .flatMap(saved -> {
+                        CampaignFaction f1 = CampaignFaction.builder().id(UUID.randomUUID()).campaignId(saved.getId()).factionName(primaryEmp).offersContracts(true).build();
+                        CampaignFaction f2 = CampaignFaction.builder().id(UUID.randomUUID()).campaignId(saved.getId()).factionName(oppositionEmp).offersContracts(true).build();
+                        return campaignFactionRepository.saveAll(Objects.requireNonNull(List.of(f1, f2)))
+                                .collectList()
+                                .flatMap(factions -> {
+                                    Flux<Contract> conFlux = Flux.fromIterable(proposal.contracts()).zipWith(Flux.fromIterable(factions)).flatMap(t -> {
+                                        Contract c = t.getT1();
+                                        c.setId(c.getId() == null ? UUID.randomUUID() : c.getId());
+                                        c.setCampaignId(saved.getId());
+                                        c.setEmployerFactionId(t.getT2().getId());
+                                        return contractRepository.save(c);
+                                    });
+                                    Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks()).index().flatMap(t -> {
+                                        return campaignTrackRepository.save(Objects.requireNonNull(
+                                                CampaignTrack.builder()
+                                                        .id(UUID.randomUUID())
+                                                        .campaignId(saved.getId())
+                                                        .trackName(t.getT2().name())
+                                                        .complications(t.getT2().complication())
+                                                        .sequenceOrder(t.getT1().intValue())
+                                                        .monthIndex(t.getT1().intValue() + 1)
+                                                        .build()
+                                        ));
+                                    });
+                                    return Mono.when(conFlux.then(), trackFlux.then()).thenReturn(saved);
+                                });
                     });
-                    Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks()).index().flatMap(t -> {
-                        return campaignTrackRepository.save(Objects.requireNonNull(
-                                CampaignTrack.builder()
-                                        .id(UUID.randomUUID())
-                                        .campaignId(saved.getId())
-                                        .trackName(t.getT2().name())
-                                        .complications(t.getT2().complication())
-                                        .sequenceOrder(t.getT1().intValue())
-                                        .monthIndex(t.getT1().intValue() + 1)
-                                        .build()
-                        ));
-                    });
-                    return Mono.when(conFlux.then(), trackFlux.then()).thenReturn(saved);
-                });
-            });
-        });
+        })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished generateDoblessCampaign"));
     }
 
     private String getRandomFaction(String exclude) {
@@ -651,17 +656,20 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<CampaignInvite> createInvite(UUID campaignId, String recipientName, String userId) {
+    public Mono<CampaignInvite> createInvite(@NonNull UUID campaignId, String recipientName, String userId) {
+        log.trace("[TRACE] Starting createInvite: campaignId={}, user={}", campaignId, userId);
         return userService.resolveOrCreateUser(userId).flatMap(user -> campaignRepository.findById(campaignId).switchIfEmpty(Mono.error(new RuntimeException("Campaign not found"))).flatMap(camp -> {
             if (!camp.getManagerId().equals(user.getId().toString())) {
                 return Mono.error(new RuntimeException("Access Denied: Not the campaign manager."));
             }
             return inviteService.generateInvite(campaignId, recipientName);
-        }));
+        }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished createInvite"));
     }
 
     @Transactional
     public Mono<Boolean> joinCampaign(String token, @NonNull UUID detachmentId) {
+        log.trace("[TRACE] Starting joinCampaign: detachmentId={}", detachmentId);
         return inviteService.validateAndConsumeInvite(token)
                 .flatMap(invite -> detachmentRepository.findById(detachmentId)
                 .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT NOT FOUND")))
@@ -671,11 +679,13 @@ public class CampaignService {
                     // In R2DBC, setting campaignId on a loaded detachment and saving performs an update.
                     return detachmentRepository.save(detachment).thenReturn(true);
                 })
-                );
+                )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished joinCampaign"));
     }
 
     @Transactional
     public Mono<Boolean> deleteInvite(@NonNull UUID inviteId, String userId) {
+        log.trace("[TRACE] Starting deleteInvite: inviteId={}, userId={}", inviteId, userId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> campaignInviteRepository.findById(inviteId)
                         .switchIfEmpty(Mono.error(new RuntimeException("Invite not found")))
@@ -687,15 +697,19 @@ public class CampaignService {
                             return campaignInviteRepository.delete(invite).thenReturn(true);
                         })
                         )
-        );
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished deleteInvite"));
     }
 
     public Flux<CampaignInvite> getCampaignInvites(UUID campaignId) {
-        return campaignInviteRepository.findAllByCampaignId(campaignId);
+        log.trace("[TRACE] Starting getCampaignInvites: campaignId={}", campaignId);
+        return campaignInviteRepository.findAllByCampaignId(campaignId)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished getCampaignInvites"));
     }
 
     @Transactional
     public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, Map<String, Object> input) {
+        log.trace("[TRACE] Starting updateTrack: trackId={}", trackId);
         return campaignTrackRepository.findById(trackId).flatMap(track -> {
             track.setNew(false);
             if (input.containsKey("trackName")) {
@@ -718,11 +732,13 @@ public class CampaignService {
                 track.setComplications((String) input.get("complications"));
             }
             return campaignTrackRepository.save(track);
-        });
+        })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateTrack"));
     }
 
     @Transactional
     public Mono<CampaignTrack> rerollTrack(@NonNull UUID trackId, String managerId) {
+        log.trace("[TRACE] Starting rerollTrack: trackId={}, managerId={}", trackId, managerId);
         log.info("[REROLL] Initializing track reroll for ID: {} by manager: {}", trackId, managerId);
         return userService.resolveOrCreateUser(managerId)
                 .flatMap(user -> campaignTrackRepository.findById(trackId)
@@ -743,8 +759,7 @@ public class CampaignService {
                             .next()
                             .flatMap(primary -> {
                                 Random rand = new Random();
-                                String role = determineUnitRole(primary.getMissionType(), rand);
-                                String newName = rollTrackType(role, primary.getMissionType(), rand);
+                                String newName = rollTrackType(primary.getMissionType(), rand);
                                 String complication = rollComplication(campaign.getCommandRights(), rand);
 
                                 log.info("[REROLL] Outcome for {}: Name='{}', Complication='{}'",
@@ -760,17 +775,20 @@ public class CampaignService {
                                 log.error("[REROLL] Failed: No primary contract found for campaign {}", campaign.getId());
                                 return Mono.error(new RuntimeException("Primary contract context not found for reroll."));
                             }));
-                })));
+                })))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished rerollTrack"));
     }
 
     @Transactional
     public Flux<CampaignTrack> reorderTracks(UUID campaignId, List<UUID> trackIds) {
+        log.trace("[TRACE] Starting reorderTracks: campaignId={}", campaignId);
         return Flux.fromIterable(trackIds).index().flatMap(tuple -> {
             return campaignTrackRepository.findById(Objects.requireNonNull(tuple.getT2())).flatMap(track -> {
                 track.setSequenceOrder(tuple.getT1().intValue());
                 track.setNew(false);
                 return campaignTrackRepository.save(track);
             });
-        });
+        })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished reorderTracks"));
     }
 }

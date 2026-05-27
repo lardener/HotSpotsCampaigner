@@ -1053,6 +1053,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     <th className="text-center">AS SKILL</th>
                                     <th className="text-center">UNIT SPECIALTY</th>
                                     <th className="text-center">WOUNDS</th>
+                                    <th className="text-center">HANDICAP</th>
                                     {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
                                 </tr>
@@ -1066,6 +1067,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">{p.asSkill}</td>
                                         <td className="text-center">{p.unitType}</td>
                                         <td className="text-center">{p.wounds}</td>
+                                        <td className="text-center">{p.handicap}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
                                                 <select

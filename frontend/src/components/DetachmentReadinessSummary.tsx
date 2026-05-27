@@ -20,11 +20,12 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, com
 
     const pilotSummaries = Object.values(pilots.reduce((acc, p) => {
         const spec = p.unitType || 'UNKNOWN';
-        if (!acc[spec]) acc[spec] = { spec, count: 0, gun: 0, pil: 0, as: 0 };
+        if (!acc[spec]) acc[spec] = { spec, count: 0, gun: 0, pil: 0, as: 0, handicap: 0 };
         acc[spec].count++;
         acc[spec].gun += p.gunnery || 0;
         acc[spec].pil += p.piloting || 0;
         acc[spec].as += p.asSkill || 0;
+        acc[spec].handicap += parseInt(p.handicap) || 0;
         return acc;
     }, {} as Record<string, any>));
 
@@ -70,6 +71,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, com
                             <th className="text-center">SPEC</th>
                             <th className="text-center">QTY</th>
                             <th className="text-center">AVG G/P</th>
+                            <th className="text-center">H</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -78,8 +80,15 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, com
                                 <td className="text-center">{s.spec}</td>
                                 <td className="text-center">{s.count}</td>
                                 <td className="text-center">{(s.gun / s.count).toFixed(1)} / {(s.pil / s.count).toFixed(1)}</td>
+                                <td className="text-center">{s.handicap}</td>
                             </tr>
                         ))}
+                        <tr style={{ borderTop: '1px dashed var(--accent-dim)', fontWeight: 'bold' }}>
+                            <td className="text-center">TTL</td>
+                            <td className="text-center">{pilotSummaries.reduce((sum: number, s: any) => sum + s.count, 0)}</td>
+                            <td className="text-center">---</td>
+                            <td className="text-center">{pilotSummaries.reduce((sum: number, s: any) => sum + s.handicap, 0)}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
