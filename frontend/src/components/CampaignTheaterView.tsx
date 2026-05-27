@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { NodeType } from './NavigationTree';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 
 const CREATE_INVITE = gql`
@@ -200,6 +201,24 @@ interface CampaignInvite {
     used: boolean;
 }
 
+interface Contract {
+    id: string;
+    employerCategory: string;
+    missionType: string;
+    primaryContract: boolean;
+    payRate: number;
+    payStep: number;
+    salvageTerms: string;
+    salvageStep: number;
+    supportTerms: string;
+    supportStep: number;
+    transportTerms: string;
+    transportStep: number;
+    commandRights: string;
+    commandStep: number;
+    trackCount: number;
+}
+
 interface ParticipatingDetachment {
     id: string;
     name: string;
@@ -244,7 +263,7 @@ interface CampaignDetail {
     monthlyMaintenance?: number;
     transportationCost?: number;
     combatPay?: number;
-    contracts?: any[];
+    contracts?: Contract[];
     factions?: { id: string, factionName: string }[];
     tracks?: TrackDetail[];
     participatingDetachments?: ParticipatingDetachment[];
@@ -290,6 +309,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [isSyncing, setIsSyncing] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
+    const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
 
     const [overlay, setOverlay] = useState<{
         isOpen: boolean;
@@ -297,12 +317,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         message: string;
         showInput?: boolean;
         onConfirm: (val?: string) => void;
+        onCancel?: () => void;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     // Merge props data with fresh query data for theater management
     const campaign = useMemo(() => ({
         ...campaignFromProps,
-        ...(campaignQueryData?.getCampaign || {})
+        ...(campaignQueryData?.getCampaign || {}),
+        // Ensure contracts are always an array, even if empty from query
+        contracts: campaignQueryData?.getCampaign?.contracts || campaignFromProps?.contracts || []
     }), [campaignFromProps, campaignQueryData]);
 
     const [editingField, setEditingField] = useState<string | null>(null);
@@ -313,7 +336,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const saveTimeoutRef = useRef<Record<string, number>>({});
     const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
-    const opposition = campaign?.contracts?.find((c: any) => !c.primaryContract);
+    const opposition = campaign?.contracts?.find((c: Contract) => !c.primaryContract);
     const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(campaign?.lengthInMonths || 1);
     const [campaignTrackCount, setCampaignTrackCount] = useState(campaign?.trackCount || 0);
 
@@ -845,7 +868,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <span>[ MONTH {mIdx} ]</span>
                                             <div className="flex flex-gap-10 items-center">
                                                 <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
-                                                <button className="mode-btn theme-green" style={{ fontSize: '0.6rem', padding: '2px 6px' }}>[ EXPENSES ]</button>
+                                                <button 
+                                                    className="mode-btn theme-green" 
+                                                    style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                                                    onClick={() => setShowMonthlyExpensesEditor(mIdx)}
+                                                >
+                                                    [ EXPENSES ]
+                                                </button>
                                             </div>
                                         </h4>
                                         <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -874,11 +903,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         />
                                                         <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
                                                     </div>
-                                                    <div className="flex flex-gap-5 mb-5">
-                                                        <input
+                                                    <div className="flex flex-gap-5 mb-5" style={{ alignItems: 'flex-start' }}>
+                                                        <textarea
                                                             className="inline-edit"
                                                             key={`${track.id}-comp-${track.complications}`}
-                                                            style={{ fontSize: '0.7rem', flex: 1, color: 'var(--terminal-amber)' }}
+                                                            style={{ fontSize: '0.7rem', flex: 1, resize: 'vertical' }}
+                                                            rows={3}
                                                             defaultValue={track.complications}
                                                             onChange={(e) => handleTrackUpdate(track.id, 'complications', e.target.value)}
                                                             placeholder="COMPLICATIONS"
@@ -987,6 +1017,20 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     onCancel={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
                 />
             )}
+
+            {showMonthlyExpensesEditor !== null && campaign && campaign.participatingDetachments && (
+                <MonthlyExpensesEditor
+                    campaignDetails={campaign as any} // Cast to any for now, will refine CampaignDetailSummary
+                    detachments={campaign.participatingDetachments}
+                    currentMonthIndex={showMonthlyExpensesEditor}
+                    onClose={() => {
+                        setShowMonthlyExpensesEditor(null);
+                        refetchCampaign();
+                    }}
+                    onLedgerEntryAdded={() => refetchCampaign()}
+                />
+            )}
+
         </div >
     );
 };

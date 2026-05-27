@@ -23,6 +23,7 @@ const GET_FORCE_DATA = gql`
         name
         gunnery
         piloting
+        asSkill
         edgeTokensSkill
         edgeAbilitySkill
         edgeAbilities
@@ -91,6 +92,9 @@ interface Pilot {
     name: string;
     gunnery: number;
     piloting: number;
+    asSkill: number;
+    edgeTokensSkill?: number;
+    edgeAbilitySkill?: number;
     wounds: number;
     handicap: string;
     totalSpEarned: number;
@@ -253,11 +257,15 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         asSkill: 4,
                         unitType: 'BM',
                         wounds: 0,
+                        handicap: '',
                         totalSpEarned: 0,
                         gunnerySpEarned: 0,
                         pilotingSpEarned: 0,
                         edgeTokensSpEarned: 0,
-                        edgeAbilitySpEarned: 0
+                        edgeAbilitySpEarned: 0,
+                        edgeTokensSkill: 1, // Default value
+                        edgeAbilitySkill: 0, // Default value
+                        edgeAbilities: '' // Default value
                     }
                 }
             });

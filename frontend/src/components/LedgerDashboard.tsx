@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { LedgerEntryForm } from './LedgerEntryForm';
 import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
@@ -12,6 +12,8 @@ const GET_LEDGER_DATA = gql`
       detachments {
         id
         name
+        campaignId
+        campaignName
       }
     }
   }
@@ -25,6 +27,8 @@ interface LedgerData {
         detachments: {
             id: string;
             name: string;
+            campaignId?: string;
+            campaignName?: string;
         }[];
     };
 }
@@ -51,6 +55,8 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
     }, [data, selectedDetachmentId, detachmentId]);
 
     const detachments = data?.getCommand?.detachments || [];
+    const selectedDet = useMemo(() => detachments.find((d: any) => d.id === selectedDetachmentId), [detachments, selectedDetachmentId]);
+
 
     if (loading) return <div>ACCESSING SECURE LEDGER...</div>;
 
@@ -80,6 +86,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
                 <LedgerEntryForm
                     commandId={commandId}
                     detachmentId={selectedDetachmentId}
+                    initialCampaignName={selectedDet?.campaignName || ''}
                     onEntryAdded={() => alert("Transaction synchronized with Warchest.")}
                 />
             ) : (

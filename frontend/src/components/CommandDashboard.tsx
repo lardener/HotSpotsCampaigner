@@ -51,6 +51,7 @@ const GET_UNIT_DOSSIER = gql`
         id
         name
         campaignId
+        campaignName
       }
       allLedgerEntries {
         id
@@ -286,6 +287,7 @@ interface Detachment {
     id: string;
     name: string;
     campaignId?: string | null;
+    campaignName?: string | null;
 }
 
 interface UnitDossierData {
@@ -1104,15 +1106,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 <section className="dashboard-section tactical-panel" data-id={selectedDetachmentId ? "DETACHMENT-LEDGER" : "COMMAND-LEDGER"} style={{ gridColumn: '1 / -1', marginTop: '30px' }}>
                     <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT LEDGER' : 'COMMAND LEDGER'}</h3>
 
-                    {!selectedDetachmentId && (
-                        <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
-                            <LedgerEntryForm
-                                commandId={commandId}
-                                detachmentId={selectedDetachmentId}
-                                onEntryAdded={() => refetch()}
-                            />
-                        </div>
-                    )}
+                    <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
+                        <LedgerEntryForm
+                            commandId={commandId}
+                            detachmentId={selectedDetachmentId}
+                            initialCampaignName={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignName || ''}
+                            onEntryAdded={() => refetch()}
+                        />
+                    </div>
 
                     <table className="tactical-table">
                         <thead>

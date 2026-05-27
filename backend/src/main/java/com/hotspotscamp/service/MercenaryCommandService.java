@@ -661,28 +661,6 @@ public class MercenaryCommandService {
     }
 
     @Transactional
-    public Mono<Boolean> joinCampaign(String token, @NonNull UUID detachmentId, String userId) {
-        var selectSpec = SqlUtils.bindString(databaseClient.sql("SELECT campaign_id FROM campaign_invites WHERE token = :token AND used = false"), "token", token);
-        return selectSpec
-                .map((row, meta) -> UUID.fromString(row.get("campaign_id", String.class)))
-                .one()
-                .switchIfEmpty(Mono.<UUID>error(new RuntimeException("INVALID_OR_USED_TOKEN"))) // Explicitly type Mono.error
-                .<Boolean>flatMap(campaignId -> detachmentRepository.findById(detachmentId) // Explicitly type flatMap
-                .switchIfEmpty(Mono.<Detachment>error(new RuntimeException("DETACHMENT_NOT_FOUND"))) // Explicitly type Mono.error
-                .<Boolean>flatMap(det -> { // Explicitly type flatMap
-                    det.setNew(false);
-                    det.setCampaignId(campaignId);
-                    return detachmentRepository.save(det).then(
-                            SqlUtils.bindString(databaseClient.sql("UPDATE campaign_invites SET used = true WHERE token = :token"), "token", token)
-                                    .fetch().rowsUpdated())
-                            .then(commandRepository.findById(Objects.requireNonNull(det.getMercenaryCommandId())))
-                            .doOnNext(commandSink::tryEmitNext)
-                            .thenReturn(true);
-                }))
-                .defaultIfEmpty(false);
-    }
-
-    @Transactional
     public Mono<Campaign> updateCampaignDetails(@NonNull UUID campaignId, Map<String, Object> input, String userId) {
         return userService.resolveOrCreateUser(userId).<Campaign>flatMap(user
                 -> campaignRepository.findById(campaignId)

@@ -173,16 +173,47 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [metadataData]);
 
+    const resolveStepValueWithGravity = (step: number, field: string): any => {
+        if (!resolvedSteps[step]) return '-';
+        const val = resolvedSteps[step][field];
+
+        // If the result is '-', we must move toward Step 7 to find the nearest valid entry
+        if (val === '-' || val === null || val === undefined) {
+            let current = step;
+            const target = 7;
+            while (current !== target) {
+                current = current < target ? current + 1 : current - 1;
+                const nextVal = resolvedSteps[current]?.[field];
+                if (nextVal !== '-' && nextVal !== null && nextVal !== undefined) {
+                    return nextVal;
+                }
+            }
+            // Fallback to whatever is at Step 7 if everything else fails
+            return resolvedSteps[target]?.[field] || '-';
+        }
+        return val;
+    };
+
     const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<PreviewData>(PREVIEW_CAMPAIGN, {
         fetchPolicy: 'network-only'
     });
     const [getTracks] = useLazyQuery<GenerateTracksData>(GENERATE_TRACKS);
 
     useEffect(() => {
-        if (previewData?.publicPreviewCampaign) {
-            setProposal(previewData.publicPreviewCampaign);
+        if (previewData?.publicPreviewCampaign && Object.keys(resolvedSteps).length > 0) {
+            const prop = JSON.parse(JSON.stringify(previewData.publicPreviewCampaign)) as Proposal;
+            // Enforce "Move toward 7" logic on the initial preview data
+            prop.contracts.forEach((c) => {
+                const payStr = resolveStepValueWithGravity(c.payStep, 'payRate');
+                c.payRate = parseFloat(payStr.replace('%', '')) / 100;
+                c.salvageTerms = resolveStepValueWithGravity(c.salvageStep, 'salvageRights');
+                c.supportTerms = resolveStepValueWithGravity(c.supportStep, 'supportRights');
+                c.transportTerms = resolveStepValueWithGravity(c.transportStep, 'transportation');
+                c.commandRights = resolveStepValueWithGravity(c.commandStep, 'commandRights');
+            });
+            setProposal(prop);
         }
-    }, [previewData]);
+    }, [previewData, resolvedSteps]);
 
     // Monitor track count changes to fetch additional tracks if needed
     useEffect(() => {
@@ -353,25 +384,25 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
 
     const updateContractByStep = (contractIdx: number, termType: string, step: number) => {
         if (!proposal || !resolvedSteps[step]) return;
-        const stepData = resolvedSteps[step];
         const newContracts = [...proposal.contracts];
         const c = newContracts[contractIdx];
 
         if (termType === 'pay') {
             c.payStep = step;
-            c.payRate = parseFloat(stepData.payRate.replace('%', '')) / 100;
+            const payStr = resolveStepValueWithGravity(step, 'payRate');
+            c.payRate = parseFloat(payStr.replace('%', '')) / 100;
         } else if (termType === 'salvage') {
             c.salvageStep = step;
-            c.salvageTerms = stepData.salvageRights;
+            c.salvageTerms = resolveStepValueWithGravity(step, 'salvageRights');
         } else if (termType === 'support') {
             c.supportStep = step;
-            c.supportTerms = stepData.supportRights;
+            c.supportTerms = resolveStepValueWithGravity(step, 'supportRights');
         } else if (termType === 'transport') {
             c.transportStep = step;
-            c.transportTerms = stepData.transportation;
+            c.transportTerms = resolveStepValueWithGravity(step, 'transportation');
         } else if (termType === 'command') {
             c.commandStep = step;
-            c.commandRights = stepData.commandRights;
+            c.commandRights = resolveStepValueWithGravity(step, 'commandRights');
         }
         setProposal({ ...proposal, contracts: newContracts });
     };

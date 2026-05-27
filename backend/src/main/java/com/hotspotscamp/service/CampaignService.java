@@ -666,6 +666,7 @@ public class CampaignService {
                 .flatMap(invite -> detachmentRepository.findById(detachmentId)
                 .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT NOT FOUND")))
                 .flatMap(detachment -> {
+                    detachment.setNew(false);
                     detachment.setCampaignId(invite.getCampaignId());
                     // In R2DBC, setting campaignId on a loaded detachment and saving performs an update.
                     return detachmentRepository.save(detachment).thenReturn(true);
