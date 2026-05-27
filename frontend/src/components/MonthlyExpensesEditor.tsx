@@ -52,7 +52,7 @@ interface DetachmentFormState {
     mercenaryCommandId: string;
     selectedContractId: string;
     selectedLevel: number; // For future use, currently fixed at 1
-    chargeType: 'Monthly Maintenance' | 'Transportation Cost' | 'Combat Pay' | 'Freeform Entry';
+    chargeType: 'Monthly Pay & Expenses' | 'Transport' | 'Freeform Entry';
     amount: number;
     description: string;
     isSubmitting: boolean;
@@ -90,23 +90,18 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
         let termsLabel = '';
 
         switch (chargeType) {
-            case 'Monthly Maintenance':
-                const mBase = (campaignDetails.monthlyMaintenance || 0) * levelMult;
-                const mMult = parseRightsMultiplier(contract?.supportTerms);
-                amount = -Math.round(mBase * (1 - mMult));
-                termsLabel = contract?.supportTerms || 'NONE';
+            case 'Monthly Pay & Expenses':
+                const pRate = contract?.payRate || 1.0;
+                const grossPay = (campaignDetails.monthlyPay || 0) * pRate;
+                const baseExpenses = (campaignDetails.monthlyMaintenance || 0);
+                amount = Math.round((grossPay - baseExpenses) * levelMult);
+                termsLabel = `PAY: ${Math.round(pRate * 100)}%`;
                 break;
-            case 'Transportation Cost':
+            case 'Transport':
                 const tBase = (campaignDetails.transportationCost || 0) * levelMult;
                 const tMult = parseRightsMultiplier(contract?.transportTerms);
                 amount = -Math.round(tBase * (1 - tMult));
                 termsLabel = contract?.transportTerms || 'NONE';
-                break;
-            case 'Combat Pay':
-                const pBase = (campaignDetails.combatPay || 0) * levelMult;
-                const pRate = contract?.payRate || 1.0;
-                amount = Math.round(pBase * pRate);
-                termsLabel = `${Math.round(pRate * 100)}%`;
                 break;
             case 'Freeform Entry':
                 return { amount: 0, description: '' };
@@ -119,14 +114,14 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     useEffect(() => {
         const initialForms: DetachmentFormState[] = detachments.map(det => {
             const defaultContractId = campaignDetails.contracts?.[0]?.id || '';
-            const { amount, description } = calculateFormDefaults('Monthly Maintenance', 1, defaultContractId);
+            const { amount, description } = calculateFormDefaults('Monthly Pay & Expenses', 1, defaultContractId);
             return {
                 detachmentId: det.id,
                 detachmentName: det.name,
                 mercenaryCommandId: det.mercenaryCommandId || '',
                 selectedContractId: defaultContractId,
                 selectedLevel: 1,
-                chargeType: 'Monthly Maintenance',
+                chargeType: 'Monthly Pay & Expenses',
                 amount,
                 description,
                 isSubmitting: false,
@@ -183,7 +178,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
         }
     };
 
-    const CHARGE_TYPES = ['Monthly Maintenance', 'Transportation Cost', 'Combat Pay', 'Freeform Entry'];
+    const CHARGE_TYPES = ['Monthly Pay & Expenses', 'Transport', 'Freeform Entry'];
 
     return (
         <TerminalOverlay
