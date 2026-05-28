@@ -72,13 +72,11 @@ public class CampaignGraphQLControllerTest {
                 .trackCount(5)
                 .build();
 
-        when(campaignService.generateProposal(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any()))
+        when(campaignService.generateProposal(any(CampaignService.CampaignCreateInput.class)))
                 .thenReturn(new CampaignService.CampaignProposal(previewCampaign, Collections.emptyList(), Collections.emptyList()));
 
         String query = """
-            query($input: CampaignInput!) {
+            query($input: CampaignCreateInput!) {
               publicPreviewCampaign(input: $input) {
                 campaign {
                   name

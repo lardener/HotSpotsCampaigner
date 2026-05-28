@@ -1,18 +1,6 @@
 import React from 'react';
 import { NodeType } from './NavigationTree';
-
-interface Detachment {
-    id: string;
-    name: string;
-    campaignId?: string;
-    campaignName?: string;
-}
-
-interface Command {
-    id: string;
-    name: string;
-    detachments?: Detachment[];
-}
+import { Command } from '../types/global.d';
 
 interface MyDeploymentsListProps {
     commands: Command[];

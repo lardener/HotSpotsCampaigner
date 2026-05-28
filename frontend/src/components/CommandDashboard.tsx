@@ -5,6 +5,7 @@ import { LedgerEntryForm } from './LedgerEntryForm';
 import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
+import { CombatUnit, Pilot, Detachment, CombatUnitUpdateInput, CommandUpdateInput } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 
 const GET_UNIT_DOSSIER = gql`
@@ -99,7 +100,7 @@ const DELETE_DETACHMENT = gql`
 `;
 
 const ADD_UNIT = gql`
-  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitInput!) {
+  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitUpdateInput!) {
     addCombatUnit(commandId: $commandId, input: $input) {
       id
       model
@@ -149,8 +150,8 @@ const DELETE_PILOT = gql`
 `;
 
 const UPDATE_COMMAND = gql`
-  mutation UpdateCommand($id: ID!, $name: String, $co: String, $sp: Int, $rep: Int) {
-    updateCommand(id: $id, name: $name, commandingOfficer: $co, totalSupportPoints: $sp, reputation: $rep) {
+  mutation UpdateCommand($id: ID!, $input: CommandUpdateInput!) {
+    updateCommand(id: $id, input: $input) {
       id
       name
       commandingOfficer
@@ -161,7 +162,7 @@ const UPDATE_COMMAND = gql`
 `;
 
 const UPDATE_UNIT = gql`
-  mutation UpdateUnit($id: ID!, $input: CombatUnitInput!) {
+  mutation UpdateUnit($id: ID!, $input: CombatUnitUpdateInput!) {
     updateCombatUnit(id: $id, input: $input) { 
       id
       type
@@ -184,41 +185,6 @@ const JOIN_CAMPAIGN = gql`
   }
 `;
 
-interface CombatUnit {
-    id: string;
-    type: string;
-    model: string;
-    variant: string;
-    techBase: string;
-    tonnage: number;
-    asSize: number;
-    bv: number;
-    pv: number;
-    status: string;
-    availableFromMonth: number;
-    detachmentId?: string | null;
-}
-
-interface Pilot {
-    id: string;
-    name: string;
-    gunnery: number;
-    piloting: number;
-    asSkill: number;
-    edgeTokensSkill?: number;
-    edgeAbilitySkill?: number;
-    edgeAbilities?: string;
-    unitType: string;
-    wounds: number;
-    handicap: string;
-    totalSpEarned: number;
-    gunnerySpEarned: number;
-    pilotingSpEarned: number;
-    edgeTokensSpEarned: number;
-    edgeAbilitySpEarned: number;
-    detachmentId?: string | null;
-}
-
 interface LedgerEntry {
     id: string;
     detachmentId?: string;
@@ -232,33 +198,17 @@ interface LedgerEntry {
 
 interface UpdateCommandVars {
     id: string;
-    co?: string;
-    sp?: number;
-    rep?: number;
-}
-
-interface CombatUnitInput {
-    type?: string;
-    model?: string;
-    variant?: string;
-    techBase?: string;
-    tonnage?: number;
-    asSize?: number;
-    bv?: number;
-    pv?: number;
-    availableFromMonth?: number;
-    status?: string;
-    detachmentId?: string | null;
+    input: CommandUpdateInput;
 }
 
 interface UpdateUnitVars {
     id: string;
-    input: CombatUnitInput;
+    input: CombatUnitUpdateInput;
 }
 
 interface AddUnitVars {
     commandId: string;
-    input: CombatUnitInput;
+    input: CombatUnitUpdateInput;
 }
 
 
@@ -284,18 +234,6 @@ interface AddUnitData {
     addCombatUnit: CombatUnit;
 }
 
-interface ManagedCampaign {
-    id: string;
-    name: string;
-}
-
-interface Detachment {
-    id: string;
-    name: string;
-    campaignId?: string | null;
-    campaignName?: string | null;
-}
-
 interface UnitDossierData {
     getCommand: {
         id: string;
@@ -308,7 +246,7 @@ interface UnitDossierData {
         pilots: Pilot[];
         allLedgerEntries: LedgerEntry[];
     };
-    managedCampaigns: ManagedCampaign[];
+    managedCampaigns: { id: string; name: string; }[]; // Keep this local for now as it's a simplified version
     publicCampaignMetadata: {
         unitStatuses: string[];
         unitTypes: string[];
@@ -478,21 +416,19 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
         const execute = () => {
             setIsSyncing(true);
-            const vars: any = { id: commandId };
-            if (field === 'NAME') vars.name = value;
-            if (field === 'CO') vars.co = value;
+            const input: CommandUpdateInput = {};
+            if (field === 'NAME') input.name = value;
+            if (field === 'CO') input.commandingOfficer = value;
 
             const current = data?.getCommand;
 
             updateCommand({
-                variables: vars,
+                variables: { id: commandId, input },
                 optimisticResponse: current ? {
                     updateCommand: {
                         ...current,
-                        name: vars.name ?? current.name,
-                        commandingOfficer: vars.co ?? current.commandingOfficer,
-                        totalSupportPoints: vars.sp ?? current.totalSupportPoints,
-                        reputation: vars.rep ?? current.reputation,
+                        ...input,
+                        commandingOfficer: input.commandingOfficer ?? current.commandingOfficer,
                         __typename: 'MercenaryCommand'
                     }
                 } : undefined

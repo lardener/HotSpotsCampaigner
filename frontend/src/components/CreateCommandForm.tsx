@@ -1,136 +1,118 @@
 import React, { useState } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
+import { TerminalOverlay } from './TerminalOverlay';
+import { CommandUpdateInput } from '../types/global'; // Import the shared interface
 
+// GraphQL mutation for establishing a command
 const ESTABLISH_COMMAND = gql`
-  mutation EstablishCommand($name: String!, $commandingOfficer: String, $totalSupportPoints: Int) {
-    establishCommand(name: $name, commandingOfficer: $commandingOfficer, totalSupportPoints: $totalSupportPoints) {
+  mutation EstablishCommand($input: CommandUpdateInput!) {
+    establishCommand(input: $input) {
       id
       name
+      commandingOfficer
+      totalSupportPoints
+      reputation
     }
   }
 `;
 
+// Expected data structure from the mutation response
 interface EstablishCommandData {
     establishCommand: {
         id: string;
         name: string;
+        commandingOfficer?: string;
+        totalSupportPoints: number;
+        reputation: number;
     };
 }
 
+// Props for the CreateCommandForm component
 interface CreateCommandFormProps {
-    user: { name: string; id: string; displayName?: string | null } | null;
+    user: { name: string; displayName?: string | null };
     onCancel: () => void;
-    onSuccess: (cmd: any) => void;
+    onSuccess: (newCommand: EstablishCommandData['establishCommand']) => void;
 }
 
 export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCancel, onSuccess }) => {
-    const [name, setName] = useState('');
-    const [commandingOfficer, setCommandingOfficer] = useState(user?.displayName || user?.name || '');
-    const [scale, setScale] = useState(1);
-    const [initialSP, setInitialSP] = useState(3000);
-    const [error] = useState<string | null>(null);
-    const [establishCommand, { loading }] = useMutation<EstablishCommandData>(ESTABLISH_COMMAND);
+    const [commandName, setCommandName] = useState('');
+    const [commandingOfficer, setCommandingOfficer] = useState(user.displayName || user.name || '');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleScaleChange = (val: number) => {
-        setScale(val);
-        setInitialSP(3000 * val);
-    };
+    const [establishCommand] = useMutation<EstablishCommandData, { input: CommandUpdateInput }>(ESTABLISH_COMMAND);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async () => {
+        if (isSubmitting) return;
+        setError(null);
+        if (!commandName.trim()) {
+            setError("COMMAND NAME REQUIRED.");
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
-            const { data } = await establishCommand({
-                variables: { name, commandingOfficer, totalSupportPoints: initialSP }
-            });
+            const input: CommandUpdateInput = {
+                name: commandName,
+                commandingOfficer: commandingOfficer || user.displayName || user.name, // Fallback to user's name if CO is empty
+                totalSupportPoints: 3000, // Default value from RulesConstants
+                reputation: 1 // Default value from RulesConstants
+            };
+
+            const { data } = await establishCommand({ variables: { input } });
             if (data?.establishCommand) {
                 onSuccess(data.establishCommand);
+            } else {
+                setError("FAILED TO ESTABLISH COMMAND: NO DATA RETURNED.");
             }
-        } catch (err) {
-            alert("REGISTRY FAILURE: UNABLE TO ESTABLISH COMMAND.");
+        } catch (err: any) {
+            console.error("Error establishing command:", err);
+            setError(`FAILURE: ${err.message || 'UNKNOWN ERROR'}`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="container theme-red max-w-600 mx-auto my-40">
-            <div className="tactical-panel" data-id="MRB-REC-SHEET">
-                <h2 className="terminal-text">MERCENARY FORCE REGISTRATION</h2>
-                <p className="restricted-text sm-text mb-20">
-                    MRB FORM 12-A: MERCENARY FORCE RECORD SHEET
-                </p>
-
-                <form onSubmit={handleSubmit}>
-                    <div className="grid-2-col mb-15">
-                        <div className="form-group">
-                            <label htmlFor="command-name" className="zone-header block-label">COMMAND NAME</label>
-                            <input
-                                id="command-name"
-                                type="text"
-                                className="mode-btn text-left w-100 p-10"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="FORCE DESIGNATION..."
-                                title="Enter the name of your mercenary unit"
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="command-co" className="zone-header block-label">COMMANDING OFFICER</label>
-                            <input
-                                id="command-co"
-                                type="text"
-                                className="mode-btn text-left w-100 p-10"
-                                value={commandingOfficer}
-                                onChange={(e) => setCommandingOfficer(e.target.value)}
-                                placeholder="COMMANDER NAME..."
-                                title="Enter the name of the commanding officer"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid-2-col mb-25">
-                        <div className="form-group">
-                            <label htmlFor="force-scale" className="zone-header block-label">FORCE SCALE</label>
-                            <select
-                                id="force-scale"
-                                className="mode-btn w-100 p-10"
-                                value={scale}
-                                onChange={(e) => handleScaleChange(parseInt(e.target.value))}
-                                title="Select the scale of the mercenary force"
-                            >
-                                <option value={1}>SCALE 1 (3000 SP)</option>
-                                <option value={2}>SCALE 2 (6000 SP)</option>
-                                <option value={3}>SCALE 3 (9000 SP)</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="initial-sp" className="zone-header block-label">INITIAL WARCHEST (SP)</label>
-                            <input
-                                id="initial-sp"
-                                type="number"
-                                className="mode-btn text-left w-100 p-10"
-                                value={initialSP}
-                                onChange={(e) => setInitialSP(parseInt(e.target.value))}
-                                title="Initial Support Points"
-                            />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="error-message tactical-panel mb-15 alert-border">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="flex flex-gap-10">
-                        <button type="submit" className="login-button" disabled={loading}>
-                            {loading ? 'REGISTERING...' : 'CONFIRM REGISTRATION'}
-                        </button>
-                        <button type="button" className="mode-btn" onClick={onCancel}>CANCEL</button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <TerminalOverlay
+            title="ESTABLISH NEW MERCENARY COMMAND"
+            message="REGISTER YOUR UNIT WITH THE MERCENARY REVIEW AND BONDING COMMISSION."
+            confirmLabel={isSubmitting ? "ESTABLISHING..." : "ESTABLISH"}
+            onConfirm={handleSubmit}
+            onCancel={onCancel}
+            themeClass="theme-amber"
+        > {/* Removed onSubmit from form as TerminalOverlay's onConfirm handles the action */}
+            <form className="flex-col flex-gap-15 mt-20" style={{ maxWidth: '400px', margin: '0 auto' }}>
+                <div className="input-group">
+                    <label htmlFor="command-name" className="restricted-text">COMMAND DESIGNATION:</label>
+                    <input
+                        id="command-name"
+                        type="text"
+                        className="table-input w-100"
+                        value={commandName}
+                        onChange={(e) => setCommandName(e.target.value.toUpperCase())}
+                        placeholder="ENTER COMMAND NAME"
+                        maxLength={255}
+                        disabled={isSubmitting}
+                        autoFocus
+                    />
+                </div>
+                <div className="input-group">
+                    <label htmlFor="commanding-officer" className="restricted-text">COMMANDING OFFICER:</label>
+                    <input
+                        id="commanding-officer"
+                        type="text"
+                        className="table-input w-100"
+                        value={commandingOfficer}
+                        onChange={(e) => setCommandingOfficer(e.target.value)}
+                        placeholder="YOUR CALLSIGN"
+                        disabled={isSubmitting}
+                        maxLength={255}
+                    />
+                </div>
+                {error && <div className="error-message text-center">{error}</div>}
+            </form>
+        </TerminalOverlay>
     );
 };

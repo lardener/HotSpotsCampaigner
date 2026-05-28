@@ -3,7 +3,6 @@ package com.hotspotscamp.api;
 import java.security.Principal;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -20,7 +19,6 @@ import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
 import com.hotspotscamp.service.MercenaryCommandService;
-import com.hotspotscamp.util.TypeUtils;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -143,36 +141,31 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<MercenaryCommand> establishCommand(@Argument String name,
-            @Argument String commandingOfficer,
-            @Argument Integer totalSupportPoints,
+    public Mono<MercenaryCommand> establishCommand(@Argument MercenaryCommandService.CommandUpdateInput input,
             Principal principal) {
-        if (principal == null) {
-            return Mono.error(new RuntimeException("Authentication required to establish command"));
+        if (principal == null || input == null || input.name() == null) {
+            return Mono.error(new RuntimeException("Authentication and Name required to establish command"));
         }
         String userId = principal.getName();
         MercenaryCommand command = new MercenaryCommand();
-        command.setName(name);
-        command.setCommandingOfficer(commandingOfficer);
-        command.setTotalSupportPoints(totalSupportPoints);
+        command.setName(input.name());
+        command.setCommandingOfficer(input.commandingOfficer());
+        command.setTotalSupportPoints(input.totalSupportPoints());
         return commandService.createCommand(command, userId);
     }
 
     @MutationMapping
     public Mono<MercenaryCommand> updateCommand(@Argument UUID id,
-            @Argument String name,
-            @Argument String commandingOfficer,
-            @Argument Integer totalSupportPoints,
-            @Argument Integer reputation,
+            @Argument MercenaryCommandService.CommandUpdateInput input,
             Principal principal) {
-        if (id == null || principal == null) {
+        if (id == null || principal == null || input == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.updateCommandDetails(id, name, commandingOfficer, totalSupportPoints, reputation, principal.getName());
+        return commandService.updateCommandDetails(id, input, principal.getName());
     }
 
     @MutationMapping
-    public Mono<Campaign> updateCampaign(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<Campaign> updateCampaign(@Argument UUID id, @Argument MercenaryCommandService.CampaignUpdateInput input, Principal principal) {
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
@@ -196,54 +189,19 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument MercenaryCommandService.PilotUpdateInput input, Principal principal) {
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        Pilot pilot = Pilot.builder()
-                .name((String) input.get("name"))
-                .gunnery(TypeUtils.asInt(input.get("gunnery")))
-                .piloting(TypeUtils.asInt(input.get("piloting")))
-                .asSkill(TypeUtils.asInt(input.get("asSkill")))
-                .unitType((String) input.get("unitType"))
-                .wounds(TypeUtils.asInt(input.get("wounds")))
-                .handicap((String) input.get("handicap"))
-                .totalSpEarned(TypeUtils.asInt(input.get("totalSpEarned")))
-                .gunnerySpEarned(TypeUtils.asInt(input.get("gunnerySpEarned")))
-                .pilotingSpEarned(TypeUtils.asInt(input.get("pilotingSpEarned")))
-                .edgeTokensSpEarned(TypeUtils.asInt(input.get("edgeTokensSpEarned")))
-                .edgeAbilitySpEarned(TypeUtils.asInt(input.get("edgeAbilitySpEarned")))
-                .edgeTokensSkill(TypeUtils.asInt(input.get("edgeTokensSkill")))
-                .edgeAbilitySkill(TypeUtils.asInt(input.get("edgeAbilitySkill")))
-                .edgeAbilities((String) input.get("edgeAbilities"))
-                .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
-                .build();
-        return commandService.hirePilot(commandId, pilot, principal.getName());
+        return commandService.hirePilot(commandId, input, principal.getName());
     }
 
     @MutationMapping
-    public Mono<Pilot> updatePilot(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<Pilot> updatePilot(@Argument UUID id, @Argument MercenaryCommandService.PilotUpdateInput input, Principal principal) {
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        Pilot pilot = Pilot.builder()
-                .name((String) input.get("name"))
-                .gunnery(TypeUtils.asInt(input.get("gunnery")))
-                .piloting(TypeUtils.asInt(input.get("piloting")))
-                .asSkill(TypeUtils.asInt(input.get("asSkill")))
-                .unitType((String) input.get("unitType"))
-                .wounds(TypeUtils.asInt(input.get("wounds")))
-                .handicap((String) input.get("handicap"))
-                .totalSpEarned(TypeUtils.asInt(input.get("totalSpEarned")))
-                .gunnerySpEarned(TypeUtils.asInt(input.get("gunnerySpEarned")))
-                .pilotingSpEarned(TypeUtils.asInt(input.get("pilotingSpEarned")))
-                .edgeTokensSpEarned(TypeUtils.asInt(input.get("edgeTokensSpEarned")))
-                .edgeAbilitySpEarned(TypeUtils.asInt(input.get("edgeAbilitySpEarned")))
-                .edgeTokensSkill(TypeUtils.asInt(input.get("edgeTokensSkill")))
-                .edgeAbilitySkill(TypeUtils.asInt(input.get("edgeAbilitySkill")))
-                .edgeAbilities((String) input.get("edgeAbilities"))
-                .build();
-        return commandService.updatePilot(id, pilot, principal.getName());
+        return commandService.updatePilot(id, input, principal.getName());
     }
 
     @MutationMapping
@@ -293,44 +251,19 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument MercenaryCommandService.CombatUnitUpdateInput input, Principal principal) {
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        CombatUnit unit = CombatUnit.builder()
-                .type((String) input.get("type"))
-                .model((String) input.get("model"))
-                .variant((String) input.get("variant"))
-                .techBase((String) input.get("techBase"))
-                .tonnage(TypeUtils.asInt(input.get("tonnage")))
-                .asSize(TypeUtils.asInt(input.get("asSize")))
-                .bv(TypeUtils.asInt(input.get("bv")))
-                .pv(TypeUtils.asInt(input.get("pv")))
-                .availableFromMonth(TypeUtils.asInt(input.get("availableFromMonth")))
-                .status((String) input.get("status"))
-                .detachmentId(input.get("detachmentId") != null ? UUID.fromString((String) input.get("detachmentId")) : null)
-                .build();
-        return commandService.addCombatUnit(commandId, unit, principal.getName());
+        return commandService.addCombatUnit(commandId, input, principal.getName());
     }
 
     @MutationMapping
-    public Mono<CombatUnit> updateCombatUnit(@Argument UUID id, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<CombatUnit> updateCombatUnit(@Argument UUID id, @Argument MercenaryCommandService.CombatUnitUpdateInput input, Principal principal) {
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        CombatUnit unit = CombatUnit.builder()
-                .type((String) input.get("type"))
-                .model((String) input.get("model"))
-                .variant((String) input.get("variant"))
-                .techBase((String) input.get("techBase"))
-                .tonnage(TypeUtils.asInt(input.get("tonnage")))
-                .asSize(TypeUtils.asInt(input.get("asSize")))
-                .bv(TypeUtils.asInt(input.get("bv")))
-                .pv(TypeUtils.asInt(input.get("pv")))
-                .availableFromMonth(TypeUtils.asInt(input.get("availableFromMonth")))
-                .status((String) input.get("status"))
-                .build();
-        return commandService.updateCombatUnit(id, unit, principal.getName());
+        return commandService.updateCombatUnit(id, input, principal.getName());
     }
 
     @MutationMapping

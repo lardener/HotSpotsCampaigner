@@ -1,38 +1,19 @@
 import React, { useState } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
-import { TerminalOverlay } from './TerminalOverlay';
+import { TerminalOverlay } from './TerminalOverlay'; // Keep this import
+import { Pilot, PilotUpdateInput } from '../types/global.d'; // Import from global types
 
-interface PilotData {
-    id: string;
-    name: string;
-    gunnery: number;
-    piloting: number;
-    asSkill: number;
-    edgeTokensSkill?: number;
-    edgeAbilitySkill?: number;
-    edgeAbilities?: string;
-    unitType: string;
-    wounds: number;
-    handicap: string;
-    totalSpEarned: number;
-    gunnerySpEarned: number;
-    pilotingSpEarned: number;
-    edgeTokensSpEarned: number;
-    edgeAbilitySpEarned: number;
-    detachmentId?: string | null;
-}
-
-interface PilotEditorProps {
-    pilot?: PilotData | null;
+interface PilotEditorProps { // Use imported Pilot type
+    pilot?: Pilot | null;
     commandId: string;
     mode: 'create' | 'edit';
-    onSave: (pilot: PilotData) => void;
+    onSave: (pilot: Pilot) => void;
     onCancel: () => void;
 }
 
 const HIRE_PILOT = gql`
-  mutation HirePilot($commandId: ID!, $input: PilotInput!) {
+  mutation HirePilot($commandId: ID!, $input: PilotUpdateInput!) {
     hirePilot(commandId: $commandId, input: $input) {
       id
       name
@@ -55,8 +36,17 @@ const HIRE_PILOT = gql`
   }
 `;
 
+interface UpdatePilotVars {
+    id: string;
+    input: PilotUpdateInput;
+}
+
+interface UpdatePilotData {
+    updatePilot: Pilot;
+}
+
 const UPDATE_PILOT = gql`
-  mutation UpdatePilot($id: ID!, $input: PilotInput!) {
+  mutation UpdatePilot($id: ID!, $input: PilotUpdateInput!) {
     updatePilot(id: $id, input: $input) { 
       id
       name
@@ -79,41 +69,13 @@ const UPDATE_PILOT = gql`
   }
 `;
 
-interface PilotInput {
-    name?: string;
-    gunnery?: number;
-    piloting?: number;
-    asSkill?: number;
-    edgeTokensSkill?: number;
-    edgeAbilitySkill?: number;
-    edgeAbilities?: string;
-    unitType?: string;
-    wounds?: number;
-    handicap?: string;
-    totalSpEarned?: number;
-    gunnerySpEarned?: number;
-    pilotingSpEarned?: number;
-    edgeTokensSpEarned?: number;
-    edgeAbilitySpEarned?: number;
-    detachmentId?: string | null;
-}
-
-interface UpdatePilotVars {
-    id: string;
-    input: PilotInput;
-}
-
-interface UpdatePilotData {
-    updatePilot: PilotData;
-}
-
 interface HirePilotData {
-    hirePilot: PilotData & { detachmentId?: string | null };
+    hirePilot: Pilot & { detachmentId?: string | null };
 }
 
 interface HirePilotVars {
     commandId: string;
-    input: PilotInput;
+    input: PilotUpdateInput;
 }
 
 export const PilotEditor: React.FC<PilotEditorProps> = ({
@@ -125,7 +87,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 }) => {
     const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
 
-    const [formData, setFormData] = useState<PilotData>(
+    const [formData, setFormData] = useState<Pilot>(
         pilot || {
             id: '',
             name: 'NEW PILOT',
@@ -204,7 +166,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return thresholds[0];
     };
 
-    const recalcDerived = (next: PilotData, changedField?: keyof PilotData) => {
+    const recalcDerived = (next: Pilot, changedField?: keyof Pilot) => {
         // If SP allocations changed, update corresponding skill levels from thresholds
         if (changedField === 'gunnerySpEarned' || changedField === 'totalSpEarned') {
             next.gunnery = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).skill;
@@ -233,10 +195,10 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return next;
     };
 
-    const handleInputChange = (field: keyof PilotData, value: any) => {
+    const handleInputChange = (field: keyof Pilot, value: any) => {
         const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
         setFormData(prev => {
-            const next = { ...prev, [field]: isNumeric ? parseInt(value) || 0 : value } as PilotData;
+            const next = { ...prev, [field]: isNumeric ? parseInt(value) || 0 : value } as Pilot;
 
             // Enforce gunnery/piloting distance constraint
             if (field === 'gunnery' || field === 'piloting') {
@@ -319,7 +281,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         setIsSaving(true);
 
         try {
-            const input: PilotInput = {
+            const input: PilotUpdateInput = {
                 name: formData.name,
                 gunnery: formData.gunnery,
                 piloting: formData.piloting,

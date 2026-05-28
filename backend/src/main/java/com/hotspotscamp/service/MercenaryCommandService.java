@@ -2,7 +2,6 @@ package com.hotspotscamp.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -97,6 +96,72 @@ public class MercenaryCommandService {
     }
 
     /**
+     * DTO for updating campaign details via GraphQL.
+     */
+    public record CampaignUpdateInput(
+            String systemName,
+            String description,
+            Integer monthlyPay,
+            Integer monthlyMaintenance,
+            Integer transportationCost,
+            Integer combatPay,
+            CampaignService.RepairRules repairRules,
+            Integer lengthInMonths,
+            Integer trackCount
+            ) {
+
+    }
+
+    public record CombatUnitUpdateInput(
+            String type,
+            String model,
+            String variant,
+            String techBase,
+            Integer tonnage,
+            Integer asSize,
+            Integer bv,
+            Integer pv,
+            String status,
+            Integer availableFromMonth,
+            UUID detachmentId
+            ) {
+
+    }
+
+    public record PilotUpdateInput(
+            String name,
+            Integer gunnery,
+            Integer piloting,
+            Integer asSkill,
+            Integer edgeTokensSkill,
+            Integer edgeAbilitySkill,
+            String edgeAbilities,
+            String unitType,
+            Integer wounds,
+            String handicap,
+            Integer totalSpEarned,
+            Integer gunnerySpEarned,
+            Integer pilotingSpEarned,
+            Integer edgeTokensSpEarned,
+            Integer edgeAbilitySpEarned,
+            UUID detachmentId
+            ) {
+
+    }
+
+    /**
+     * DTO for updating command details via GraphQL.
+     */
+    public record CommandUpdateInput(
+            String name,
+            String commandingOfficer,
+            Integer totalSupportPoints,
+            Integer reputation
+            ) {
+
+    }
+
+    /**
      * Fetches all mercenary commands belonging to the current user.
      */
     public Flux<MercenaryCommand> getCommandsByUser(String userId) {
@@ -133,7 +198,7 @@ public class MercenaryCommandService {
     }
 
     @Transactional
-    public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, String name, String co, Integer sp, Integer rep, String userId) {
+    public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, CommandUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateCommandDetails: id={}", commandId);
         return commandRepository.findById(commandId)
                 .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found: " + commandId))) // Explicitly type Mono.error
@@ -142,17 +207,17 @@ public class MercenaryCommandService {
                 return Mono.<MercenaryCommand>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
             }
 
-            if (name != null) {
-                cmd.setName(name);
+            if (input.name() != null) {
+                cmd.setName(input.name());
             }
-            if (co != null) {
-                cmd.setCommandingOfficer(co);
+            if (input.commandingOfficer() != null) {
+                cmd.setCommandingOfficer(input.commandingOfficer());
             }
-            if (sp != null) {
-                cmd.setTotalSupportPoints(sp);
+            if (input.totalSupportPoints() != null) {
+                cmd.setTotalSupportPoints(input.totalSupportPoints());
             }
-            if (rep != null) {
-                cmd.setReputation(rep);
+            if (input.reputation() != null) {
+                cmd.setReputation(input.reputation());
             }
             cmd.setNew(false);
             return commandRepository.save(cmd)
@@ -408,7 +473,7 @@ public class MercenaryCommandService {
     }
 
     @Transactional
-    public Mono<CombatUnit> updateCombatUnit(@NonNull UUID unitId, CombatUnit updatedData, String userId) {
+    public Mono<CombatUnit> updateCombatUnit(@NonNull UUID unitId, CombatUnitUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateCombatUnit: id={}", unitId);
         return combatUnitRepository.findById(unitId)
                 .switchIfEmpty(Mono.<CombatUnit>error(new RuntimeException("Unit not found"))) // Explicitly type Mono.error
@@ -424,33 +489,35 @@ public class MercenaryCommandService {
                             return Mono.<CombatUnit>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                         }
                         unit.setNew(false);
-                        if (updatedData.getType() != null) {
-                            unit.setType(updatedData.getType());
+                        if (input.type() != null) {
+                            unit.setType(input.type());
                         }
-                        if (updatedData.getModel() != null) {
-                            unit.setModel(updatedData.getModel());
+                        if (input.model() != null) {
+                            unit.setModel(input.model());
                         }
-                        if (updatedData.getVariant() != null) {
-                            unit.setVariant(updatedData.getVariant());
+                        if (input.variant() != null) {
+                            unit.setVariant(input.variant());
                         }
-                        if (updatedData.getTechBase() != null) {
-                            unit.setTechBase(updatedData.getTechBase());
+                        if (input.techBase() != null) {
+                            unit.setTechBase(input.techBase());
                         }
-                        if (updatedData.getTonnage() != null) {
-                            unit.setTonnage(updatedData.getTonnage());
+                        if (input.tonnage() != null) {
+                            unit.setTonnage(input.tonnage());
                         }
-                        if (updatedData.getAsSize() != null) {
-                            unit.setAsSize(updatedData.getAsSize());
+                        if (input.asSize() != null) {
+                            unit.setAsSize(input.asSize());
                         }
-                        if (updatedData.getBv() != null) {
-                            unit.setBv(updatedData.getBv());
+                        if (input.bv() != null) {
+                            unit.setBv(input.bv());
                         }
-                        if (updatedData.getPv() != null) {
-                            unit.setPv(updatedData.getPv());
+                        if (input.pv() != null) {
+                            unit.setPv(input.pv());
                         }
-                        if (updatedData.getAvailableFromMonth() != null) {
-                            // This field was added earlier, but was not part of the initial diff provided in the problem description. Adding it here for completeness with the entity.
-                            unit.setAvailableFromMonth(updatedData.getAvailableFromMonth());
+                        if (input.availableFromMonth() != null) {
+                            unit.setAvailableFromMonth(input.availableFromMonth());
+                        }
+                        if (input.status() != null) {
+                            unit.setStatus(input.status());
                         }
                         return combatUnitRepository.save(unit)
                                 .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
@@ -460,7 +527,7 @@ public class MercenaryCommandService {
     }
 
     @Transactional
-    public Mono<Pilot> updatePilot(@NonNull UUID pilotId, Pilot updatedData, String userId) {
+    public Mono<Pilot> updatePilot(@NonNull UUID pilotId, PilotUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updatePilot: id={}", pilotId);
         return pilotRepository.findById(pilotId)
                 .switchIfEmpty(Mono.<Pilot>error(new RuntimeException("Pilot not found"))) // Explicitly type Mono.error
@@ -476,50 +543,50 @@ public class MercenaryCommandService {
                             return Mono.<Pilot>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                         }
                         pilot.setNew(false);
-                        if (updatedData.getName() != null) {
-                            pilot.setName(updatedData.getName());
+                        if (input.name() != null) {
+                            pilot.setName(input.name());
                         }
-                        if (updatedData.getGunnery() != null) {
-                            pilot.setGunnery(updatedData.getGunnery());
+                        if (input.gunnery() != null) {
+                            pilot.setGunnery(input.gunnery());
                         }
-                        if (updatedData.getPiloting() != null) {
-                            pilot.setPiloting(updatedData.getPiloting());
+                        if (input.piloting() != null) {
+                            pilot.setPiloting(input.piloting());
                         }
-                        if (updatedData.getAsSkill() != null) {
-                            pilot.setAsSkill(updatedData.getAsSkill());
+                        if (input.asSkill() != null) {
+                            pilot.setAsSkill(input.asSkill());
                         }
-                        if (updatedData.getUnitType() != null) {
-                            pilot.setUnitType(updatedData.getUnitType());
+                        if (input.unitType() != null) {
+                            pilot.setUnitType(input.unitType());
                         }
-                        if (updatedData.getWounds() != null) {
-                            pilot.setWounds(updatedData.getWounds());
+                        if (input.wounds() != null) {
+                            pilot.setWounds(input.wounds());
                         }
-                        if (updatedData.getHandicap() != null) {
-                            pilot.setHandicap(updatedData.getHandicap());
+                        if (input.handicap() != null) {
+                            pilot.setHandicap(input.handicap());
                         }
-                        if (updatedData.getTotalSpEarned() != null) {
-                            pilot.setTotalSpEarned(updatedData.getTotalSpEarned());
+                        if (input.totalSpEarned() != null) {
+                            pilot.setTotalSpEarned(input.totalSpEarned());
                         }
-                        if (updatedData.getGunnerySpEarned() != null) {
-                            pilot.setGunnerySpEarned(updatedData.getGunnerySpEarned());
+                        if (input.gunnerySpEarned() != null) {
+                            pilot.setGunnerySpEarned(input.gunnerySpEarned());
                         }
-                        if (updatedData.getPilotingSpEarned() != null) {
-                            pilot.setPilotingSpEarned(updatedData.getPilotingSpEarned());
+                        if (input.pilotingSpEarned() != null) {
+                            pilot.setPilotingSpEarned(input.pilotingSpEarned());
                         }
-                        if (updatedData.getEdgeTokensSpEarned() != null) {
-                            pilot.setEdgeTokensSpEarned(updatedData.getEdgeTokensSpEarned());
+                        if (input.edgeTokensSpEarned() != null) {
+                            pilot.setEdgeTokensSpEarned(input.edgeTokensSpEarned());
                         }
-                        if (updatedData.getEdgeAbilitySpEarned() != null) {
-                            pilot.setEdgeAbilitySpEarned(updatedData.getEdgeAbilitySpEarned());
+                        if (input.edgeAbilitySpEarned() != null) {
+                            pilot.setEdgeAbilitySpEarned(input.edgeAbilitySpEarned());
                         }
-                        if (updatedData.getEdgeTokensSkill() != null) {
-                            pilot.setEdgeTokensSkill(updatedData.getEdgeTokensSkill());
+                        if (input.edgeTokensSkill() != null) {
+                            pilot.setEdgeTokensSkill(input.edgeTokensSkill());
                         }
-                        if (updatedData.getEdgeAbilitySkill() != null) {
-                            pilot.setEdgeAbilitySkill(updatedData.getEdgeAbilitySkill());
+                        if (input.edgeAbilitySkill() != null) {
+                            pilot.setEdgeAbilitySkill(input.edgeAbilitySkill());
                         }
-                        if (updatedData.getEdgeAbilities() != null) {
-                            pilot.setEdgeAbilities(updatedData.getEdgeAbilities());
+                        if (input.edgeAbilities() != null) {
+                            pilot.setEdgeAbilities(input.edgeAbilities());
                         }
                         return pilotRepository.save(pilot)
                                 .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
@@ -568,18 +635,31 @@ public class MercenaryCommandService {
      * Adds a new combat unit to the command's reserve pool.
      */
     @Transactional
-    public Mono<CombatUnit> addCombatUnit(@NonNull UUID commandId, CombatUnit unit, String userId) {
+    public Mono<CombatUnit> addCombatUnit(@NonNull UUID commandId, CombatUnitUpdateInput input, String userId) {
         log.trace("[TRACE] Starting addCombatUnit: commandId={}", commandId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> commandRepository.findById(commandId).switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))).<CombatUnit>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
                         return Mono.<CombatUnit>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                     }
-                    unit.setId(UUID.randomUUID());
-                    unit.setCommandId(commandId);
-                    unit.setStatus("OPERATIONAL");
-                    unit.setNew(true);
-                    return combatUnitRepository.save(unit)
+                    CombatUnit unit = CombatUnit.builder()
+                            .id(UUID.randomUUID())
+                            .commandId(commandId)
+                            .type(input.type())
+                            .model(input.model())
+                            .variant(input.variant())
+                            .techBase(input.techBase())
+                            .tonnage(input.tonnage())
+                            .asSize(input.asSize())
+                            .bv(input.bv())
+                            .pv(input.pv())
+                            .availableFromMonth(TypeUtils.asInt(input.availableFromMonth(), 1))
+                            .status(input.status() != null ? input.status() : "OPERATIONAL")
+                            .detachmentId(input.detachmentId())
+                            .isNew(true)
+                            .build();
+
+                    return combatUnitRepository.save(Objects.requireNonNull(unit))
                             .flatMap(u -> commandRepository.findById(commandId)
                             .doOnNext(commandSink::tryEmitNext)
                             .thenReturn(u));
@@ -592,17 +672,36 @@ public class MercenaryCommandService {
      * Hires a new pilot into the command's reserve pool.
      */
     @Transactional
-    public Mono<Pilot> hirePilot(@NonNull UUID commandId, Pilot pilot, String userId) {
+    public Mono<Pilot> hirePilot(@NonNull UUID commandId, PilotUpdateInput input, String userId) {
         log.trace("[TRACE] Starting hirePilot: commandId={}", commandId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> commandRepository.findById(commandId).switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found"))).<Pilot>flatMap(cmd -> { // Explicitly type flatMap
                     if (!cmd.getOwnerId().equals(user.getId().toString())) {
                         return Mono.<Pilot>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
                     }
-                    pilot.setId(UUID.randomUUID());
-                    pilot.setCommandId(commandId);
-                    pilot.setNew(true);
-                    return pilotRepository.save(pilot)
+                    Pilot pilot = Pilot.builder()
+                            .id(UUID.randomUUID())
+                            .commandId(commandId)
+                            .name(input.name())
+                            .gunnery(input.gunnery())
+                            .piloting(input.piloting())
+                            .asSkill(input.asSkill())
+                            .unitType(input.unitType())
+                            .wounds(TypeUtils.asInt(input.wounds(),0))
+                            .handicap(input.handicap())
+                            .totalSpEarned(TypeUtils.asInt(input.totalSpEarned(),0))
+                            .gunnerySpEarned(TypeUtils.asInt(input.gunnerySpEarned(),0))
+                            .pilotingSpEarned(TypeUtils.asInt(input.pilotingSpEarned(),0))
+                            .edgeTokensSpEarned(TypeUtils.asInt(input.edgeTokensSpEarned(),0))
+                            .edgeAbilitySpEarned(TypeUtils.asInt(input.edgeAbilitySpEarned(),0))
+                            .edgeTokensSkill(TypeUtils.asInt(input.edgeTokensSkill(),0))
+                            .edgeAbilitySkill(TypeUtils.asInt(input.edgeAbilitySkill(),0))
+                            .edgeAbilities(input.edgeAbilities())
+                            .detachmentId(input.detachmentId())
+                            .isNew(true)
+                            .build();
+
+                    return pilotRepository.save(Objects.requireNonNull(pilot))
                             .flatMap(p -> commandRepository.findById(commandId)
                             .doOnNext(commandSink::tryEmitNext)
                             .thenReturn(p));
@@ -710,7 +809,7 @@ public class MercenaryCommandService {
     }
 
     @Transactional
-    public Mono<Campaign> updateCampaignDetails(@NonNull UUID campaignId, Map<String, Object> input, String userId) {
+    public Mono<Campaign> updateCampaignDetails(@NonNull UUID campaignId, CampaignUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateCampaignDetails: id={}", campaignId);
         return userService.resolveOrCreateUser(userId).<Campaign>flatMap(user
                 -> campaignRepository.findById(campaignId)
@@ -720,40 +819,52 @@ public class MercenaryCommandService {
                             }
 
                             camp.setNew(false);
-                            if (input.containsKey("systemName")) {
-                                camp.setSystemName((String) input.get("systemName"));
+                            if (input.systemName() != null) {
+                                camp.setSystemName(input.systemName());
                             }
-                            if (input.containsKey("description")) {
-                                camp.setDescription((String) input.get("description"));
+                            if (input.description() != null) {
+                                camp.setDescription(input.description());
                             }
-                            if (input.containsKey("monthlyPay")) {
-                                camp.setMonthlyPay(TypeUtils.asInt(input.get("monthlyPay")));
+                            if (input.monthlyPay() != null) {
+                                camp.setMonthlyPay(input.monthlyPay());
                             }
-                            if (input.containsKey("monthlyMaintenance")) {
-                                camp.setMonthlyMaintenance(TypeUtils.asInt(input.get("monthlyMaintenance")));
+                            if (input.monthlyMaintenance() != null) {
+                                camp.setMonthlyMaintenance(input.monthlyMaintenance());
                             }
-                            if (input.containsKey("transportationCost")) {
-                                camp.setTransportationCost(TypeUtils.asInt(input.get("transportationCost")));
+                            if (input.transportationCost() != null) {
+                                camp.setTransportationCost(input.transportationCost());
                             }
-                            if (input.containsKey("combatPay")) {
-                                camp.setCombatPay(TypeUtils.asInt(input.get("combatPay")));
+                            if (input.combatPay() != null) {
+                                camp.setCombatPay(input.combatPay());
                             }
-                            if (input.containsKey("repairRules")) {
-                                CampaignService.RepairRules rules = CampaignService.mapToRepairRules((Map<String, Object>) input.get("repairRules"));
+                            if (input.repairRules() != null) {
+                                CampaignService.RepairRules rules = input.repairRules();
                                 camp.setRepairRules(rules);
-                                if (rules != null) {
+                                if (rules.armorMultiplier() != null) {
                                     camp.setArmorMultiplier(rules.armorMultiplier());
+                                }
+                                if (rules.internalMultiplier() != null) {
                                     camp.setInternalMultiplier(rules.internalMultiplier());
+                                }
+                                if (rules.crippledMultiplier() != null) {
                                     camp.setCrippledMultiplier(rules.crippledMultiplier());
+                                }
+                                if (rules.destroyedMultiplier() != null) {
                                     camp.setDestroyedMultiplier(rules.destroyedMultiplier());
+                                }
+                                if (rules.nonMechModifier() != null) {
                                     camp.setNonMechModifier(rules.nonMechModifier());
+                                }
+                                if (rules.mixedTechModifier() != null) {
                                     camp.setMixedTechModifier(rules.mixedTechModifier());
+                                }
+                                if (rules.clanTechModifier() != null) {
                                     camp.setClanTechModifier(rules.clanTechModifier());
                                 }
                             }
 
-                            Integer newMonthsInput = TypeUtils.asInt(input.get("lengthInMonths"));
-                            Integer newTrackCountInput = TypeUtils.asInt(input.get("trackCount"));
+                            Integer newMonthsInput = input.lengthInMonths();
+                            Integer newTrackCountInput = input.trackCount();
 
                             Mono<Campaign> chain = Mono.just(camp);
 

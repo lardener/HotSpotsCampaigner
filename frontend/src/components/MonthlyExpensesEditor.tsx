@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
+import { Detachment } from '../types/global.d';
 import { ADD_LEDGER_ENTRY } from './LedgerEntryForm'; // Reusing the existing mutation
+import { parseMultiplier } from '../util/contractUtils';
 
 interface Contract {
     id: string;
@@ -21,13 +23,7 @@ interface Contract {
     trackCount: number;
 }
 
-interface ParticipatingDetachment {
-    id: string;
-    name: string;
-    mercenaryCommandId: string; // Ensure this is present for ledger entries
-    mercenaryCommandName?: string;
-}
-
+// Renamed to CampaignDetailSummary for clarity, as it's a subset of CampaignDetail
 interface CampaignDetailSummary {
     id: string;
     name: string;
@@ -39,8 +35,8 @@ interface CampaignDetailSummary {
 }
 
 interface MonthlyExpensesEditorProps {
-    campaignDetails: CampaignDetailSummary;
-    detachments: ParticipatingDetachment[];
+    campaignDetails: CampaignDetailSummary; // Use CampaignDetailSummary
+    detachments: Detachment[];
     currentMonthIndex: number;
     onClose: () => void;
     onLedgerEntryAdded: () => void;
@@ -48,7 +44,7 @@ interface MonthlyExpensesEditorProps {
 
 interface DetachmentFormState {
     detachmentId: string;
-    detachmentName: string;
+    detachmentName: string; // Renamed from name for clarity
     mercenaryCommandId: string;
     selectedContractId: string;
     selectedLevel: number; // For future use, currently fixed at 1
@@ -62,26 +58,12 @@ interface DetachmentFormState {
 export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     campaignDetails,
     detachments,
-    currentMonthIndex,
+    currentMonthIndex, // Use currentMonthIndex
     onClose,
     onLedgerEntryAdded
 }) => {
     const [detachmentForms, setDetachmentForms] = useState<DetachmentFormState[]>([]);
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
-
-    const parseRightsMultiplier = (terms: string | undefined): number => {
-        const t = (terms || '').toUpperCase().trim();
-        if (!t || t === 'NONE' || t === '0%' || t === '-') return 0;
-        if (t === 'FULL' || t === '100%') return 1;
-
-        // Handle fractions common in Support/Transport terms (e.g., 1/2, 3/4)
-        const fracMatch = t.match(/(\d+)\/(\d+)/);
-        if (fracMatch) return parseInt(fracMatch[1]) / parseInt(fracMatch[2]);
-
-        const match = t.match(/(\d+)%/);
-        if (match) return parseInt(match[1]) / 100;
-        return 0;
-    };
 
     const calculateFormDefaults = (chargeType: DetachmentFormState['chargeType'], level: number, contractId: string) => {
         const contract = campaignDetails.contracts?.find(c => c.id === contractId);
@@ -99,7 +81,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                 break;
             case 'Transport':
                 const tBase = (campaignDetails.transportationCost || 0) * levelMult;
-                const tMult = parseRightsMultiplier(contract?.transportTerms);
+                const tMult = parseMultiplier(contract?.transportTerms);
                 amount = -Math.round(tBase * (1 - tMult));
                 termsLabel = contract?.transportTerms || 'NONE';
                 break;
@@ -114,7 +96,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     useEffect(() => {
         const initialForms: DetachmentFormState[] = detachments.map(det => {
             const defaultContractId = campaignDetails.contracts?.[0]?.id || '';
-            const { amount, description } = calculateFormDefaults('Monthly Pay & Expenses', 1, defaultContractId);
+            const { amount, description } = calculateFormDefaults('Monthly Pay & Expenses', 1, defaultContractId); // Use defaultContractId
             return {
                 detachmentId: det.id,
                 detachmentName: det.name,

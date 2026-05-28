@@ -147,6 +147,45 @@ public class CampaignService {
 
     }
 
+    public record CampaignCreateInput(
+            String employer,
+            String opponent,
+            String mission,
+            String employerCategory,
+            String systemName,
+            Double payRate,
+            String salvageTerms,
+            String supportTerms,
+            String transportTerms,
+            String commandRights,
+            Integer payStep,
+            Integer salvageStep,
+            Integer supportStep,
+            Integer transportStep,
+            Integer commandStep,
+            Integer trackCount,
+            Integer lengthInMonths,
+            Integer monthlyPay,
+            Integer monthlyMaintenance,
+            Integer transportationCost,
+            Integer combatPay,
+            RepairRules repairRules
+            ) {
+
+    }
+
+    public record TrackUpdateInput(
+            String trackName,
+            Integer sequenceOrder,
+            String location,
+            String nextSession,
+            UUID attackerFactionId,
+            Integer monthIndex,
+            String complications
+            ) {
+
+    }
+
     public record ResolvedStepEntry(Integer step, Map<String, String> values) {
 
     }
@@ -370,19 +409,13 @@ public class CampaignService {
         return new ActiveCampaignSummary(c.getId(), c.getName(), c.getSystemName(), c.getTrackCount(), primary, secondary);
     }
 
-    public CampaignProposal generateProposal(String employer, String opponent, String mission,
-            String employerCategory, String systemName, Double payRate,
-            String salvageTerms, String supportTerms, String transportTerms, String commandRights,
-            Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
-            Integer trackCount, Integer lengthInMonths,
-            Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay,
-            Map<String, Object> repairRulesInput) {
+    public CampaignProposal generateProposal(CampaignCreateInput input) {
         Random rand = new Random();
-        String finalEmp = (employer == null || employer.isEmpty()) ? getRandomFaction(null) : employer;
-        String finalOpp = (opponent == null || opponent.isEmpty()) ? getRandomFaction(finalEmp) : opponent;
+        String finalEmp = (input.employer() == null || input.employer().isEmpty()) ? getRandomFaction(null) : input.employer();
+        String finalOpp = (input.opponent() == null || input.opponent().isEmpty()) ? getRandomFaction(finalEmp) : input.opponent();
 
         String empMission, oppMission;
-        if (mission == null || mission.isEmpty()) {
+        if (input.mission() == null || input.mission().isEmpty()) {
             int roll = rollDice(missionTableData.diceCount(), missionTableData.diceSides(), rand);
             empMission = "Unknown Mission";
             oppMission = "Unknown Opponent Mission";
@@ -394,15 +427,15 @@ public class CampaignService {
                 }
             }
         } else {
-            empMission = mission;
+            empMission = input.mission();
             oppMission = getOpposingMissionType(empMission, rand);
         }
 
-        int finalTracksCount = trackCount != null ? trackCount : rollTrackCount(empMission, rand);
-        String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
+        int finalTracksCount = TypeUtils.asInt(input.trackCount(), rollTrackCount(empMission, rand));
+        String finalSystemName = (input.systemName() != null && !input.systemName().isEmpty()) ? input.systemName() : rollSystemName(rand);
 
         // Initialize Repair Rules from input or constants
-        RepairRules rules = mapToRepairRules(repairRulesInput);
+        RepairRules rules = input.repairRules();
         if (rules == null) {
             rules = new RepairRules(
                     RulesConstants.REPAIR_MULT_ARMOR, RulesConstants.REPAIR_MULT_INTERNAL,
@@ -410,17 +443,27 @@ public class CampaignService {
                     RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER, RulesConstants.REPAIR_MULT_MIXED_TECH,
                     RulesConstants.REPAIR_MULT_CLAN_TECH
             );
+        } else {
+            rules = new RepairRules(
+                    Objects.requireNonNullElse(rules.armorMultiplier(), RulesConstants.REPAIR_MULT_ARMOR),
+                    Objects.requireNonNullElse(rules.internalMultiplier(), RulesConstants.REPAIR_MULT_INTERNAL),
+                    Objects.requireNonNullElse(rules.crippledMultiplier(), RulesConstants.REPAIR_MULT_CRIPPLED),
+                    Objects.requireNonNullElse(rules.destroyedMultiplier(), RulesConstants.REPAIR_MULT_DESTROYED),
+                    Objects.requireNonNullElse(rules.nonMechModifier(), RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER),
+                    Objects.requireNonNullElse(rules.mixedTechModifier(), RulesConstants.REPAIR_MULT_MIXED_TECH),
+                    Objects.requireNonNullElse(rules.clanTechModifier(), RulesConstants.REPAIR_MULT_CLAN_TECH)
+            );
         }
 
-        Contract primaryContract = generateContract(finalEmp, empMission, employerCategory,
-                payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep,
-                salvageStep, supportStep, transportStep, commandStep, finalTracksCount, true, finalSystemName, rand);
+        Contract primaryContract = generateContract(finalEmp, empMission, input.employerCategory(),
+                input.payRate(), input.salvageTerms(), input.supportTerms(), input.transportTerms(), input.commandRights(), input.payStep(),
+                input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand);
 
         Campaign campaign = Campaign.builder()
                 .name(finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
                 .trackCount(finalTracksCount)
-                .lengthInMonths(lengthInMonths != null ? lengthInMonths : finalTracksCount)
+                .lengthInMonths(TypeUtils.asInt(input.lengthInMonths(), finalTracksCount))
                 .description("Theater established in the " + finalSystemName + " system.")
                 .payRate(primaryContract.getPayRate())
                 .payStep(primaryContract.getPayStep())
@@ -432,10 +475,10 @@ public class CampaignService {
                 .transportStep(primaryContract.getTransportStep())
                 .commandRights(primaryContract.getCommandRights())
                 .commandStep(primaryContract.getCommandStep())
-                .monthlyPay(monthlyPay != null ? monthlyPay : RulesConstants.DEFAULT_MONTHLY_PAY)
-                .monthlyMaintenance(monthlyMaintenance != null ? monthlyMaintenance : RulesConstants.DEFAULT_MONTHLY_MAINTENANCE)
-                .transportationCost(transportationCost != null ? transportationCost : RulesConstants.DEFAULT_TRANSPORTATION_COST)
-                .combatPay(combatPay != null ? combatPay : RulesConstants.DEFAULT_COMBAT_PAY)
+                .monthlyPay(TypeUtils.asInt(input.monthlyPay(), RulesConstants.DEFAULT_MONTHLY_PAY))
+                .monthlyMaintenance(TypeUtils.asInt(input.monthlyMaintenance(), RulesConstants.DEFAULT_MONTHLY_MAINTENANCE))
+                .transportationCost(TypeUtils.asInt(input.transportationCost(), RulesConstants.DEFAULT_TRANSPORTATION_COST))
+                .combatPay(TypeUtils.asInt(input.combatPay(), RulesConstants.DEFAULT_COMBAT_PAY))
                 .armorMultiplier(rules.armorMultiplier())
                 .internalMultiplier(rules.internalMultiplier())
                 .crippledMultiplier(rules.crippledMultiplier())
@@ -453,21 +496,6 @@ public class CampaignService {
 
         List<GeneratedTrack> tracksList = generateTracks(empMission, primaryContract.getCommandRights(), finalTracksCount);
         return new CampaignProposal(campaign, List.of(primaryContract, oppositionContract), tracksList);
-    }
-
-    public static RepairRules mapToRepairRules(Map<String, Object> map) {
-        if (map == null) {
-            return null;
-        }
-        return new RepairRules(
-                TypeUtils.asDouble(map.get("armorMultiplier"), RulesConstants.REPAIR_MULT_ARMOR),
-                TypeUtils.asDouble(map.get("internalMultiplier"), RulesConstants.REPAIR_MULT_INTERNAL),
-                TypeUtils.asDouble(map.get("crippledMultiplier"), RulesConstants.REPAIR_MULT_CRIPPLED),
-                TypeUtils.asDouble(map.get("destroyedMultiplier"), RulesConstants.REPAIR_MULT_DESTROYED),
-                TypeUtils.asDouble(map.get("nonMechModifier"), RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER),
-                TypeUtils.asDouble(map.get("mixedTechModifier"), RulesConstants.REPAIR_MULT_MIXED_TECH),
-                TypeUtils.asDouble(map.get("clanTechModifier"), RulesConstants.REPAIR_MULT_CLAN_TECH)
-        );
     }
 
     private Contract generateContract(String faction, String type, String category,
@@ -678,19 +706,13 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<Campaign> generateDoblessCampaign(String managerId, String employer, String opponent, String mission,
-            String employerCategory, String systemName, Double payRate,
-            String salvageTerms, String supportTerms, String transportTerms, String commandRights,
-            Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
-            Integer trackCount, Integer lengthInMonths,
-            Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay,
-            Map<String, Object> repairRules) {
-        log.trace("[TRACE] Starting generateDoblessCampaign: managerId={}, system={}", managerId, systemName);
+    public Mono<Campaign> generateDoblessCampaign(String managerId, CampaignCreateInput input) {
+        log.trace("[TRACE] Starting generateDoblessCampaign: managerId={}, system={}", managerId, input.systemName());
         return userService.resolveOrCreateUser(managerId).flatMap(user -> {
             if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
                 return Mono.error(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Only Managers can create campaigns"));
             }
-            CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName, payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep, salvageStep, supportStep, transportStep, commandStep, trackCount, lengthInMonths, monthlyPay, monthlyMaintenance, transportationCost, combatPay, repairRules);
+            CampaignProposal proposal = generateProposal(input);
             Campaign campaign = proposal.campaign();
             campaign.setId(campaign.getId() == null ? UUID.randomUUID() : campaign.getId());
             campaign.setManagerId(user.getId().toString());
@@ -801,28 +823,30 @@ public class CampaignService {
     }
 
     @Transactional
-    public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, Map<String, Object> input) {
+    public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, TrackUpdateInput input) {
         log.trace("[TRACE] Starting updateTrack: trackId={}", trackId);
         return campaignTrackRepository.findById(trackId).flatMap(track -> {
             track.setNew(false);
-            if (input.containsKey("trackName")) {
-                track.setTrackName((String) input.get("trackName"));
+            if (input.trackName() != null) {
+                track.setTrackName(input.trackName());
             }
-            if (input.containsKey("location")) {
-                track.setLocation((String) input.get("location"));
+            if (input.sequenceOrder() != null) {
+                track.setSequenceOrder(input.sequenceOrder());
             }
-            if (input.containsKey("nextSession")) {
-                String ns = (String) input.get("nextSession");
-                track.setNextSession(ns != null && !ns.isEmpty() ? LocalDateTime.parse(ns) : null);
+            if (input.location() != null) {
+                track.setLocation(input.location());
             }
-            if (input.containsKey("attackerFactionId")) {
-                track.setAttackerFactionId(input.get("attackerFactionId") != null ? UUID.fromString((String) input.get("attackerFactionId")) : null);
+            if (input.nextSession() != null) {
+                track.setNextSession(input.nextSession().isBlank() ? null : LocalDateTime.parse(input.nextSession()));
             }
-            if (input.containsKey("monthIndex")) {
-                track.setMonthIndex(TypeUtils.asInt(input.get("monthIndex")));
+            if (input.attackerFactionId() != null) {
+                track.setAttackerFactionId(input.attackerFactionId());
             }
-            if (input.containsKey("complications")) {
-                track.setComplications((String) input.get("complications"));
+            if (input.monthIndex() != null) {
+                track.setMonthIndex(input.monthIndex());
+            }
+            if (input.complications() != null) {
+                track.setComplications(input.complications());
             }
             return campaignTrackRepository.save(track);
         })

@@ -7,26 +7,35 @@ public class TypeUtils {
 
     /**
      * Converts an Object to an Integer, returning null if conversion fails.
+     * This method is deprecated in favor of asInt(Object value, Integer
+     * defaultValue) to ensure non-null defaults where appropriate.
      */
+    @Deprecated
     public static Integer asInt(Object value) {
+        return asInt(value, null);
+    }
+
+    /**
+     * Converts an Object to an Integer, returning null if conversion fails.
+     */
+    public static Integer asInt(Object value, Integer defaultValue) {
         if (value == null) {
-            return null;
+            return defaultValue;
         }
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+        if (value instanceof Number number) {
+            return number.intValue();
         }
-        if (value instanceof String) {
+        if (value instanceof String string) {
             try {
-                String s = (String) value;
-                if (s.isBlank()) {
-                    return null;
+                if (string.isBlank()) {
+                    return defaultValue;
                 }
-                return Integer.parseInt(s);
+                return Integer.valueOf(string);
             } catch (NumberFormatException e) {
-                return null;
+                return defaultValue;
             }
         }
-        return null;
+        return defaultValue;
     }
 
     /**
@@ -37,16 +46,15 @@ public class TypeUtils {
         if (value == null) {
             return defaultValue;
         }
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
+        if (value instanceof Number number) {
+            return number.doubleValue();
         }
-        if (value instanceof String) {
+        if (value instanceof String string) {
             try {
-                String s = (String) value;
-                if (s.isBlank()) {
+                if (string.isBlank()) {
                     return defaultValue;
                 }
-                return Double.parseDouble(s);
+                return Double.valueOf(string);
             } catch (NumberFormatException e) {
                 return defaultValue;
             }

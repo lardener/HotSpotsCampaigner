@@ -4,7 +4,7 @@ type Query {
     getCommand(id: ID!): MercenaryCommand
     getCampaign(id: ID!): Campaign
     managedCampaigns(status: String): [Campaign]
-    previewCampaign(input: CampaignInput!): CampaignProposal
+    previewCampaign(input: CampaignCreateInput!): CampaignProposal
     campaignMetadata: CampaignMetadata
     participatingCampaigns(commandId: ID!): [Campaign]
     generateTracks(mission: String!, commandRights: String!, count: Int!): [String]
@@ -14,7 +14,7 @@ type Query {
     # Public Read-Only Access
     publicActiveCampaigns(page: Int, size: Int): [Campaign]
     publicCampaignMetadata: CampaignMetadata
-    publicPreviewCampaign(input: CampaignInput!): CampaignProposal
+    publicPreviewCampaign(input: CampaignCreateInput!): CampaignProposal
 }
 
 type CampaignMetadata {
@@ -73,25 +73,25 @@ type Subscription {
 
 type Mutation {
     # Command Management
-    establishCommand(name: String!, commandingOfficer: String, totalSupportPoints: Int): MercenaryCommand
-    updateCommand(id: ID!, name: String, commandingOfficer: String, totalSupportPoints: Int, reputation: Int): MercenaryCommand
+    establishCommand(input: CommandUpdateInput!): MercenaryCommand
+    updateCommand(id: ID!, input: CommandUpdateInput!): MercenaryCommand
     deleteCommand(commandId: ID!, force: Boolean): Boolean
     
     # Campaign Management
-    createCampaign(input: CampaignInput!): Campaign
-    updateCampaign(id: ID!, input: CampaignInput!): Campaign
+    createCampaign(input: CampaignCreateInput!): Campaign
+    updateCampaign(id: ID!, input: CampaignUpdateInput!): Campaign
     rerollTrack(id: ID!): CampaignTrack
     assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
     
     # Asset Management
     importCombatUnitsFromLink(commandId: ID!, detachmentId: ID, link: String!): [CombatUnit]
-    updateTrack(id: ID!, input: TrackInput!): CampaignTrack
+    updateTrack(id: ID!, input: TrackUpdateInput!): CampaignTrack
     reorderTracks(campaignId: ID!, trackIds: [ID!]!): [CampaignTrack!]!
-    addCombatUnit(commandId: ID!, input: CombatUnitInput!): CombatUnit
-    updateCombatUnit(id: ID!, input: CombatUnitInput!): CombatUnit
+    addCombatUnit(commandId: ID!, input: CombatUnitUpdateInput!): CombatUnit
+    updateCombatUnit(id: ID!, input: CombatUnitUpdateInput!): CombatUnit
     deleteUnit(unitId: ID!): Boolean
-    hirePilot(commandId: ID!, input: PilotInput!): Pilot
-    updatePilot(id: ID!, input: PilotInput!): Pilot
+    hirePilot(commandId: ID!, input: PilotUpdateInput!): Pilot
+    updatePilot(id: ID!, input: PilotUpdateInput!): Pilot
     deletePilot(pilotId: ID!): Boolean
 
     # Identity & Invites
@@ -233,7 +233,7 @@ type CampaignInvite {
     used: Boolean
 }
 
-input CampaignInput {
+input CampaignCreateInput {
     employer: String
     opponent: String
     mission: String
@@ -259,7 +259,26 @@ input CampaignInput {
     repairRules: RepairRulesInput
 }
 
-input TrackInput {
+input CampaignUpdateInput {
+    systemName: String
+    description: String
+    monthlyPay: Int
+    monthlyMaintenance: Int
+    transportationCost: Int
+    combatPay: Int
+    repairRules: RepairRulesInput
+    lengthInMonths: Int
+    trackCount: Int
+}
+
+input CommandUpdateInput {
+    name: String
+    commandingOfficer: String
+    totalSupportPoints: Int
+    reputation: Int
+}
+
+input TrackUpdateInput {
     trackName: String
     sequenceOrder: Int
     location: String
@@ -281,15 +300,7 @@ type CampaignTrack {
     complications: String
 }
 
-type CampaignFaction {
-    id: ID!
-    campaignId: ID!
-    factionName: String
-    offersContracts: Boolean
-    shortDescription: String
-}
-
-input CombatUnitInput {
+input CombatUnitUpdateInput {
     type: String
     model: String
     variant: String
@@ -303,7 +314,15 @@ input CombatUnitInput {
     detachmentId: ID
 }
 
-input PilotInput {
+type CampaignFaction {
+    id: ID!
+    campaignId: ID!
+    factionName: String
+    offersContracts: Boolean
+    shortDescription: String
+}
+
+input PilotUpdateInput {
     name: String
     gunnery: Int
     piloting: Int

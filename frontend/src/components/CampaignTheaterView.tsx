@@ -6,6 +6,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
+import { Detachment } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 
 const CREATE_INVITE = gql`
@@ -24,7 +25,7 @@ const DELETE_INVITE = gql`
 `;
 
 const UPDATE_CAMPAIGN = gql`
-  mutation UpdateCampaign($id: ID!, $input: CampaignInput!) {
+  mutation UpdateCampaign($id: ID!, $input: CampaignUpdateInput!) {
     updateCampaign(id: $id, input: $input) {
       id
       systemName
@@ -46,7 +47,7 @@ const ASSIGN_DETACHMENT = gql`
 `;
 
 const UPDATE_TRACK = gql`
-  mutation UpdateTrack($id: ID!, $input: TrackInput!) {
+  mutation UpdateTrack($id: ID!, $input: TrackUpdateInput!) {
     updateTrack(id: $id, input: $input) {
       id
       trackName
@@ -244,10 +245,10 @@ interface Contract {
     trackCount: number;
 }
 
-interface ParticipatingDetachment {
+interface ParticipatingDetachment extends Detachment {
     id: string;
     name: string;
-    mercenaryCommandId?: string;
+    mercenaryCommandId: string; // Ensure this is present for ledger entries
     mercenaryCommandName?: string;
     units?: any[];
     pilots?: any[];
@@ -301,7 +302,7 @@ interface CampaignDetail {
     factions?: { id: string, factionName: string }[];
     tracks?: TrackDetail[];
     participatingDetachments?: ParticipatingDetachment[];
-}
+} // Use ParticipatingDetachment
 
 interface CampaignTheaterViewProps {
     managedData: { managedCampaigns: CampaignDetail[] } | undefined;
@@ -346,7 +347,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
 
-    const [overlay, setOverlay] = useState<{
+    const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
         title: string;
         message: string;
@@ -362,7 +363,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         // Ensure contracts are always an array, even if empty from query
         contracts: campaignQueryData?.getCampaign?.contracts || campaignFromProps?.contracts || []
     }), [campaignFromProps, campaignQueryData]);
-
+    // Use CampaignDetail for campaign type
     const [editingField, setEditingField] = useState<string | null>(null);
     const [monthlyPay, setMonthlyPay] = useState(campaign?.monthlyPay || 500);
     const [monthlyMaintenance, setMonthlyMaintenance] = useState(campaign?.monthlyMaintenance || 500);
@@ -952,11 +953,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     </div>
                                 </div>
                             </details>
-
-                            <div className="mt-15">
-                                <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
-                            </div>
-
                             <div className="mt-15">
                                 <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
                                 <div className="grid-5-col mt-5">
@@ -1210,7 +1206,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             {campaign?.participatingDetachments?.map((det: ParticipatingDetachment) => (
                                 <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
                                     <div
-                                        style={{ cursor: 'pointer' }}
+                                        style={{ cursor: 'pointer' }} // Use DetachmentReadinessSummary
                                         onClick={() => onSelectDetachment({
                                             id: `camp-det-${det.id}`,
                                             label: det.name,

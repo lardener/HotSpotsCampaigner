@@ -4,11 +4,12 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { NavigationTree, TreeItem, NodeType } from './NavigationTree';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
 import { RandomCampaignGenerator } from './RandomCampaignGenerator';
+import { CreateCommandForm } from './CreateCommandForm';
 import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
-import { CreateCommandForm } from './CreateCommandForm';
 import { CommandDashboard } from './CommandDashboard';
 import { CampaignTheaterView } from './CampaignTheaterView';
+import { Detachment } from '../types/global.d';
 import { MyDeploymentsList } from './MyDeploymentsList';
 import { TerminalOverlay } from './TerminalOverlay';
 
@@ -123,10 +124,7 @@ interface GetMyCommandsData {
         totalSupportPoints: number;
         reputation: number;
         commandingOfficer: string;
-        detachments?: {
-            id: string;
-            name: string;
-        }[];
+        detachments?: Detachment[];
     }[];
 }
 
@@ -179,11 +177,8 @@ interface ManagedCampaignsData {
             attackerFactionId?: string;
             monthIndex?: number;
         }[];
-        participatingDetachments?: {
-            id: string;
-            name: string;
-            mercenaryCommandId: string;
-        }[];
+        participatingDetachments?: Detachment[];
+
     }[];
 }
 
@@ -344,7 +339,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         // Aggregate all detachments for the "Current Deployments" view
         commands.forEach(cmd => {
             if (cmd.detachments) {
-                cmd.detachments.forEach((det: any) => {
+                cmd.detachments.forEach((det: Detachment) => {
                     if (det.campaignId) {
                         deploymentNodes.push({
                             id: `deployment-${det.id}`,
@@ -385,7 +380,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     id: cmd.id,
                     label: cmd.name || 'UNNAMED UNIT',
                     type: 'COMMAND' as NodeType,
-                    children: cmd.detachments?.map((det: any) => ({
+                    children: cmd.detachments?.map((det: Detachment) => ({
                         id: `cmd-det-${det.id}`,
                         label: det.name,
                         type: 'DETACHMENT' as NodeType,
@@ -402,7 +397,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     id: camp.id,
                     label: camp.name,
                     type: 'CAMPAIGN' as NodeType,
-                    children: camp.participatingDetachments?.map((det: any) => ({
+                    children: camp.participatingDetachments?.map((det: Detachment) => ({
                         id: `camp-det-${det.id}`,
                         label: det.name,
                         type: 'DETACHMENT' as NodeType,

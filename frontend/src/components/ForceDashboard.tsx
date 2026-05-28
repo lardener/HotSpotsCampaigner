@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
+import { CombatUnit, Pilot, Detachment } from '../types/global.d';
 import '../styles/theme.css';
 
 const GET_FORCE_DATA = gql`
@@ -62,7 +63,7 @@ const ASSIGN_ASSET = gql`
 `;
 
 const ADD_UNIT = gql`
-  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitInput!) {
+  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitUpdateInput!) {
     addCombatUnit(commandId: $commandId, input: $input) {
       id
       model
@@ -71,39 +72,13 @@ const ADD_UNIT = gql`
 `;
 
 const HIRE_PILOT = gql`
-  mutation HirePilot($commandId: ID!, $input: PilotInput!) {
+  mutation HirePilot($commandId: ID!, $input: PilotUpdateInput!) {
     hirePilot(commandId: $commandId, input: $input) {
       id
       name
     }
   }
 `;
-
-interface CombatUnit {
-    id: string;
-    model: string;
-    tonnage: number;
-    status: string;
-    detachmentId?: string | null;
-}
-
-interface Pilot {
-    id: string;
-    name: string;
-    gunnery: number;
-    piloting: number;
-    asSkill: number;
-    edgeTokensSkill?: number;
-    edgeAbilitySkill?: number;
-    wounds: number;
-    handicap: string;
-    totalSpEarned: number;
-    gunnerySpEarned: number;
-    pilotingSpEarned: number;
-    edgeTokensSpEarned: number;
-    edgeAbilitySpEarned: number;
-    detachmentId?: string | null;
-}
 
 interface ForceData {
     getCommand: {
@@ -113,7 +88,7 @@ interface ForceData {
         reputation: number;
         units: CombatUnit[];
         pilots: Pilot[];
-        detachments: any[];
+        detachments: Detachment[];
     };
     managedCampaigns: any[];
     participatingCampaigns: any[];
@@ -231,7 +206,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         try {
             await addUnitMutation({
                 variables: {
-                    commandId,
+                    commandId, // Use commandId from props
                     input: {
                         model,
                         tonnage: 55,
@@ -249,7 +224,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         try {
             await hirePilotMutation({
                 variables: {
-                    commandId,
+                    commandId, // Use commandId from props
                     input: {
                         name,
                         gunnery: 4,

@@ -28,7 +28,6 @@ import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.util.RulesConstants;
-import com.hotspotscamp.util.TypeUtils;
 
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
@@ -262,23 +261,11 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
-    public Mono<CampaignProposal> previewCampaign(@Argument Map<String, Object> input, Principal principal) {
+    public Mono<CampaignProposal> previewCampaign(@Argument CampaignService.CampaignCreateInput input, Principal principal) {
         if (isAnonymous(principal)) {
             return Mono.empty();
         }
-        Map<String, Object> finalInput = input != null ? input : Map.of();
-        // Map helper for service call
-        return Mono.just(campaignService.generateProposal(
-                (String) finalInput.get("employer"), (String) finalInput.get("opponent"), (String) finalInput.get("mission"),
-                (String) finalInput.get("employerCategory"), (String) finalInput.get("systemName"), TypeUtils.asDouble(finalInput.get("payRate")),
-                (String) finalInput.get("salvageTerms"), (String) finalInput.get("supportTerms"), (String) finalInput.get("transportTerms"),
-                (String) finalInput.get("commandRights"), TypeUtils.asInt(finalInput.get("payStep")), TypeUtils.asInt(finalInput.get("salvageStep")),
-                TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
-                TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")),
-                TypeUtils.asInt(finalInput.get("monthlyPay")), TypeUtils.asInt(finalInput.get("monthlyMaintenance")),
-                TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay")),
-                (Map<String, Object>) finalInput.get("repairRules")
-        ));
+        return Mono.just(campaignService.generateProposal(input));
     }
 
     @QueryMapping
@@ -301,7 +288,7 @@ public class CampaignGraphQLController {
 
     @QueryMapping
     @SuppressWarnings("Convert2Lambda")
-    public Mono<CampaignProposal> publicPreviewCampaign(@Argument Map<String, Object> input) {
+    public Mono<CampaignProposal> publicPreviewCampaign(@Argument CampaignService.CampaignCreateInput input) {
         return previewCampaign(input, new java.security.Principal() {
             @Override
             public String getName() {
@@ -315,7 +302,7 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Campaign> createCampaign(@Argument Map<String, Object> input, Principal principal) {
+    public Mono<Campaign> createCampaign(@Argument CampaignService.CampaignCreateInput input, Principal principal) {
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required to create campaign"));
         }
@@ -323,17 +310,7 @@ public class CampaignGraphQLController {
         return userService.resolveOrCreateUser(principal.getName())
                 .<Campaign>flatMap(user -> {
                     String internalId = user.getId().toString();
-                    Map<String, Object> finalInput = input != null ? input : Map.of();
-                    return campaignService.generateDoblessCampaign(internalId,
-                            (String) finalInput.get("employer"), (String) finalInput.get("opponent"), (String) finalInput.get("mission"),
-                            (String) finalInput.get("employerCategory"), (String) finalInput.get("systemName"), TypeUtils.asDouble(finalInput.get("payRate")),
-                            (String) finalInput.get("salvageTerms"), (String) finalInput.get("supportTerms"), (String) finalInput.get("transportTerms"),
-                            (String) finalInput.get("commandRights"), TypeUtils.asInt(finalInput.get("payStep")), TypeUtils.asInt(finalInput.get("salvageStep")),
-                            TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
-                            TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")),
-                            TypeUtils.asInt(finalInput.get("monthlyPay")), TypeUtils.asInt(finalInput.get("monthlyMaintenance")),
-                            TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay")),
-                            (Map<String, Object>) finalInput.get("repairRules"));
+                    return campaignService.generateDoblessCampaign(internalId, input);
                 });
     }
 
@@ -365,7 +342,7 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument Map<String, Object> input, Principal principal) {
+    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument CampaignService.TrackUpdateInput input, Principal principal) {
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));
         }

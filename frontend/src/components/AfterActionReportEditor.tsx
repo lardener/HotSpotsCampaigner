@@ -3,7 +3,9 @@ import { gql } from '@apollo/client';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { ADD_LEDGER_ENTRY } from './LedgerEntryForm';
+import { CombatUnit, Pilot } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
+import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
 
 const GET_METADATA = gql`
   query GetMetadata {
@@ -52,40 +54,67 @@ interface AfterActionReportEditorProps {
     onLedgerEntryAdded?: () => void;
 }
 
-const AMMO_COST_PER_TON = 20;
+const AMMO_COST_PER_TON = 10;
 const INJURY_HEAL_COST = 30;
 
-const calculateRepairCost = (unit: any, status: string, rules: any, statuses: string[]): { finalCost: number, damageMultiplier: number, unitModifier: number, techTax: number } => {
+// New helper function to calculate financial implications of a unit's status
+const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: any, statuses: string[]): {
+    baseRepairCost: number;
+    baseReplacementValue: number;
+    damageMultiplier: number;
+    unitModifier: number;
+    techTax: number;
+    isTrulyDestroyed: boolean;
+} => {
     const [operational, armor, internal, crippled, destroyed, trulyDestroyed] = statuses;
-    const multipliers: Record<string, number> = {
-        [operational || 'OPERATIONAL']: 0.0,
-        [armor || 'ARMOR DAMAGE']: rules?.armorMultiplier ?? 0.5,
-        [internal || 'INTERNAL DAMAGE']: rules?.internalMultiplier ?? 2.0,
-        [crippled || 'CRIPPLED']: rules?.crippledMultiplier ?? 3.0,
-        [destroyed || 'DESTROYED']: rules?.destroyedMultiplier ?? 5.0,
-        [trulyDestroyed || 'TRULY DESTROYED']: 0.0
-    };
 
-    const damageMultiplier = multipliers[status] || 0;
-    let cost = (unit.tonnage || 0) * damageMultiplier;
+    const isTrulyDestroyed = status === trulyDestroyed;
+    let baseRepairCost = 0;
+    let baseReplacementValue = 0;
+    let damageMultiplier = 0;
     let unitModifier = 1.0;
     let techTax = 1.0;
 
-    if (['CV', 'BA', 'CI'].includes(unit.type)) {
-        unitModifier = (rules?.nonMechModifier ?? 0.5);
-        cost *= unitModifier;
-    }
-
-    // Apply tech level multiplier based on specific tech base
+    // Determine tech level multiplier based on specific tech base
     if (unit.techBase === 'Clan') {
         techTax = (rules?.clanTechModifier ?? 2.0);
-        cost *= techTax;
     } else if (unit.techBase === 'Mixed') {
         techTax = (rules?.mixedTechModifier ?? 1.5);
-        cost *= techTax;
     }
 
-    return { finalCost: cost, damageMultiplier, unitModifier, techTax };
+    if (isTrulyDestroyed) {
+        // For truly destroyed units, calculate replacement value modified by tech tax
+        baseReplacementValue = (unit.bv || 0) * 0.5 * techTax;
+    } else {
+        // For other statuses, calculate repair cost
+        const multipliers: Record<string, number> = {
+            [operational || 'OPERATIONAL']: 0.0,
+            [armor || 'ARMOR DAMAGE']: rules?.armorMultiplier ?? 0.5,
+            [internal || 'INTERNAL DAMAGE']: rules?.internalMultiplier ?? 2.0,
+            [crippled || 'CRIPPLED']: rules?.crippledMultiplier ?? 3.0,
+            [destroyed || 'DESTROYED']: rules?.destroyedMultiplier ?? 5.0,
+        };
+
+        damageMultiplier = multipliers[status] || 0;
+        baseRepairCost = (unit.tonnage || 0) * damageMultiplier;
+
+        if (['CV', 'BA', 'CI'].includes(unit.type)) {
+            unitModifier = (rules?.nonMechModifier ?? 0.5);
+            baseRepairCost *= unitModifier;
+        }
+
+        // Apply tech level multiplier to repair cost
+        baseRepairCost *= techTax;
+    }
+
+    return {
+        baseRepairCost,
+        baseReplacementValue,
+        damageMultiplier,
+        unitModifier,
+        techTax,
+        isTrulyDestroyed,
+    };
 };
 
 export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, onClose, onLedgerEntryAdded }) => {
@@ -93,7 +122,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const { loading: metadataLoading, data: metaData } = useQuery<MetadataData>(GET_METADATA);
 
     const [detachmentAars, setDetachmentAars] = useState<Record<string, DetachmentAarState>>({});
-    const [unitStates, setUnitStates] = useState<Record<string, { status: string, repair: boolean, ammo: number }>>({});
+    const [unitStates, setUnitStates] = useState<Record<string, { status: string, ammo: number }>>({});
     const [pilotStates, setPilotStates] = useState<Record<string, { injuries: number, healed: number }>>({});
     const [notices, setNotices] = useState<Record<string, string>>({});
     const [errorStates, setErrorStates] = useState<Record<string, string>>({});
@@ -141,19 +170,13 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const unitStatuses = metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
     const repairRules = campaign?.repairRules || metaData?.publicCampaignMetadata?.repairRules;
 
-    // Parse coverage percentage from strings like "Battle/30%" or "40%"
-    const parseCoverage = (term: string) => {
-        const match = term?.match(/(\d+)%/);
-        return match ? parseInt(match[1]) / 100 : 0;
-    };
-
     const getDetachmentTerms = (detId: string) => {
         const state = detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1, salvageValue: 0, customAward: 0 };
         const contract = campaign.contracts?.find((c: any) => c.id === state.selectedContractId) || campaign;
 
         return {
-            supportCoverage: parseCoverage(contract.supportTerms || ''),
-            salvageCoverage: parseCoverage(contract.salvageTerms || ''),
+            support: parseSupportTerms(contract.supportTerms || ''),
+            salvageCoverage: parseMultiplier(contract.salvageTerms || ''),
             payRate: contract.payRate || 1.0,
             ...state
         };
@@ -203,15 +226,47 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
-    const handleProcessUnit = async (detId: string, cmdId: string, unit: any) => {
+    const handleProcessUnit = async (detId: string, cmdId: string, unit: CombatUnit) => {
         const noticeKey = `${unit.id}-logistics`;
         const terms = getDetachmentTerms(detId);
-        const state = unitStates[unit.id] || { status: unitStatuses[0], repair: false, ammo: 0 }; // Default to first status (Operational)
-        const repairRawCost = state.repair ? calculateRepairCost(unit, state.status, repairRules, unitStatuses).finalCost : 0;
-        const rawCost = repairRawCost + (state.ammo * AMMO_COST_PER_TON);
-        const finalCost = Math.round(rawCost * (1 - terms.supportCoverage)) * -1;
+        const state = unitStates[unit.id] || { status: unitStatuses[0], ammo: 0 };
 
-        if (finalCost === 0) return;
+        const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, state.status, repairRules, unitStatuses);
+
+        let finalAmount = 0;
+        let description = ''; // Determine financial outcome based on support term type
+
+        if (isTrulyDestroyed) {
+            if (terms.support.type === 'BATTLE') {
+                // Battle terms pay out a percentage of unit value
+                finalAmount = Math.round(baseReplacementValue * terms.support.pct);
+                description = `AAR REPLACEMENT: ${unit.model} ${unit.variant} - ${track.trackName} (BATTLE ${terms.support.pct * 100}%)`;
+            } else {
+                // Straight or None terms pay 0 for destroyed units
+                finalAmount = 0;
+                description = `AAR ASSET LOSS: ${unit.model} ${unit.variant} - ${track.trackName} (NO REPLACEMENT)`;
+            }
+        } else {
+            const repairCost = Math.ceil(baseRepairCost);
+            const ammoCost = state.ammo * AMMO_COST_PER_TON;
+            const totalRawCost = repairCost + ammoCost;
+
+            if (terms.support.type === 'BATTLE') {
+                // Battle terms cover 100% of logistics
+                finalAmount = 0;
+                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (BATTLE COVERED 100%)`;
+            } else if (terms.support.type === 'STRAIGHT') {
+                // Straight terms cover a specific percentage
+                finalAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
+                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (STRAIGHT ${terms.support.pct * 100}%)`;
+            } else {
+                // None covers 0%
+                finalAmount = Math.ceil(totalRawCost) * -1;
+                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (NO COVERAGE)`;
+            }
+        }
+
+        if (finalAmount === 0) return;
         setErrorStates(prev => {
             const next = { ...prev };
             delete next[noticeKey];
@@ -224,28 +279,38 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 variables: {
                     commandId: cmdId,
                     detachmentId: detId,
-                    amount: finalCost,
-                    description: `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (SUPP ${terms.supportCoverage * 100}%)`,
+                    amount: finalAmount,
+                    description: description,
                     monthIndex: track.monthIndex || 1,
                     campaignName: campaign.name
                 }
             });
             onLedgerEntryAdded?.();
-            addNotice(noticeKey, `✓ LOGISTICS COMMITTED: ${Math.abs(finalCost)} SP`);
+            addNotice(noticeKey, `✓ ${isTrulyDestroyed ? 'REPLACEMENT' : 'LOGISTICS'} COMMITTED: ${Math.abs(finalAmount)} SP`);
         } catch (err) {
-            setErrorStates(prev => ({ ...prev, [noticeKey]: "LOGISTICS FAILURE: DATA UPLOAD ABORTED." }));
-            console.error("Logistics error:", err);
+            setErrorStates(prev => ({ ...prev, [noticeKey]: `${isTrulyDestroyed ? 'REPLACEMENT' : 'LOGISTICS'} FAILURE: DATA UPLOAD ABORTED.` }));
+            console.error(`${isTrulyDestroyed ? 'Replacement' : 'Logistics'} error:`, err);
         } finally {
             setLoadingStates(prev => ({ ...prev, [noticeKey]: false }));
         }
     };
 
-    const handleProcessPilot = async (detId: string, cmdId: string, pilot: any) => {
+    const handleProcessPilot = async (detId: string, cmdId: string, pilot: Pilot) => {
         const noticeKey = `${pilot.id}-medical`;
         const terms = getDetachmentTerms(detId);
         const state = pilotStates[pilot.id] || { injuries: 0, healed: 0 };
         const totalCost = state.healed * INJURY_HEAL_COST;
-        const finalCost = Math.round(totalCost * (1 - terms.supportCoverage)) * -1;
+
+        let finalCost = 0;
+        if (terms.support.type === 'BATTLE') {
+            // Battle terms cover 100% of medical
+            finalCost = 0;
+        } else if (terms.support.type === 'STRAIGHT') {
+            finalCost = Math.round(totalCost * (1 - terms.support.pct)) * -1;
+        } else {
+            finalCost = totalCost * -1;
+        }
+
         if (finalCost === 0) return;
 
         setErrorStates(prev => {
@@ -261,7 +326,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     commandId: cmdId,
                     detachmentId: detId,
                     amount: finalCost,
-                    description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (SUPP ${terms.supportCoverage * 100}%)`,
+                    description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${terms.support.type} ${terms.support.pct * 100}%)`,
                     monthIndex: track.monthIndex || 1,
                     campaignName: campaign.name
                 }
@@ -392,27 +457,49 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     <thead>
                                         <tr>
                                             <th className="text-left">UNIT</th>
-                                            <th>STATUS</th>
-                                            <th>REP?</th>
-                                            <th>AMMO</th>
+                                            <th title="Unit Operational Status">STATUS</th>
+                                            <th title="Rearm Ammunition">AMMO</th>
                                             <th className="text-right">COST</th>
                                             <th></th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {det.units?.map((u: any) => {
-                                            const state = unitStates[u.id] || { status: unitStatuses[0], repair: false, ammo: 0 }; // Default to first status (Operational)
+                                            const state = unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
                                             const terms = getDetachmentTerms(det.id);
-                                            const { finalCost: repairRawCost, damageMultiplier, unitModifier, techTax } = state.repair
-                                                ? calculateRepairCost(u, state.status, repairRules, unitStatuses)
-                                                : { finalCost: 0, damageMultiplier: 0, unitModifier: 1, techTax: 1 };
-                                            const cost = repairRawCost + (state.ammo * AMMO_COST_PER_TON);
+                                            const { baseRepairCost, baseReplacementValue, techTax, isTrulyDestroyed } = calculateUnitFinancials(u, state.status, repairRules, unitStatuses);
 
-                                            const tooltip = `Base: ${u.tonnage}T\n` +
-                                                `Damage: ${state.status} x${damageMultiplier}\n` +
-                                                (unitModifier !== 1 ? `Unit Mod: x${unitModifier}\n` : '') +
-                                                (techTax !== 1 ? `Tech Tax: x${techTax}\n` : '') +
-                                                `Total: ${Math.round(repairRawCost)} SP`;
+                                            let displayAmount = 0;
+                                            let tooltip = '';
+                                            let ammoInputDisabled = false;
+
+                                            if (isTrulyDestroyed) {
+                                                if (terms.support.type === 'BATTLE') {
+                                                    displayAmount = -1 * Math.ceil(baseReplacementValue * terms.support.pct);
+                                                    tooltip = `Replacement Value: ${u.bv} BV * 0.5${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${baseReplacementValue} SP\n` +
+                                                        `Battle Support: ${terms.support.pct * 100}% = +${displayAmount} SP`;
+                                                } else {
+                                                    displayAmount = 0;
+                                                    tooltip = `Replacement Value: ${baseReplacementValue} SP\n` +
+                                                        `${terms.support.type} terms do not provide unit replacement pay.`;
+                                                }
+                                                ammoInputDisabled = true;
+                                            } else {
+                                                const repairCost = Math.ceil(baseRepairCost);
+                                                const ammoCost = state.ammo * AMMO_COST_PER_TON;
+                                                const totalRawCost = repairCost + ammoCost;
+
+                                                if (terms.support.type === 'BATTLE') {
+                                                    displayAmount = 0;
+                                                } else {
+                                                    displayAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
+                                                }
+
+                                                tooltip = `Base Repair: ${repairCost} SP\n` +
+                                                    `Ammo: ${state.ammo}T x ${AMMO_COST_PER_TON} SP/T = ${state.ammo * AMMO_COST_PER_TON} SP\n` +
+                                                    `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
+                                            }
+
                                             const unitNoticeKey = `${u.id}-logistics`;
                                             return (
                                                 <tr key={u.id}>
@@ -433,38 +520,30 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         </select>
                                                     </td>
                                                     <td className="text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={state.repair}
-                                                            onChange={(e) => {
-                                                                setUnitStates(prev => ({
-                                                                    ...prev,
-                                                                    [u.id]: { ...state, repair: e.target.checked }
-                                                                }));
-                                                            }}
-                                                            title="Check to authorize unit repairs"
-                                                        />
+                                                        {isTrulyDestroyed ? (
+                                                            <span className="restricted-text">N/A</span>
+                                                        ) : (
+                                                            <input
+                                                                type="number"
+                                                                className="inline-edit w-40px"
+                                                                value={state.ammo}
+                                                                onChange={(e) => {
+                                                                    setUnitStates(prev => ({
+                                                                        ...prev,
+                                                                        [u.id]: { ...state, ammo: parseInt(e.target.value) || 0 }
+                                                                    }));
+                                                                }}
+                                                                title="Enter tons of ammunition to rearm"
+                                                                disabled={ammoInputDisabled}
+                                                            />
+                                                        )}
                                                     </td>
-                                                    <td>
-                                                        <input
-                                                            type="number"
-                                                            className="inline-edit w-40px"
-                                                            value={state.ammo}
-                                                            onChange={(e) => {
-                                                                setUnitStates(prev => ({
-                                                                    ...prev,
-                                                                    [u.id]: { ...state, ammo: parseInt(e.target.value) || 0 }
-                                                                }));
-                                                            }}
-                                                            title="Enter tons of ammunition to rearm"
-                                                        />
-                                                    </td>
-                                                    <td className="text-right" title={tooltip}>{Math.round(cost * (1 - terms.supportCoverage))}</td>
+                                                    <td className="text-right" title={tooltip}>{displayAmount > 0 ? `+${displayAmount}` : displayAmount}</td>
                                                     <td className="text-right">
                                                         <button
                                                             className="mode-btn sm-text"
                                                             onClick={() => handleProcessUnit(det.id, det.mercenaryCommandId, u)}
-                                                            disabled={loadingStates[unitNoticeKey] || Math.round(cost * (1 - terms.supportCoverage)) === 0}
+                                                            disabled={loadingStates[unitNoticeKey]}
                                                             title="Commit unit logistics"
                                                         >
                                                             {loadingStates[unitNoticeKey] ? '...' : 'COMMIT'}
@@ -475,12 +554,18 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         })}
                                     </tbody>
                                 </table>
-                                {det.units?.map((u: any) => notices[`${u.id}-logistics`] && (
-                                    <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
-                                ))}
-                                {det.units?.map((u: any) => errorStates[`${u.id}-logistics`] && (
-                                    <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
-                                ))}
+                                {det.units?.map((u: any) => {
+                                    const isTrulyDestroyed = (unitStates[u.id]?.status || u.status) === unitStatuses[5];
+                                    return notices[`${u.id}-logistics`] && !isTrulyDestroyed && (
+                                        <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
+                                    );
+                                })}
+                                {det.units?.map((u: any) => {
+                                    const isTrulyDestroyed = (unitStates[u.id]?.status || u.status) === unitStatuses[5];
+                                    return errorStates[`${u.id}-logistics`] && !isTrulyDestroyed && (
+                                        <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
+                                    );
+                                })}
                             </div>
 
                             <div>
@@ -495,12 +580,24 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             <th></th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody> {/* Use pilot.id for key */}
                                         {det.pilots?.map((p: any) => {
                                             const state = pilotStates[p.id] || { injuries: 0, healed: 0 };
                                             const terms = getDetachmentTerms(det.id);
-                                            const cost = state.healed * INJURY_HEAL_COST;
+                                            const rawMedicalCost = state.healed * INJURY_HEAL_COST;
                                             const noticeKey = `${p.id}-medical`;
+
+                                            let pilotDisplayCost = 0;
+                                            if (terms.support.type === 'BATTLE') {
+                                                // Battle terms cover 100% of medical, so display 0 cost to mercenary
+                                                pilotDisplayCost = 0;
+                                            } else if (terms.support.type === 'STRAIGHT') {
+                                                // Straight terms cover a percentage, so mercenary pays (1 - pct)
+                                                pilotDisplayCost = Math.round(rawMedicalCost * (1 - terms.support.pct));
+                                            } else {
+                                                // None covers 0%, so mercenary pays full raw cost
+                                                pilotDisplayCost = Math.round(rawMedicalCost);
+                                            }
                                             return (
                                                 <tr key={p.id}>
                                                     <td>{p.name}</td>
@@ -534,12 +631,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                             {[0, 1, 2].map(v => <option key={v} value={v}>{v}</option>)}
                                                         </select>
                                                     </td>
-                                                    <td className="text-right">{Math.round(cost * (1 - terms.supportCoverage))}</td>
+                                                    <td className="text-right">{pilotDisplayCost}</td>
                                                     <td className="text-right">
                                                         <button
                                                             className="mode-btn sm-text"
-                                                            onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId, p)}
-                                                            disabled={loadingStates[noticeKey] || Math.round(cost * (1 - terms.supportCoverage)) === 0}
+                                                            onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId, p)} // The actual ledger entry amount is calculated inside handleProcessPilot
+                                                            disabled={loadingStates[noticeKey] || pilotDisplayCost === 0}
                                                             title="Commit pilot healing"
                                                         >
                                                             {loadingStates[noticeKey] ? '...' : 'COMMIT'}

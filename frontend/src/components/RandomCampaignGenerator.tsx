@@ -36,7 +36,7 @@ export const GET_METADATA = gql`
 `;
 
 export const PREVIEW_CAMPAIGN = gql`
-  query PreviewCampaign($input: CampaignInput!) {
+  query PreviewCampaign($input: CampaignCreateInput!) {
     publicPreviewCampaign(input: $input) {
       campaign {
         name
@@ -85,7 +85,7 @@ export const GENERATE_TRACKS = gql`
 `;
 
 export const CREATE_CAMPAIGN = gql`
-  mutation CreateCampaign($input: CampaignInput!) {
+  mutation CreateCampaign($input: CampaignCreateInput!) {
     createCampaign(input: $input) {
       id
       name
@@ -171,7 +171,7 @@ interface RepairRulesInput {
     clanTechModifier?: number;
 }
 
-interface CampaignInput {
+interface CampaignCreateInput {
     employer?: string;
     opponent?: string;
     mission?: string;
@@ -314,7 +314,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [proposal?.campaign.trackCount, getTracks]);
 
-    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: CampaignInput }>(CREATE_CAMPAIGN);
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: CampaignCreateInput }>(CREATE_CAMPAIGN);
 
     const handlePreview = () => {
         setSaved(false);
@@ -329,7 +329,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [metadataLoading, resolvedSteps, proposal, handlePreview]);
 
-    const getSaveParams = (): CampaignInput => {
+    const getSaveParams = (): CampaignCreateInput => {
         if (!proposal || !proposal.contracts[0] || !proposal.contracts[1]) {
             return {};
         }
@@ -338,7 +338,12 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         const opponent = proposal.contracts[1];
 
         // Strip metadata added by Apollo Client (__typename) which is invalid for GraphQL Input types
-        const { __typename, ...cleanRepairRules } = (proposal.campaign.repairRules || {}) as any;
+        let cleanRepairRules: RepairRulesInput | undefined;
+        if (proposal.campaign.repairRules) {
+            // Cast to any to safely destructure __typename, then cast the rest to RepairRulesInput
+            const { __typename, ...rest } = proposal.campaign.repairRules as any;
+            cleanRepairRules = rest as RepairRulesInput;
+        }
 
         // Parse the combined string to extract faction and category for backend compatibility
         const primaryParts = primary.employerCategory.split(': ');
@@ -367,7 +372,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             monthlyMaintenance: proposal.campaign.monthlyMaintenance,
             transportationCost: proposal.campaign.transportationCost,
             combatPay: proposal.campaign.combatPay,
-            repairRules: Object.keys(cleanRepairRules).length > 0 ? cleanRepairRules : undefined
+            repairRules: cleanRepairRules
         };
     };
 

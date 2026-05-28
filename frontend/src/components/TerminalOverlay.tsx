@@ -14,7 +14,7 @@ interface TerminalOverlayProps {
     message: string;
     confirmLabel?: string;
     cancelLabel?: string;
-    onConfirm: () => void;
+    onConfirm: (val?: string) => void | Promise<void>; // Updated to allow optional string arg and async return
     onCancel?: () => void;
     variant?: 'alert' | 'info';
     themeClass?: string;
@@ -70,7 +70,7 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                                         {cancelLabel}
                                     </button>
                                 )}
-                                <button type="button" className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`} onClick={onConfirm}>
+                                <button type="button" className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`} onClick={() => onConfirm()}>
                                     {confirmLabel}
                                 </button>
                             </div>
