@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { gql } from '@apollo/client';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation, useApolloClient } from '@apollo/client/react';
 import { NavigationTree, TreeItem, NodeType } from './NavigationTree';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
 import { RandomCampaignGenerator } from './RandomCampaignGenerator';
@@ -199,6 +199,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [campaignFilter, setCampaignFilter] = useState<string>('ACTIVE');
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
+    const [isChildSyncing, setIsChildSyncing] = useState(false);
 
     const [overlay, setOverlay] = useState<{
         title: string;
@@ -207,6 +208,19 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         onCancel?: () => void;
         variant?: 'alert' | 'info';
     } | null>(null);
+
+    const client = useApolloClient();
+
+    const handleManualRefresh = async () => {
+        setIsChildSyncing(true);
+        try {
+            await client.refetchQueries({ include: "active" });
+        } catch (err) {
+            console.error("Global refresh failed:", err);
+        } finally {
+            setIsChildSyncing(false);
+        }
+    };
 
     const lastActivityTimeRef = useRef(Date.now());
     const [inviteToken, setInviteToken] = useState('');
@@ -267,12 +281,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
     const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
         skip: !user,
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'network-only',
+        notifyOnNetworkStatusChange: true
     });
 
     const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<ManagedCampaignsData>(GET_MANAGED_CAMPAIGNS, {
         variables: { status: campaignFilter },
-        skip: !user
+        skip: !user,
+        notifyOnNetworkStatusChange: true
     });
 
     // Priority-based initial branch expansion and selection
@@ -645,6 +661,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         onReturnToList={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}
                         onCreateNew={onCreateNew}
                         onSelectDetachment={handleTreeSelect}
+                        onRefresh={async () => {
+                            await refetchManaged();
+                            await fetchCommands();
+                        }}
+                        onSyncChange={setIsChildSyncing}
                     />
                 );
             case 'create-campaign':
@@ -766,6 +787,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                             refetch();
                             refetchManaged();
                         }}
+                        onSyncChange={setIsChildSyncing}
                     />
                 ) : null;
             case 'public-campaigns':
@@ -829,6 +851,24 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         <span className="sidebar-logo-text">HSC-TACTICAL</span>
                     </div>
                     <div className="restricted-text sidebar-subtitle">COMMAND & CONTROL INTERFACE</div>
+                    <div style={{ borderBottom: '1px solid var(--terminal-border)', opacity: 0.3, marginTop: '8px' }} />
+                    <div className="flex items-center mt-5" style={{ gap: '10px', height: '20px', justifyContent: 'center' }}>
+                        {(loading || loadingManaged || isChildSyncing) ? (
+                            <span
+                                className="pulse"
+                                style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)', border: '1px solid var(--terminal-amber)', padding: '0 4px' }}
+                                title="Synchronizing mercenary registry, campaign theater data, and active tactical updates."
+                            >SYNCING</span>
+                        ) : (
+                            <button
+                                type="button"
+                                className="mode-btn"
+                                style={{ padding: '0 4px', fontSize: '0.6rem', height: '18px' }}
+                                onClick={handleManualRefresh}
+                                title="Manual synchronization of all active tactical data"
+                            >RESYNC</button>
+                        )}
+                    </div>
                 </div>
                 <div className="sidebar-content-scroll" style={{ overflowY: 'auto', padding: '10px 0' }}>
                     <NavigationTree

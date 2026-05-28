@@ -260,9 +260,10 @@ interface CommandDashboardProps {
     isManagerView?: boolean;
     onViewCampaign?: (campaignId: string) => void;
     onRefreshTree?: () => void;
+    onSyncChange?: (syncing: boolean) => void;
 }
 
-export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView, onViewCampaign, onRefreshTree }) => {
+export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView, onViewCampaign, onRefreshTree, onSyncChange }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
 
     // Pilot Editor State
@@ -293,8 +294,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     }, [detachmentId]);
 
     const { loading, error, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
-        variables: { commandId }
+        variables: { commandId },
+        notifyOnNetworkStatusChange: true
     });
+
+    useEffect(() => {
+        onSyncChange?.(loading || isSyncing);
+    }, [loading, isSyncing, onSyncChange]);
+
 
     const unitStatuses = data?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
     const unitTypes = data?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES;
@@ -864,7 +871,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <h3 className="zone-header" style={{ margin: 0 }}>COMBAT UNIT ROSTER</h3>
                             {!isManagerView && (
                                 <div className="flex flex-gap-10">
-                                    <input className="table-input" style={{ width: '200px', fontSize: '0.7rem' }} placeholder="External Link (MUL)..." value={importLink} onChange={(e) => setImportLink(e.target.value)} title="Paste link to import mechs" />
+                                    <input className="table-input" style={{ width: '250px', fontSize: '0.7rem' }} placeholder="External Link (MUL/Mordel)..." value={importLink} onChange={(e) => setImportLink(e.target.value)} title="Paste link from Master Unit List or Mordel.net" />
                                     <button className="mode-btn" onClick={handleImport} style={{ fontSize: '0.7rem' }}>IMPORT</button>
                                     <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>
                                 </div>

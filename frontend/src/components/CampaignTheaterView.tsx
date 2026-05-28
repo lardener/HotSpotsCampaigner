@@ -314,6 +314,8 @@ interface CampaignTheaterViewProps {
     onReturnToList: () => void;
     onCreateNew: () => void;
     onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
+    onRefresh?: () => Promise<void>;
+    onSyncChange?: (syncing: boolean) => void;
 }
 
 export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
@@ -325,28 +327,38 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onSelectCampaign,
     onReturnToList,
     onCreateNew,
-    onSelectDetachment
+    onSelectDetachment,
+    onRefresh,
+    onSyncChange
 }) => {
     const campaignFromProps = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
-    const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
-    const { data: campaignQueryData, refetch: refetchCampaign } = useQuery<any>(GET_CAMPAIGN_INVITES, {
+
+    // --- Queries & Mutations ---
+    const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<any>(GET_CAMPAIGN_INVITES, {
         variables: { campaignId: selectedCampaignId || '' },
         skip: !selectedCampaignId,
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'network-only',
+        notifyOnNetworkStatusChange: true
     });
+
+    const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
     const [updateTrack] = useMutation(UPDATE_TRACK);
     const [deleteInvite] = useMutation(DELETE_INVITE);
     const [rerollTrack] = useMutation(REROLL_TRACK);
     const [reorderTracks] = useMutation(REORDER_TRACKS);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
-    const [activeToken, setActiveToken] = useState<string | null>(null);
+
+    // --- Refs ---
+    const saveTimeoutRef = useRef<Record<string, number>>({});
+
+    // --- State ---
     const [isSyncing, setIsSyncing] = useState(false);
+    const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
-
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
         title: string;
@@ -356,6 +368,23 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         onCancel?: () => void;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
+    const [editingField, setEditingField] = useState<string | null>(null);
+    const [monthlyPay, setMonthlyPay] = useState(500);
+    const [monthlyMaintenance, setMonthlyMaintenance] = useState(500);
+    const [transportationCost, setTransportationCost] = useState(300);
+    const [combatPay, setCombatPay] = useState(500);
+    const [armorMult, setArmorMult] = useState(0.5);
+    const [internalMult, setInternalMult] = useState(2.0);
+    const [crippledMult, setCrippledMult] = useState(3.0);
+    const [destroyedMult, setDestroyedMult] = useState(5.0);
+    const [nonMechMod, setNonMechMod] = useState(0.5);
+    const [mixedTechTax, setMixedTechTax] = useState(1.5);
+    const [clanTechTax, setClanTechTax] = useState(2.0);
+    const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
+    const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(1);
+    const [campaignTrackCount, setCampaignTrackCount] = useState(0);
+
+    // --- Memos ---
     // Merge props data with fresh query data for theater management
     const campaign = useMemo(() => ({
         ...campaignFromProps,
@@ -363,27 +392,18 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         // Ensure contracts are always an array, even if empty from query
         contracts: campaignQueryData?.getCampaign?.contracts || campaignFromProps?.contracts || []
     }), [campaignFromProps, campaignQueryData]);
-    // Use CampaignDetail for campaign type
-    const [editingField, setEditingField] = useState<string | null>(null);
-    const [monthlyPay, setMonthlyPay] = useState(campaign?.monthlyPay || 500);
-    const [monthlyMaintenance, setMonthlyMaintenance] = useState(campaign?.monthlyMaintenance || 500);
-    const [transportationCost, setTransportationCost] = useState(campaign?.transportationCost || 300);
-    const [combatPay, setCombatPay] = useState(campaign?.combatPay || 500);
-    const [armorMult, setArmorMult] = useState(campaign.repairRules?.armorMultiplier || 0.5);
-    const [internalMult, setInternalMult] = useState(campaign.repairRules?.internalMultiplier || 2.0);
-    const [crippledMult, setCrippledMult] = useState(campaign.repairRules?.crippledMultiplier || 3.0);
-    const [destroyedMult, setDestroyedMult] = useState(campaign.repairRules?.destroyedMultiplier || 5.0);
-    const [nonMechMod, setNonMechMod] = useState(campaign.repairRules?.nonMechModifier || 0.5);
-    const [mixedTechTax, setMixedTechTax] = useState(campaign.repairRules?.mixedTechModifier || 1.5);
-    const [clanTechTax, setClanTechTax] = useState(campaign.repairRules?.clanTechModifier || 2.0);
-    const saveTimeoutRef = useRef<Record<string, number>>({});
-    const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
-    const opposition = campaign?.contracts?.find((c: Contract) => !c.primaryContract);
-    const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(campaign?.lengthInMonths || 1);
-    const [campaignTrackCount, setCampaignTrackCount] = useState(campaign?.trackCount || 0);
+    const opposition = useMemo(() =>
+        campaign?.contracts?.find((c: Contract) => !c.primaryContract),
+        [campaign]
+    );
 
     const campaignInvites = campaignQueryData?.getCampaign?.campaignInvites || [];
+
+    // --- Effects ---
+    useEffect(() => {
+        onSyncChange?.(loading || isSyncing);
+    }, [loading, isSyncing, onSyncChange]);
 
     useEffect(() => {
         const timeouts = saveTimeoutRef.current;
@@ -1255,11 +1275,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 <AfterActionReportEditor
                     campaign={campaign as any}
                     track={showAarForTrack}
-                    onClose={() => {
+                    onClose={async () => {
+                        await refetchCampaign();
+                        if (onRefresh) await onRefresh();
                         setShowAarForTrack(null);
-                        refetchCampaign();
                     }}
-                    onLedgerEntryAdded={() => refetchCampaign()}
+                    onLedgerEntryAdded={async () => {
+                        await refetchCampaign();
+                        if (onRefresh) await onRefresh();
+                    }}
                 />
             )}
 

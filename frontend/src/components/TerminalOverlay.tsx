@@ -18,6 +18,7 @@ interface TerminalOverlayProps {
     onCancel?: () => void;
     variant?: 'alert' | 'info';
     themeClass?: string;
+    loading?: boolean;
     children?: React.ReactNode;
 }
 
@@ -30,6 +31,7 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
     onCancel,
     variant = 'info',
     themeClass = '',
+    loading = false,
     children
 }) => {
     const { refs, context } = useFloating({
@@ -70,7 +72,12 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                                         {cancelLabel}
                                     </button>
                                 )}
-                                <button type="button" className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`} onClick={() => onConfirm()}>
+                                <button 
+                                    type="button" 
+                                    className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`} 
+                                    onClick={() => !loading && onConfirm()}
+                                    disabled={loading}
+                                >
                                     {confirmLabel}
                                 </button>
                             </div>

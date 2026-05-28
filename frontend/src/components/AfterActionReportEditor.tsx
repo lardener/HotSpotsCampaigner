@@ -50,8 +50,8 @@ interface DetachmentAarState {
 interface AfterActionReportEditorProps {
     campaign: any;
     track: any;
-    onClose: () => void;
-    onLedgerEntryAdded?: () => void;
+    onClose: () => void | Promise<void>;
+    onLedgerEntryAdded?: () => void | Promise<void>;
 }
 
 const AMMO_COST_PER_TON = 10;
@@ -127,6 +127,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [notices, setNotices] = useState<Record<string, string>>({});
     const [errorStates, setErrorStates] = useState<Record<string, string>>({});
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
+    const [isFinalizing, setIsFinalizing] = useState(false);
 
     const addNotice = (key: string, msg: string) => {
         setNotices(prev => ({ ...prev, [key]: msg }));
@@ -216,7 +217,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     campaignName: campaign.name
                 }
             });
-            onLedgerEntryAdded?.();
+            await onLedgerEntryAdded?.();
             addNotice(noticeKey, `✓ AWARD COMMITTED: ${total} SP`);
         } catch (err) {
             setErrorStates(prev => ({ ...prev, [noticeKey]: "COMMUNICATIONS FAILURE: AWARD NOT COMMITTED." }));
@@ -285,7 +286,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     campaignName: campaign.name
                 }
             });
-            onLedgerEntryAdded?.();
+            await onLedgerEntryAdded?.();
             addNotice(noticeKey, `✓ ${isTrulyDestroyed ? 'REPLACEMENT' : 'LOGISTICS'} COMMITTED: ${Math.abs(finalAmount)} SP`);
         } catch (err) {
             setErrorStates(prev => ({ ...prev, [noticeKey]: `${isTrulyDestroyed ? 'REPLACEMENT' : 'LOGISTICS'} FAILURE: DATA UPLOAD ABORTED.` }));
@@ -331,7 +332,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     campaignName: campaign.name
                 }
             });
-            onLedgerEntryAdded?.();
+            await onLedgerEntryAdded?.();
             addNotice(noticeKey, `✓ MEDICAL COMMITTED: ${Math.abs(finalCost)} SP`);
         } catch (err) {
             setErrorStates(prev => ({ ...prev, [noticeKey]: "MEDICAL DATABASE ERROR: RECORD REJECTED." }));
@@ -341,13 +342,24 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
+    const handleFinalize = async () => {
+        if (isFinalizing) return;
+        setIsFinalizing(true);
+        try {
+            await onClose();
+        } finally {
+            setIsFinalizing(false);
+        }
+    };
+
     return (
         <TerminalOverlay
             title={`AFTER ACTION REPORT: ${track.trackName.toUpperCase()}`}
             message="OPERATIONAL DEBRIEFING & LOGISTICS RECONCILIATION"
-            onConfirm={onClose}
-            confirmLabel="FINALIZE REPORT"
+            onConfirm={handleFinalize}
+            confirmLabel={isFinalizing ? "SYNCHRONIZING..." : "FINALIZE REPORT"}
             themeClass="theme-red"
+            loading={isFinalizing}
         >
             <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px' }}>
                 {campaign.participatingDetachments?.map((det: any) => (
