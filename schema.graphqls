@@ -23,6 +23,10 @@ type CampaignMetadata {
   factions: [String]
   employerTypes: [String]
   resolvedSteps: [ResolvedStepEntry]
+  repairRules: RepairRules
+  unitTypes: [String]
+  techBases: [String]
+  unitStatuses: [String]
 }
 
 type MissionMetadata {
@@ -41,6 +45,26 @@ type ResolvedStepValues {
     supportRights: String
     transportation: String
     commandRights: String
+}
+
+type RepairRules {
+    armorMultiplier: Float
+    internalMultiplier: Float
+    crippledMultiplier: Float
+    destroyedMultiplier: Float
+    nonMechModifier: Float
+    mixedTechModifier: Float
+    clanTechModifier: Float
+}
+
+input RepairRulesInput {
+    armorMultiplier: Float
+    internalMultiplier: Float
+    crippledMultiplier: Float
+    destroyedMultiplier: Float
+    nonMechModifier: Float
+    mixedTechModifier: Float
+    clanTechModifier: Float
 }
 
 type Subscription {
@@ -232,6 +256,7 @@ input CampaignInput {
     monthlyMaintenance: Int
     transportationCost: Int
     combatPay: Int
+    repairRules: RepairRulesInput
 }
 
 input TrackInput {
@@ -301,6 +326,7 @@ type CampaignProposal {
     campaign: Campaign
     contracts: [Contract]
     tracks: [String]
+    repairRules: RepairRules
 }
 
 type Contract {
@@ -352,4 +378,5 @@ type Campaign {
     monthlyMaintenance: Int
     transportationCost: Int
     combatPay: Int
+    repairRules: RepairRules
 }

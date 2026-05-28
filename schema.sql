@@ -52,6 +52,13 @@ CREATE TABLE campaigns (
     `monthly_maintenance` INT DEFAULT 500,
     `transportation_cost` INT DEFAULT 300,
     `combat_pay` INT DEFAULT 500,
+    `armor_multiplier` DOUBLE,
+    `internal_multiplier` DOUBLE,
+    `crippled_multiplier` DOUBLE,
+    `destroyed_multiplier` DOUBLE,
+    `non_mech_modifier` DOUBLE,
+    `mixed_tech_modifier` DOUBLE,
+    `clan_tech_modifier` DOUBLE,
     CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)
 );
 
@@ -215,4 +222,3 @@ CREATE TABLE faction_reputations (
     CONSTRAINT fk_reputation_faction FOREIGN KEY (campaign_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE,
     CONSTRAINT fk_reputation_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE
 );
-

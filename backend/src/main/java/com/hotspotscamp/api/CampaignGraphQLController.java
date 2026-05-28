@@ -3,6 +3,7 @@ package com.hotspotscamp.api;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,7 @@ import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
+import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.util.TypeUtils;
 
 import com.hotspotscamp.service.CampaignService;
@@ -154,6 +156,19 @@ public class CampaignGraphQLController {
         return contractRepository.findAllByCampaignId(id);
     }
 
+    @SchemaMapping(typeName = "Campaign", field = "repairRules")
+    public CampaignService.RepairRules getRepairRules(Campaign campaign) {
+        return new CampaignService.RepairRules(
+                Objects.requireNonNullElse(campaign.getArmorMultiplier(), RulesConstants.REPAIR_MULT_ARMOR),
+                Objects.requireNonNullElse(campaign.getInternalMultiplier(), RulesConstants.REPAIR_MULT_INTERNAL),
+                Objects.requireNonNullElse(campaign.getCrippledMultiplier(), RulesConstants.REPAIR_MULT_CRIPPLED),
+                Objects.requireNonNullElse(campaign.getDestroyedMultiplier(), RulesConstants.REPAIR_MULT_DESTROYED),
+                Objects.requireNonNullElse(campaign.getNonMechModifier(), RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER),
+                Objects.requireNonNullElse(campaign.getMixedTechModifier(), RulesConstants.REPAIR_MULT_MIXED_TECH),
+                Objects.requireNonNullElse(campaign.getClanTechModifier(), RulesConstants.REPAIR_MULT_CLAN_TECH)
+        );
+    }
+
     @SchemaMapping(typeName = "Campaign", field = "campaignInvites")
     public Flux<CampaignInvite> getCampaignInvites(Campaign campaign) {
         UUID id = campaign.getId();
@@ -161,6 +176,11 @@ public class CampaignGraphQLController {
             return Flux.empty();
         }
         return campaignService.getCampaignInvites(id);
+    }
+
+    @SchemaMapping(typeName = "CampaignProposal", field = "repairRules")
+    public CampaignService.RepairRules getProposalRepairRules(CampaignProposal proposal) {
+        return proposal.campaign().getRepairRules();
     }
 
     @SchemaMapping(typeName = "CampaignProposal", field = "tracks")
@@ -175,15 +195,19 @@ public class CampaignGraphQLController {
         if (isAnonymous(principal)) {
             return null;
         }
-        Map<String, List<String>> missions = campaignService.getAvailableMissions();
+        CampaignService.CampaignMetadata meta = campaignService.getCampaignMetadata();
         return new CampaignMetadata(
-                new MissionMetadata(missions.get("primary"), missions.get("opponent")),
-                campaignService.getAvailableTrackTypes(),
-                campaignService.getAvailableFactions(),
-                campaignService.getEmployerTypes(),
-                campaignService.getResolvedStepsTable().entrySet().stream()
-                        .map(e -> new ResolvedStepEntry(e.getKey(), mapToValues(e.getValue())))
-                        .collect(Collectors.toList())
+                new MissionMetadata(meta.missions().primary(), meta.missions().opponent()),
+                meta.trackTypes(),
+                meta.factions(),
+                meta.employerTypes(),
+                meta.resolvedSteps().stream()
+                        .map(e -> new ResolvedStepEntry(e.step(), mapToValues(e.values())))
+                        .collect(Collectors.toList()),
+                meta.repairRules(),
+                meta.unitTypes(),
+                meta.techBases(),
+                meta.unitStatuses()
         );
     }
 
@@ -202,7 +226,11 @@ public class CampaignGraphQLController {
             List<String> trackTypes,
             List<String> factions,
             List<String> employerTypes,
-            List<ResolvedStepEntry> resolvedSteps
+            List<ResolvedStepEntry> resolvedSteps,
+            CampaignService.RepairRules repairRules,
+            List<String> unitTypes,
+            List<String> techBases,
+            List<String> unitStatuses
             ) {
 
     }
@@ -248,7 +276,8 @@ public class CampaignGraphQLController {
                 TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
                 TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")),
                 TypeUtils.asInt(finalInput.get("monthlyPay")), TypeUtils.asInt(finalInput.get("monthlyMaintenance")),
-                TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay"))
+                TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay")),
+                (Map<String, Object>) finalInput.get("repairRules")
         ));
     }
 
@@ -303,7 +332,8 @@ public class CampaignGraphQLController {
                             TypeUtils.asInt(finalInput.get("supportStep")), TypeUtils.asInt(finalInput.get("transportStep")), TypeUtils.asInt(finalInput.get("commandStep")),
                             TypeUtils.asInt(finalInput.get("trackCount")), TypeUtils.asInt(finalInput.get("lengthInMonths")),
                             TypeUtils.asInt(finalInput.get("monthlyPay")), TypeUtils.asInt(finalInput.get("monthlyMaintenance")),
-                            TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay")));
+                            TypeUtils.asInt(finalInput.get("transportationCost")), TypeUtils.asInt(finalInput.get("combatPay")),
+                            (Map<String, Object>) finalInput.get("repairRules"));
                 });
     }
 

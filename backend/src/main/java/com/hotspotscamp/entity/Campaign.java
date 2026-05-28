@@ -8,18 +8,15 @@ import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.hotspotscamp.service.CampaignService.RepairRules;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Represents a theater of operations (e.g., The Hinterlands).
- */
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Table("campaigns")
@@ -27,61 +24,60 @@ public class Campaign implements Persistable<UUID> {
 
     @Id
     private UUID id;
-    @Column("name")
     private String name;
-    @Column("manager_id") // The user managing this campaign
     private String managerId;
-    @Column("status")
-    private String status; // e.g., "ACTIVE", "COMPLETED"
-    @Column("system_name")
+    private String status;
     private String systemName;
-    @Column("description")
     private String description;
-    @Column("track_count")
     private Integer trackCount;
-    @Column("length_in_months")
     private Integer lengthInMonths;
-    @Column("pay_rate")
     private Double payRate;
-    @Column("pay_step")
     private Integer payStep;
-    @Column("salvage_terms")
     private String salvageTerms;
-    @Column("salvage_step")
     private Integer salvageStep;
-    @Column("support_terms")
     private String supportTerms;
-    @Column("support_step")
     private Integer supportStep;
-    @Column("transport_terms")
     private String transportTerms;
-    @Column("transport_step")
     private Integer transportStep;
-    @Column("command_rights")
     private String commandRights;
-    @Column("command_step")
     private Integer commandStep;
-    @Column("monthly_pay")
     private Integer monthlyPay;
-    @Column("monthly_maintenance")
     private Integer monthlyMaintenance;
-    @Column("transportation_cost")
     private Integer transportationCost;
-    @Column("combat_pay")
     private Integer combatPay;
 
+    // R2DBC Persisted Repair Multipliers
+    @Column("armor_multiplier")
+    private Double armorMultiplier;
+
+    @Column("internal_multiplier")
+    private Double internalMultiplier;
+
+    @Column("crippled_multiplier")
+    private Double crippledMultiplier;
+
+    @Column("destroyed_multiplier")
+    private Double destroyedMultiplier;
+
+    @Column("non_mech_modifier")
+    private Double nonMechModifier;
+
+    @Column("mixed_tech_modifier")
+    private Double mixedTechModifier;
+
+    @Column("clan_tech_modifier")
+    private Double clanTechModifier;
+
+    // Transient object for business logic compatibility
     @Transient
-    @Builder.Default
-    @JsonIgnore
-    private boolean isNew = true;
+    private RepairRules repairRules;
+
+    @Transient
+    private boolean isNew;
 
     @Override
-    @JsonIgnore
     public boolean isNew() {
         return isNew || id == null;
     }
-
-    public void setNew(boolean isNew) {
-        this.isNew = isNew;
-    }
 }
+

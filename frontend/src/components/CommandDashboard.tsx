@@ -5,6 +5,7 @@ import { LedgerEntryForm } from './LedgerEntryForm';
 import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
+import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 
 const GET_UNIT_DOSSIER = gql`
   query GetUnitDossier($commandId: ID!) {
@@ -67,6 +68,11 @@ const GET_UNIT_DOSSIER = gql`
     managedCampaigns(status: "ACTIVE") {
       id
       name
+    }
+    publicCampaignMetadata {
+      unitStatuses
+      unitTypes
+      techBases
     }
   }
 `;
@@ -303,6 +309,11 @@ interface UnitDossierData {
         allLedgerEntries: LedgerEntry[];
     };
     managedCampaigns: ManagedCampaign[];
+    publicCampaignMetadata: {
+        unitStatuses: string[];
+        unitTypes: string[];
+        techBases: string[];
+    };
 }
 
 interface CommandDashboardProps {
@@ -346,6 +357,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const { loading, error, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId }
     });
+
+    const unitStatuses = data?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
+    const unitTypes = data?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES;
+    const techBases = data?.publicCampaignMetadata?.techBases || FALLBACK_TECH;
 
     const [joinCampaign] = useMutation(JOIN_CAMPAIGN);
     const [importAssets] = useMutation(IMPORT_ASSETS);
@@ -536,7 +551,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         model: "NEW UNIT",
                         tonnage: 0,
                         type: 'BM',
-                        status: 'Nominal',
+                        status: unitStatuses[0],
                         detachmentId: selectedDetachmentId
                     }
                 }
@@ -754,10 +769,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const detachments: Detachment[] = command.detachments || [];
 
-    const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
-    const TECH_BASES = ['Inner Sphere', 'Clan', 'Mixed'];
-    const UNIT_STATUS_OPTIONS = ["Nominal", "Armor Damage", "Internal Damage", "Crippled", "Destroyed", "Truly Destroyed"];
-
     return (
         <div key={commandId} className="container unit-profile theme-amber">
             <header className="dashboard-header dossier-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
@@ -953,7 +964,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 onChange={(e) => handleUnitUpdate(u.id, 'type', e.target.value)}
                                                 onBlur={(e) => handleUnitUpdate(u.id, 'type', e.target.value, true)}
                                             >
-                                                {UNIT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                                {unitTypes.map((t: string) => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </td>
                                         <td><input
@@ -979,7 +990,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 onChange={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value)}
                                                 onBlur={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value, true)}
                                             >
-                                                {TECH_BASES.map(t => <option key={t} value={t}>{t}</option>)}
+                                                {techBases.map((t: string) => <option key={t} value={t}>{t}</option>)}
                                             </select>
                                         </td>
                                         <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.tonnage} title="Tonnage"
@@ -1008,7 +1019,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 onChange={(e) => handleUnitUpdate(u.id, 'status', e.target.value)}
                                                 onBlur={(e) => handleUnitUpdate(u.id, 'status', e.target.value, true)}
                                             >
-                                                {UNIT_STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                {unitStatuses.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
                                         </td>
                                         {!selectedDetachmentId && (

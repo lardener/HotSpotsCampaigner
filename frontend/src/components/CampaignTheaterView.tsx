@@ -6,6 +6,7 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
+import { AfterActionReportEditor } from './AfterActionReportEditor';
 
 const CREATE_INVITE = gql`
   mutation CreateInvite($campaignId: ID!, $recipientName: String) {
@@ -90,6 +91,25 @@ const GET_CAMPAIGN_INVITES = gql`
         monthlyMaintenance
         transportationCost
         combatPay
+        payRate
+        payStep
+        salvageTerms
+        salvageStep
+        supportTerms
+        supportStep
+        transportTerms
+        transportStep
+        commandRights
+        commandStep
+        repairRules {
+            armorMultiplier
+            internalMultiplier
+            crippledMultiplier
+            destroyedMultiplier
+            nonMechModifier
+            mixedTechModifier
+            clanTechModifier
+        }
       factions {
             id
             factionName
@@ -112,6 +132,9 @@ const GET_CAMPAIGN_INVITES = gql`
             units {
                 id
                 type
+                model
+                variant
+                techBase
                 tonnage
                 asSize
                 bv
@@ -119,6 +142,7 @@ const GET_CAMPAIGN_INVITES = gql`
             }
             pilots {
                 id
+                name
                 unitType
                 gunnery
                 piloting
@@ -264,6 +288,15 @@ interface CampaignDetail {
     monthlyMaintenance?: number;
     transportationCost?: number;
     combatPay?: number;
+    repairRules?: {
+        armorMultiplier: number;
+        internalMultiplier: number;
+        crippledMultiplier: number;
+        destroyedMultiplier: number;
+        nonMechModifier: number;
+        mixedTechModifier: number;
+        clanTechModifier: number;
+    };
     contracts?: Contract[];
     factions?: { id: string, factionName: string }[];
     tracks?: TrackDetail[];
@@ -311,6 +344,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
+    const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
 
     const [overlay, setOverlay] = useState<{
         isOpen: boolean;
@@ -334,6 +368,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [monthlyMaintenance, setMonthlyMaintenance] = useState(campaign?.monthlyMaintenance || 500);
     const [transportationCost, setTransportationCost] = useState(campaign?.transportationCost || 300);
     const [combatPay, setCombatPay] = useState(campaign?.combatPay || 500);
+    const [armorMult, setArmorMult] = useState(campaign.repairRules?.armorMultiplier || 0.5);
+    const [internalMult, setInternalMult] = useState(campaign.repairRules?.internalMultiplier || 2.0);
+    const [crippledMult, setCrippledMult] = useState(campaign.repairRules?.crippledMultiplier || 3.0);
+    const [destroyedMult, setDestroyedMult] = useState(campaign.repairRules?.destroyedMultiplier || 5.0);
+    const [nonMechMod, setNonMechMod] = useState(campaign.repairRules?.nonMechModifier || 0.5);
+    const [mixedTechTax, setMixedTechTax] = useState(campaign.repairRules?.mixedTechModifier || 1.5);
+    const [clanTechTax, setClanTechTax] = useState(campaign.repairRules?.clanTechModifier || 2.0);
     const saveTimeoutRef = useRef<Record<string, number>>({});
     const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
@@ -355,6 +396,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         setMonthlyMaintenance(campaign?.monthlyMaintenance || 500);
         setTransportationCost(campaign?.transportationCost || 300);
         setCombatPay(campaign?.combatPay || 500);
+        if (campaign.repairRules) {
+            setArmorMult(campaign.repairRules.armorMultiplier);
+            setInternalMult(campaign.repairRules.internalMultiplier);
+            setCrippledMult(campaign.repairRules.crippledMultiplier);
+            setDestroyedMult(campaign.repairRules.destroyedMultiplier);
+            setNonMechMod(campaign.repairRules.nonMechModifier);
+            setMixedTechTax(campaign.repairRules.mixedTechModifier);
+            setClanTechTax(campaign.repairRules.clanTechModifier);
+        }
     }, [campaign]);
 
     const handleGenerateInvite = () => {
@@ -401,6 +451,29 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     input[field] = Math.max(0, val);
                 }
             }
+            await updateCampaign({ variables: { id: selectedCampaignId, input } });
+            await refetchCampaign();
+            setIsSyncing(false);
+        }, 1000) as unknown as number;
+    };
+
+    const handleRepairRuleUpdate = (field: string, value: string | number) => {
+        if (!selectedCampaignId) return;
+        const key = `camp-repair-${field}`;
+        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
+
+        saveTimeoutRef.current[key] = setTimeout(async () => {
+            setIsSyncing(true);
+            const val = parseFloat(value as string) || 0;
+            const { __typename, ...currentRules } = (campaign as any).repairRules || {};
+
+            const input = {
+                repairRules: {
+                    ...currentRules,
+                    [field]: val
+                }
+            };
+
             await updateCampaign({ variables: { id: selectedCampaignId, input } });
             await refetchCampaign();
             setIsSyncing(false);
@@ -621,121 +694,267 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 )}
                             </div>
 
-                            <div className="grid-6-col mt-20 pt-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', borderTop: '1px solid var(--terminal-border)' }}>
-                                <div>
-                                    <label htmlFor="campaign-length-in-months" className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
-                                    {editingField === 'lengthInMonths' ? (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                            <input id="campaign-length-in-months" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
-                                                value={campaignLengthInMonths} autoFocus
-                                                onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
-                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                onBlur={(e) => { handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }}
-                                                placeholder="1"
-                                                title="Number of months for the campaign" />
-                                        </div>
-                                    ) : (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            onClick={() => setEditingField('lengthInMonths')} onFocus={() => setEditingField('lengthInMonths')} tabIndex={0}>
-                                            {campaignLengthInMonths}
-                                        </div>
-                                    )}
+                            <div className="mt-20 pt-10" style={{ borderTop: '1px solid var(--terminal-border)' }}>
+                                <h4 className="restricted-text mb-10" style={{ fontSize: '0.7rem', color: 'var(--terminal-amber)' }}>CAMPAIGN DURATION</h4>
+                                <div className="grid-6-col" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                                    <div>
+                                        <label htmlFor="campaign-length-in-months" className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
+                                        {editingField === 'lengthInMonths' ? (
+                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                <input id="campaign-length-in-months" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    value={campaignLengthInMonths} autoFocus
+                                                    onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                                                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                    onBlur={(e) => { handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }}
+                                                    placeholder="1"
+                                                    title="Number of months for the campaign" />
+                                            </div>
+                                        ) : (
+                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                onClick={() => setEditingField('lengthInMonths')} onFocus={() => setEditingField('lengthInMonths')} tabIndex={0}>
+                                                {campaignLengthInMonths}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label htmlFor="campaign-track-count" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
+                                        {editingField === 'trackCount' ? (
+                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                <input id="campaign-track-count" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    value={campaignTrackCount} autoFocus
+                                                    onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                    onBlur={(e) => { handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }}
+                                                    placeholder="1"
+                                                    title="Number of tracks in the campaign" />
+                                            </div>
+                                        ) : (
+                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                onClick={() => setEditingField('trackCount')} onFocus={() => setEditingField('trackCount')} tabIndex={0}>
+                                                {campaignTrackCount}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <label htmlFor="campaign-track-count" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
-                                    {editingField === 'trackCount' ? (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                            <input id="campaign-track-count" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
-                                                value={campaignTrackCount} autoFocus
-                                                onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
-                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                onBlur={(e) => { handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }}
-                                                placeholder="1"
-                                                title="Number of tracks in the campaign" />
+                            </div>
+
+                            <details className="mt-20">
+                                <summary className="restricted-text cursor-pointer" style={{ fontSize: '0.7rem', color: 'var(--terminal-amber)' }}>[ ADVANCED THEATER SETTINGS & LOGISTICS ]</summary>
+                                <div className="tactical-panel mt-10" style={{ padding: '15px', backgroundColor: 'rgba(0,0,0,0.15)' }}>
+                                    <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>FINANCIAL PARAMETERS</h5>
+                                    <div className="grid-4-col mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                        <div>
+                                            <label htmlFor="campaign-monthly-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>BASE PAY</label>
+                                            {editingField === 'monthlyPay' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input id="campaign-monthly-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={monthlyPay} autoFocus
+                                                        onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleUpdate('monthlyPay', e.target.value); setEditingField(null); }}
+                                                        placeholder="0"
+                                                        title="Base monthly pay" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('monthlyPay')} onFocus={() => setEditingField('monthlyPay')} tabIndex={0}>
+                                                    {monthlyPay}
+                                                </div>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            onClick={() => setEditingField('trackCount')} onFocus={() => setEditingField('trackCount')} tabIndex={0}>
-                                            {campaignTrackCount}
+                                        <div>
+                                            <label htmlFor="campaign-monthly-maintenance" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>MAINTENANCE</label>
+                                            {editingField === 'monthlyMaintenance' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input id="campaign-monthly-maintenance" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={monthlyMaintenance} autoFocus
+                                                        onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleUpdate('monthlyMaintenance', e.target.value); setEditingField(null); }}
+                                                        placeholder="0"
+                                                        title="Monthly maintenance cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('monthlyMaintenance')} onFocus={() => setEditingField('monthlyMaintenance')} tabIndex={0}>
+                                                    {monthlyMaintenance}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
+                                        <div>
+                                            <label htmlFor="campaign-transportation-cost" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>TRANS COST</label>
+                                            {editingField === 'transportationCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input id="campaign-transportation-cost" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={transportationCost} autoFocus
+                                                        onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleUpdate('transportationCost', e.target.value); setEditingField(null); }}
+                                                        placeholder="0"
+                                                        title="Transportation cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('transportationCost')} onFocus={() => setEditingField('transportationCost')} tabIndex={0}>
+                                                    {transportationCost}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label htmlFor="campaign-combat-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>COMBAT PAY</label>
+                                            {editingField === 'combatPay' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input id="campaign-combat-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={combatPay} autoFocus
+                                                        onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleUpdate('combatPay', e.target.value); setEditingField(null); }}
+                                                        placeholder="0"
+                                                        title="Combat pay bonus" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
+                                                    {combatPay}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>LOGISTICS & REPAIR MULTIPLIERS</h5>
+                                    <div className="grid-4-col flex-gap-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ARMOR MULT</label>
+                                            {editingField === 'armorMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={armorMult} autoFocus
+                                                        onChange={(e) => setArmorMult(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('armorMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Repair cost multiplier for armor damage" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('armorMultiplier')} tabIndex={0}>
+                                                    {armorMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>INTERNAL MULT</label>
+                                            {editingField === 'internalMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={internalMult} autoFocus
+                                                        onChange={(e) => setInternalMult(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('internalMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Repair cost multiplier for internal damage" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('internalMultiplier')} tabIndex={0}>
+                                                    {internalMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CRIPPLED MULT</label>
+                                            {editingField === 'crippledMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={crippledMult} autoFocus
+                                                        onChange={(e) => setCrippledMult(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('crippledMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Repair cost multiplier for crippled units" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('crippledMultiplier')} tabIndex={0}>
+                                                    {crippledMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>DESTROYED MULT</label>
+                                            {editingField === 'destroyedMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={destroyedMult} autoFocus
+                                                        onChange={(e) => setDestroyedMult(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('destroyedMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Repair cost multiplier for destroyed units" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('destroyedMultiplier')} tabIndex={0}>
+                                                    {destroyedMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>NON-MECH MOD</label>
+                                            {editingField === 'nonMechModifier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={nonMechMod} autoFocus
+                                                        onChange={(e) => setNonMechMod(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('nonMechModifier', e.target.value); setEditingField(null); }}
+                                                        title="Adjustment for Vehicles, Battle Armor, and Infantry" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('nonMechModifier')} tabIndex={0}>
+                                                    {nonMechMod}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>MIXED TECH TAX</label>
+                                            {editingField === 'mixedTechModifier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={mixedTechTax} autoFocus
+                                                        onChange={(e) => setMixedTechTax(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('mixedTechModifier', e.target.value); setEditingField(null); }}
+                                                        title="Repair cost tax for Mixed technology assets" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('mixedTechModifier')} tabIndex={0}>
+                                                    {mixedTechTax}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CLAN TECH TAX</label>
+                                            {editingField === 'clanTechModifier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                        value={clanTechTax} autoFocus
+                                                        onChange={(e) => setClanTechTax(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleRepairRuleUpdate('clanTechModifier', e.target.value); setEditingField(null); }}
+                                                        title="Repair cost tax for pure Clan technology assets" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                    onClick={() => setEditingField('clanTechModifier')} tabIndex={0}>
+                                                    {clanTechTax}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label htmlFor="campaign-monthly-pay" className="restricted-text" style={{ fontSize: '0.6rem' }}>BASE PAY</label>
-                                    {editingField === 'monthlyPay' ? (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                            <input id="campaign-monthly-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
-                                                value={monthlyPay} autoFocus
-                                                onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
-                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                onBlur={(e) => { handleUpdate('monthlyPay', e.target.value); setEditingField(null); }}
-                                                placeholder="0"
-                                                title="Base monthly pay" />
-                                        </div>
-                                    ) : (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            onClick={() => setEditingField('monthlyPay')} onFocus={() => setEditingField('monthlyPay')} tabIndex={0}>
-                                            {monthlyPay}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label htmlFor="campaign-monthly-maintenance" className="restricted-text" style={{ fontSize: '0.6rem' }}>MAINTENANCE</label>
-                                    {editingField === 'monthlyMaintenance' ? (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                            <input id="campaign-monthly-maintenance" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
-                                                value={monthlyMaintenance} autoFocus
-                                                onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
-                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                onBlur={(e) => { handleUpdate('monthlyMaintenance', e.target.value); setEditingField(null); }}
-                                                placeholder="0"
-                                                title="Monthly maintenance cost" />
-                                        </div>
-                                    ) : (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            onClick={() => setEditingField('monthlyMaintenance')} onFocus={() => setEditingField('monthlyMaintenance')} tabIndex={0}>
-                                            {monthlyMaintenance}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label htmlFor="campaign-transportation-cost" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS COST</label>
-                                    {editingField === 'transportationCost' ? (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                            <input id="campaign-transportation-cost" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
-                                                value={transportationCost} autoFocus
-                                                onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
-                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                onBlur={(e) => { handleUpdate('transportationCost', e.target.value); setEditingField(null); }}
-                                                placeholder="0"
-                                                title="Transportation cost" />
-                                        </div>
-                                    ) : (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            onClick={() => setEditingField('transportationCost')} onFocus={() => setEditingField('transportationCost')} tabIndex={0}>
-                                            {transportationCost}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    <label htmlFor="campaign-combat-pay" className="restricted-text" style={{ fontSize: '0.6rem' }}>COMBAT PAY</label>
-                                    {editingField === 'combatPay' ? (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                            <input id="campaign-combat-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
-                                                value={combatPay} autoFocus
-                                                onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
-                                                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                onBlur={(e) => { handleUpdate('combatPay', e.target.value); setEditingField(null); }}
-                                                placeholder="0"
-                                                title="Combat pay bonus" />
-                                        </div>
-                                    ) : (
-                                        <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                                            onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
-                                            {combatPay}
-                                        </div>
-                                    )}
-                                </div>
+                            </details>
+
+                            <div className="mt-15">
+                                <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
                             </div>
 
                             <div className="mt-15">
@@ -869,8 +1088,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <span>[ MONTH {mIdx} ]</span>
                                             <div className="flex flex-gap-10 items-center">
                                                 <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
-                                                <button 
-                                                    className="mode-btn theme-green" 
+                                                <button
+                                                    className="mode-btn theme-green"
                                                     style={{ fontSize: '0.6rem', padding: '2px 6px' }}
                                                     onClick={() => setShowMonthlyExpensesEditor(mIdx)}
                                                 >
@@ -961,7 +1180,11 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         </select>
                                                     </div>
                                                     <div className="mt-10 pt-5" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
-                                                        <button className="mode-btn theme-red w-100" style={{ fontSize: '0.65rem', padding: '4px' }}>
+                                                        <button
+                                                            className="mode-btn theme-red w-100"
+                                                            style={{ fontSize: '0.65rem', padding: '4px' }}
+                                                            onClick={() => setShowAarForTrack(track)}
+                                                        >
                                                             [ AFTER ACTION REPORT ]
                                                         </button>
                                                     </div>
@@ -1026,6 +1249,18 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     currentMonthIndex={showMonthlyExpensesEditor}
                     onClose={() => {
                         setShowMonthlyExpensesEditor(null);
+                        refetchCampaign();
+                    }}
+                    onLedgerEntryAdded={() => refetchCampaign()}
+                />
+            )}
+
+            {showAarForTrack && campaign && (
+                <AfterActionReportEditor
+                    campaign={campaign as any}
+                    track={showAarForTrack}
+                    onClose={() => {
+                        setShowAarForTrack(null);
                         refetchCampaign();
                     }}
                     onLedgerEntryAdded={() => refetchCampaign()}

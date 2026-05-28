@@ -738,6 +738,19 @@ public class MercenaryCommandService {
                             if (input.containsKey("combatPay")) {
                                 camp.setCombatPay(TypeUtils.asInt(input.get("combatPay")));
                             }
+                            if (input.containsKey("repairRules")) {
+                                CampaignService.RepairRules rules = CampaignService.mapToRepairRules((Map<String, Object>) input.get("repairRules"));
+                                camp.setRepairRules(rules);
+                                if (rules != null) {
+                                    camp.setArmorMultiplier(rules.armorMultiplier());
+                                    camp.setInternalMultiplier(rules.internalMultiplier());
+                                    camp.setCrippledMultiplier(rules.crippledMultiplier());
+                                    camp.setDestroyedMultiplier(rules.destroyedMultiplier());
+                                    camp.setNonMechModifier(rules.nonMechModifier());
+                                    camp.setMixedTechModifier(rules.mixedTechModifier());
+                                    camp.setClanTechModifier(rules.clanTechModifier());
+                                }
+                            }
 
                             Integer newMonthsInput = TypeUtils.asInt(input.get("lengthInMonths"));
                             Integer newTrackCountInput = TypeUtils.asInt(input.get("trackCount"));

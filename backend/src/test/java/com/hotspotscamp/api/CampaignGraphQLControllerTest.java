@@ -2,6 +2,7 @@ package com.hotspotscamp.api;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.service.CampaignService;
+import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,13 +33,22 @@ public class CampaignGraphQLControllerTest {
 
     @Test
     void campaignMetadata_ShouldBeAccessibleWithoutAuth() {
-        when(campaignService.getAvailableMissions()).thenReturn(Map.of("primary", List.of("Raid")));
-        when(campaignService.getAvailableTrackTypes()).thenReturn(List.of("Assault"));
-        when(campaignService.getResolvedStepsTable()).thenReturn(Collections.emptyMap());
+        CampaignService.CampaignMetadata mockMeta = new CampaignService.CampaignMetadata(
+                new CampaignService.MissionMetadata(List.of("Raid"), List.of("Defense")),
+                List.of("Assault"),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                null,
+                RulesConstants.UNIT_TYPES,
+                RulesConstants.TECH_BASES,
+                RulesConstants.UNIT_STATUS_OPTIONS
+        );
+        when(campaignService.getCampaignMetadata()).thenReturn(mockMeta);
 
         String query = """
             query {
-              campaignMetadata {
+              publicCampaignMetadata {
                 missions {
                   primary
                 }
@@ -49,8 +59,8 @@ public class CampaignGraphQLControllerTest {
 
         graphQlTester.document(query)
                 .execute()
-                .path("campaignMetadata.missions.primary[0]").entity(String.class).isEqualTo("Raid")
-                .path("campaignMetadata.trackTypes[0]").entity(String.class).isEqualTo("Assault");
+                .path("publicCampaignMetadata.missions.primary[0]").entity(String.class).isEqualTo("Raid")
+                .path("publicCampaignMetadata.trackTypes[0]").entity(String.class).isEqualTo("Assault");
     }
 
     @Test
@@ -64,12 +74,12 @@ public class CampaignGraphQLControllerTest {
 
         when(campaignService.generateProposal(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
                 any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any()))
+                any(), any(), any(), any(), any()))
                 .thenReturn(new CampaignService.CampaignProposal(previewCampaign, Collections.emptyList(), Collections.emptyList()));
 
         String query = """
             query($input: CampaignInput!) {
-              previewCampaign(input: $input) {
+              publicPreviewCampaign(input: $input) {
                 campaign {
                   name
                   status
@@ -81,6 +91,6 @@ public class CampaignGraphQLControllerTest {
         graphQlTester.document(query)
                 .variable("input", Map.of())
                 .execute()
-                .path("previewCampaign.campaign.status").entity(String.class).isEqualTo("PREVIEW");
+                .path("publicPreviewCampaign.campaign.status").entity(String.class).isEqualTo("PREVIEW");
     }
 }

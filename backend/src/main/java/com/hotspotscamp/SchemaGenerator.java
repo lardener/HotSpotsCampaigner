@@ -65,6 +65,13 @@ public class SchemaGenerator {
         sql.append("    `monthly_maintenance` INT DEFAULT 500,\n");
         sql.append("    `transportation_cost` INT DEFAULT 300,\n");
         sql.append("    `combat_pay` INT DEFAULT 500,\n");
+        sql.append("    `armor_multiplier` DOUBLE,\n");
+        sql.append("    `internal_multiplier` DOUBLE,\n");
+        sql.append("    `crippled_multiplier` DOUBLE,\n");
+        sql.append("    `destroyed_multiplier` DOUBLE,\n");
+        sql.append("    `non_mech_modifier` DOUBLE,\n");
+        sql.append("    `mixed_tech_modifier` DOUBLE,\n");
+        sql.append("    `clan_tech_modifier` DOUBLE,\n");
         sql.append("    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 

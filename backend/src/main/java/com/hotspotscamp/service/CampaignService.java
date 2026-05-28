@@ -135,6 +135,34 @@ public class CampaignService {
 
     }
 
+    public record RepairRules(
+            Double armorMultiplier,
+            Double internalMultiplier,
+            Double crippledMultiplier,
+            Double destroyedMultiplier,
+            Double nonMechModifier,
+            Double mixedTechModifier,
+            Double clanTechModifier
+            ) {
+
+    }
+
+    public record ResolvedStepEntry(Integer step, Map<String, String> values) {
+
+    }
+
+    public record MissionMetadata(List<String> primary, List<String> opponent) {
+
+    }
+
+    public record CampaignMetadata(
+            MissionMetadata missions, List<String> trackTypes, List<String> factions, List<String> employerTypes,
+            List<ResolvedStepEntry> resolvedSteps, RepairRules repairRules,
+            List<String> unitTypes, List<String> techBases, List<String> unitStatuses
+            ) {
+
+    }
+
     public record GeneratedTrack(String name, String complication) {
 
     }
@@ -293,6 +321,34 @@ public class CampaignService {
         return resolvedSteps;
     }
 
+    public CampaignMetadata getCampaignMetadata() {
+        RepairRules rules = new RepairRules(
+                RulesConstants.REPAIR_MULT_ARMOR,
+                RulesConstants.REPAIR_MULT_INTERNAL,
+                RulesConstants.REPAIR_MULT_CRIPPLED,
+                RulesConstants.REPAIR_MULT_DESTROYED,
+                RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER,
+                RulesConstants.REPAIR_MULT_MIXED_TECH,
+                RulesConstants.REPAIR_MULT_CLAN_TECH
+        );
+
+        List<ResolvedStepEntry> resolvedSteps = getResolvedStepsTable().entrySet().stream()
+                .map(e -> new ResolvedStepEntry(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+
+        return new CampaignMetadata(
+                new MissionMetadata(availablePrimaryMissions, availableOpponentMissions),
+                availableTrackTypes,
+                availableFactions,
+                getEmployerTypes(),
+                resolvedSteps,
+                rules,
+                RulesConstants.UNIT_TYPES,
+                RulesConstants.TECH_BASES,
+                RulesConstants.UNIT_STATUS_OPTIONS
+        );
+    }
+
     public Flux<ActiveCampaignSummary> getParticipatingCampaigns(UUID commandId) {
         log.trace("[TRACE] Starting getParticipatingCampaigns: commandId={}", commandId);
         return detachmentRepository.findAllByMercenaryCommandId(commandId)
@@ -319,7 +375,8 @@ public class CampaignService {
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
             Integer trackCount, Integer lengthInMonths,
-            Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay) {
+            Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay,
+            Map<String, Object> repairRulesInput) {
         Random rand = new Random();
         String finalEmp = (employer == null || employer.isEmpty()) ? getRandomFaction(null) : employer;
         String finalOpp = (opponent == null || opponent.isEmpty()) ? getRandomFaction(finalEmp) : opponent;
@@ -343,6 +400,17 @@ public class CampaignService {
 
         int finalTracksCount = trackCount != null ? trackCount : rollTrackCount(empMission, rand);
         String finalSystemName = (systemName != null && !systemName.isEmpty()) ? systemName : rollSystemName(rand);
+
+        // Initialize Repair Rules from input or constants
+        RepairRules rules = mapToRepairRules(repairRulesInput);
+        if (rules == null) {
+            rules = new RepairRules(
+                    RulesConstants.REPAIR_MULT_ARMOR, RulesConstants.REPAIR_MULT_INTERNAL,
+                    RulesConstants.REPAIR_MULT_CRIPPLED, RulesConstants.REPAIR_MULT_DESTROYED,
+                    RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER, RulesConstants.REPAIR_MULT_MIXED_TECH,
+                    RulesConstants.REPAIR_MULT_CLAN_TECH
+            );
+        }
 
         Contract primaryContract = generateContract(finalEmp, empMission, employerCategory,
                 payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep,
@@ -368,6 +436,14 @@ public class CampaignService {
                 .monthlyMaintenance(monthlyMaintenance != null ? monthlyMaintenance : RulesConstants.DEFAULT_MONTHLY_MAINTENANCE)
                 .transportationCost(transportationCost != null ? transportationCost : RulesConstants.DEFAULT_TRANSPORTATION_COST)
                 .combatPay(combatPay != null ? combatPay : RulesConstants.DEFAULT_COMBAT_PAY)
+                .armorMultiplier(rules.armorMultiplier())
+                .internalMultiplier(rules.internalMultiplier())
+                .crippledMultiplier(rules.crippledMultiplier())
+                .destroyedMultiplier(rules.destroyedMultiplier())
+                .nonMechModifier(rules.nonMechModifier())
+                .mixedTechModifier(rules.mixedTechModifier())
+                .clanTechModifier(rules.clanTechModifier())
+                .repairRules(rules)
                 .status("PREVIEW")
                 .build();
 
@@ -377,6 +453,21 @@ public class CampaignService {
 
         List<GeneratedTrack> tracksList = generateTracks(empMission, primaryContract.getCommandRights(), finalTracksCount);
         return new CampaignProposal(campaign, List.of(primaryContract, oppositionContract), tracksList);
+    }
+
+    public static RepairRules mapToRepairRules(Map<String, Object> map) {
+        if (map == null) {
+            return null;
+        }
+        return new RepairRules(
+                TypeUtils.asDouble(map.get("armorMultiplier"), RulesConstants.REPAIR_MULT_ARMOR),
+                TypeUtils.asDouble(map.get("internalMultiplier"), RulesConstants.REPAIR_MULT_INTERNAL),
+                TypeUtils.asDouble(map.get("crippledMultiplier"), RulesConstants.REPAIR_MULT_CRIPPLED),
+                TypeUtils.asDouble(map.get("destroyedMultiplier"), RulesConstants.REPAIR_MULT_DESTROYED),
+                TypeUtils.asDouble(map.get("nonMechModifier"), RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER),
+                TypeUtils.asDouble(map.get("mixedTechModifier"), RulesConstants.REPAIR_MULT_MIXED_TECH),
+                TypeUtils.asDouble(map.get("clanTechModifier"), RulesConstants.REPAIR_MULT_CLAN_TECH)
+        );
     }
 
     private Contract generateContract(String faction, String type, String category,
@@ -592,16 +683,18 @@ public class CampaignService {
             String salvageTerms, String supportTerms, String transportTerms, String commandRights,
             Integer payStep, Integer salvageStep, Integer supportStep, Integer transportStep, Integer commandStep,
             Integer trackCount, Integer lengthInMonths,
-            Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay) {
+            Integer monthlyPay, Integer monthlyMaintenance, Integer transportationCost, Integer combatPay,
+            Map<String, Object> repairRules) {
         log.trace("[TRACE] Starting generateDoblessCampaign: managerId={}, system={}", managerId, systemName);
         return userService.resolveOrCreateUser(managerId).flatMap(user -> {
             if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
                 return Mono.error(new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN, "Only Managers can create campaigns"));
             }
-            CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName, payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep, salvageStep, supportStep, transportStep, commandStep, trackCount, lengthInMonths, monthlyPay, monthlyMaintenance, transportationCost, combatPay);
+            CampaignProposal proposal = generateProposal(employer, opponent, mission, employerCategory, systemName, payRate, salvageTerms, supportTerms, transportTerms, commandRights, payStep, salvageStep, supportStep, transportStep, commandStep, trackCount, lengthInMonths, monthlyPay, monthlyMaintenance, transportationCost, combatPay, repairRules);
             Campaign campaign = proposal.campaign();
             campaign.setId(campaign.getId() == null ? UUID.randomUUID() : campaign.getId());
             campaign.setManagerId(user.getId().toString());
+            campaign.setNew(true);
             campaign.setStatus("ACTIVE");
 
             final String primaryEmp = proposal.contracts().get(0).getEmployerCategory().split(": ", 2)[0];

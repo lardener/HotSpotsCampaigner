@@ -22,6 +22,15 @@ export const GET_METADATA = gql`
           commandRights
         }
       }
+      repairRules {
+        armorMultiplier
+        internalMultiplier
+        crippledMultiplier
+        destroyedMultiplier
+        nonMechModifier
+        mixedTechModifier
+        clanTechModifier
+      }
     }
   }
 `;
@@ -38,6 +47,15 @@ export const PREVIEW_CAMPAIGN = gql`
         monthlyMaintenance
         transportationCost
         combatPay
+      }
+      repairRules {
+        armorMultiplier
+        internalMultiplier
+        crippledMultiplier
+        destroyedMultiplier
+        nonMechModifier
+        mixedTechModifier
+        clanTechModifier
       }
       contracts {
         employerCategory
@@ -104,6 +122,15 @@ interface Proposal {
         monthlyMaintenance?: number,
         transportationCost?: number,
         combatPay?: number
+        repairRules?: {
+            armorMultiplier: number;
+            internalMultiplier: number;
+            crippledMultiplier: number;
+            destroyedMultiplier: number;
+            nonMechModifier: number;
+            mixedTechModifier: number;
+            clanTechModifier: number;
+        };
     };
     contracts: ContractPreview[];
     tracks: string[];
@@ -122,7 +149,52 @@ interface MetadataData {
             step: number;
             values: any;
         }[];
+        repairRules: {
+            armorMultiplier: number;
+            internalMultiplier: number;
+            crippledMultiplier: number;
+            destroyedMultiplier: number;
+            nonMechModifier: number;
+            mixedTechModifier: number;
+            clanTechModifier: number;
+        };
     };
+}
+
+interface RepairRulesInput {
+    armorMultiplier?: number;
+    internalMultiplier?: number;
+    crippledMultiplier?: number;
+    destroyedMultiplier?: number;
+    nonMechModifier?: number;
+    mixedTechModifier?: number;
+    clanTechModifier?: number;
+}
+
+interface CampaignInput {
+    employer?: string;
+    opponent?: string;
+    mission?: string;
+    employerCategory?: string;
+    systemName?: string;
+    description?: string;
+    payRate?: number;
+    salvageTerms?: string;
+    supportTerms?: string;
+    transportTerms?: string;
+    commandRights?: string;
+    payStep?: number;
+    salvageStep?: number;
+    supportStep?: number;
+    transportStep?: number;
+    commandStep?: number;
+    trackCount?: number;
+    lengthInMonths?: number;
+    monthlyPay?: number;
+    monthlyMaintenance?: number;
+    transportationCost?: number;
+    combatPay?: number;
+    repairRules?: RepairRulesInput;
 }
 
 interface PreviewData {
@@ -211,9 +283,13 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                 c.transportTerms = resolveStepValueWithGravity(c.transportStep, 'transportation');
                 c.commandRights = resolveStepValueWithGravity(c.commandStep, 'commandRights');
             });
+            // Ensure repair rules are synchronized from metadata if not present in preview
+            if (!prop.campaign.repairRules && metadataData?.publicCampaignMetadata.repairRules) {
+                prop.campaign.repairRules = metadataData.publicCampaignMetadata.repairRules;
+            }
             setProposal(prop);
         }
-    }, [previewData, resolvedSteps]);
+    }, [previewData, resolvedSteps, metadataData]);
 
     // Monitor track count changes to fetch additional tracks if needed
     useEffect(() => {
@@ -238,7 +314,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [proposal?.campaign.trackCount, getTracks]);
 
-    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: any }>(CREATE_CAMPAIGN);
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: CampaignInput }>(CREATE_CAMPAIGN);
 
     const handlePreview = () => {
         setSaved(false);
@@ -253,13 +329,16 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
         }
     }, [metadataLoading, resolvedSteps, proposal, handlePreview]);
 
-    const getSaveParams = () => {
-        if (!proposal) {
-            return {} as Record<string, string | number | undefined>;
+    const getSaveParams = (): CampaignInput => {
+        if (!proposal || !proposal.contracts[0] || !proposal.contracts[1]) {
+            return {};
         }
 
         const primary = proposal.contracts[0];
         const opponent = proposal.contracts[1];
+
+        // Strip metadata added by Apollo Client (__typename) which is invalid for GraphQL Input types
+        const { __typename, ...cleanRepairRules } = (proposal.campaign.repairRules || {}) as any;
 
         // Parse the combined string to extract faction and category for backend compatibility
         const primaryParts = primary.employerCategory.split(': ');
@@ -287,7 +366,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
             monthlyPay: proposal.campaign.monthlyPay,
             monthlyMaintenance: proposal.campaign.monthlyMaintenance,
             transportationCost: proposal.campaign.transportationCost,
-            combatPay: proposal.campaign.combatPay
+            combatPay: proposal.campaign.combatPay,
+            repairRules: Object.keys(cleanRepairRules).length > 0 ? cleanRepairRules : undefined
         };
     };
 
