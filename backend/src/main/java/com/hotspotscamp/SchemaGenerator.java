@@ -212,7 +212,7 @@ public class SchemaGenerator {
         sql.append("    `as_skill` INT,\n");
         sql.append("    `unit_type` VARCHAR(50),\n");
         sql.append("    `wounds` INT DEFAULT 0,\n");
-        sql.append("    `handicap` VARCHAR(255),\n");
+        sql.append("    `handicap` INT DEFAULT 0,\n");
         sql.append("    `total_sp_earned` INT DEFAULT 0,\n");
         sql.append("    `gunnery_sp_earned` INT DEFAULT 0,\n");
         sql.append("    `piloting_sp_earned` INT DEFAULT 0,\n");

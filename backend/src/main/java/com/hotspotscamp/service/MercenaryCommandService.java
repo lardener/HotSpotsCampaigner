@@ -138,7 +138,7 @@ public class MercenaryCommandService {
             String edgeAbilities,
             String unitType,
             Integer wounds,
-            String handicap,
+            Integer handicap,
             Integer totalSpEarned,
             Integer gunnerySpEarned,
             Integer pilotingSpEarned,
@@ -687,15 +687,15 @@ public class MercenaryCommandService {
                             .piloting(input.piloting())
                             .asSkill(input.asSkill())
                             .unitType(input.unitType())
-                            .wounds(TypeUtils.asInt(input.wounds(),0))
-                            .handicap(input.handicap())
-                            .totalSpEarned(TypeUtils.asInt(input.totalSpEarned(),0))
-                            .gunnerySpEarned(TypeUtils.asInt(input.gunnerySpEarned(),0))
-                            .pilotingSpEarned(TypeUtils.asInt(input.pilotingSpEarned(),0))
-                            .edgeTokensSpEarned(TypeUtils.asInt(input.edgeTokensSpEarned(),0))
-                            .edgeAbilitySpEarned(TypeUtils.asInt(input.edgeAbilitySpEarned(),0))
-                            .edgeTokensSkill(TypeUtils.asInt(input.edgeTokensSkill(),0))
-                            .edgeAbilitySkill(TypeUtils.asInt(input.edgeAbilitySkill(),0))
+                            .wounds(TypeUtils.asInt(input.wounds(), 0))
+                            .handicap(TypeUtils.asInt(input.handicap(), 0))
+                            .totalSpEarned(TypeUtils.asInt(input.totalSpEarned(), 0))
+                            .gunnerySpEarned(TypeUtils.asInt(input.gunnerySpEarned(), 0))
+                            .pilotingSpEarned(TypeUtils.asInt(input.pilotingSpEarned(), 0))
+                            .edgeTokensSpEarned(TypeUtils.asInt(input.edgeTokensSpEarned(), 0))
+                            .edgeAbilitySpEarned(TypeUtils.asInt(input.edgeAbilitySpEarned(), 0))
+                            .edgeTokensSkill(TypeUtils.asInt(input.edgeTokensSkill(), 0))
+                            .edgeAbilitySkill(TypeUtils.asInt(input.edgeAbilitySkill(), 0))
                             .edgeAbilities(input.edgeAbilities())
                             .detachmentId(input.detachmentId())
                             .isNew(true)

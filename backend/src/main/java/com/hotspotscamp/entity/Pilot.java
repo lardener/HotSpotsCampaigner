@@ -42,7 +42,7 @@ public class Pilot implements Persistable<UUID> {
     private String unitType;
 
     private Integer wounds;
-    private String handicap;
+    private Integer handicap;
     @Column("total_sp_earned")
     private Integer totalSpEarned;
     @Column("gunnery_sp_earned")

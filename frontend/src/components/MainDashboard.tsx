@@ -850,7 +850,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         </svg>
                         <span className="sidebar-logo-text">HSC-TACTICAL</span>
                     </div>
-                    <div className="restricted-text sidebar-subtitle">COMMAND & CONTROL INTERFACE</div>
+                    <div className="restricted-text sidebar-subtitle" style={{ textAlign: 'center' }}>COMMAND & CONTROL INTERFACE</div>
                     <div style={{ borderBottom: '1px solid var(--terminal-border)', opacity: 0.3, marginTop: '8px' }} />
                     <div className="flex items-center mt-5" style={{ gap: '10px', height: '20px', justifyContent: 'center' }}>
                         {(loading || loadingManaged || isChildSyncing) ? (

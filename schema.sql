@@ -1,7 +1,7 @@
 -- HotSpots Campaigner Database Schema
 -- Generated for MySQL / R2DBC Compatibility
 
-USE BT_Campaigner;
+USE `BT_Campaigner`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -199,7 +199,7 @@ CREATE TABLE pilots (
     `as_skill` INT,
     `unit_type` VARCHAR(50),
     `wounds` INT DEFAULT 0,
-    `handicap` VARCHAR(255),
+    `handicap` INT DEFAULT 0,
     `total_sp_earned` INT DEFAULT 0,
     `gunnery_sp_earned` INT DEFAULT 0,
     `piloting_sp_earned` INT DEFAULT 0,
@@ -222,3 +222,4 @@ CREATE TABLE faction_reputations (
     CONSTRAINT fk_reputation_faction FOREIGN KEY (campaign_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE,
     CONSTRAINT fk_reputation_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE
 );
+

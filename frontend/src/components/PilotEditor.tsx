@@ -99,7 +99,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             edgeAbilities: '',
             unitType: 'BM',
             wounds: 0,
-            handicap: '',
+            handicap: 0,
             totalSpEarned: 0,
             gunnerySpEarned: 0,
             pilotingSpEarned: 0,
@@ -190,13 +190,13 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         const pHandicap = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).handicap;
         const etHandicap = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).handicap;
         const eaHandicap = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).handicap;
-        next.handicap = String(gHandicap + pHandicap + etHandicap + eaHandicap);
+        next.handicap = gHandicap + pHandicap + etHandicap + eaHandicap;
 
         return next;
     };
 
     const handleInputChange = (field: keyof Pilot, value: any) => {
-        const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
+        const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'handicap', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
         setFormData(prev => {
             const next = { ...prev, [field]: isNumeric ? parseInt(value) || 0 : value } as Pilot;
 

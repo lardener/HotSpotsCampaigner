@@ -232,7 +232,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         asSkill: 4,
                         unitType: 'BM',
                         wounds: 0,
-                        handicap: '',
+                        handicap: 0,
                         totalSpEarned: 0,
                         gunnerySpEarned: 0,
                         pilotingSpEarned: 0,

@@ -10,7 +10,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.stereotype.Component;
 
 import com.hotspotscamp.entity.CombatUnit;
@@ -24,13 +23,7 @@ import reactor.core.scheduler.Schedulers;
  */
 @Component
 public class MordelScraper implements UnitScraper {
-
-    private final ReactiveOAuth2AuthorizedClientManager authorizedClientManager;
     private static final Logger log = LoggerFactory.getLogger(MordelScraper.class);
-
-    MordelScraper(ReactiveOAuth2AuthorizedClientManager authorizedClientManager) {
-        this.authorizedClientManager = authorizedClientManager;
-    }
 
     @Override
     public boolean supports(String url) {

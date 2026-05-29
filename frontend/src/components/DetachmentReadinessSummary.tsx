@@ -25,7 +25,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, com
         acc[spec].gun += p.gunnery || 0;
         acc[spec].pil += p.piloting || 0;
         acc[spec].as += p.asSkill || 0;
-        acc[spec].handicap += parseInt(p.handicap) || 0;
+        acc[spec].handicap += p.handicap || 0;
         return acc;
     }, {} as Record<string, any>));
 

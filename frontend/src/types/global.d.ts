@@ -38,7 +38,7 @@ export interface Pilot {
     edgeAbilities?: string;
     unitType: string;
     wounds: number;
-    handicap: string;
+    handicap: number;
     totalSpEarned: number;
     gunnerySpEarned: number;
     pilotingSpEarned: number;
@@ -57,7 +57,7 @@ export interface PilotUpdateInput {
     edgeAbilities?: string;
     unitType?: string;
     wounds?: number;
-    handicap?: string;
+    handicap?: number;
     totalSpEarned?: number;
     gunnerySpEarned?: number;
     pilotingSpEarned?: number;
