@@ -479,32 +479,41 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                     <div className="campaign-summary-header" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.1)', borderLeft: '4px solid #c00' }}>
                         <h3 className="section-title">
                             DOBLESS INTEL:
-                            <input // Campaign name input
-                                id="proposal-name"
-                                type="text"
-                                className="table-input"
-                                value={proposal.campaign.name}
-                                onChange={(e) => updateProposalCampaign('name', e.target.value)}
-                                title="Campaign Name Designation"
-                                placeholder="CAMPAIGN NAME..."
-                                style={{
-                                    marginLeft: '10px',
-                                    width: '60%',
-                                }}
-                            />
+                            <div className="status-bar theme-red cursor-pointer" style={{ display: 'inline-flex', marginLeft: '10px', width: '60%', padding: '0 5px' }}>
+                                <input // Campaign name input
+                                    id="proposal-name"
+                                    type="text"
+                                    className="table-input"
+                                    value={proposal.campaign.name}
+                                    onChange={(e) => updateProposalCampaign('name', e.target.value)}
+                                    title="Campaign Name Designation"
+                                    placeholder="CAMPAIGN NAME..."
+                                    style={{
+                                        width: '100%',
+                                        border: 'none',
+                                        fontSize: 'inherit',
+                                        fontWeight: 'bold'
+                                    }}
+                                />
+                            </div>
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             <div> {/* Added title to input */}
                                 <label htmlFor="proposal-system" className="restricted-text sm-text">STAR SYSTEM</label>
-                                <input id="proposal-system" type="text" className="table-input w-100" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" />
+                                <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                    <input id="proposal-system" type="text" className="table-input w-100" style={{ border: 'none' }} value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" />
+                                </div>
                             </div>
                             <div> {/* Added title to input */}
                                 <label htmlFor="proposal-tracks" className="restricted-text sm-text">TRACKS</label>
-                                <input id="proposal-tracks" type="number" value={proposal.campaign.trackCount}
-                                    onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
-                                    onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
-                                    title="Number of tracks (months)"
-                                    className="table-input inline-edit-input-small" />
+                                <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                    <input id="proposal-tracks" type="number" value={proposal.campaign.trackCount}
+                                        onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
+                                        onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
+                                        title="Number of tracks (months)"
+                                        className="table-input"
+                                        style={{ border: 'none', width: '100%' }} />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -515,10 +524,12 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                             {proposal.tracks.map((t: string, idx: number) => (
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`} className="restricted-text sm-text">TRACK {idx + 1}</label> {/* Added title to select */}
-                                    {/* Strip suffix for the value so it matches the options in trackTypes */}
-                                    <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input input-group-gap" title={`Select track type for track ${idx + 1}`}>
-                                        {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
-                                    </select>
+                                    <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                        {/* Strip suffix for the value so it matches the options in trackTypes */}
+                                        <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
+                                            {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -529,44 +540,64 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
                                 <div className="restricted-text mb-10">{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</div>
                                 <p><label className="restricted-text sm-text block-label">EMPLOYER</label>
-                                    <input
-                                        type="text"
-                                        value={c.employerCategory}
-                                        onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
-                                        className="table-input w-100"
-                                        title="Employer Faction and Category"
-                                    />
+                                    <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                        <input
+                                            type="text"
+                                            value={c.employerCategory}
+                                            onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
+                                            className="table-input w-100"
+                                            style={{ border: 'none' }}
+                                            title="Employer Faction and Category"
+                                        />
+                                    </div>
                                 </p>
                                 <p><label className="restricted-text sm-text block-label">MISSION</label>
-                                    <select className="table-input" value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)} title="Mission Type">
-                                        {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}
-                                    </select>
+                                    <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                        <select className="table-input w-100" style={{ border: 'none' }} value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)} title="Mission Type">
+                                            {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                     <p><label className="restricted-text sm-text block-label">PAY STEP</label>
-                                        <select className="table-input" value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))} title="Pay Step">
-                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
-                                        </select> <span>({Math.round(c.payRate * 100)}%)</span>
+                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px', display: 'inline-block' }}>
+                                            <select className="table-input" style={{ border: 'none' }} value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))} title="Pay Step">
+                                                {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                            </select>
+                                        </div>
+                                        <span className="ml-5">({Math.round(c.payRate * 100)}%)</span>
                                     </p>
                                     <p><label className="restricted-text sm-text block-label">SALVAGE STEP</label>
-                                        <select className="table-input" value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))} title="Salvage Step">
-                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
-                                        </select> <span>({c.salvageTerms})</span>
+                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px', display: 'inline-block' }}>
+                                            <select className="table-input" style={{ border: 'none' }} value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))} title="Salvage Step">
+                                                {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                            </select>
+                                        </div>
+                                        <span className="ml-5">({c.salvageTerms})</span>
                                     </p>
                                     <p><label className="restricted-text sm-text block-label">SUPPORT STEP</label>
-                                        <select className="table-input" value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))} title="Support Step">
-                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
-                                        </select> <span>({c.supportTerms})</span>
+                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px', display: 'inline-block' }}>
+                                            <select className="table-input" style={{ border: 'none' }} value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))} title="Support Step">
+                                                {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                            </select>
+                                        </div>
+                                        <span className="ml-5">({c.supportTerms})</span>
                                     </p>
                                     <p><label className="restricted-text sm-text block-label">TRANSPORT STEP</label>
-                                        <select className="table-input" value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))} title="Transport Step">
-                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
-                                        </select> <span>({c.transportTerms})</span>
+                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px', display: 'inline-block' }}>
+                                            <select className="table-input" style={{ border: 'none' }} value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))} title="Transport Step">
+                                                {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                            </select>
+                                        </div>
+                                        <span className="ml-5">({c.transportTerms})</span>
                                     </p>
                                     <p><label className="restricted-text sm-text block-label">COMMAND STEP</label>
-                                        <select className="table-input" value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))} title="Command Step">
-                                            {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
-                                        </select> <span>({c.commandRights})</span>
+                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px', display: 'inline-block' }}>
+                                            <select className="table-input" style={{ border: 'none' }} value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))} title="Command Step">
+                                                {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
+                                            </select>
+                                        </div>
+                                        <span className="ml-5">({c.commandRights})</span>
                                     </p>
                                 </div>
                             </div>

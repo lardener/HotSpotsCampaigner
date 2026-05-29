@@ -714,7 +714,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <label htmlFor="campaign-length-in-months" className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
                                         {editingField === 'lengthInMonths' ? (
                                             <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                <input id="campaign-length-in-months" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                <input id="campaign-length-in-months" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                     value={campaignLengthInMonths} autoFocus
                                                     onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
                                                     onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -723,7 +723,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     title="Number of months for the campaign" />
                                             </div>
                                         ) : (
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                 onClick={() => setEditingField('lengthInMonths')} onFocus={() => setEditingField('lengthInMonths')} tabIndex={0}>
                                                 {campaignLengthInMonths}
                                             </div>
@@ -733,7 +733,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <label htmlFor="campaign-track-count" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
                                         {editingField === 'trackCount' ? (
                                             <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                <input id="campaign-track-count" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                <input id="campaign-track-count" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                     value={campaignTrackCount} autoFocus
                                                     onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
                                                     onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -742,7 +742,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     title="Number of tracks in the campaign" />
                                             </div>
                                         ) : (
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                 onClick={() => setEditingField('trackCount')} onFocus={() => setEditingField('trackCount')} tabIndex={0}>
                                                 {campaignTrackCount}
                                             </div>
@@ -760,7 +760,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label htmlFor="campaign-monthly-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>BASE PAY</label>
                                             {editingField === 'monthlyPay' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-monthly-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input id="campaign-monthly-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={monthlyPay} autoFocus
                                                         onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -769,7 +769,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Base monthly pay" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('monthlyPay')} onFocus={() => setEditingField('monthlyPay')} tabIndex={0}>
                                                     {monthlyPay}
                                                 </div>
@@ -779,7 +779,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label htmlFor="campaign-monthly-maintenance" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>MAINTENANCE</label>
                                             {editingField === 'monthlyMaintenance' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-monthly-maintenance" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input id="campaign-monthly-maintenance" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={monthlyMaintenance} autoFocus
                                                         onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -788,7 +788,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Monthly maintenance cost" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('monthlyMaintenance')} onFocus={() => setEditingField('monthlyMaintenance')} tabIndex={0}>
                                                     {monthlyMaintenance}
                                                 </div>
@@ -798,7 +798,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label htmlFor="campaign-transportation-cost" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>TRANS COST</label>
                                             {editingField === 'transportationCost' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-transportation-cost" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input id="campaign-transportation-cost" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={transportationCost} autoFocus
                                                         onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -807,7 +807,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Transportation cost" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('transportationCost')} onFocus={() => setEditingField('transportationCost')} tabIndex={0}>
                                                     {transportationCost}
                                                 </div>
@@ -817,7 +817,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label htmlFor="campaign-combat-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>COMBAT PAY</label>
                                             {editingField === 'combatPay' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-combat-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input id="campaign-combat-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={combatPay} autoFocus
                                                         onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -826,7 +826,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Combat pay bonus" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
                                                     {combatPay}
                                                 </div>
@@ -840,7 +840,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ARMOR MULT</label>
                                             {editingField === 'armorMultiplier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={armorMult} autoFocus
                                                         onChange={(e) => setArmorMult(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -848,7 +848,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for armor damage" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('armorMultiplier')} tabIndex={0}>
                                                     {armorMult}
                                                 </div>
@@ -858,7 +858,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>INTERNAL MULT</label>
                                             {editingField === 'internalMultiplier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={internalMult} autoFocus
                                                         onChange={(e) => setInternalMult(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -866,7 +866,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for internal damage" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('internalMultiplier')} tabIndex={0}>
                                                     {internalMult}
                                                 </div>
@@ -876,7 +876,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CRIPPLED MULT</label>
                                             {editingField === 'crippledMultiplier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={crippledMult} autoFocus
                                                         onChange={(e) => setCrippledMult(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -884,7 +884,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for crippled units" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('crippledMultiplier')} tabIndex={0}>
                                                     {crippledMult}
                                                 </div>
@@ -894,7 +894,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>DESTROYED MULT</label>
                                             {editingField === 'destroyedMultiplier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={destroyedMult} autoFocus
                                                         onChange={(e) => setDestroyedMult(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -902,7 +902,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for destroyed units" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('destroyedMultiplier')} tabIndex={0}>
                                                     {destroyedMult}
                                                 </div>
@@ -912,7 +912,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>NON-MECH MOD</label>
                                             {editingField === 'nonMechModifier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={nonMechMod} autoFocus
                                                         onChange={(e) => setNonMechMod(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -920,7 +920,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Adjustment for Vehicles, Battle Armor, and Infantry" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('nonMechModifier')} tabIndex={0}>
                                                     {nonMechMod}
                                                 </div>
@@ -930,7 +930,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>MIXED TECH TAX</label>
                                             {editingField === 'mixedTechModifier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={mixedTechTax} autoFocus
                                                         onChange={(e) => setMixedTechTax(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -938,7 +938,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost tax for Mixed technology assets" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('mixedTechModifier')} tabIndex={0}>
                                                     {mixedTechTax}
                                                 </div>
@@ -948,7 +948,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CLAN TECH TAX</label>
                                             {editingField === 'clanTechModifier' ? (
                                                 <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center' }}
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
                                                         value={clanTechTax} autoFocus
                                                         onChange={(e) => setClanTechTax(parseFloat(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -956,7 +956,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost tax for pure Clan technology assets" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('clanTechModifier')} tabIndex={0}>
                                                     {clanTechTax}
                                                 </div>
@@ -970,23 +970,33 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <div className="grid-5-col mt-5">
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY (STEP {campaign?.payStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{Math.round((campaign?.payRate || 0) * 100)}%</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                            {Math.round((campaign?.payRate || 0) * 100)}%
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SALVAGE ({campaign?.salvageStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.salvageTerms}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                            {campaign?.salvageTerms}
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SUPPORT ({campaign?.supportStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.supportTerms}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                            {campaign?.supportTerms}
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS ({campaign?.transportStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.transportTerms}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                            {campaign?.transportTerms}
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CMD ({campaign?.commandStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>{campaign?.commandRights}</div>
+                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                            {campaign?.commandRights}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

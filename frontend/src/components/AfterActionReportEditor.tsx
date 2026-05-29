@@ -374,7 +374,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                             <div className="grid-5-col flex-gap-10">
                                 <div>
                                     <label className="xs-text opacity-70">CONTRACT</label>
-                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                    <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
@@ -390,7 +390,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 </div>
                                 <div>
                                     <label className="xs-text opacity-70">LEVEL</label>
-                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                    <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
@@ -404,7 +404,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 </div>
                                 <div>
                                     <label className="xs-text opacity-70">OUTCOME</label>
-                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                    <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
@@ -695,6 +695,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 .sm-text { font-size: 0.75rem; }
                 .xs-text { font-size: 0.65rem; }
                 .theme-red { --accent-dim: rgba(255, 51, 51, 0.2); }
+                .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
+                .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+                .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
+                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
             `}</style>
         </TerminalOverlay>
     );

@@ -188,7 +188,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                             <tr key={form.detachmentId}>
                                 <td>{form.detachmentName}</td>
                                 <td>
-                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                    <div className="status-bar theme-blue cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input"
                                             style={{ border: 'none' }}
@@ -275,11 +275,13 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                         ))}
                     </tbody>
                 </table>
-                {detachmentForms.some(f => f.error) && (
-                    <div className="error-message mt-10">
-                        {detachmentForms.map(f => f.error && <p key={f.detachmentId}>{f.detachmentName}: {f.error}</p>)}
-                    </div>
-                )}
+                {
+                    detachmentForms.some(f => f.error) && (
+                        <div className="error-message mt-10">
+                            {detachmentForms.map(f => f.error && <p key={f.detachmentId}>{f.detachmentName}: {f.error}</p>)}
+                        </div>
+                    )
+                }
             </div>
         </TerminalOverlay>
     );
