@@ -519,6 +519,9 @@ public class MercenaryCommandService {
                         if (input.status() != null) {
                             unit.setStatus(input.status());
                         }
+                        if (input.detachmentId() != null) {
+                            unit.setDetachmentId(input.detachmentId());
+                        }
                         return combatUnitRepository.save(unit)
                                 .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
                     }));
@@ -1028,8 +1031,7 @@ public class MercenaryCommandService {
                                 unit.setStatus("OPERATIONAL");
                                 unit.setNew(true);
                                 return unit;
-                            })
-                            .flatMap(combatUnitRepository::save);
+                            });
                 })
         )
                 .doOnTerminate(() -> log.trace("[TRACE] Finished importAssetsFromLink"));

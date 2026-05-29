@@ -5,7 +5,8 @@ import { LedgerEntryForm } from './LedgerEntryForm';
 import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
-import { CombatUnit, Pilot, Detachment, CombatUnitUpdateInput, CommandUpdateInput } from '../types/global.d';
+import { MechEditor } from './MechEditor';
+import { CombatUnit, Pilot, Detachment, CommandUpdateInput } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 
 const GET_UNIT_DOSSIER = gql`
@@ -99,41 +100,9 @@ const DELETE_DETACHMENT = gql`
   }
 `;
 
-const ADD_UNIT = gql`
-  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitUpdateInput!) {
-    addCombatUnit(commandId: $commandId, input: $input) {
-      id
-      model
-      type
-      variant
-      techBase
-      tonnage
-      asSize
-      bv
-      pv
-      status
-      availableFromMonth
-      detachmentId
-    }
-  }
-`;
-
 const ASSIGN_DETACHMENT = gql`
   mutation AssignDetachmentToCampaign($detachmentId: ID!, $campaignId: ID) {
     assignDetachmentToCampaign(detachmentId: $detachmentId, campaignId: $campaignId)
-  }
-`;
-
-const IMPORT_ASSETS = gql`
-  mutation ImportAssets($commandId: ID!, $detachmentId: ID, $link: String!) {
-    importCombatUnitsFromLink(commandId: $commandId, detachmentId: $detachmentId, link: $link) {
-      id
-      model
-      variant
-      tonnage
-      bv
-      pv
-    }
   }
 `;
 
@@ -161,24 +130,6 @@ const UPDATE_COMMAND = gql`
   }
 `;
 
-const UPDATE_UNIT = gql`
-  mutation UpdateUnit($id: ID!, $input: CombatUnitUpdateInput!) {
-    updateCombatUnit(id: $id, input: $input) { 
-      id
-      type
-      model
-      variant
-      techBase
-      tonnage
-      asSize
-      bv
-      pv
-      status
-      availableFromMonth
-    }
-  }
-`;
-
 const JOIN_CAMPAIGN = gql`
   mutation JoinCampaign($token: String!, $detachmentId: ID!) {
     joinCampaign(token: $token, detachmentId: $detachmentId)
@@ -201,17 +152,6 @@ interface UpdateCommandVars {
     input: CommandUpdateInput;
 }
 
-interface UpdateUnitVars {
-    id: string;
-    input: CombatUnitUpdateInput;
-}
-
-interface AddUnitVars {
-    commandId: string;
-    input: CombatUnitUpdateInput;
-}
-
-
 interface DeleteUnitVars {
     unitId: string;
 }
@@ -228,10 +168,6 @@ interface CreateDetachmentVars {
     commandId: string;
     campaignId: string | null;
     name: string;
-}
-
-interface AddUnitData {
-    addCombatUnit: CombatUnit;
 }
 
 interface UnitDossierData {
@@ -271,14 +207,17 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [pilotEditorMode, setPilotEditorMode] = useState<'create' | 'edit'>('create');
     const [editingPilot, setEditingPilot] = useState<Pilot | null>(null);
 
+    // Mech Editor State
+    const [showMechEditor, setShowMechEditor] = useState(false);
+    const [mechEditorMode, setMechEditorMode] = useState<'create' | 'edit'>('create');
+    const [editingUnit, setEditingUnit] = useState<CombatUnit | null>(null);
+
     // Form states
     const [isSyncing, setIsSyncing] = useState(false);
-    const [justAddedId, setJustAddedId] = useState<string | null>(null);
     const [lastSaved, setLastSaved] = useState<string | null>(null);
     const [isEditingName, setIsEditingName] = useState(false);
     const [isEditingCO, setIsEditingCO] = useState(false);
     const [inviteToken, setInviteToken] = useState('');
-    const [importLink, setImportLink] = useState('');
 
     const [overlay, setOverlay] = useState<{
         title: string;
@@ -308,10 +247,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const techBases = data?.publicCampaignMetadata?.techBases || FALLBACK_TECH;
 
     const [joinCampaign] = useMutation(JOIN_CAMPAIGN);
-    const [importAssets] = useMutation(IMPORT_ASSETS);
 
     const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
-    const [updateUnit] = useMutation<any, UpdateUnitVars>(UPDATE_UNIT);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [assignAsset] = useMutation<any, { assetType: string, assetId: string, detachmentId: string | null }>(ASSIGN_ASSET, {
         update(cache: ApolloCache, { data: result }: any, { variables }: any) {
@@ -328,26 +265,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     }
                     cache.writeQuery({ query: GET_UNIT_DOSSIER, variables: queryVars, data: { ...existing, getCommand } });
                 }
-            }
-        }
-    });
-
-    const [addUnit] = useMutation<AddUnitData, AddUnitVars>(ADD_UNIT, {
-        update(cache: ApolloCache, { data: addData }: any) {
-            if (!addData?.addCombatUnit) return;
-            const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
-            if (existing?.getCommand) {
-                cache.writeQuery({
-                    query: GET_UNIT_DOSSIER,
-                    variables: { commandId },
-                    data: {
-                        ...existing,
-                        getCommand: {
-                            ...existing.getCommand,
-                            units: [...existing.getCommand.units, addData.addCombatUnit]
-                        }
-                    }
-                });
             }
         }
     });
@@ -451,65 +368,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         else saveTimeoutRef.current[key] = setTimeout(execute, 1000);
     };
 
-    const handleUnitUpdate = (id: string, field: string, value: any, immediate = true) => {
-        const key = `unit-${id}-${field}`;
-        if (saveTimeoutRef.current[key]) {
-            clearTimeout(saveTimeoutRef.current[key]);
-            delete saveTimeoutRef.current[key];
-        }
-
-        const execute = () => {
-            setIsSyncing(true);
-            // Only send the field that was actually modified to prevent race conditions 
-            // overwriting other fields with stale cache data.
-            const isNumeric = ['tonnage', 'asSize', 'bv', 'pv', 'availableFromMonth'].includes(field);
-            const input = {
-                [field]: isNumeric ? (parseInt(value) || 0) : value
-            };
-            const currentUnit = data?.getCommand.units.find((u: CombatUnit) => u.id === id);
-            updateUnit({
-                variables: { id, input },
-                optimisticResponse: currentUnit ? {
-                    updateCombatUnit: {
-                        ...currentUnit,
-                        ...input,
-                        __typename: 'CombatUnit'
-                    }
-                } : undefined
-            })
-                .then(() => { markSaved(); })
-                .catch((err: Error) => { console.error(err); setIsSyncing(false); });
-        };
-
-        if (immediate) execute();
-        else saveTimeoutRef.current[key] = setTimeout(execute, 1000);
-    };
-
-    const handleAddUnit = async () => {
-        try {
-            const { data: addData } = await addUnit({
-                variables: {
-                    commandId,
-                    input: {
-                        model: "NEW UNIT",
-                        tonnage: 0,
-                        type: 'BM',
-                        status: unitStatuses[0],
-                        detachmentId: selectedDetachmentId
-                    }
-                }
-            });
-            if (addData?.addCombatUnit?.id) setJustAddedId(addData.addCombatUnit.id);
-        } catch (err) {
-            setOverlay({
-                title: "PROCUREMENT ERROR",
-                message: "LOGISTICS FAILURE: UNABLE TO PROCURE NEW UNIT. CHECK NETWORK LINK.",
-                variant: 'alert',
-                onConfirm: () => setOverlay(null)
-            });
-        }
-    };
-
     const handleHirePilot = async () => {
         setPilotEditorMode('create');
         setEditingPilot(null);
@@ -524,8 +382,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const handlePilotEditorSave = (pilot?: Pilot) => {
         setShowPilotEditor(false);
-        if (pilot?.id) setJustAddedId(pilot.id);
-        refetch();
+        if (pilot?.id) refetch();
+        else refetch();
     };
 
     const handlePilotEditorCancel = () => {
@@ -533,22 +391,28 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         setEditingPilot(null);
     };
 
-    const handleImport = async () => {
-        if (!importLink) return;
-        setIsSyncing(true);
-        try {
-            await importAssets({ variables: { commandId, detachmentId: selectedDetachmentId, link: importLink } });
-            setImportLink('');
-            refetch();
-        } catch (err) {
-            setOverlay({
-                title: "DATA SCRAPE FAILURE",
-                message: "LINK FORMAT NOT RECOGNIZED OR SITE UNREACHABLE.",
-                variant: 'alert',
-                onConfirm: () => setOverlay(null)
-            });
-        }
-        setIsSyncing(false);
+    const handleAddUnit = async () => {
+        setMechEditorMode('create');
+        setEditingUnit(null);
+        setShowMechEditor(true);
+    };
+
+    const handleEditUnit = (unit: CombatUnit) => {
+        setMechEditorMode('edit');
+        setEditingUnit(unit);
+        setShowMechEditor(true);
+    };
+
+    const handleMechEditorSave = () => {
+        setShowMechEditor(false);
+        setEditingUnit(null);
+        refetch();
+    };
+
+    const handleMechEditorCancel = () => {
+        setShowMechEditor(false);
+        setEditingUnit(null);
+        refetch();
     };
 
     const handleDeleteUnit = async (id: string) => {
@@ -871,8 +735,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <h3 className="zone-header" style={{ margin: 0 }}>COMBAT UNIT ROSTER</h3>
                             {!isManagerView && (
                                 <div className="flex flex-gap-10">
-                                    <input className="table-input" style={{ width: '250px', fontSize: '0.7rem' }} placeholder="External Link (MUL/Mordel)..." value={importLink} onChange={(e) => setImportLink(e.target.value)} title="Paste link from Master Unit List or Mordel.net" />
-                                    <button className="mode-btn" onClick={handleImport} style={{ fontSize: '0.7rem' }}>IMPORT</button>
                                     <button className="mode-btn" onClick={handleAddUnit} style={{ fontSize: '0.7rem' }}>+ PROCURE UNIT</button>
                                 </div>
                             )}
@@ -897,74 +759,16 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <tbody>
                                 {filteredUnits.map((u: CombatUnit) => (
                                     <tr key={u.id}>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                title="Unit Classification"
-                                                autoFocus={u.id === justAddedId}
-                                                onFocus={() => setJustAddedId(null)}
-                                                defaultValue={u.type}
-                                                onChange={(e) => handleUnitUpdate(u.id, 'type', e.target.value)}
-                                                onBlur={(e) => handleUnitUpdate(u.id, 'type', e.target.value, true)}
-                                            >
-                                                {unitTypes.map((t: string) => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </td>
-                                        <td><input
-                                            className="table-input"
-                                            title="Unit Model"
-                                            defaultValue={u.model}
-                                            onChange={(e) => handleUnitUpdate(u.id, 'model', e.target.value, false)}
-                                            onBlur={(e) => handleUnitUpdate(u.id, 'model', e.target.value, true)}
-                                        /></td>
-                                        <td className="text-center"><input
-                                            className="table-input"
-                                            title="Unit Variant"
-                                            style={{ width: '10em' }}
-                                            defaultValue={u.variant}
-                                            onChange={(e) => handleUnitUpdate(u.id, 'variant', e.target.value, false)}
-                                            onBlur={(e) => handleUnitUpdate(u.id, 'variant', e.target.value, true)}
-                                        /></td>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                title="Technology Base"
-                                                defaultValue={u.techBase}
-                                                onChange={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value)}
-                                                onBlur={(e) => handleUnitUpdate(u.id, 'techBase', e.target.value, true)}
-                                            >
-                                                {techBases.map((t: string) => <option key={t} value={t}>{t}</option>)}
-                                            </select>
-                                        </td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.tonnage} title="Tonnage"
-                                            onChange={(e) => handleUnitUpdate(u.id, 'tonnage', e.target.value, false)}
-                                            onBlur={(e) => handleUnitUpdate(u.id, 'tonnage', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '3em' }} type="number" defaultValue={u.asSize} title="AS Size"
-                                            onChange={(e) => handleUnitUpdate(u.id, 'asSize', e.target.value, false)}
-                                            onBlur={(e) => handleUnitUpdate(u.id, 'asSize', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '5em' }} type="number" defaultValue={u.bv} title="Battle Value"
-                                            onChange={(e) => handleUnitUpdate(u.id, 'bv', e.target.value, false)}
-                                            onBlur={(e) => handleUnitUpdate(u.id, 'bv', e.target.value, true)} /></td>
-                                        <td className="text-center"><input className="table-input text-right" style={{ width: '4em' }} type="number" defaultValue={u.pv} title="Point Value"
-                                            onChange={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, false)}
-                                            onBlur={(e) => handleUnitUpdate(u.id, 'pv', e.target.value, true)} /></td>
-                                        <td className="text-center">
-                                            <input className="table-input text-center" style={{ width: '3em' }} type="number"
-                                                defaultValue={u.availableFromMonth} title="Available from Month"
-                                                onChange={(e) => handleUnitUpdate(u.id, 'availableFromMonth', e.target.value, false)}
-                                                onBlur={(e) => handleUnitUpdate(u.id, 'availableFromMonth', e.target.value, true)} />
-                                        </td>
-                                        <td className="text-center">
-                                            <select
-                                                className="table-input"
-                                                title="Unit Operational Status"
-                                                defaultValue={u.status}
-                                                onChange={(e) => handleUnitUpdate(u.id, 'status', e.target.value)}
-                                                onBlur={(e) => handleUnitUpdate(u.id, 'status', e.target.value, true)}
-                                            >
-                                                {unitStatuses.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                                            </select>
-                                        </td>
+                                        <td className="text-center">{u.type}</td>
+                                        <td>{u.model}</td>
+                                        <td className="text-center">{u.variant || '---'}</td>
+                                        <td className="text-center">{u.techBase}</td>
+                                        <td className="text-center">{u.tonnage}</td>
+                                        <td className="text-center">{u.asSize}</td>
+                                        <td className="text-center">{u.bv}</td>
+                                        <td className="text-center">{u.pv}</td>
+                                        <td className="text-center">{u.availableFromMonth}</td>
+                                        <td className="text-center">{u.status}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
                                                 <select
@@ -980,11 +784,19 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         )}
                                         {!isManagerView && (
                                             <td className="text-center">
-                                                <button
-                                                    className="mode-btn"
-                                                    style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
-                                                    onClick={() => handleDeleteUnit(u.id)}
-                                                >X</button>
+                                                <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                                                    <button
+                                                        className="mode-btn"
+                                                        style={{ padding: '2px 8px', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green)', fontSize: '0.65rem' }}
+                                                        onClick={() => handleEditUnit(u)}
+                                                        title="Edit unit record"
+                                                    >EDIT</button>
+                                                    <button
+                                                        className="mode-btn"
+                                                        style={{ padding: '2px 8px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }}
+                                                        onClick={() => handleDeleteUnit(u.id)}
+                                                    >X</button>
+                                                </div>
                                             </td>
                                         )}
                                     </tr>
@@ -1130,6 +942,20 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     mode={pilotEditorMode}
                     onSave={handlePilotEditorSave}
                     onCancel={handlePilotEditorCancel}
+                />
+            )}
+
+            {showMechEditor && (
+                <MechEditor
+                    unit={editingUnit}
+                    commandId={commandId}
+                    detachmentId={selectedDetachmentId}
+                    mode={mechEditorMode}
+                    onSave={handleMechEditorSave}
+                    onCancel={handleMechEditorCancel}
+                    unitTypes={unitTypes}
+                    unitStatuses={unitStatuses}
+                    techBases={techBases}
                 />
             )}
         </div>
