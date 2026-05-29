@@ -64,11 +64,81 @@ export interface PilotUpdateInput {
     detachmentId?: string | null;
 }
 
+export interface RepairRulesInput {
+    armorMultiplier?: number;
+    internalMultiplier?: number;
+    crippledMultiplier?: number;
+    destroyedMultiplier?: number;
+    nonMechModifier?: number;
+    mixedTechModifier?: number;
+    clanTechModifier?: number;
+}
+
+export interface CampaignUpdateInput {
+    name?: string;
+    status?: string;
+    systemName?: string;
+    description?: string;
+    monthlyPay?: number;
+    monthlyMaintenance?: number;
+    transportationCost?: number;
+    combatPay?: number;
+    repairRules?: RepairRulesInput;
+    lengthInMonths?: number;
+    trackCount?: number;
+    payRate?: number;
+    payStep?: number;
+    salvageTerms?: string;
+    salvageStep?: number;
+    supportTerms?: string;
+    supportStep?: number;
+    transportTerms?: string;
+    transportStep?: number;
+    commandRights?: string;
+    commandStep?: number;
+}
+
+export interface CampaignCreateInput {
+    name?: string;
+    employer?: string;
+    opponent?: string;
+    mission?: string;
+    employerCategory?: string;
+    systemName?: string;
+    description?: string;
+    status?: string;
+    payRate?: number;
+    salvageTerms?: string;
+    supportTerms?: string;
+    transportTerms?: string;
+    commandRights?: string;
+    payStep?: number;
+    salvageStep?: number;
+    supportStep?: number;
+    transportStep?: number;
+    commandStep?: number;
+    trackCount?: number;
+    lengthInMonths?: number;
+    monthlyPay?: number;
+    monthlyMaintenance?: number;
+    transportationCost?: number;
+    combatPay?: number;
+    repairRules?: RepairRulesInput;
+}
+
 export interface CommandUpdateInput {
     name?: string;
     commandingOfficer?: string;
     totalSupportPoints?: number;
     reputation?: number;
+}
+
+export interface LedgerEntryInput {
+    amount: number;
+    description: string;
+    reputationChange?: number;
+    campaignName?: string;
+    monthIndex?: number;
 }
 
 export interface Detachment {

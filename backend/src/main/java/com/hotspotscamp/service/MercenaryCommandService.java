@@ -99,6 +99,8 @@ public class MercenaryCommandService {
      * DTO for updating campaign details via GraphQL.
      */
     public record CampaignUpdateInput(
+            String name,
+            String status,
             String systemName,
             String description,
             Integer monthlyPay,
@@ -107,7 +109,17 @@ public class MercenaryCommandService {
             Integer combatPay,
             CampaignService.RepairRules repairRules,
             Integer lengthInMonths,
-            Integer trackCount
+            Integer trackCount,
+            Double payRate,
+            Integer payStep,
+            String salvageTerms,
+            Integer salvageStep,
+            String supportTerms,
+            Integer supportStep,
+            String transportTerms,
+            Integer transportStep,
+            String commandRights,
+            Integer commandStep
             ) {
 
     }
@@ -153,7 +165,19 @@ public class MercenaryCommandService {
      */
     public record CommandUpdateInput(
             String name,
-            String commandingOfficer
+            String commandingOfficer,
+            Integer totalSupportPoints,
+            Integer reputation
+            ) {
+
+    }
+
+    public record LedgerEntryInput(
+            Integer amount,
+            String description,
+            Integer reputationChange,
+            String campaignName,
+            Integer monthIndex
             ) {
 
     }
@@ -210,6 +234,12 @@ public class MercenaryCommandService {
             if (input.commandingOfficer() != null) {
                 cmd.setCommandingOfficer(input.commandingOfficer());
             }
+            if (input.totalSupportPoints() != null) {
+                cmd.setTotalSupportPoints(input.totalSupportPoints());
+            }
+            if (input.reputation() != null) {
+                cmd.setReputation(input.reputation());
+            }
             cmd.setNew(false);
             return commandRepository.save(cmd)
                     .doOnNext(commandSink::tryEmitNext)
@@ -227,8 +257,7 @@ public class MercenaryCommandService {
     @Transactional
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
         log.trace("[TRACE] Starting createCommand for user: {}", userId);
-        return userService.resolveOrCreateUser(userId)
-                .flatMap(user -> {
+        return userService.resolveOrCreateUser(userId).<MercenaryCommand>flatMap(user -> {
                     UUID commandId = UUID.randomUUID();
                     command.setId(commandId);
                     command.setOwnerId(user.getId().toString());
@@ -244,17 +273,15 @@ public class MercenaryCommandService {
                     command.setReputation(0);
                     command.setNew(true);
 
-                    return commandRepository.save(command)
-                            .flatMap(savedCmd -> {
-                                LedgerEntry initialEntry = LedgerEntry.builder()
-                                        .commandId(commandId)
-                                        .amount(startingSp)
-                                        .reputationChange(startingRep)
-                                        .description("INITIAL COMMAND ESTABLISHMENT")
-                                        .timestamp(LocalDateTime.now())
-                                        .isNew(true)
-                                        .build();
-                                return addLedgerEntry(commandId, null, initialEntry, userId)
+                    return commandRepository.save(command).<MercenaryCommand>flatMap(savedCmd -> {
+                                LedgerEntryInput input = new LedgerEntryInput(
+                                        startingSp,
+                                        "INITIAL COMMAND ESTABLISHMENT",
+                                        startingRep,
+                                        null,
+                                        null
+                                );
+                                return addLedgerEntry(commandId, null, input, userId)
                                         .thenReturn(savedCmd);
                             });
                 })
@@ -704,19 +731,19 @@ public class MercenaryCommandService {
      * Adds a new ledger entry after validating that the user is either the
      * command owner or the campaign manager.
      */
-    @Transactional // Assuming LedgerEntry entity is updated with new fields
-    public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntry entry, String userId) {
+    @Transactional
+    public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntryInput input, String userId) {
         log.trace("[TRACE] Starting addLedgerEntry: cmdId={}, detId={}", commandId, detachmentId);
         return userService.resolveOrCreateUser(userId).flatMap(user
                 -> isAuthorizedForCommand(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
                     if (!isAuthorized) {
                         return Mono.<LedgerEntry>error(new RuntimeException("Access Denied: You are not the owner or the campaign manager.")); // Explicitly type Mono.error
                     }
-                    entry.setId(UUID.randomUUID());
-                    entry.setCommandId(commandId);
-                    entry.setDetachmentId(detachmentId);
-                    entry.setTimestamp(LocalDateTime.now());
-                    entry.setNew(true);
+                    LedgerEntry entry = LedgerEntry.builder()
+                            .id(UUID.randomUUID()).commandId(commandId).detachmentId(detachmentId)
+                            .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
+                            .campaignName(input.campaignName()).monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
+                            .isNew(true).build();
                     return ledgerEntryRepository.save(entry)
                             .flatMap(saved -> syncTotalSupportPoints(commandId)
                             .then(syncReputation(commandId))
@@ -771,11 +798,47 @@ public class MercenaryCommandService {
                             }
 
                             camp.setNew(false);
+                            if (input.name() != null) {
+                                camp.setName(input.name());
+                            }
+                            if (input.status() != null) {
+                                camp.setStatus(input.status());
+                            }
                             if (input.systemName() != null) {
                                 camp.setSystemName(input.systemName());
                             }
                             if (input.description() != null) {
                                 camp.setDescription(input.description());
+                            }
+                            if (input.payRate() != null) {
+                                camp.setPayRate(input.payRate());
+                            }
+                            if (input.payStep() != null) {
+                                camp.setPayStep(input.payStep());
+                            }
+                            if (input.salvageTerms() != null) {
+                                camp.setSalvageTerms(input.salvageTerms());
+                            }
+                            if (input.salvageStep() != null) {
+                                camp.setSalvageStep(input.salvageStep());
+                            }
+                            if (input.supportTerms() != null) {
+                                camp.setSupportTerms(input.supportTerms());
+                            }
+                            if (input.supportStep() != null) {
+                                camp.setSupportStep(input.supportStep());
+                            }
+                            if (input.transportTerms() != null) {
+                                camp.setTransportTerms(input.transportTerms());
+                            }
+                            if (input.transportStep() != null) {
+                                camp.setTransportStep(input.transportStep());
+                            }
+                            if (input.commandRights() != null) {
+                                camp.setCommandRights(input.commandRights());
+                            }
+                            if (input.commandStep() != null) {
+                                camp.setCommandStep(input.commandStep());
                             }
                             if (input.monthlyPay() != null) {
                                 camp.setMonthlyPay(input.monthlyPay());

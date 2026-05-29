@@ -3,6 +3,9 @@ import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/c
 import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { CombatUnit, Pilot, Detachment } from '../types/global.d';
+import { PilotEditor } from './PilotEditor';
+import { CombatUnitEditor } from './CombatUnitEditor';
+import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 import '../styles/theme.css';
 
 const GET_FORCE_DATA = gql`
@@ -53,30 +56,17 @@ const GET_FORCE_DATA = gql`
       name
       primaryEmployer
     }
+    publicCampaignMetadata {
+      unitStatuses
+      unitTypes
+      techBases
+    }
   }
 `;
 
 const ASSIGN_ASSET = gql`
   mutation AssignAsset($assetType: String!, $assetId: ID!, $detachmentId: ID) {
     assignAsset(assetType: $assetType, assetId: $assetId, detachmentId: $detachmentId)
-  }
-`;
-
-const ADD_UNIT = gql`
-  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitUpdateInput!) {
-    addCombatUnit(commandId: $commandId, input: $input) {
-      id
-      model
-    }
-  }
-`;
-
-const HIRE_PILOT = gql`
-  mutation HirePilot($commandId: ID!, $input: PilotUpdateInput!) {
-    hirePilot(commandId: $commandId, input: $input) {
-      id
-      name
-    }
   }
 `;
 
@@ -92,6 +82,11 @@ interface ForceData {
     };
     managedCampaigns: any[];
     participatingCampaigns: any[];
+    publicCampaignMetadata: {
+        unitStatuses: string[];
+        unitTypes: string[];
+        techBases: string[];
+    };
 }
 
 interface AssetProps {
@@ -153,6 +148,9 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
     const [managedCampaigns, setManagedCampaigns] = useState<any[]>([]);
     const [participatingCampaigns, setParticipatingCampaigns] = useState<any[]>([]);
     const [viewMode, setViewMode] = useState<ViewMode>(initialMode);
+    const [showPilotEditor, setShowPilotEditor] = useState(false);
+    const [showCombatUnitEditor, setShowCombatUnitEditor] = useState(false);
+    const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
 
     const { loading, error, data, refetch } = useQuery<ForceData>(GET_FORCE_DATA, {
         variables: { commandId },
@@ -169,9 +167,11 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         }
     }, [data]);
 
+    const unitStatuses = data?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
+    const unitTypes = data?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES;
+    const techBases = data?.publicCampaignMetadata?.techBases || FALLBACK_TECH;
+
     const [assignAsset] = useMutation(ASSIGN_ASSET);
-    const [addUnitMutation] = useMutation(ADD_UNIT);
-    const [hirePilotMutation] = useMutation(HIRE_PILOT);
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -200,52 +200,14 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         }
     };
 
-    const handleAddUnit = async () => {
-        const model = prompt("Enter Unit Model (e.g., Shadow Hawk SHD-2H):");
-        if (!model) return;
-        try {
-            await addUnitMutation({
-                variables: {
-                    commandId, // Use commandId from props
-                    input: {
-                        model,
-                        tonnage: 55,
-                        status: 'OPERATIONAL'
-                    }
-                }
-            });
-            refetch();
-        } catch (err) { alert("Procurement failed."); }
+    const handleAddUnit = (detId: string | null = null) => {
+        setSelectedDetachmentId(detId);
+        setShowCombatUnitEditor(true);
     };
 
-    const handleHirePilot = async () => {
-        const name = prompt("Enter Pilot Name:");
-        if (!name) return;
-        try {
-            await hirePilotMutation({
-                variables: {
-                    commandId, // Use commandId from props
-                    input: {
-                        name,
-                        gunnery: 4,
-                        piloting: 5,
-                        asSkill: 4,
-                        unitType: 'BM',
-                        wounds: 0,
-                        handicap: 0,
-                        totalSpEarned: 0,
-                        gunnerySpEarned: 0,
-                        pilotingSpEarned: 0,
-                        edgeTokensSpEarned: 0,
-                        edgeAbilitySpEarned: 0,
-                        edgeTokensSkill: 1, // Default value
-                        edgeAbilitySkill: 0, // Default value
-                        edgeAbilities: '' // Default value
-                    }
-                }
-            });
-            refetch();
-        } catch (err) { alert("Contracting failed."); }
+    const handleHirePilot = (detId: string | null = null) => {
+        setSelectedDetachmentId(detId);
+        setShowPilotEditor(true);
     };
 
     if (loading && !data) return <div className="loading">INITIALIZING TACTICAL LINK...</div>;
@@ -262,13 +224,13 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
 
                     <nav className="mode-switcher mt-1rem">
                         <button type="button"
-                            className={`mode-btn ${viewMode === 'ORGANIZATION' ? 'active' : ''}`}
+                            className={`mode-btn theme-amber ${viewMode === 'ORGANIZATION' ? 'active' : ''}`}
                             onClick={() => setViewMode('ORGANIZATION')}
                         >
                             [ 01 ] FORCE ORGANIZATION
                         </button>
                         <button type="button"
-                            className={`mode-btn ${viewMode === 'OPERATIONS' ? 'active' : ''}`}
+                            className={`mode-btn theme-amber ${viewMode === 'OPERATIONS' ? 'active' : ''}`}
                             onClick={() => setViewMode('OPERATIONS')}
                         >
                             [ 02 ] ACTIVE OPERATIONS
@@ -283,7 +245,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                             <div className="asset-group">
                                 <div className="flex-between">
                                     <h4 title="Combat Units">COMBAT UNITS</h4>
-                                    <button type="button" className="mode-btn sm-text" onClick={handleAddUnit}>+</button>
+                                    <button type="button" className="mode-btn theme-green sm-text" onClick={() => handleAddUnit(null)} title="Procure unit for hangar pool">+</button>
                                 </div>
                                 {units.filter(u => !u.detachmentId).map(u => (
                                     <DraggableAsset
@@ -298,7 +260,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                             <div className="asset-group">
                                 <div className="flex-between">
                                     <h4 title="Pilot Barracks">PILOT BARRACKS</h4>
-                                    <button type="button" className="mode-btn sm-text" onClick={handleHirePilot}>+</button>
+                                    <button type="button" className="mode-btn theme-green sm-text" onClick={() => handleHirePilot(null)} title="Hire pilot for barracks">+</button>
                                 </div>
                                 {pilots.filter(p => !p.detachmentId).map(p => (
                                     <DraggableAsset
@@ -316,6 +278,10 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         <div className="detachments-container">
                             {detachments.map(det => (
                                 <DroppableZone key={det.id} id={det.id} title={`DETACHMENT: ${det.name}`}>
+                                    <div className="flex flex-gap-5 justify-end" style={{ marginBottom: '8px' }}>
+                                        <button type="button" className="mode-btn theme-green xs-text" onClick={() => handleAddUnit(det.id)} title="Add unit directly to this detachment">+</button>
+                                        <button type="button" className="mode-btn theme-green xs-text" onClick={() => handleHirePilot(det.id)} title="Add pilot directly to this detachment">👤+</button>
+                                    </div>
                                     <div className="assigned-assets">
                                         {units.filter(u => u.detachmentId === det.id).map(u => (
                                             <DraggableAsset
@@ -358,7 +324,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                     <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-status" title={`System: ${camp.systemName} | Tracks: ${camp.trackCount}`}>SYSTEM: {camp.systemName} | TRACKS: {camp.trackCount}</div>
-                                        <button type="button" className="mode-btn sm-text mt-05rem">VIEW THEATER</button>
+                                        <button type="button" className="mode-btn theme-blue sm-text mt-05rem">VIEW THEATER</button>
                                     </div>
                                 ))}
                                 {managedCampaigns.length === 0 && (
@@ -377,7 +343,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                         <div className="ops-meta" title={`Employer: ${camp.primaryEmployer}`}>EMPLOYER: {camp.primaryEmployer}</div>
                                         <div className="ops-meta">CURRENT WARCHEST: 4500 SP</div>
                                         <div className="ops-actions flex flex-gap-10">
-                                            <button type="button" className="mode-btn sm-text mt-05rem">OPEN LOGBOOK</button>
+                                            <button type="button" className="mode-btn theme-green sm-text mt-05rem">OPEN LOGBOOK</button>
                                         </div>
                                     </div>
                                 ))}
@@ -389,6 +355,27 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                     </div>
                 )}
             </div>
+            {showPilotEditor && (
+                <PilotEditor
+                    commandId={commandId}
+                    detachmentId={selectedDetachmentId || undefined}
+                    mode="create"
+                    onSave={() => { setShowPilotEditor(false); refetch(); }}
+                    onCancel={() => setShowPilotEditor(false)}
+                />
+            )}
+            {showCombatUnitEditor && (
+                <CombatUnitEditor
+                    commandId={commandId}
+                    detachmentId={selectedDetachmentId || undefined}
+                    mode="create"
+                    unitTypes={unitTypes}
+                    unitStatuses={unitStatuses}
+                    techBases={techBases}
+                    onSave={() => { setShowCombatUnitEditor(false); refetch(); }}
+                    onCancel={() => setShowCombatUnitEditor(false)}
+                />
+            )}
         </DndContext>
     );
 };

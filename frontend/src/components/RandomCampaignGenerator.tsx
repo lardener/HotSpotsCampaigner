@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
+import { CampaignCreateInput, RepairRulesInput } from '../types/global.d';
 
 export const GET_METADATA = gql`
   query GetCampaignMetadata {
@@ -159,42 +160,6 @@ interface MetadataData {
             clanTechModifier: number;
         };
     };
-}
-
-interface RepairRulesInput {
-    armorMultiplier?: number;
-    internalMultiplier?: number;
-    crippledMultiplier?: number;
-    destroyedMultiplier?: number;
-    nonMechModifier?: number;
-    mixedTechModifier?: number;
-    clanTechModifier?: number;
-}
-
-interface CampaignCreateInput {
-    employer?: string;
-    opponent?: string;
-    mission?: string;
-    employerCategory?: string;
-    systemName?: string;
-    description?: string;
-    payRate?: number;
-    salvageTerms?: string;
-    supportTerms?: string;
-    transportTerms?: string;
-    commandRights?: string;
-    payStep?: number;
-    salvageStep?: number;
-    supportStep?: number;
-    transportStep?: number;
-    commandStep?: number;
-    trackCount?: number;
-    lengthInMonths?: number;
-    monthlyPay?: number;
-    monthlyMaintenance?: number;
-    transportationCost?: number;
-    combatPay?: number;
-    repairRules?: RepairRulesInput;
 }
 
 interface PreviewData {
@@ -517,6 +482,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                             <input // Campaign name input
                                 id="proposal-name"
                                 type="text"
+                                className="table-input"
                                 value={proposal.campaign.name}
                                 onChange={(e) => updateProposalCampaign('name', e.target.value)}
                                 title="Campaign Name Designation"
@@ -524,18 +490,13 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                 style={{
                                     marginLeft: '10px',
                                     width: '60%',
-                                    fontSize: '0.9em',
-                                    color: '#c00',
-                                    backgroundColor: 'rgba(0,0,0,0.3)',
-                                    border: '1px solid #c00',
-                                    padding: '2px 8px'
                                 }}
                             />
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             <div> {/* Added title to input */}
                                 <label htmlFor="proposal-system"><strong>STAR SYSTEM:</strong></label>
-                                <input id="proposal-system" type="text" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" style={{ width: '100%' }} />
+                                <input id="proposal-system" type="text" className="table-input w-100" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" />
                             </div>
                             <div> {/* Added title to input */}
                                 <label htmlFor="proposal-tracks"><strong>TRACKS:</strong></label>
@@ -543,7 +504,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                     onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
                                     onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
                                     title="Number of tracks (months)"
-                                    className="inline-edit-input-small" />
+                                    className="table-input inline-edit-input-small" />
                             </div>
                         </div>
                     </div>
@@ -555,7 +516,7 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`}>TRACK {idx + 1}:</label> {/* Added title to select */}
                                     {/* Strip suffix for the value so it matches the options in trackTypes */}
-                                    <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="input-group-gap" title={`Select track type for track ${idx + 1}`}>
+                                    <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input input-group-gap" title={`Select track type for track ${idx + 1}`}>
                                         {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                     </select>
                                 </div>
@@ -572,38 +533,38 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                         type="text"
                                         value={c.employerCategory}
                                         onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
-                                        className="asset-assignment-select"
+                                        className="table-input w-100"
                                         title="Employer Faction and Category"
                                     />
                                 </p>
                                 <p><strong>MISSION:</strong>
-                                    <select value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)} title="Mission Type">
+                                    <select className="table-input" value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)} title="Mission Type">
                                         {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                                     <p><strong>PAY STEP:</strong>
-                                        <select value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))} title="Pay Step">
+                                        <select className="table-input" value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))} title="Pay Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({Math.round(c.payRate * 100)}%)</span>
                                     </p>
                                     <p><strong>SALVAGE STEP:</strong>
-                                        <select value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))} title="Salvage Step">
+                                        <select className="table-input" value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))} title="Salvage Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.salvageTerms})</span>
                                     </p>
                                     <p><strong>SUPPORT STEP:</strong>
-                                        <select value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))} title="Support Step">
+                                        <select className="table-input" value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))} title="Support Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.supportTerms})</span>
                                     </p>
                                     <p><strong>TRANSPORT STEP:</strong>
-                                        <select value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))} title="Transport Step">
+                                        <select className="table-input" value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))} title="Transport Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.transportTerms})</span>
                                     </p>
                                     <p><strong>COMMAND STEP:</strong>
-                                        <select value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))} title="Command Step">
+                                        <select className="table-input" value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))} title="Command Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.commandRights})</span>
                                     </p>

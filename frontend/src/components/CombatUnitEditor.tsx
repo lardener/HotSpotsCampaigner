@@ -297,19 +297,19 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                             </h2>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <button
-                                    className="mode-btn"
+                                    className="mode-btn theme-green"
                                     onClick={handleSave}
                                     disabled={isSaving}
-                                    style={{ padding: '2px 8px', fontSize: '0.8rem', borderColor: 'var(--terminal-green)', color: 'var(--terminal-green)' }}
+                                    style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                                     title="Confirm and save"
                                 >
                                     {isSaving ? '>> PROCESSING...' : (mode === 'create' ? '✓ PROCURE' : '✓ SAVE')}
                                 </button>
                                 <button
-                                    className="mode-btn"
+                                    className="mode-btn theme-red"
                                     onClick={onCancel}
                                     disabled={isSaving}
-                                    style={{ padding: '2px 8px', fontSize: '0.8rem', borderColor: 'var(--terminal-alert)', color: 'var(--terminal-alert)' }}
+                                    style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                                     title="Discard changes and return"
                                 >
                                     ✕ DISCARD
@@ -326,7 +326,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                             <input
                                                 id="import-link"
                                                 type="text"
-                                                className="table-input flex-grow"
+                                                className="table-input flex-grow inline-edit-input"
                                                 value={importLink}
                                                 onChange={(e) => setImportLink(e.target.value)}
                                                 placeholder="MASTER UNIT LIST LINK (MUL)..."
@@ -334,7 +334,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                             />
                                             <button
                                                 type="button"
-                                                className="mode-btn"
+                                                className="mode-btn theme-green"
                                                 onClick={handleImport}
                                                 disabled={isSaving || !importLink.trim()}
                                                 style={{ padding: '4px 15px', fontSize: '0.7rem' }}
@@ -354,7 +354,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         <input
                                             id="mech-model"
                                             type="text"
-                                            className="table-input flex-grow"
+                                            className="table-input flex-grow inline-edit-input"
                                             value={formData.model}
                                             onChange={(e) => handleInputChange('model', e.target.value)}
                                             placeholder="UNIT MODEL DESIGNATION"
@@ -369,7 +369,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         <input
                                             id="mech-variant"
                                             type="text"
-                                            className="table-input flex-grow"
+                                            className="table-input flex-grow inline-edit-input"
                                             value={formData.variant}
                                             onChange={(e) => handleInputChange('variant', e.target.value)}
                                             placeholder="VARIANT CODE (E.G., SHD-2K)"
@@ -383,7 +383,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                             <label htmlFor="mech-type" className="restricted-text sm-text" style={{ minWidth: '100px' }}>TYPE</label>
                                             <select
                                                 id="mech-type"
-                                                className="table-input flex-grow"
+                                                className="table-input flex-grow inline-edit-input"
                                                 value={formData.type}
                                                 onChange={(e) => handleInputChange('type', e.target.value)}
                                                 title="Unit classification"
@@ -398,7 +398,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                             <label htmlFor="mech-tech" className="restricted-text sm-text" style={{ minWidth: '80px' }}>TECH</label>
                                             <select
                                                 id="mech-tech"
-                                                className="table-input flex-grow"
+                                                className="table-input flex-grow inline-edit-input"
                                                 value={formData.techBase}
                                                 onChange={(e) => handleInputChange('techBase', e.target.value)}
                                                 title="Technology base"
@@ -413,7 +413,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                             <label htmlFor="mech-status" className="restricted-text sm-text" style={{ minWidth: '100px' }}>STATUS</label>
                                             <select
                                                 id="mech-status"
-                                                className="table-input flex-grow"
+                                                className="table-input flex-grow inline-edit-input"
                                                 value={formData.status}
                                                 onChange={(e) => handleInputChange('status', e.target.value)}
                                                 title="Operational status"
@@ -433,8 +433,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         <input
                                             id="mech-tonnage"
                                             type="number"
-                                            className="table-input text-right"
-                                            style={{ width: '100%', textAlign: 'center' }}
+                                            className="table-input text-center table-input-tonnage"
                                             value={formData.tonnage}
                                             onChange={(e) => handleInputChange('tonnage', e.target.value)}
                                             title="Unit tonnage"
@@ -446,8 +445,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         <input
                                             id="mech-assize"
                                             type="number"
-                                            className="table-input text-right"
-                                            style={{ width: '100%', textAlign: 'center' }}
+                                            className="table-input text-center table-input-size"
                                             value={formData.asSize}
                                             onChange={(e) => handleInputChange('asSize', e.target.value)}
                                             title="Alpha Strike size"
@@ -459,8 +457,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         <input
                                             id="mech-bv"
                                             type="number"
-                                            className="table-input text-right"
-                                            style={{ width: '100%', textAlign: 'center' }}
+                                            className="table-input text-center table-input-bv"
                                             value={formData.bv}
                                             onChange={(e) => handleInputChange('bv', e.target.value)}
                                             title="Battle value"
@@ -472,8 +469,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         <input
                                             id="mech-pv"
                                             type="number"
-                                            className="table-input text-right"
-                                            style={{ width: '100%', textAlign: 'center' }}
+                                            className="table-input text-center table-input-pv"
                                             value={formData.pv}
                                             onChange={(e) => handleInputChange('pv', e.target.value)}
                                             title="Point value"

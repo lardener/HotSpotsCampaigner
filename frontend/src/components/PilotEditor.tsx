@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
-import { TerminalOverlay } from './TerminalOverlay'; // Keep this import
-import { Pilot, PilotUpdateInput } from '../types/global.d'; // Import from global types
+import { TerminalOverlay } from './TerminalOverlay';
+import { Pilot, PilotUpdateInput } from '../types/global.d';
 
 interface PilotEditorProps { // Use imported Pilot type
     pilot?: Pilot | null;
     commandId: string;
+    detachmentId?: string | null;
     mode: 'create' | 'edit';
     onSave: (pilot: Pilot) => void;
     onCancel: () => void;
@@ -81,6 +82,7 @@ interface HirePilotVars {
 export const PilotEditor: React.FC<PilotEditorProps> = ({
     pilot,
     commandId,
+    detachmentId,
     mode,
     onSave,
     onCancel
@@ -104,7 +106,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             gunnerySpEarned: 0,
             pilotingSpEarned: 0,
             edgeTokensSpEarned: 0,
-            edgeAbilitySpEarned: 0
+            edgeAbilitySpEarned: 0,
+            detachmentId: detachmentId || null
         }
     );
 
@@ -296,7 +299,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                 pilotingSpEarned: formData.pilotingSpEarned,
                 edgeTokensSpEarned: formData.edgeTokensSpEarned,
                 edgeAbilitySpEarned: formData.edgeAbilitySpEarned,
-                edgeAbilities: formData.edgeAbilities
+                edgeAbilities: formData.edgeAbilities,
+                detachmentId: formData.detachmentId || detachmentId || null
             };
 
             if (mode === 'create') {
@@ -353,19 +357,19 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     </h2>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <button
-                            className="mode-btn"
+                            className="mode-btn theme-green"
                             onClick={handleSave}
                             disabled={isSaving}
-                            style={{ padding: '2px 8px', fontSize: '0.8rem', borderColor: 'var(--terminal-green)', color: 'var(--terminal-green)' }}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                             title="Confirm and save"
                         >
                             {isSaving ? '>> PROCESSING...' : (mode === 'create' ? '✓ HIRE' : '✓ SAVE')}
                         </button>
                         <button
-                            className="mode-btn"
+                            className="mode-btn theme-red"
                             onClick={onCancel}
                             disabled={isSaving}
-                            style={{ padding: '2px 8px', fontSize: '0.8rem', borderColor: 'var(--terminal-alert)', color: 'var(--terminal-alert)' }}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                             title="Discard changes and return"
                         >
                             ✕ DISCARD
@@ -382,7 +386,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                 <input
                                     id="pilot-name"
                                     type="text"
-                                    className="table-input flex-grow"
+                                    className="table-input flex-grow inline-edit-input"
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     placeholder="PILOT DESIGNATION"
@@ -396,7 +400,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                 <label htmlFor="pilot-unit-type" className="restricted-text sm-text" style={{ minWidth: '160px' }}>UNIT SPECIALTY</label>
                                 <select
                                     id="pilot-unit-type"
-                                    className="table-input flex-grow"
+                                    className="table-input flex-grow inline-edit-input"
                                     value={formData.unitType}
                                     onChange={(e) => handleInputChange('unitType', e.target.value)}
                                     title="Select unit type specialization"
@@ -411,7 +415,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                 <label htmlFor="pilot-wounds" className="restricted-text sm-text" style={{ minWidth: '160px' }}>WOUNDS</label>
                                 <select
                                     id="pilot-wounds"
-                                    className="table-input flex-grow"
+                                    className="table-input flex-grow inline-edit-input"
                                     value={formData.wounds}
                                     onChange={(e) => handleInputChange('wounds', e.target.value)}
                                     title="Select pilot wounds (0-6)"
@@ -426,7 +430,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                 <input
                                     id="pilot-edge-abilities"
                                     type="text"
-                                    className="table-input flex-grow"
+                                    className="table-input flex-grow inline-edit-input"
                                     value={formData.edgeAbilities}
                                     onChange={(e) => handleInputChange('edgeAbilities', e.target.value)}
                                     placeholder="EDGE ABILITIES"
@@ -461,7 +465,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     <input
                                         id="pilot-total-sp-earned"
                                         type="number"
-                                        className="table-input text-right" style={{ width: '5em' }}
+                                        className="table-input text-right inline-edit-input"
                                         value={formData.totalSpEarned}
                                         onChange={(e) => handleInputChange('totalSpEarned', e.target.value)}
                                         title="Total SP Earned"
@@ -472,7 +476,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     <input
                                         id="pilot-gunnery-sp-earned"
                                         type="number"
-                                        className="table-input text-right" style={{ width: '5em' }}
+                                        className="table-input text-right inline-edit-input"
                                         value={formData.gunnerySpEarned}
                                         onChange={(e) => handleInputChange('gunnerySpEarned', e.target.value)}
                                         title="Gunnery SP"
@@ -483,7 +487,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     <input
                                         id="pilot-piloting-sp-earned"
                                         type="number"
-                                        className="table-input text-right" style={{ width: '5em' }}
+                                        className="table-input text-right inline-edit-input"
                                         value={formData.pilotingSpEarned}
                                         onChange={(e) => handleInputChange('pilotingSpEarned', e.target.value)}
                                         title="Piloting SP"
@@ -494,7 +498,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     <input
                                         id="pilot-edge-tokens-sp-earned"
                                         type="number"
-                                        className="table-input text-right" style={{ width: '5em' }}
+                                        className="table-input text-right inline-edit-input"
                                         value={formData.edgeTokensSpEarned}
                                         onChange={(e) => handleInputChange('edgeTokensSpEarned', e.target.value)}
                                         title="Edge Tokens SP"
@@ -505,7 +509,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                     <input
                                         id="pilot-edge-ability-sp-earned"
                                         type="number"
-                                        className="table-input text-right" style={{ width: '5em' }}
+                                        className="table-input text-right inline-edit-input"
                                         value={formData.edgeAbilitySpEarned}
                                         onChange={(e) => handleInputChange('edgeAbilitySpEarned', e.target.value)}
                                         title="Edge Ability SP"

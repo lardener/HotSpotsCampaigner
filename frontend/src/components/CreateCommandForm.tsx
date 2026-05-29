@@ -89,7 +89,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                     <input
                         id="command-name"
                         type="text"
-                        className="table-input w-100"
+                        className="table-input w-100 inline-edit-input"
                         value={commandName}
                         onChange={(e) => setCommandName(e.target.value.toUpperCase())}
                         placeholder="ENTER COMMAND NAME"
@@ -103,7 +103,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
                     <input
                         id="commanding-officer"
                         type="text"
-                        className="table-input w-100"
+                        className="table-input w-100 inline-edit-input"
                         value={commandingOfficer}
                         onChange={(e) => setCommandingOfficer(e.target.value)}
                         placeholder="YOUR CALLSIGN"

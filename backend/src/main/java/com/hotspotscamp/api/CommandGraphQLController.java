@@ -151,6 +151,7 @@ public class CommandGraphQLController {
         command.setName(input.name());
         command.setCommandingOfficer(input.commandingOfficer());
         command.setTotalSupportPoints(input.totalSupportPoints());
+        command.setReputation(input.reputation());
         return commandService.createCommand(command, userId);
     }
 
@@ -231,23 +232,12 @@ public class CommandGraphQLController {
     @MutationMapping
     public Mono<LedgerEntry> addLedgerEntry(@Argument UUID commandId,
             @Argument UUID detachmentId,
-            @Argument Integer amount,
-            @Argument String description,
-            @Argument Integer reputationChange,
-            @Argument String campaignName,
-            @Argument Integer monthIndex,
+            @Argument MercenaryCommandService.LedgerEntryInput input,
             Principal principal) {
-        if (commandId == null || principal == null) {
+        if (commandId == null || principal == null || input == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        LedgerEntry entry = LedgerEntry.builder()
-                .amount(amount)
-                .description(description)
-                .reputationChange(reputationChange)
-                .campaignName(campaignName)
-                .monthIndex(monthIndex)
-                .build();
-        return commandService.addLedgerEntry(commandId, detachmentId, entry, principal.getName());
+        return commandService.addLedgerEntry(commandId, detachmentId, input, principal.getName());
     }
 
     @MutationMapping

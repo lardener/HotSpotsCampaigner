@@ -148,11 +148,14 @@ public class CampaignService {
     }
 
     public record CampaignCreateInput(
+            String name,
             String employer,
             String opponent,
             String mission,
             String employerCategory,
             String systemName,
+            String description,
+            String status,
             Double payRate,
             String salvageTerms,
             String supportTerms,
@@ -460,11 +463,11 @@ public class CampaignService {
                 input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand);
 
         Campaign campaign = Campaign.builder()
-                .name(finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
+                .name(input.name() != null && !input.name().isBlank() ? input.name() : finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
                 .trackCount(finalTracksCount)
                 .lengthInMonths(TypeUtils.asInt(input.lengthInMonths(), finalTracksCount))
-                .description("Theater established in the " + finalSystemName + " system.")
+                .description(input.description() != null && !input.description().isBlank() ? input.description() : "Theater established in the " + finalSystemName + " system.")
                 .payRate(primaryContract.getPayRate())
                 .payStep(primaryContract.getPayStep())
                 .salvageTerms(primaryContract.getSalvageTerms())
@@ -487,7 +490,7 @@ public class CampaignService {
                 .mixedTechModifier(rules.mixedTechModifier())
                 .clanTechModifier(rules.clanTechModifier())
                 .repairRules(rules)
-                .status("PREVIEW")
+                .status(input.status() != null && !input.status().isBlank() ? input.status() : "PREVIEW")
                 .build();
 
         Contract oppositionContract = generateContract(finalOpp, oppMission, "Minor Power",
@@ -715,9 +718,14 @@ public class CampaignService {
             CampaignProposal proposal = generateProposal(input);
             Campaign campaign = proposal.campaign();
             campaign.setId(campaign.getId() == null ? UUID.randomUUID() : campaign.getId());
+
             campaign.setManagerId(user.getId().toString());
             campaign.setNew(true);
-            campaign.setStatus("ACTIVE");
+            if (input.status() != null && !input.status().isBlank()) {
+                campaign.setStatus(input.status());
+            } else {
+                campaign.setStatus("ACTIVE");
+            }
 
             final String primaryEmp = proposal.contracts().get(0).getEmployerCategory().split(": ", 2)[0];
             final String oppositionEmp = proposal.contracts().get(1).getEmployerCategory().split(": ", 2)[0];

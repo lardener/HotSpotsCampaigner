@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react'; // Keep this import style
+import { LedgerEntryInput } from '../types/global.d';
 
 export const ADD_LEDGER_ENTRY = gql`
-  mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $amount: Int!, $description: String!, $reputationChange: Int, $campaignName: String, $monthIndex: Int) {
-    addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, amount: $amount, description: $description, reputationChange: $reputationChange, campaignName: $campaignName, monthIndex: $monthIndex) {
+  mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $input: LedgerEntryInput!) {
+    addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, input: $input) {
       id
     }
   }
@@ -24,7 +25,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
     const [reputationChange, setReputationChange] = useState<number | undefined>(undefined);
     const [campaignName, setCampaignName] = useState(initialCampaignName);
     const [monthIndex, setMonthIndex] = useState<number | undefined>(initialMonthIndex);
-    const [addLedgerEntry, { loading }] = useMutation(ADD_LEDGER_ENTRY);
+    const [addLedgerEntry, { loading }] = useMutation<any, { commandId: string; detachmentId: string | null; input: LedgerEntryInput }>(ADD_LEDGER_ENTRY);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -42,11 +43,13 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                 variables: {
                     commandId,
                     detachmentId,
-                    amount,
-                    description,
-                    reputationChange: finalReputationChange,
-                    campaignName: campaignName || null,
-                    monthIndex: monthIndex === undefined ? null : monthIndex
+                    input: {
+                        amount,
+                        description,
+                        reputationChange: finalReputationChange ?? undefined,
+                        campaignName: campaignName || undefined,
+                        monthIndex: monthIndex === undefined ? undefined : monthIndex
+                    }
                 }
             });
             setDescription('');

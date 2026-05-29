@@ -321,6 +321,33 @@ body {
 }
 
 /* Component Helpers */
+.table-input {
+    background: transparent;
+    border: 1px solid transparent;
+    color: inherit;
+    font-family: inherit;
+    padding: 2px 4px;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.table-input:hover {
+    border-color: var(--accent-dim);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.table-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: text;
+}
+
+select option {
+    background-color: var(--terminal-bg);
+    color: var(--text-main);
+}
+
 .inline-edit-input {
     width: 6em;
 }
