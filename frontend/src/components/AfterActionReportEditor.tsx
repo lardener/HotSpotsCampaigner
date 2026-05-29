@@ -374,60 +374,75 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                             <div className="grid-5-col flex-gap-10">
                                 <div>
                                     <label className="xs-text opacity-70">CONTRACT</label>
-                                    <select
-                                        className="table-input w-100"
-                                        value={detachmentAars[det.id]?.selectedContractId}
-                                        onChange={(e) => { const val = e.target.value; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], selectedContractId: val } })); }}
-                                        title="Select contract for this detachment"
-                                    >
-                                        {campaign.contracts?.map((c: any) => (
-                                            <option key={c.id} value={c.id}>{c.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({c.employerCategory})</option>
-                                        ))}
-                                    </select>
+                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                        <select
+                                            className="table-input w-100"
+                                            style={{ border: 'none' }}
+                                            value={detachmentAars[det.id]?.selectedContractId}
+                                            onChange={(e) => { const val = e.target.value; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], selectedContractId: val } })); }}
+                                            title="Select contract for this detachment"
+                                        >
+                                            {campaign.contracts?.map((c: any) => (
+                                                <option key={c.id} value={c.id}>{c.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({c.employerCategory})</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="xs-text opacity-70">LEVEL</label>
-                                    <select
-                                        className="table-input w-100"
-                                        value={detachmentAars[det.id]?.selectedLevel}
-                                        onChange={(e) => { const val = parseInt(e.target.value); setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], selectedLevel: val } })); }}
-                                        title="Select deployment level"
-                                    >
-                                        {[1, 2, 3].map(v => <option key={v} value={v}>{v}</option>)}
-                                    </select>
+                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                        <select
+                                            className="table-input w-100"
+                                            style={{ border: 'none' }}
+                                            value={detachmentAars[det.id]?.selectedLevel}
+                                            onChange={(e) => { const val = parseInt(e.target.value); setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], selectedLevel: val } })); }}
+                                            title="Select deployment level"
+                                        >
+                                            {[1, 2, 3].map(v => <option key={v} value={v}>{v}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="xs-text opacity-70">OUTCOME</label>
-                                    <select
-                                        className="table-input w-100"
-                                        value={detachmentAars[det.id]?.outcomeMultiplier}
-                                        onChange={(e) => { const val = parseFloat(e.target.value); setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], outcomeMultiplier: val } })); }}
-                                        title="Select track outcome multiplier"
-                                    >
-                                        <option value="0.5">UNSUCCESSFUL (50%)</option>
-                                        <option value="1">SUCCESSFUL (100%)</option>
-                                        <option value="1.5">SUCCESSFUL W/ BONUS (150%)</option>
-                                    </select>
+                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                        <select
+                                            className="table-input w-100"
+                                            style={{ border: 'none' }}
+                                            value={detachmentAars[det.id]?.outcomeMultiplier}
+                                            onChange={(e) => { const val = parseFloat(e.target.value); setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], outcomeMultiplier: val } })); }}
+                                            title="Select track outcome multiplier"
+                                        >
+                                            <option value="0.5">UNSUCCESSFUL (50%)</option>
+                                            <option value="1">SUCCESSFUL (100%)</option>
+                                            <option value="1.5">SUCCESSFUL W/ BONUS (150%)</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="xs-text opacity-70">SALVAGE (SP)</label>
-                                    <input
-                                        type="number"
-                                        className="table-input w-100"
-                                        value={detachmentAars[det.id]?.salvageValue}
-                                        onChange={(e) => { const val = parseInt(e.target.value) || 0; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], salvageValue: val } })); }}
-                                        title="Enter raw salvage value"
-                                    />
+                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                        <input
+                                            type="number"
+                                            className="table-input w-100"
+                                            style={{ border: 'none' }}
+                                            value={detachmentAars[det.id]?.salvageValue}
+                                            onChange={(e) => { const val = parseInt(e.target.value) || 0; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], salvageValue: val } })); }}
+                                            title="Enter raw salvage value"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="xs-text opacity-70">MISC (SP)</label>
-                                    <input
-                                        type="number"
-                                        className="table-input w-100"
-                                        value={detachmentAars[det.id]?.customAward}
-                                        onChange={(e) => { const val = parseInt(e.target.value) || 0; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], customAward: val } })); }}
-                                        title="Enter misc adjustment"
-                                    />
+                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                        <input
+                                            type="number"
+                                            className="table-input w-100"
+                                            style={{ border: 'none' }}
+                                            value={detachmentAars[det.id]?.customAward}
+                                            onChange={(e) => { const val = parseInt(e.target.value) || 0; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], customAward: val } })); }}
+                                            title="Enter misc adjustment"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

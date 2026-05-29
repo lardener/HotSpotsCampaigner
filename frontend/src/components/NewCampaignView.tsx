@@ -1,5 +1,5 @@
 import React from 'react';
-import { RandomCampaignGenerator } from './RandomCampaignGenerator';
+import { CampaignGenerator } from './CampaignGenerator';
 
 interface NewCampaignViewProps {
     user: { name: string; id: string } | null;
@@ -12,7 +12,7 @@ export const NewCampaignView: React.FC<NewCampaignViewProps> = ({ user, onSaveSu
             <header className="dashboard-header">
                 <h1 className="terminal-text">NEW CAMPAIGN ENLISTMENT</h1>
             </header>
-            <RandomCampaignGenerator
+            <CampaignGenerator
                 user={user || undefined}
                 onSaveSuccess={onSaveSuccess}
             />

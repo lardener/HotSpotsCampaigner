@@ -25,7 +25,9 @@ May 12, 2026, 21:42 UTC-6
 **Source JSON**: `missions.json`
 **Frontend Integration**: 
 - Service function: `campaignApi.getMissions()`
-- Component: RandomCampaignGenerator.tsx
+- Component: CampaignGenerator.tsx
+- Component: CampaignGenerator.tsx
+- Component: CampaignGenerator.tsx
 - State variable: `missions`
 - Usage: Mission type selector in contracts
 
@@ -224,7 +226,7 @@ May 12, 2026, 21:42 UTC-6
 
 ## Frontend Drop-down Population Test
 
-### RandomCampaignGenerator Component Readiness:
+### CampaignGenerator Component Readiness:
 - ✅ Missions drop-down: Will populate with 7 mission types
 - ✅ Track Types drop-down: Will populate with 10 track types
 - ✅ Contract Steps (5 drop-downs): Will populate with steps 1-13

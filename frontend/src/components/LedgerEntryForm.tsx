@@ -77,6 +77,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                             id="description"
                             type="text"
                             className="table-input flex-grow"
+                            style={{ width: '40em' }}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             title="Transaction Description"
@@ -93,9 +94,10 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                                 type="number"
                                 className="table-input text-right"
                                 style={{ width: '8em' }}
-                                value={amount}
+                                value={amount === undefined ? '' : amount}
                                 onChange={(e) => setAmount(parseInt(e.target.value))}
                                 title="Support Points Amount (negative for costs)"
+                                placeholder="±0"
                                 required
                             />
                         </div>
@@ -121,6 +123,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                                 id="campaignName"
                                 type="text"
                                 className="table-input flex-grow"
+                                style={{ width: '40em' }}
                                 value={campaignName}
                                 onChange={(e) => setCampaignName(e.target.value)}
                                 title="Associated Campaign (optional)"

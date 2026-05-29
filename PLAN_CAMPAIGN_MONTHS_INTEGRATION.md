@@ -56,7 +56,7 @@ ADD COLUMN complications VARCHAR(1000);
 - **Modification**: Add logic to update `track.setMonthIndex()` if the `input` map contains the `monthIndex` key. - **COMPLETE**
 - **Rationale**: Allows campaign managers to reassign individual tracks to different months.
 
-## [x] Frontend (`RandomCampaignGenerator.tsx`) Changes
+## [x] Frontend (`CampaignGenerator.tsx`) Changes
 
 ### 1. [x] `Proposal` Interface Update
 - **Modification**: Add `lengthInMonths: number` to the `campaign` object within the `Proposal` interface. - **COMPLETE**

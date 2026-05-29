@@ -258,33 +258,33 @@ public class MercenaryCommandService {
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
         log.trace("[TRACE] Starting createCommand for user: {}", userId);
         return userService.resolveOrCreateUser(userId).<MercenaryCommand>flatMap(user -> {
-                    UUID commandId = UUID.randomUUID();
-                    command.setId(commandId);
-                    command.setOwnerId(user.getId().toString());
-                    if (command.getCommandingOfficer() == null) {
-                        command.setCommandingOfficer(user.getDisplayName());
-                    }
+            UUID commandId = UUID.randomUUID();
+            command.setId(commandId);
+            command.setOwnerId(user.getId().toString());
+            if (command.getCommandingOfficer() == null) {
+                command.setCommandingOfficer(user.getDisplayName());
+            }
 
-                    // Initial values are handled via ledger entry
-                    int startingSp = Objects.requireNonNullElse(command.getTotalSupportPoints(), RulesConstants.STARTING_SUPPORT_POINTS);
-                    int startingRep = Objects.requireNonNullElse(command.getReputation(), RulesConstants.STARTING_REPUTATION);
+            // Initial values are handled via ledger entry
+            int startingSp = Objects.requireNonNullElse(command.getTotalSupportPoints(), RulesConstants.STARTING_SUPPORT_POINTS);
+            int startingRep = Objects.requireNonNullElse(command.getReputation(), RulesConstants.STARTING_REPUTATION);
 
-                    command.setTotalSupportPoints(0);
-                    command.setReputation(0);
-                    command.setNew(true);
+            command.setTotalSupportPoints(0);
+            command.setReputation(0);
+            command.setNew(true);
 
-                    return commandRepository.save(command).<MercenaryCommand>flatMap(savedCmd -> {
-                                LedgerEntryInput input = new LedgerEntryInput(
-                                        startingSp,
-                                        "INITIAL COMMAND ESTABLISHMENT",
-                                        startingRep,
-                                        null,
-                                        null
-                                );
-                                return addLedgerEntry(commandId, null, input, userId)
-                                        .thenReturn(savedCmd);
-                            });
-                })
+            return commandRepository.save(command).<MercenaryCommand>flatMap(savedCmd -> {
+                LedgerEntryInput input = new LedgerEntryInput(
+                        startingSp,
+                        "INITIAL COMMAND ESTABLISHMENT",
+                        startingRep,
+                        null,
+                        null
+                );
+                return addLedgerEntry(commandId, null, input, userId)
+                        .thenReturn(savedCmd);
+            });
+        })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished createCommand"));
     }
 
@@ -885,26 +885,20 @@ public class MercenaryCommandService {
 
                             if (newMonthsInput != null) {
                                 int targetMonths = Math.max(1, newMonthsInput);
-                                int currentMonths = Objects.requireNonNullElse(camp.getLengthInMonths(), 1);
-
-                                if (targetMonths < currentMonths) {
-                                    // Move tracks from removed months to the highest remaining month
-                                    chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
-                                            .filter(t -> (Objects.requireNonNullElse(t.getMonthIndex(), 1)) > targetMonths)
-                                            .flatMap(t -> {
-                                                t.setMonthIndex(targetMonths);
-                                                t.setNew(false);
-                                                return campaignTrackRepository.save(t);
-                                            })
-                                            .then(Mono.fromCallable(() -> {
-                                                camp.setLengthInMonths(targetMonths);
-                                                return camp;
-                                            }));
-                                } else {
-                                    camp.setLengthInMonths(targetMonths);
-                                }
+                                // Ensure all tracks are within the updated theater duration.
+                                // If duration is reduced, orphaned tracks are moved to the final month.
+                                chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
+                                        .filter(t -> (Objects.requireNonNullElse(t.getMonthIndex(), 1)) > targetMonths)
+                                        .flatMap(t -> {
+                                            t.setMonthIndex(targetMonths);
+                                            t.setNew(false);
+                                            return campaignTrackRepository.save(t);
+                                        })
+                                        .then(Mono.fromCallable(() -> {
+                                            camp.setLengthInMonths(targetMonths);
+                                            return camp;
+                                        }));
                             }
-
                             return chain.flatMap(c -> {
                                 if (newTrackCountInput != null) {
                                     int targetTracks = Math.max(1, newTrackCountInput);

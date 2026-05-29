@@ -182,7 +182,7 @@ interface Props {
     onSaveSuccess?: (newCampaign: any) => void;
 }
 
-export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
+export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [primaryMissions, setPrimaryMissions] = useState<string[]>([]);
     const [opponentMissions, setOpponentMissions] = useState<string[]>([]);
     const [resolvedSteps, setResolvedSteps] = useState<Record<number, any>>({});
@@ -495,11 +495,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                             <div> {/* Added title to input */}
-                                <label htmlFor="proposal-system"><strong>STAR SYSTEM:</strong></label>
+                                <label htmlFor="proposal-system" className="restricted-text sm-text">STAR SYSTEM</label>
                                 <input id="proposal-system" type="text" className="table-input w-100" value={proposal.campaign.systemName} onChange={(e) => updateProposalCampaign('systemName', e.target.value)} onBlur={(e) => updateProposalCampaign('systemName', e.target.value)} placeholder="Terra..." title="Star system location" />
                             </div>
                             <div> {/* Added title to input */}
-                                <label htmlFor="proposal-tracks"><strong>TRACKS:</strong></label>
+                                <label htmlFor="proposal-tracks" className="restricted-text sm-text">TRACKS</label>
                                 <input id="proposal-tracks" type="number" value={proposal.campaign.trackCount}
                                     onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
                                     onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
@@ -510,11 +510,11 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     </div>
 
                     <div className="campaign-tracks bg-tracks-proposal mb-20 p-15">
-                        <strong>THEATER OPERATIONAL TRACKS</strong>
+                        <div className="restricted-text sm-text mb-10">THEATER OPERATIONAL TRACKS</div>
                         <div className="mt-10 fs-09em">
                             {proposal.tracks.map((t: string, idx: number) => (
                                 <div key={idx} className="mb-5">
-                                    <label htmlFor={`track-${idx}`}>TRACK {idx + 1}:</label> {/* Added title to select */}
+                                    <label htmlFor={`track-${idx}`} className="restricted-text sm-text">TRACK {idx + 1}</label> {/* Added title to select */}
                                     {/* Strip suffix for the value so it matches the options in trackTypes */}
                                     <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input input-group-gap" title={`Select track type for track ${idx + 1}`}>
                                         {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
@@ -527,8 +527,8 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                     <div className="contract-grid">
                         {proposal.contracts.map((c, i) => (
                             <div key={i} className="summary-item" style={{ marginBottom: '20px', border: '1px solid #444', padding: '15px' }}>
-                                <strong>{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</strong>
-                                <p><strong>EMPLOYER:</strong>
+                                <div className="restricted-text mb-10">{c.primaryContract ? 'PRIMARY CONTRACT OFFER' : 'OPPOSITION CONTRACT OFFER'}</div>
+                                <p><label className="restricted-text sm-text block-label">EMPLOYER</label>
                                     <input
                                         type="text"
                                         value={c.employerCategory}
@@ -537,33 +537,33 @@ export const RandomCampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }
                                         title="Employer Faction and Category"
                                     />
                                 </p>
-                                <p><strong>MISSION:</strong>
+                                <p><label className="restricted-text sm-text block-label">MISSION</label>
                                     <select className="table-input" value={c.missionType} onChange={(e) => updateProposalContract(i, 'missionType', e.target.value)} title="Mission Type">
                                         {(c.primaryContract ? primaryMissions : opponentMissions).map(m => <option key={m} value={m}>{m}</option>)}
                                     </select>
                                 </p>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                                    <p><strong>PAY STEP:</strong>
+                                    <p><label className="restricted-text sm-text block-label">PAY STEP</label>
                                         <select className="table-input" value={c.payStep} onChange={(e) => updateContractByStep(i, 'pay', parseInt(e.target.value))} title="Pay Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({Math.round(c.payRate * 100)}%)</span>
                                     </p>
-                                    <p><strong>SALVAGE STEP:</strong>
+                                    <p><label className="restricted-text sm-text block-label">SALVAGE STEP</label>
                                         <select className="table-input" value={c.salvageStep} onChange={(e) => updateContractByStep(i, 'salvage', parseInt(e.target.value))} title="Salvage Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.salvageTerms})</span>
                                     </p>
-                                    <p><strong>SUPPORT STEP:</strong>
+                                    <p><label className="restricted-text sm-text block-label">SUPPORT STEP</label>
                                         <select className="table-input" value={c.supportStep} onChange={(e) => updateContractByStep(i, 'support', parseInt(e.target.value))} title="Support Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.supportTerms})</span>
                                     </p>
-                                    <p><strong>TRANSPORT STEP:</strong>
+                                    <p><label className="restricted-text sm-text block-label">TRANSPORT STEP</label>
                                         <select className="table-input" value={c.transportStep} onChange={(e) => updateContractByStep(i, 'transport', parseInt(e.target.value))} title="Transport Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.transportTerms})</span>
                                     </p>
-                                    <p><strong>COMMAND STEP:</strong>
+                                    <p><label className="restricted-text sm-text block-label">COMMAND STEP</label>
                                         <select className="table-input" value={c.commandStep} onChange={(e) => updateContractByStep(i, 'command', parseInt(e.target.value))} title="Command Step">
                                             {Object.keys(resolvedSteps).map(s => <option key={s} value={s}>Step {s}</option>)}
                                         </select> <span>({c.commandRights})</span>

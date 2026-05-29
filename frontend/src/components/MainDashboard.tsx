@@ -3,7 +3,7 @@ import { gql } from '@apollo/client';
 import { useQuery, useMutation, useApolloClient } from '@apollo/client/react';
 import { NavigationTree, TreeItem, NodeType } from './NavigationTree';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
-import { RandomCampaignGenerator } from './RandomCampaignGenerator';
+import { CampaignGenerator } from './CampaignGenerator';
 import { CreateCommandForm } from './CreateCommandForm';
 import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
@@ -584,7 +584,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 </div>
                 <div className="container landing-section mt-40">
                     <h2 className="section-title">CAMPAIGN GENERATOR</h2>
-                    <RandomCampaignGenerator user={undefined} />
+                    <CampaignGenerator user={undefined} />
                 </div>
             </div>
         );
@@ -683,7 +683,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         <header className="dashboard-header">
                             <h1 className="terminal-text">NEW CAMPAIGN ENLISTMENT</h1>
                         </header>
-                        <RandomCampaignGenerator
+                        <CampaignGenerator
                             user={user}
                             onSaveSuccess={(newCampaign) => {
                                 fetchCommands();

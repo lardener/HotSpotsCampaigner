@@ -434,7 +434,7 @@ public class CampaignService {
             oppMission = getOpposingMissionType(empMission, rand);
         }
 
-        int finalTracksCount = TypeUtils.asInt(input.trackCount(), rollTrackCount(empMission, rand));
+        int finalTracksCount = Math.max(1, TypeUtils.asInt(input.trackCount(), rollTrackCount(empMission, rand)));
         String finalSystemName = (input.systemName() != null && !input.systemName().isEmpty()) ? input.systemName() : rollSystemName(rand);
 
         // Initialize Repair Rules from input or constants
@@ -466,7 +466,7 @@ public class CampaignService {
                 .name(input.name() != null && !input.name().isBlank() ? input.name() : finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
                 .trackCount(finalTracksCount)
-                .lengthInMonths(TypeUtils.asInt(input.lengthInMonths(), finalTracksCount))
+                .lengthInMonths(Math.max(1, TypeUtils.asInt(input.lengthInMonths(), finalTracksCount)))
                 .description(input.description() != null && !input.description().isBlank() ? input.description() : "Theater established in the " + finalSystemName + " system.")
                 .payRate(primaryContract.getPayRate())
                 .payStep(primaryContract.getPayStep())

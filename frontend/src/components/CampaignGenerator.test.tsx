@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing';
-import { RandomCampaignGenerator, GET_METADATA, PREVIEW_CAMPAIGN } from './RandomCampaignGenerator';
+import { CampaignGenerator, GET_METADATA, PREVIEW_CAMPAIGN } from './CampaignGenerator';
 import { describe, it, expect } from 'vitest';
 
 const metadataMock = {
@@ -45,7 +45,7 @@ const previewMock = {
     },
 };
 
-describe('RandomCampaignGenerator Integration', () => {
+describe('CampaignGenerator Integration', () => {
     it('successfully fetches metadata and triggers initial preview', async () => {
         const client = new ApolloClient({
             link: new MockLink([metadataMock, previewMock]),
@@ -54,7 +54,7 @@ describe('RandomCampaignGenerator Integration', () => {
 
         render(
             <ApolloProvider client={client}>
-                <RandomCampaignGenerator />
+                <CampaignGenerator />
             </ApolloProvider>
         );
 

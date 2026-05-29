@@ -25,7 +25,7 @@ The application uses an **"Invite-as-Identity"** model. Users exist in the `app_
 
 ### How to Invite a User (For Managers)
 1.  **Log in** via Google to gain `ROLE_AUTHENTICATED` status.
-2.  **Create a Campaign**: Use the "New Campaign" generator and save it.
+2.  **Create a Campaign**: Use the "Campaign Generator" and save it.
 3.  **Generate Token**: In the Campaign Management view, click "Generate Invite Key".
 4.  **Share**: Copy the generated 12-character alphanumeric token (or the direct join link) and send it to your player (e.g., via Discord or Signal).
 
@@ -140,7 +140,7 @@ npm test
 │   │   │   ├── NavigationTree.tsx
 │   │   │   ├── MyDeploymentsList.tsx
 │   │   │   ├── LedgerEntryForm.tsx
-│   │   │   ├── CombatUnitEditor.tsx
+│   │   │   ├── CampaignGenerator.tsx
 │   │   │   ├── PilotEditor.tsx
 │   │   │   ├── CampaignTheaterView.tsx
 │   │   │   └── Welcome.tsx

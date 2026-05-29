@@ -322,8 +322,9 @@ body {
 
 /* Component Helpers */
 .table-input {
-    background: transparent;
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid transparent;
+    border-bottom: 1px dashed var(--accent-dim);
     color: inherit;
     font-family: inherit;
     padding: 2px 4px;
@@ -333,19 +334,22 @@ body {
 
 .table-input:hover {
     border-color: var(--accent-dim);
+    border-bottom: 1px solid var(--accent-primary);
     background-color: rgba(255, 255, 255, 0.05);
 }
 
 .table-input:focus {
     outline: none;
     border-color: var(--accent-primary);
+    border-bottom: 1px solid var(--accent-primary);
     background-color: rgba(255, 255, 255, 0.1);
     cursor: text;
 }
 
-select option {
-    background-color: var(--terminal-bg);
-    color: var(--text-main);
+label.restricted-text, .label-distinction {
+    color: var(--accent-dim);
+    font-weight: 600;
+    letter-spacing: 1px;
 }
 
 .inline-edit-input {

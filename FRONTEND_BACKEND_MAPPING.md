@@ -11,7 +11,7 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → GraphQL Resol
 
 ## Frontend Drop-down Fields
 
-### 1. RandomCampaignGenerator Component
+### 1. CampaignGenerator Component
 
 #### Missions Drop-down
 - **GraphQL Operation**: `query GetCampaignMetadata` -> `campaignMetadata.missions`
@@ -21,7 +21,7 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → GraphQL Resol
 #### Track Types Drop-down
 - **GraphQL Operation**: `query GetCampaignMetadata` -> `campaignMetadata.trackTypes`
 - **Data Type**: `[String]`
-- **Apollo Hook**: `useQuery<MetadataData>(GET_METADATA)`
+- **Component**: `CampaignGenerator.tsx`
 
 #### Contract Steps Drop-downs (4 total)
 - **Frontend Fields**: 

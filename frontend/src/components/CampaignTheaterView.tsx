@@ -356,7 +356,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [isSyncing, setIsSyncing] = useState(false);
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
-    const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
@@ -369,6 +368,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     const [editingField, setEditingField] = useState<string | null>(null);
+    const [activeTrackField, setActiveTrackField] = useState<string | null>(null);
     const [monthlyPay, setMonthlyPay] = useState(500);
     const [monthlyMaintenance, setMonthlyMaintenance] = useState(500);
     const [transportationCost, setTransportationCost] = useState(300);
@@ -443,13 +443,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 }
                 setOverlay(prev => ({ ...prev, isOpen: false }));
             }
-        });
-    };
-
-    const handleCopyToken = (token: string) => {
-        navigator.clipboard.writeText(token).then(() => {
-            setCopiedToken(token);
-            setTimeout(() => setCopiedToken(null), 2000);
         });
     };
 
@@ -693,11 +686,10 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     />
                                 ) : (
                                     <div
-                                        className="markdown-preview"
+                                        className="markdown-preview cursor-pointer"
                                         style={{
                                             minHeight: '80px',
                                             width: '100%',
-                                            cursor: 'pointer',
                                             fontSize: '0.9rem',
                                             lineHeight: '1.4'
                                         }}
@@ -731,7 +723,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     title="Number of months for the campaign" />
                                             </div>
                                         ) : (
-                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                 onClick={() => setEditingField('lengthInMonths')} onFocus={() => setEditingField('lengthInMonths')} tabIndex={0}>
                                                 {campaignLengthInMonths}
                                             </div>
@@ -750,7 +742,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     title="Number of tracks in the campaign" />
                                             </div>
                                         ) : (
-                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                 onClick={() => setEditingField('trackCount')} onFocus={() => setEditingField('trackCount')} tabIndex={0}>
                                                 {campaignTrackCount}
                                             </div>
@@ -777,7 +769,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Base monthly pay" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('monthlyPay')} onFocus={() => setEditingField('monthlyPay')} tabIndex={0}>
                                                     {monthlyPay}
                                                 </div>
@@ -796,7 +788,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Monthly maintenance cost" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('monthlyMaintenance')} onFocus={() => setEditingField('monthlyMaintenance')} tabIndex={0}>
                                                     {monthlyMaintenance}
                                                 </div>
@@ -815,7 +807,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Transportation cost" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('transportationCost')} onFocus={() => setEditingField('transportationCost')} tabIndex={0}>
                                                     {transportationCost}
                                                 </div>
@@ -834,7 +826,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Combat pay bonus" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
                                                     {combatPay}
                                                 </div>
@@ -856,7 +848,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for armor damage" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('armorMultiplier')} tabIndex={0}>
                                                     {armorMult}
                                                 </div>
@@ -874,7 +866,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for internal damage" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('internalMultiplier')} tabIndex={0}>
                                                     {internalMult}
                                                 </div>
@@ -892,7 +884,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for crippled units" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('crippledMultiplier')} tabIndex={0}>
                                                     {crippledMult}
                                                 </div>
@@ -910,7 +902,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost multiplier for destroyed units" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('destroyedMultiplier')} tabIndex={0}>
                                                     {destroyedMult}
                                                 </div>
@@ -928,7 +920,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Adjustment for Vehicles, Battle Armor, and Infantry" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('nonMechModifier')} tabIndex={0}>
                                                     {nonMechMod}
                                                 </div>
@@ -946,7 +938,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost tax for Mixed technology assets" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('mixedTechModifier')} tabIndex={0}>
                                                     {mixedTechTax}
                                                 </div>
@@ -964,7 +956,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         title="Repair cost tax for pure Clan technology assets" />
                                                 </div>
                                             ) : (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('clanTechModifier')} tabIndex={0}>
                                                     {clanTechTax}
                                                 </div>
@@ -1032,17 +1024,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             <h3 className="zone-header">RECRUITMENT</h3>
                             <p className="restricted-text" style={{ fontSize: '0.7rem' }}>ISSUE AN INVITATION KEY TO ALLOW MERCENARY COMMANDS TO JOIN THIS THEATER.</p>
                             {activeToken ? (
-                                <div className="flex flex-gap-10 mt-15">
-                                    <div className="status-bar theme-amber flex-grow" style={{ textAlign: 'center', fontSize: '1.2rem', margin: 0 }}>
-                                        {activeToken}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="mode-btn theme-amber"
-                                        onClick={() => handleCopyToken(activeToken)}
-                                    >
-                                        {copiedToken === activeToken ? 'COPIED' : 'COPY'}
-                                    </button>
+                                <div className="status-bar theme-amber mt-15 w-100" style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0 0 0' }}>
+                                    {activeToken}
                                 </div>
                             ) : (
                                 <button type="button" className="mode-btn theme-blue text-left" style={{ marginTop: '15px', width: '100%' }} onClick={handleGenerateInvite} title="Generate a new invitation key">GENERATE INVITE KEY</button>
@@ -1062,14 +1045,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                 {invite.recipientName || 'ANONYMOUS'}: {invite.token.length > 12 ? invite.token.substring(0, 8) + '...' : invite.token} {invite.used && '(USED)'} {new Date(invite.expiresAt) < new Date() && '(EXPIRED)'}
                                             </span>
                                             <div className="flex flex-gap-5">
-                                                <button
-                                                    className="mode-btn sm-text"
-                                                    style={{ padding: '0 4px', height: '18px' }}
-                                                    onClick={() => handleCopyToken(invite.token)}
-                                                    title="Copy token reference"
-                                                >
-                                                    {copiedToken === invite.token ? 'OK' : 'COPY'}
-                                                </button>
                                                 <button className="mode-btn sm-text" style={{ padding: '0 4px', height: '18px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }} onClick={() => handleDeleteInvite(invite.id)}>X</button>
                                             </div>
                                         </div>
@@ -1127,30 +1102,58 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     style={{ padding: '12px', cursor: 'grab', position: 'relative', border: '1px solid var(--accent-dim)', width: '100%', boxSizing: 'border-box' }}
                                                 >
                                                     <div className="flex-between mb-5">
-                                                        <input
-                                                            className="inline-edit"
-                                                            key={`${track.id}-name-${track.trackName}`}
-                                                            style={{ fontWeight: 'bold', width: '75%' }}
-                                                            defaultValue={track.trackName}
-                                                            onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
-                                                            placeholder="DESIGNATION"
-                                                            title="Operational designation"
-                                                            aria-label="Track name"
-                                                        />
+                                                        <div className="status-bar theme-amber" style={{ flex: 1, marginRight: '10px', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                            {activeTrackField === `${track.id}-name` ? (
+                                                                <input
+                                                                    className="inline-edit"
+                                                                    key={`${track.id}-name-${track.trackName}`}
+                                                                    style={{ fontWeight: 'bold', width: '100%', border: 'none' }}
+                                                                    defaultValue={track.trackName}
+                                                                    autoFocus
+                                                                    onBlur={() => setActiveTrackField(null)}
+                                                                    onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
+                                                                    placeholder="DESIGNATION"
+                                                                    title="Operational designation"
+                                                                    aria-label="Track name"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className="inline-edit cursor-pointer theme-amber"
+                                                                    style={{ fontWeight: 'bold', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
+                                                                    onClick={() => setActiveTrackField(`${track.id}-name`)}
+                                                                >
+                                                                    {track.trackName || 'DESIGNATION'}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                         <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
                                                     </div>
                                                     <div className="flex flex-gap-5 mb-5" style={{ alignItems: 'flex-start' }}>
-                                                        <textarea
-                                                            className="inline-edit"
-                                                            key={`${track.id}-comp-${track.complications}`}
-                                                            style={{ fontSize: '0.7rem', flex: 1, resize: 'vertical' }}
-                                                            rows={3}
-                                                            defaultValue={track.complications}
-                                                            onChange={(e) => handleTrackUpdate(track.id, 'complications', e.target.value)}
-                                                            placeholder="COMPLICATIONS"
-                                                            title="Mission complications or modifiers"
-                                                            aria-label="Track complications"
-                                                        />
+                                                        <div className="status-bar theme-amber" style={{ flex: 1, padding: '5px', display: 'flex' }}>
+                                                            {activeTrackField === `${track.id}-comp` ? (
+                                                                <textarea
+                                                                    className="inline-edit"
+                                                                    key={`${track.id}-comp-${track.complications}`}
+                                                                    style={{ fontSize: '0.7rem', width: '100%', resize: 'vertical', border: 'none' }}
+                                                                    rows={3}
+                                                                    autoFocus
+                                                                    onBlur={() => setActiveTrackField(null)}
+                                                                    defaultValue={track.complications}
+                                                                    onChange={(e) => handleTrackUpdate(track.id, 'complications', e.target.value)}
+                                                                    placeholder="COMPLICATIONS"
+                                                                    title="Mission complications or modifiers"
+                                                                    aria-label="Track complications"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className="inline-edit cursor-pointer theme-amber"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '3.6em', whiteSpace: 'pre-wrap', padding: '2px' }}
+                                                                    onClick={() => setActiveTrackField(`${track.id}-comp`)}
+                                                                >
+                                                                    {track.complications || 'COMPLICATIONS'}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                         <button
                                                             className="mode-btn theme-amber sm-text"
                                                             style={{ padding: '0 5px', height: '18px', fontSize: '0.6rem' }}
@@ -1158,42 +1161,84 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         >REROLL</button>
                                                     </div>
                                                     <div className="flex flex-gap-5 mb-5">
-                                                        <input
-                                                            className="inline-edit"
-                                                            style={{ fontSize: '0.7rem', flex: 1 }}
-                                                            defaultValue={track.location}
-                                                            onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
-                                                            placeholder="LOCATION"
-                                                            title="Physical location"
-                                                            aria-label="Track location"
-                                                        />
+                                                        <div className="status-bar theme-amber" style={{ flex: 1, padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                            {activeTrackField === `${track.id}-loc` ? (
+                                                                <input
+                                                                    className="inline-edit"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
+                                                                    autoFocus
+                                                                    onBlur={() => setActiveTrackField(null)}
+                                                                    defaultValue={track.location}
+                                                                    onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
+                                                                    placeholder="LOCATION"
+                                                                    title="Physical location"
+                                                                    aria-label="Track location"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className="inline-edit cursor-pointer theme-amber"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
+                                                                    onClick={() => setActiveTrackField(`${track.id}-loc`)}
+                                                                >
+                                                                    {track.location || 'LOCATION'}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                         {track.location && (
                                                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(track.location)}`} target="_blank" rel="noopener noreferrer" className="mode-btn sm-text" style={{ padding: '0 4px', height: '16px' }}>MAP</a>
                                                         )}
                                                     </div >
                                                     <div className="flex-between">
-                                                        <input
-                                                            type="datetime-local"
-                                                            className="inline-edit"
-                                                            style={{ fontSize: '0.7rem', width: '60%' }}
-                                                            defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
-                                                            onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
-                                                            aria-label="Next session time"
-                                                            title="Deployment time"
-                                                        />
-                                                        <select
-                                                            className="inline-edit"
-                                                            style={{ fontSize: '0.7rem', width: '35%' }}
-                                                            defaultValue={track.attackerFactionId || ""}
-                                                            onChange={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
-                                                            aria-label="Attacker faction"
-                                                            title="Attacker"
-                                                        >
-                                                            <option value="">[ ATK ]</option>
-                                                            {campaign?.factions?.map((f: { id: string, factionName: string }) => (
-                                                                <option key={f.id} value={f.id}>{f.factionName.substring(0, 3).toUpperCase()}</option>
-                                                            ))}
-                                                        </select>
+                                                        <div className="status-bar theme-amber" style={{ width: '60%', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                            {activeTrackField === `${track.id}-time` ? (
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    className="inline-edit"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
+                                                                    autoFocus
+                                                                    onBlur={() => setActiveTrackField(null)}
+                                                                    defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
+                                                                    onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
+                                                                    aria-label="Next session time"
+                                                                    title="Deployment time"
+                                                                />
+                                                            ) : (
+                                                                <div
+                                                                    className="inline-edit cursor-pointer theme-amber"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
+                                                                    onClick={() => setActiveTrackField(`${track.id}-time`)}
+                                                                >
+                                                                    {track.nextSession ? new Date(track.nextSession).toLocaleString() : 'DEPLOYMENT TIME'}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="status-bar theme-amber" style={{ width: '35%', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                            {activeTrackField === `${track.id}-atk` ? (
+                                                                <select
+                                                                    className="inline-edit"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
+                                                                    autoFocus
+                                                                    onBlur={() => setActiveTrackField(null)}
+                                                                    defaultValue={track.attackerFactionId || ""}
+                                                                    onChange={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
+                                                                    aria-label="Attacker faction"
+                                                                    title="Attacker"
+                                                                >
+                                                                    <option value="">[ ATK ]</option>
+                                                                    {campaign?.factions?.map((f: { id: string, factionName: string }) => (
+                                                                        <option key={f.id} value={f.id}>{f.factionName.substring(0, 3).toUpperCase()}</option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : (
+                                                                <div
+                                                                    className="inline-edit cursor-pointer theme-amber"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
+                                                                    onClick={() => setActiveTrackField(`${track.id}-atk`)}
+                                                                >
+                                                                    {track.attackerFactionId ? campaign?.factions?.find((f: any) => f.id === track.attackerFactionId)?.factionName.substring(0, 3).toUpperCase() : '[ ATK ]'}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     <div className="mt-10 pt-5" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
                                                         <button

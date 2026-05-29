@@ -188,63 +188,78 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                             <tr key={form.detachmentId}>
                                 <td>{form.detachmentName}</td>
                                 <td>
-                                    <select
-                                        className="table-input"
-                                        value={form.selectedContractId}
-                                        onChange={(e) => handleFormChange(form.detachmentId, 'selectedContractId', e.target.value)}
-                                        title="Select contract terms"
-                                    >
-                                        {campaignDetails.contracts?.length === 0 && <option value="">NO CONTRACTS</option>}
-                                        {campaignDetails.contracts?.map(contract => (
-                                            <option key={contract.id} value={contract.id}>
-                                                {contract.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({contract.employerCategory})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                        <select
+                                            className="table-input"
+                                            style={{ border: 'none' }}
+                                            value={form.selectedContractId}
+                                            onChange={(e) => handleFormChange(form.detachmentId, 'selectedContractId', e.target.value)}
+                                            title="Select contract terms"
+                                        >
+                                            {campaignDetails.contracts?.length === 0 && <option value="">NO CONTRACTS</option>}
+                                            {campaignDetails.contracts?.map(contract => (
+                                                <option key={contract.id} value={contract.id}>
+                                                    {contract.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({contract.employerCategory})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </td>
                                 <td>
-                                    <select
-                                        className="table-input"
-                                        value={form.selectedLevel}
-                                        onChange={(e) => handleFormChange(form.detachmentId, 'selectedLevel', parseInt(e.target.value))}
-                                        title="Select level"
-                                    >
-                                        {[1, 2, 3].map(level => (
-                                            <option key={level} value={level}>{level}</option>
-                                        ))}
-                                    </select>
+                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                        <select
+                                            className="table-input"
+                                            style={{ border: 'none' }}
+                                            value={form.selectedLevel}
+                                            onChange={(e) => handleFormChange(form.detachmentId, 'selectedLevel', parseInt(e.target.value))}
+                                            title="Select level"
+                                        >
+                                            {[1, 2, 3].map(level => (
+                                                <option key={level} value={level}>{level}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </td>
                                 <td>
-                                    <select
-                                        className="table-input"
-                                        value={form.chargeType}
-                                        onChange={(e) => handleFormChange(form.detachmentId, 'chargeType', e.target.value as DetachmentFormState['chargeType'])}
-                                        title="Select charge type"
-                                    >
-                                        {CHARGE_TYPES.map(type => (
-                                            <option key={type} value={type}>{type}</option>
-                                        ))}
-                                    </select>
+                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                        <select
+                                            className="table-input"
+                                            style={{ border: 'none' }}
+                                            value={form.chargeType}
+                                            onChange={(e) => handleFormChange(form.detachmentId, 'chargeType', e.target.value as DetachmentFormState['chargeType'])}
+                                            title="Select charge type"
+                                        >
+                                            {CHARGE_TYPES.map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </td>
                                 <td>
-                                    <input
-                                        type="number"
-                                        className="table-input text-right"
-                                        value={form.amount}
-                                        onChange={(e) => handleFormChange(form.detachmentId, 'amount', parseInt(e.target.value) || 0)}
-                                        title="Amount in Support Points"
-                                    />
+                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                        <input
+                                            type="number"
+                                            className="table-input text-right"
+                                            style={{ border: 'none' }}
+                                            value={form.amount}
+                                            onChange={(e) => handleFormChange(form.detachmentId, 'amount', parseInt(e.target.value) || 0)}
+                                            title="Amount in Support Points"
+                                        />
+                                    </div>
                                 </td>
                                 <td>
-                                    <input
-                                        type="text"
-                                        className="table-input"
-                                        value={form.description}
-                                        onChange={(e) => handleFormChange(form.detachmentId, 'description', e.target.value)}
-                                        placeholder="Custom description"
-                                        title="Transaction description"
-                                        disabled={form.chargeType !== 'Freeform Entry'}
-                                    />
+                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                        <input
+                                            type="text"
+                                            className="table-input"
+                                            style={{ border: 'none' }}
+                                            value={form.description}
+                                            onChange={(e) => handleFormChange(form.detachmentId, 'description', e.target.value)}
+                                            placeholder="Custom description"
+                                            title="Transaction description"
+                                            disabled={form.chargeType !== 'Freeform Entry'}
+                                        />
+                                    </div>
                                 </td>
                                 <td className="text-center">
                                     <button

@@ -89,7 +89,7 @@ npm test
 
 ### Commit Guidelines
 - Use descriptive subjects (e.g., `feat: implement global resync in sidebar`).
-- Mention any specific ruleset being addressed (e.g., `fix: pilot handicap threshold calculation`).
+- Mention any specific ruleset being addressed (e.g., `fix: CampaignGenerator.tsx logic`).
 
 ---
 
