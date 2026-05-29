@@ -862,7 +862,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         ) : (
                             <button
                                 type="button"
-                                className="mode-btn"
+                                className="mode-btn theme-amber"
                                 style={{ padding: '0 4px', fontSize: '0.6rem', height: '18px' }}
                                 onClick={handleManualRefresh}
                                 title="Manual synchronization of all active tactical data"

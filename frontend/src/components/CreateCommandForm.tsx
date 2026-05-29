@@ -86,30 +86,36 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
             <form className="flex-col flex-gap-15 mt-20" style={{ maxWidth: '400px', margin: '0 auto' }}>
                 <div className="input-group">
                     <label htmlFor="command-name" className="restricted-text">COMMAND DESIGNATION:</label>
-                    <input
-                        id="command-name"
-                        type="text"
-                        className="table-input w-100 inline-edit-input"
-                        value={commandName}
-                        onChange={(e) => setCommandName(e.target.value.toUpperCase())}
-                        placeholder="ENTER COMMAND NAME"
-                        maxLength={255}
-                        disabled={isSubmitting}
-                        autoFocus
-                    />
+                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <input
+                            id="command-name"
+                            type="text"
+                            className="table-input w-100"
+                            style={{ border: 'none' }}
+                            value={commandName}
+                            onChange={(e) => setCommandName(e.target.value.toUpperCase())}
+                            placeholder="ENTER COMMAND NAME"
+                            maxLength={255}
+                            disabled={isSubmitting}
+                            autoFocus
+                        />
+                    </div>
                 </div>
                 <div className="input-group">
                     <label htmlFor="commanding-officer" className="restricted-text">COMMANDING OFFICER:</label>
-                    <input
-                        id="commanding-officer"
-                        type="text"
-                        className="table-input w-100 inline-edit-input"
-                        value={commandingOfficer}
-                        onChange={(e) => setCommandingOfficer(e.target.value)}
-                        placeholder="YOUR CALLSIGN"
-                        disabled={isSubmitting}
-                        maxLength={255}
-                    />
+                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <input
+                            id="commanding-officer"
+                            type="text"
+                            className="table-input w-100"
+                            style={{ border: 'none' }}
+                            value={commandingOfficer}
+                            onChange={(e) => setCommandingOfficer(e.target.value)}
+                            placeholder="YOUR CALLSIGN"
+                            disabled={isSubmitting}
+                            maxLength={255}
+                        />
+                    </div>
                 </div>
                 {error && <div className="error-message text-center">{error}</div>}
             </form>

@@ -768,15 +768,18 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">{u.status}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
-                                                <select
-                                                    className="table-input"
-                                                    title="Assign to Detachment"
-                                                    value={u.detachmentId || ""}
-                                                    onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
-                                                >
-                                                    <option value="">[ HANGAR ]</option>
-                                                    {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                                </select>
+                                                <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                    <select
+                                                        className="table-input"
+                                                        style={{ border: 'none' }}
+                                                        title="Assign to Detachment"
+                                                        value={u.detachmentId || ""}
+                                                        onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
+                                                    >
+                                                        <option value="">[ HANGAR ]</option>
+                                                        {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                    </select>
+                                                </div>
                                             </td>
                                         )}
                                         {!isManagerView && (
@@ -833,15 +836,18 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">{p.handicap}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
-                                                <select
-                                                    className="table-input"
-                                                    title="Assign to Barracks/Detachment"
-                                                    value={p.detachmentId || ""}
-                                                    onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
-                                                >
-                                                    <option value="">[ BARRACKS ]</option>
-                                                    {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                                </select>
+                                                <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                    <select
+                                                        className="table-input"
+                                                        style={{ border: 'none' }}
+                                                        title="Assign to Barracks/Detachment"
+                                                        value={p.detachmentId || ""}
+                                                        onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
+                                                    >
+                                                        <option value="">[ BARRACKS ]</option>
+                                                        {detachments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                    </select>
+                                                </div>
                                             </td>
                                         )}
                                         {!isManagerView && (
@@ -955,6 +961,15 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     techBases={techBases}
                 />
             )}
+
+            <style>{`
+                .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
+                .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+                .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
+                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+                .status-bar select.table-input { background: transparent; color: inherit; }
+                .status-bar input.table-input { background: transparent; color: inherit; }
+            `}</style>
         </div>
     );
 };

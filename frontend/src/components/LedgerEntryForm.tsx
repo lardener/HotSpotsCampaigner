@@ -73,76 +73,86 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                 <div className="flex-col flex-gap-5">
                     <div className="input-group flex items-center">
                         <label htmlFor="description" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>DESCRIPTION</label>
-                        <input
-                            id="description"
-                            type="text"
-                            className="table-input flex-grow"
-                            style={{ width: '40em' }}
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            title="Transaction Description"
-                            placeholder="REPAIRING ATLAS AS7-D..."
-                            required
-                        />
+                        <div className="status-bar theme-green flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                            <input
+                                id="description"
+                                type="text"
+                                className="table-input w-100"
+                                style={{ border: 'none' }}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                title="Transaction Description"
+                                placeholder="REPAIRING ATLAS AS7-D..."
+                                required
+                            />
+                        </div>
                     </div>
 
                     <div className="grid-2-col flex-gap-20">
                         <div className="input-group flex items-center">
                             <label htmlFor="amount" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>SUPPORT POINTS</label>
-                            <input
-                                id="amount"
-                                type="number"
-                                className="table-input text-right"
-                                style={{ width: '8em' }}
-                                value={amount === undefined ? '' : amount}
-                                onChange={(e) => setAmount(parseInt(e.target.value))}
-                                title="Support Points Amount (negative for costs)"
-                                placeholder="±0"
-                                required
-                            />
+                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    id="amount"
+                                    type="number"
+                                    className="table-input text-right"
+                                    style={{ border: 'none', width: '8em' }}
+                                    value={amount === undefined ? '' : amount}
+                                    onChange={(e) => setAmount(parseInt(e.target.value))}
+                                    title="Support Points Amount (negative for costs)"
+                                    placeholder="±0"
+                                    required
+                                />
+                            </div>
                         </div>
                         <div className="input-group flex items-center">
                             <label htmlFor="reputationChange" className="restricted-text sm-text" style={{ minWidth: '120px' }}>REPUTATION Δ</label>
-                            <input
-                                id="reputationChange"
-                                type="number"
-                                className="table-input text-right"
-                                style={{ width: '6em' }}
-                                value={reputationChange === undefined ? '' : reputationChange}
-                                onChange={(e) => setReputationChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
-                                title="Reputation change (optional)"
-                                placeholder="±0"
-                            />
+                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    id="reputationChange"
+                                    type="number"
+                                    className="table-input text-right"
+                                    style={{ border: 'none', width: '6em' }}
+                                    value={reputationChange === undefined ? '' : reputationChange}
+                                    onChange={(e) => setReputationChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                    title="Reputation change (optional)"
+                                    placeholder="±0"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid-2-col flex-gap-20">
                         <div className="input-group flex items-center">
                             <label htmlFor="campaignName" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>THEATER</label>
-                            <input
-                                id="campaignName"
-                                type="text"
-                                className="table-input flex-grow"
-                                style={{ width: '40em' }}
-                                value={campaignName}
-                                onChange={(e) => setCampaignName(e.target.value)}
-                                title="Associated Campaign (optional)"
-                                placeholder="HINTERLANDS RAID"
-                            />
+                            <div className="status-bar theme-green flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    id="campaignName"
+                                    type="text"
+                                    className="table-input w-100"
+                                    style={{ border: 'none' }}
+                                    value={campaignName}
+                                    onChange={(e) => setCampaignName(e.target.value)}
+                                    title="Associated Campaign (optional)"
+                                    placeholder="HINTERLANDS RAID"
+                                />
+                            </div>
                         </div>
                         <div className="input-group flex items-center">
                             <label htmlFor="monthIndex" className="restricted-text sm-text" style={{ minWidth: '120px' }}>MONTH INDEX</label>
-                            <input
-                                id="monthIndex"
-                                type="number"
-                                className="table-input text-right"
-                                style={{ width: '6em' }}
-                                value={monthIndex === undefined ? '' : monthIndex}
-                                onChange={(e) => setMonthIndex(e.target.value === '' ? undefined : parseInt(e.target.value))}
-                                title="Campaign Month (optional)"
-                                placeholder="1"
-                                min="1"
-                            />
+                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    id="monthIndex"
+                                    type="number"
+                                    className="table-input text-right"
+                                    style={{ border: 'none', width: '6em' }}
+                                    value={monthIndex === undefined ? '' : monthIndex}
+                                    onChange={(e) => setMonthIndex(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                    title="Campaign Month (optional)"
+                                    placeholder="1"
+                                    min="1"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

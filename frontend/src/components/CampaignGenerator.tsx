@@ -462,14 +462,15 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
             <p className="restricted-text">HINTERLANDS REGIONAL INTEL UPDATED</p>
 
-            <button type="button"
-                onClick={handlePreview}
-                disabled={previewLoading || metadataLoading}
-                className="login-button"
-                style={{ marginTop: '20px' }}
-            >
-                {previewLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
-            </button>
+            <div style={{ marginTop: '20px' }}>
+                <button type="button"
+                    onClick={handlePreview}
+                    disabled={previewLoading || metadataLoading}
+                    className="mode-btn theme-red"
+                >
+                    {previewLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
+                </button>
+            </div>
             {metadataError && <div className="error-message" style={{ marginTop: '12px' }}>{metadataError.message}</div>}
             {previewError && <div className="error-message" style={{ marginTop: '12px' }}>{previewError}</div>}
             {previewErrorStatus && <div className="error-message" style={{ marginTop: '12px' }}>{previewErrorStatus.message}</div>}
@@ -606,7 +607,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
 
                     {saveError && <div className="error-message" style={{ marginTop: '12px' }}>{saveError}</div>}
                     {user ? (
-                        <button type="button" onClick={handleSave} disabled={saveLoading || saved} className="login-button">
+                        <button type="button" onClick={handleSave} disabled={saveLoading || saved} className="mode-btn theme-red" style={{ padding: '10px 20px' }}>
                             {saved ? 'CAMPAIGN ARCHIVED' : 'CONFIRM & SAVE CAMPAIGN'}
                         </button>
                     ) : (

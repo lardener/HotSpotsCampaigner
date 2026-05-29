@@ -349,131 +349,151 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                 )}
                                 <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>ASSET PARAMETERS</h3>
                                 <div className="flex-col flex-gap-5 mb-10">
-                                    <div className="input-group flex items-center">
+                                    <div className="input-group flex items-center mb-10">
                                         <label htmlFor="mech-model" className="restricted-text sm-text" style={{ minWidth: '160px' }}>MODEL</label>
-                                        <input
-                                            id="mech-model"
-                                            type="text"
-                                            className="table-input flex-grow inline-edit-input"
-                                            value={formData.model}
-                                            onChange={(e) => handleInputChange('model', e.target.value)}
-                                            placeholder="UNIT MODEL DESIGNATION"
-                                            title="Unit chassis model"
-                                            maxLength={50}
-                                            autoFocus
-                                        />
+                                        <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                            <input
+                                                id="mech-model"
+                                                type="text"
+                                                className="table-input w-100"
+                                                style={{ border: 'none' }}
+                                                value={formData.model}
+                                                onChange={(e) => handleInputChange('model', e.target.value)}
+                                                placeholder="UNIT MODEL DESIGNATION"
+                                                title="Unit chassis model"
+                                                maxLength={50}
+                                                autoFocus
+                                            />
+                                        </div>
                                     </div>
-
-                                    <div className="input-group flex items-center">
+                                    <div className="input-group flex items-center mb-10">
                                         <label htmlFor="mech-variant" className="restricted-text sm-text" style={{ minWidth: '160px' }}>VARIANT</label>
-                                        <input
-                                            id="mech-variant"
-                                            type="text"
-                                            className="table-input flex-grow inline-edit-input"
-                                            value={formData.variant}
-                                            onChange={(e) => handleInputChange('variant', e.target.value)}
-                                            placeholder="VARIANT CODE (E.G., SHD-2K)"
-                                            title="Unit variant designation"
-                                            maxLength={30}
-                                        />
+                                        <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                            <input
+                                                id="mech-variant"
+                                                type="text"
+                                                className="table-input w-100"
+                                                style={{ border: 'none' }}
+                                                value={formData.variant}
+                                                onChange={(e) => handleInputChange('variant', e.target.value)}
+                                                placeholder="VARIANT CODE (E.G., SHD-2K)"
+                                                title="Unit variant designation"
+                                                maxLength={30}
+                                            />
+                                        </div>
                                     </div>
-
-                                    <div className="flex flex-gap-10">
-                                        <div className="input-group flex items-center" style={{ flex: 1 }}>
-                                            <label htmlFor="mech-type" className="restricted-text sm-text" style={{ minWidth: '100px' }}>TYPE</label>
-                                            <select
-                                                id="mech-type"
-                                                className="table-input flex-grow inline-edit-input"
-                                                value={formData.type}
-                                                onChange={(e) => handleInputChange('type', e.target.value)}
-                                                title="Unit classification"
-                                            >
-                                                {unitTypes.map(t => (
-                                                    <option key={t} value={t}>{t}</option>
-                                                ))}
-                                            </select>
+                                    <div className="flex flex-gap-10 mb-10">
+                                        <div className="input-group flex-col" style={{ flex: 1 }}>
+                                            <label htmlFor="mech-type" className="restricted-text sm-text">TYPE</label>
+                                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                <select
+                                                    id="mech-type"
+                                                    className="table-input w-100"
+                                                    style={{ border: 'none' }}
+                                                    value={formData.type}
+                                                    onChange={(e) => handleInputChange('type', e.target.value)}
+                                                    title="Unit classification"
+                                                >
+                                                    {unitTypes.map(t => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
-
-                                        <div className="input-group flex items-center" style={{ flex: 1 }}>
-                                            <label htmlFor="mech-tech" className="restricted-text sm-text" style={{ minWidth: '80px' }}>TECH</label>
-                                            <select
-                                                id="mech-tech"
-                                                className="table-input flex-grow inline-edit-input"
-                                                value={formData.techBase}
-                                                onChange={(e) => handleInputChange('techBase', e.target.value)}
-                                                title="Technology base"
-                                            >
-                                                {techBases.map(t => (
-                                                    <option key={t} value={t}>{t}</option>
-                                                ))}
-                                            </select>
+                                        <div className="input-group flex-col" style={{ flex: 1 }}>
+                                            <label htmlFor="mech-tech" className="restricted-text sm-text">TECH</label>
+                                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                <select
+                                                    id="mech-tech"
+                                                    className="table-input w-100"
+                                                    style={{ border: 'none' }}
+                                                    value={formData.techBase}
+                                                    onChange={(e) => handleInputChange('techBase', e.target.value)}
+                                                    title="Technology base"
+                                                >
+                                                    {techBases.map(t => (
+                                                        <option key={t} value={t}>{t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
-
-                                        <div className="input-group flex items-center" style={{ flex: 1 }}>
-                                            <label htmlFor="mech-status" className="restricted-text sm-text" style={{ minWidth: '100px' }}>STATUS</label>
-                                            <select
-                                                id="mech-status"
-                                                className="table-input flex-grow inline-edit-input"
-                                                value={formData.status}
-                                                onChange={(e) => handleInputChange('status', e.target.value)}
-                                                title="Operational status"
-                                            >
-                                                {unitStatuses.map(s => (
-                                                    <option key={s} value={s}>{s}</option>
-                                                ))}
-                                            </select>
+                                        <div className="input-group flex-col" style={{ flex: 1 }}>
+                                            <label htmlFor="mech-status" className="restricted-text sm-text">STATUS</label>
+                                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                <select
+                                                    id="mech-status"
+                                                    className="table-input w-100"
+                                                    style={{ border: 'none' }}
+                                                    value={formData.status}
+                                                    onChange={(e) => handleInputChange('status', e.target.value)}
+                                                    title="Operational status"
+                                                >
+                                                    {unitStatuses.map(s => (
+                                                        <option key={s} value={s}>{s}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>SPECIFICATIONS</h3>
                                 <div className="flex flex-gap-10 mb-10">
-                                    <div className="tactical-panel sm-text" style={{ padding: '5px 15px', textAlign: 'center', minWidth: '90px', flex: 1 }}>
+                                    <div className="flex-col" style={{ flex: 1 }}>
                                         <label htmlFor="mech-tonnage" className="restricted-text" style={{ fontSize: '0.55rem', opacity: 0.7, marginBottom: '2px', display: 'block' }}>TONNAGE</label>
-                                        <input
-                                            id="mech-tonnage"
-                                            type="number"
-                                            className="table-input text-center table-input-tonnage"
-                                            value={formData.tonnage}
-                                            onChange={(e) => handleInputChange('tonnage', e.target.value)}
-                                            title="Unit tonnage"
-                                        />
+                                        <div className="status-bar theme-amber" style={{ padding: '0 5px' }}>
+                                            <input
+                                                id="mech-tonnage"
+                                                type="number"
+                                                className="table-input text-center"
+                                                style={{ border: 'none', width: '100%' }}
+                                                value={formData.tonnage}
+                                                onChange={(e) => handleInputChange('tonnage', e.target.value)}
+                                                title="Unit tonnage"
+                                            />
+                                        </div>
                                     </div>
-
-                                    <div className="tactical-panel sm-text" style={{ padding: '5px 15px', textAlign: 'center', minWidth: '90px', flex: 1 }}>
+                                    <div className="flex-col" style={{ flex: 1 }}>
                                         <label htmlFor="mech-assize" className="restricted-text" style={{ fontSize: '0.55rem', opacity: 0.7, marginBottom: '2px', display: 'block' }}>AS SIZE</label>
-                                        <input
-                                            id="mech-assize"
-                                            type="number"
-                                            className="table-input text-center table-input-size"
-                                            value={formData.asSize}
-                                            onChange={(e) => handleInputChange('asSize', e.target.value)}
-                                            title="Alpha Strike size"
-                                        />
+                                        <div className="status-bar theme-amber" style={{ padding: '0 5px' }}>
+                                            <input
+                                                id="mech-assize"
+                                                type="number"
+                                                className="table-input text-center"
+                                                style={{ border: 'none', width: '100%' }}
+                                                value={formData.asSize}
+                                                onChange={(e) => handleInputChange('asSize', e.target.value)}
+                                                title="Alpha Strike size"
+                                            />
+                                        </div>
                                     </div>
-
-                                    <div className="tactical-panel sm-text" style={{ padding: '5px 15px', textAlign: 'center', minWidth: '90px', flex: 1 }}>
+                                    <div className="flex-col" style={{ flex: 1 }}>
                                         <label htmlFor="mech-bv" className="restricted-text" style={{ fontSize: '0.55rem', opacity: 0.7, marginBottom: '2px', display: 'block' }}>BATTLE VALUE</label>
-                                        <input
-                                            id="mech-bv"
-                                            type="number"
-                                            className="table-input text-center table-input-bv"
-                                            value={formData.bv}
-                                            onChange={(e) => handleInputChange('bv', e.target.value)}
-                                            title="Battle value"
-                                        />
+                                        <div className="status-bar theme-amber" style={{ padding: '0 5px' }}>
+                                            <input
+                                                id="mech-bv"
+                                                type="number"
+                                                className="table-input text-center"
+                                                style={{ border: 'none', width: '100%' }}
+                                                value={formData.bv}
+                                                onChange={(e) => handleInputChange('bv', e.target.value)}
+                                                title="Battle value"
+                                            />
+                                        </div>
                                     </div>
-
-                                    <div className="tactical-panel sm-text" style={{ padding: '5px 15px', textAlign: 'center', minWidth: '90px', flex: 1 }}>
+                                    <div className="flex-col" style={{ flex: 1 }}>
                                         <label htmlFor="mech-pv" className="restricted-text" style={{ fontSize: '0.55rem', opacity: 0.7, marginBottom: '2px', display: 'block' }}>POINT VALUE</label>
-                                        <input
-                                            id="mech-pv"
-                                            type="number"
-                                            className="table-input text-center table-input-pv"
-                                            value={formData.pv}
-                                            onChange={(e) => handleInputChange('pv', e.target.value)}
-                                            title="Point value"
-                                        />
+                                        <div className="status-bar theme-amber" style={{ padding: '0 5px' }}>
+                                            <input
+                                                id="mech-pv"
+                                                type="number"
+                                                className="table-input text-center"
+                                                style={{ border: 'none', width: '100%' }}
+                                                value={formData.pv}
+                                                onChange={(e) => handleInputChange('pv', e.target.value)}
+                                                title="Point value"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -502,6 +522,13 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                     </TerminalOverlay>
                 )
             }
+
+            <style>{`
+                .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
+                .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+                .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
+                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+            `}</style>
         </FloatingPortal >
     );
 };

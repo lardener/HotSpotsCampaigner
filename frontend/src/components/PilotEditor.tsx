@@ -383,60 +383,72 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         <div className="flex-col flex-gap-5 mb-10">
                             <div className="input-group flex items-center">
                                 <label htmlFor="pilot-name" className="restricted-text sm-text" style={{ minWidth: '160px' }}>NAME / CALLSIGN</label>
-                                <input
-                                    id="pilot-name"
-                                    type="text"
-                                    className="table-input flex-grow inline-edit-input"
-                                    value={formData.name}
-                                    onChange={(e) => handleInputChange('name', e.target.value)}
-                                    placeholder="PILOT DESIGNATION"
-                                    title="Pilot designation or callsign"
-                                    maxLength={50}
-                                    autoFocus
-                                />
+                                <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        id="pilot-name"
+                                        type="text"
+                                        className="table-input w-100"
+                                        style={{ border: 'none' }}
+                                        value={formData.name}
+                                        onChange={(e) => handleInputChange('name', e.target.value)}
+                                        placeholder="PILOT DESIGNATION"
+                                        title="Pilot designation or callsign"
+                                        maxLength={50}
+                                        autoFocus
+                                    />
+                                </div>
                             </div>
 
                             <div className="input-group flex items-center">
                                 <label htmlFor="pilot-unit-type" className="restricted-text sm-text" style={{ minWidth: '160px' }}>UNIT SPECIALTY</label>
-                                <select
-                                    id="pilot-unit-type"
-                                    className="table-input flex-grow inline-edit-input"
-                                    value={formData.unitType}
-                                    onChange={(e) => handleInputChange('unitType', e.target.value)}
-                                    title="Select unit type specialization"
-                                >
-                                    {UNIT_TYPES.map(t => (
-                                        <option key={t} value={t}>{t}</option>
-                                    ))}
-                                </select>
+                                <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                    <select
+                                        id="pilot-unit-type"
+                                        className="table-input w-100"
+                                        style={{ border: 'none' }}
+                                        value={formData.unitType}
+                                        onChange={(e) => handleInputChange('unitType', e.target.value)}
+                                        title="Select unit type specialization"
+                                    >
+                                        {UNIT_TYPES.map(t => (
+                                            <option key={t} value={t}>{t}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="input-group flex items-center">
                                 <label htmlFor="pilot-wounds" className="restricted-text sm-text" style={{ minWidth: '160px' }}>WOUNDS</label>
-                                <select
-                                    id="pilot-wounds"
-                                    className="table-input flex-grow inline-edit-input"
-                                    value={formData.wounds}
-                                    onChange={(e) => handleInputChange('wounds', e.target.value)}
-                                    title="Select pilot wounds (0-6)"
-                                >
-                                    {[0, 1, 2, 3, 4, 5, 6].map(v => (
-                                        <option key={v} value={v}>{v}</option>
-                                    ))}
-                                </select>
+                                <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                    <select
+                                        id="pilot-wounds"
+                                        className="table-input w-100"
+                                        style={{ border: 'none' }}
+                                        value={formData.wounds}
+                                        onChange={(e) => handleInputChange('wounds', e.target.value)}
+                                        title="Select pilot wounds (0-6)"
+                                    >
+                                        {[0, 1, 2, 3, 4, 5, 6].map(v => (
+                                            <option key={v} value={v}>{v}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <div className="input-group flex items-center">
+                            <div className="input-group flex items-center mb-10">
                                 <label htmlFor="pilot-edge-ability-description" className="restricted-text sm-text" style={{ minWidth: '160px' }}>EDGE ABILITY</label>
-                                <input
-                                    id="pilot-edge-abilities"
-                                    type="text"
-                                    className="table-input flex-grow inline-edit-input"
-                                    value={formData.edgeAbilities}
-                                    onChange={(e) => handleInputChange('edgeAbilities', e.target.value)}
-                                    placeholder="EDGE ABILITIES"
-                                    title="Describe the pilot's edge abilities"
-                                    maxLength={120}
-                                />
+                                <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        id="pilot-edge-abilities"
+                                        type="text"
+                                        className="table-input w-100"
+                                        style={{ border: 'none' }}
+                                        value={formData.edgeAbilities}
+                                        onChange={(e) => handleInputChange('edgeAbilities', e.target.value)}
+                                        placeholder="EDGE ABILITIES"
+                                        title="Describe the pilot's edge abilities"
+                                        maxLength={120}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -462,58 +474,73 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             <div className="flex-between flex-gap-10">
                                 <div className="skill-box flex items-center">
                                     <label htmlFor="pilot-total-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>TOTAL SP</label>
-                                    <input
-                                        id="pilot-total-sp-earned"
-                                        type="number"
-                                        className="table-input text-right inline-edit-input"
-                                        value={formData.totalSpEarned}
-                                        onChange={(e) => handleInputChange('totalSpEarned', e.target.value)}
-                                        title="Total SP Earned"
-                                    />
+                                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                        <input
+                                            id="pilot-total-sp-earned"
+                                            type="number"
+                                            className="table-input text-right"
+                                            style={{ border: 'none', width: '60px' }}
+                                            value={formData.totalSpEarned}
+                                            onChange={(e) => handleInputChange('totalSpEarned', e.target.value)}
+                                            title="Total SP Earned"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="skill-box flex items-center">
                                     <label htmlFor="pilot-gunnery-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>GUNNERY</label>
-                                    <input
-                                        id="pilot-gunnery-sp-earned"
-                                        type="number"
-                                        className="table-input text-right inline-edit-input"
-                                        value={formData.gunnerySpEarned}
-                                        onChange={(e) => handleInputChange('gunnerySpEarned', e.target.value)}
-                                        title="Gunnery SP"
-                                    />
+                                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                        <input
+                                            id="pilot-gunnery-sp-earned"
+                                            type="number"
+                                            className="table-input text-right"
+                                            style={{ border: 'none', width: '60px' }}
+                                            value={formData.gunnerySpEarned}
+                                            onChange={(e) => handleInputChange('gunnerySpEarned', e.target.value)}
+                                            title="Gunnery SP"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="skill-box flex items-center">
                                     <label htmlFor="pilot-piloting-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>PILOTING</label>
-                                    <input
-                                        id="pilot-piloting-sp-earned"
-                                        type="number"
-                                        className="table-input text-right inline-edit-input"
-                                        value={formData.pilotingSpEarned}
-                                        onChange={(e) => handleInputChange('pilotingSpEarned', e.target.value)}
-                                        title="Piloting SP"
-                                    />
+                                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                        <input
+                                            id="pilot-piloting-sp-earned"
+                                            type="number"
+                                            className="table-input text-right"
+                                            style={{ border: 'none', width: '60px' }}
+                                            value={formData.pilotingSpEarned}
+                                            onChange={(e) => handleInputChange('pilotingSpEarned', e.target.value)}
+                                            title="Piloting SP"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="skill-box flex items-center">
                                     <label htmlFor="pilot-edge-tokens-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>EDGE TOK</label>
-                                    <input
-                                        id="pilot-edge-tokens-sp-earned"
-                                        type="number"
-                                        className="table-input text-right inline-edit-input"
-                                        value={formData.edgeTokensSpEarned}
-                                        onChange={(e) => handleInputChange('edgeTokensSpEarned', e.target.value)}
-                                        title="Edge Tokens SP"
-                                    />
+                                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                        <input
+                                            id="pilot-edge-tokens-sp-earned"
+                                            type="number"
+                                            className="table-input text-right"
+                                            style={{ border: 'none', width: '60px' }}
+                                            value={formData.edgeTokensSpEarned}
+                                            onChange={(e) => handleInputChange('edgeTokensSpEarned', e.target.value)}
+                                            title="Edge Tokens SP"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="skill-box flex items-center">
                                     <label htmlFor="pilot-edge-ability-sp-earned" className="restricted-text xs-text mr-10" style={{ whiteSpace: 'nowrap' }}>EDGE ABIL</label>
-                                    <input
-                                        id="pilot-edge-ability-sp-earned"
-                                        type="number"
-                                        className="table-input text-right inline-edit-input"
-                                        value={formData.edgeAbilitySpEarned}
-                                        onChange={(e) => handleInputChange('edgeAbilitySpEarned', e.target.value)}
-                                        title="Edge Ability SP"
-                                    />
+                                    <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                        <input
+                                            id="pilot-edge-ability-sp-earned"
+                                            type="number"
+                                            className="table-input text-right"
+                                            style={{ border: 'none', width: '60px' }}
+                                            value={formData.edgeAbilitySpEarned}
+                                            onChange={(e) => handleInputChange('edgeAbilitySpEarned', e.target.value)}
+                                            title="Edge Ability SP"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -570,6 +597,13 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     {overlay.children}
                 </TerminalOverlay>
             )}
+
+            <style>{`
+                .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
+                .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+                .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
+                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+            `}</style>
         </div>
     );
 };
