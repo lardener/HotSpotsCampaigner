@@ -13,7 +13,7 @@ import {
 import { TerminalOverlay } from './TerminalOverlay';
 import { CombatUnit, CombatUnitUpdateInput } from '../types/global.d';
 
-interface MechEditorProps {
+interface CombatUnitEditorProps {
     unit?: CombatUnit | null;
     commandId: string;
     detachmentId?: string | null; // Add detachmentId to props
@@ -38,7 +38,6 @@ const ADD_UNIT = gql`
       bv
       pv
       status
-      availableFromMonth
       detachmentId
     }
   }
@@ -57,7 +56,6 @@ const UPDATE_UNIT = gql`
       bv
       pv
       status
-      availableFromMonth
     }
   }
 `;
@@ -102,7 +100,7 @@ interface ImportAssetsVars {
     link: string;
 }
 
-export const MechEditor: React.FC<MechEditorProps> = ({
+export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     unit,
     commandId,
     mode,
@@ -124,7 +122,6 @@ export const MechEditor: React.FC<MechEditorProps> = ({
         bv: 0,
         pv: 0,
         status: unitStatuses[0] || 'ACTIVE',
-        availableFromMonth: 0,
         detachmentId: detachmentId || null // Use the prop detachmentId if available
     });
 
@@ -159,7 +156,7 @@ export const MechEditor: React.FC<MechEditorProps> = ({
     const [importAssets] = useMutation<any, ImportAssetsVars>(IMPORT_ASSETS);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
-        const isNumeric = ['tonnage', 'asSize', 'bv', 'pv', 'availableFromMonth'].includes(field);
+        const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);
         setFormData(prev => ({
             ...prev,
             [field]: isNumeric ? (parseInt(value) || 0) : value
@@ -189,7 +186,6 @@ export const MechEditor: React.FC<MechEditorProps> = ({
                 bv: formData.bv,
                 pv: formData.pv,
                 status: formData.status,
-                availableFromMonth: formData.availableFromMonth,
                 detachmentId: detachmentId || null // Use the prop detachmentId for new units
             };
 
@@ -297,7 +293,7 @@ export const MechEditor: React.FC<MechEditorProps> = ({
                         <header className="mech-card-header overlay-header">
                             <h2 className="terminal-text" style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
                                 <span className="blink-fast" style={{ marginRight: '10px' }}>▶</span>
-                                {mode === 'create' ? 'MECH PROCUREMENT' : 'MECH RECORD'}
+                                {mode === 'create' ? 'UNIT PROCUREMENT' : 'UNIT RECORD'}
                             </h2>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <button
@@ -481,19 +477,6 @@ export const MechEditor: React.FC<MechEditorProps> = ({
                                             value={formData.pv}
                                             onChange={(e) => handleInputChange('pv', e.target.value)}
                                             title="Point value"
-                                        />
-                                    </div>
-
-                                    <div className="tactical-panel sm-text" style={{ padding: '5px 15px', textAlign: 'center', minWidth: '90px', flex: 1 }}>
-                                        <label htmlFor="mech-availmonth" className="restricted-text" style={{ fontSize: '0.55rem', opacity: 0.7, marginBottom: '2px', display: 'block' }}>AVAIL MONTH</label>
-                                        <input
-                                            id="mech-availmonth"
-                                            type="number"
-                                            className="table-input text-right"
-                                            style={{ width: '100%', textAlign: 'center' }}
-                                            value={formData.availableFromMonth}
-                                            onChange={(e) => handleInputChange('availableFromMonth', e.target.value)}
-                                            title="Available from month"
                                         />
                                     </div>
                                 </div>

@@ -122,7 +122,6 @@ public class MercenaryCommandService {
             Integer bv,
             Integer pv,
             String status,
-            Integer availableFromMonth,
             UUID detachmentId
             ) {
 
@@ -154,9 +153,7 @@ public class MercenaryCommandService {
      */
     public record CommandUpdateInput(
             String name,
-            String commandingOfficer,
-            Integer totalSupportPoints,
-            Integer reputation
+            String commandingOfficer
             ) {
 
     }
@@ -212,12 +209,6 @@ public class MercenaryCommandService {
             }
             if (input.commandingOfficer() != null) {
                 cmd.setCommandingOfficer(input.commandingOfficer());
-            }
-            if (input.totalSupportPoints() != null) {
-                cmd.setTotalSupportPoints(input.totalSupportPoints());
-            }
-            if (input.reputation() != null) {
-                cmd.setReputation(input.reputation());
             }
             cmd.setNew(false);
             return commandRepository.save(cmd)
@@ -513,9 +504,6 @@ public class MercenaryCommandService {
                         if (input.pv() != null) {
                             unit.setPv(input.pv());
                         }
-                        if (input.availableFromMonth() != null) {
-                            unit.setAvailableFromMonth(input.availableFromMonth());
-                        }
                         if (input.status() != null) {
                             unit.setStatus(input.status());
                         }
@@ -656,7 +644,6 @@ public class MercenaryCommandService {
                             .asSize(input.asSize())
                             .bv(input.bv())
                             .pv(input.pv())
-                            .availableFromMonth(TypeUtils.asInt(input.availableFromMonth(), 1))
                             .status(input.status() != null ? input.status() : "OPERATIONAL")
                             .detachmentId(input.detachmentId())
                             .isNew(true)
@@ -714,19 +701,6 @@ public class MercenaryCommandService {
     }
 
     /**
-     * Reputation logic: success/failure updates the parent command.
-     */
-    public Mono<Void> updateReputation(@NonNull UUID commandId, int modifier) {
-        log.trace("[TRACE] Starting updateReputation: id={}, mod={}", commandId, modifier);
-        return commandRepository.findById(commandId)
-                .flatMap(cmd -> {
-                    cmd.setReputation(Math.max(0, cmd.getReputation() + modifier));
-                    return commandRepository.save(cmd);
-                }).then()
-                .doOnTerminate(() -> log.trace("[TRACE] Finished updateReputation"));
-    }
-
-    /**
      * Adds a new ledger entry after validating that the user is either the
      * command owner or the campaign manager.
      */
@@ -775,31 +749,6 @@ public class MercenaryCommandService {
                             .doOnNext(commandSink::tryEmitNext);
                 }))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncReputation"));
-    }
-
-    /**
-     * Performs a monthly financial closeout for a detachment. Calculates upkeep
-     * and payroll based on the current roster.
-     */
-    @Transactional
-    public Mono<Void> processMonthlyUpkeep(@NonNull UUID commandId, @NonNull UUID detachmentId, int monthIndex, String userId) {
-        log.trace("[TRACE] Starting processMonthlyUpkeep: cmdId={}, detId={}, month={}", commandId, detachmentId, monthIndex);
-        return getAssetsByCommandId(commandId).flatMap(assets -> {
-            // Filter assets assigned to this detachment
-            long unitCount = assets.units().stream().filter(u -> detachmentId.equals(u.getDetachmentId())).count();
-            long pilotCount = assets.pilots().stream().filter(p -> detachmentId.equals(p.getDetachmentId())).count();
-
-            int totalCost = (int) ((unitCount * RulesConstants.BASE_UNIT_UPKEEP) + (pilotCount * RulesConstants.BASE_PILOT_UPKEEP)) * -1;
-
-            LedgerEntry upkeep = LedgerEntry.builder()
-                    .description("AUTOMATED MONTHLY UPKEEP: MO " + monthIndex)
-                    .amount(totalCost)
-                    .monthIndex(monthIndex)
-                    .build();
-
-            return addLedgerEntry(commandId, detachmentId, upkeep, userId).then();
-        })
-                .doOnTerminate(() -> log.trace("[TRACE] Finished processMonthlyUpkeep"));
     }
 
     /**

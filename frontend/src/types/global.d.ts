@@ -9,7 +9,6 @@ export interface CombatUnit {
     bv: number;
     pv: number;
     status: string;
-    availableFromMonth: number;
     detachmentId?: string | null;
 }
 
@@ -22,7 +21,6 @@ export interface CombatUnitUpdateInput {
     asSize?: number;
     bv?: number;
     pv?: number;
-    availableFromMonth?: number;
     status?: string;
     detachmentId?: string | null;
 }

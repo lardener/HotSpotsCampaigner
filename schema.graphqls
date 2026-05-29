@@ -142,7 +142,6 @@ type CombatUnit {
     bv: Int
     pv: Int
     status: String
-    availableFromMonth: Int
     detachmentId: ID
 }
 
@@ -274,8 +273,6 @@ input CampaignUpdateInput {
 input CommandUpdateInput {
     name: String
     commandingOfficer: String
-    totalSupportPoints: Int
-    reputation: Int
 }
 
 input TrackUpdateInput {
@@ -310,7 +307,6 @@ input CombatUnitUpdateInput {
     bv: Int
     pv: Int
     status: String
-    availableFromMonth: Int
     detachmentId: ID
 }
 

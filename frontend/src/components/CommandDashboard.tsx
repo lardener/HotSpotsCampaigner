@@ -5,7 +5,7 @@ import { LedgerEntryForm } from './LedgerEntryForm';
 import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
-import { MechEditor } from './MechEditor';
+import { CombatUnitEditor } from './CombatUnitEditor';
 import { CombatUnit, Pilot, Detachment, CommandUpdateInput } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 
@@ -28,7 +28,6 @@ const GET_UNIT_DOSSIER = gql`
         bv
         pv
         status
-        availableFromMonth
         detachmentId
       }
       pilots {
@@ -207,9 +206,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [pilotEditorMode, setPilotEditorMode] = useState<'create' | 'edit'>('create');
     const [editingPilot, setEditingPilot] = useState<Pilot | null>(null);
 
-    // Mech Editor State
-    const [showMechEditor, setShowMechEditor] = useState(false);
-    const [mechEditorMode, setMechEditorMode] = useState<'create' | 'edit'>('create');
+    // Combat Unit Editor State
+    const [showCombatUnitEditor, setShowCombatUnitEditor] = useState(false);
+    const [combatUnitEditorMode, setCombatUnitEditorMode] = useState<'create' | 'edit'>('create');
     const [editingUnit, setEditingUnit] = useState<CombatUnit | null>(null);
 
     // Form states
@@ -391,26 +390,26 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         setEditingPilot(null);
     };
 
-    const handleAddUnit = async () => {
-        setMechEditorMode('create');
+    const handleAddUnit = () => {
+        setCombatUnitEditorMode('create');
         setEditingUnit(null);
-        setShowMechEditor(true);
+        setShowCombatUnitEditor(true);
     };
 
     const handleEditUnit = (unit: CombatUnit) => {
-        setMechEditorMode('edit');
+        setCombatUnitEditorMode('edit');
         setEditingUnit(unit);
-        setShowMechEditor(true);
+        setShowCombatUnitEditor(true);
     };
 
-    const handleMechEditorSave = () => {
-        setShowMechEditor(false);
+    const handleCombatUnitEditorSave = () => {
+        setShowCombatUnitEditor(false);
         setEditingUnit(null);
         refetch();
     };
 
-    const handleMechEditorCancel = () => {
-        setShowMechEditor(false);
+    const handleCombatUnitEditorCancel = () => {
+        setShowCombatUnitEditor(false);
         setEditingUnit(null);
         refetch();
     };
@@ -750,7 +749,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     <th className="text-center" title="Alpha Strike Size">SZ</th>
                                     <th className="text-center" title="Battle Value">BV</th>
                                     <th className="text-center" title="Point Value">PV</th>
-                                    <th className="text-center" title="Available from Month">MO</th>
                                     <th className="text-center">STATUS</th>
                                     {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
@@ -767,7 +765,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         <td className="text-center">{u.asSize}</td>
                                         <td className="text-center">{u.bv}</td>
                                         <td className="text-center">{u.pv}</td>
-                                        <td className="text-center">{u.availableFromMonth}</td>
                                         <td className="text-center">{u.status}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
@@ -945,14 +942,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 />
             )}
 
-            {showMechEditor && (
-                <MechEditor
+            {showCombatUnitEditor && (
+                <CombatUnitEditor
                     unit={editingUnit}
                     commandId={commandId}
                     detachmentId={selectedDetachmentId}
-                    mode={mechEditorMode}
-                    onSave={handleMechEditorSave}
-                    onCancel={handleMechEditorCancel}
+                    mode={combatUnitEditorMode}
+                    onSave={handleCombatUnitEditorSave}
+                    onCancel={handleCombatUnitEditorCancel}
                     unitTypes={unitTypes}
                     unitStatuses={unitStatuses}
                     techBases={techBases}

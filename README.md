@@ -11,8 +11,9 @@ A multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using
  ✅ **Production-Ready Persistence**: Designed for Managed MySQL and S3-compatible object storage.
  ✅ **Command & Control Navigation**: Hierarchical tree-based navigation for managing multiple detachments across different theaters.
  ✅ **Theater Management Console**: Full control for Campaign Managers to schedule tracks, manage recruitment, and audit participating forces.
- ✅ **Temporal Logistics**: Track unit availability and repairs across campaign months.
- ✅ **Automated Upkeep**: Advanced financial simulation including monthly maintenance, payroll, and transportation costs.
+ ✅ **Global Data Synchronization**: Manual and automatic real-time synchronization of tactical data across all command interfaces.
+ ✅ **Temporal Logistics**: Manage campaign tracks and schedules across operational months with drag-and-drop scheduling.
+ ✅ **Ledger-First Financials**: All Support Points and Reputation are derived from a verifiable transaction ledger, ensuring an immutable audit trail for every command.
 
 ## Invitation & Login System
 
@@ -139,7 +140,9 @@ npm test
 │   │   │   ├── NavigationTree.tsx
 │   │   │   ├── MyDeploymentsList.tsx
 │   │   │   ├── LedgerEntryForm.tsx
-│   │   │   ├── RandomCampaignGenerator.tsx
+│   │   │   ├── CombatUnitEditor.tsx
+│   │   │   ├── PilotEditor.tsx
+│   │   │   ├── CampaignTheaterView.tsx
 │   │   │   └── Welcome.tsx
 │   │   ├── styles/
 │   │   │   ├── theme.css             # Dynamic CRT Terminal Theming
@@ -202,8 +205,8 @@ The platform is designed to run on **Managed Kubernetes (MKS)**.
 
 Upcoming development milestones:
 
-1. **Monthly Closeout Engine** — Automated generation of ledger entries for upkeep and payroll based on detachment rosters.
-2. **After-Action Workflow** — Specialized interface for resolving combat pay, repairs, and pilot recovery.
+1. **Automated Upkeep Logic** — Intelligent generation of ledger entries for maintenance and payroll based on active rosters.
+2. **After-Action Workflow** — Streamlined interface for resolving combat pay, scrap values, and pilot medical recovery.
 3. **S3 Integration** — Implement campaign snapshot storage.
 4. **JavaFX Desktop App** — Build local campaign viewer.
 

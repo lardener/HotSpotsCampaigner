@@ -195,7 +195,6 @@ public class SchemaGenerator {
         sql.append("    `as_size` INT,\n");
         sql.append("    `bv` INT,\n");
         sql.append("    `pv` INT,\n");
-        sql.append("    `available_from_month` INT DEFAULT 1,\n");
         sql.append("    `status` VARCHAR(255),\n");
         sql.append("    CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL\n");
