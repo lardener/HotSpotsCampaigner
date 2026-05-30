@@ -1,13 +1,11 @@
 import React from 'react';
 
 interface MercenaryRegistryViewProps {
-    commands: { id: string; name: string; commandingOfficer: string; totalSupportPoints: number; reputation: number; experienceLevel: string }[];
+    commands: { id: string; name: string; commandingOfficer: string; totalSupportPoints: number; reputation: number; experienceLevel?: string }[];
     selectedCommandId: string | null;
     onSelectCommand: (id: string) => void;
     onDeleteCommand: (id: string) => void;
     onEstablishCommand: () => void;
-    onViewOperations: () => void;
-    onOpenLedger: () => void;
     onViewUnitProfile: () => void;
 }
 
@@ -17,8 +15,6 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
     onSelectCommand,
     onDeleteCommand,
     onEstablishCommand,
-    onViewOperations,
-    onOpenLedger,
     onViewUnitProfile
 }) => {
     return (
@@ -53,8 +49,6 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
 
                         {selectedCommandId === cmd.id && (
                             <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px', display: 'flex', gap: '10px' }}> {/* Added type="button" */}
-                                <button type="button" className="mode-btn" onClick={(e) => { e.stopPropagation(); onViewOperations(); }}>VIEW OPERATIONS</button>
-                                <button type="button" className="mode-btn" onClick={(e) => { e.stopPropagation(); onOpenLedger(); }}>OPEN LEDGER</button>
                                 <button type="button" className="mode-btn" onClick={(e) => { e.stopPropagation(); onViewUnitProfile(); }}>UNIT PROFILE</button>
                                 <button type="button"
                                     className="mode-btn"

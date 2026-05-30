@@ -9,6 +9,7 @@ import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
 import { CommandDashboard } from './CommandDashboard';
 import { CampaignTheaterView } from './CampaignTheaterView';
+import { MercenaryRegistryView } from './MercenaryRegistryView';
 import { Detachment } from '../types/global.d';
 import { MyDeploymentsList } from './MyDeploymentsList';
 import { TerminalOverlay } from './TerminalOverlay';
@@ -555,21 +556,23 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 <div className="landing-header">
                     <h1 className="main-title">HOTSPOTS: CAMPAIGNER</h1>
                     <div className="login-options" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        <button type="button" className="login-button" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account">
+                        <button type="button" className="mode-btn theme-red" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account" style={{ padding: '10px 20px' }}>
                             FEDERATED LOGIN
                         </button>
                         <div className="token-login-box" style={{ borderLeft: '2px solid var(--terminal-border)', paddingLeft: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <input
-                                type="text"
-                                className="table-input"
-                                placeholder="ENTER INVITE KEY"
-                                value={inviteToken}
-                                onChange={(e) => setInviteToken(e.target.value.toUpperCase())}
-                                style={{ width: '180px', textTransform: 'uppercase' }}
-                            />
+                            <div className="status-bar theme-red" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    type="text"
+                                    className="table-input"
+                                    placeholder="ENTER INVITE KEY"
+                                    value={inviteToken}
+                                    onChange={(e) => setInviteToken(e.target.value.toUpperCase())}
+                                    style={{ width: '180px', textTransform: 'uppercase', border: 'none' }}
+                                />
+                            </div>
                             <button
                                 type="button"
-                                className="login-button"
+                                className="mode-btn theme-red"
                                 onClick={handleTokenLogin}
                                 style={{ fontSize: '0.8rem', padding: '5px 15px' }}
                             >
@@ -661,10 +664,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         onReturnToList={() => { setSelectedCampaignId(null); setSelectedNodeId('root-campaigns'); }}
                         onCreateNew={onCreateNew}
                         onSelectDetachment={handleTreeSelect}
-                        onRefresh={async () => {
-                            await refetchManaged();
-                            await fetchCommands();
-                        }}
+                        onRefresh={handleManualRefresh}
                         onSyncChange={setIsChildSyncing}
                     />
                 );
@@ -697,76 +697,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 );
             case 'commands':
                 return (
-                    <div className="container">
-                        <header className="dashboard-header">
-                            <h1 className="terminal-text">MERCENARY REGISTRY</h1>
-                        </header>
-                        <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
-                            {commands.map(cmd => (
-                                <div
-                                    key={cmd.id}
-                                    className={`dashboard-section ${selectedCommandId === cmd.id ? 'active-command-panel' : ''}`}
-                                    onClick={() => setSelectedCommandId(cmd.id)} title={`Select ${cmd.name}`}
-                                    style={{
-                                        cursor: 'pointer',
-                                        border: selectedCommandId === cmd.id ? '2px solid var(--accent-primary)' : '1px solid var(--terminal-border)',
-                                        transition: 'all 0.2s ease-in-out',
-                                        backgroundColor: selectedCommandId === cmd.id ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                                        position: 'relative'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <h3 className="section-title" style={{ margin: 0 }}>{cmd.name || 'UNNAMED UNIT'}</h3>
-                                        {selectedCommandId === cmd.id && <span className="restricted-text" style={{ color: 'var(--accent-primary)' }}>[ ACTIVE COMMAND ]</span>}
-                                    </div> {/* Added type="button" */}
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMANDING OFFICER</span> {cmd.commandingOfficer || 'UNKNOWN'}</div>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SUPPORT POINTS</span> {cmd.totalSupportPoints || 0}</div>
-                                        <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0}</div> {/* Added title to button */}
-                                    </div> {/* Added type="button" */}
-
-                                    {selectedCommandId === cmd.id && (
-                                        <div style={{ marginTop: '20px', borderTop: '1px solid #333', paddingTop: '15px', display: 'flex', gap: '10px' }}>
-                                            <button type="button"
-                                                className="mode-btn"
-                                                onClick={(e) => { e.stopPropagation(); setActiveTab('my-campaigns'); }}
-                                            >
-                                                VIEW OPERATIONS
-                                            </button>
-                                            <button type="button"
-                                                className="mode-btn"
-                                                onClick={(e) => { e.stopPropagation(); setActiveTab('ledger'); }}
-                                            >
-                                                OPEN LEDGER
-                                            </button>
-                                            <button type="button"
-                                                className="mode-btn"
-                                                onClick={(e) => { e.stopPropagation(); setActiveTab('command-dashboard'); }}
-                                            >
-                                                COMMAND DASHBOARD
-                                            </button>
-                                            <button type="button"
-                                                className="mode-btn"
-                                                style={{ marginLeft: 'auto', border: '1px solid var(--terminal-alert)', color: 'var(--terminal-alert)' }}
-                                                onClick={(e) => { e.stopPropagation(); handleDeleteCommand(cmd.id); }}
-                                            >
-                                                SCRAP UNIT
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-
-                            <div
-                                className="dashboard-section establish-command-placeholder"
-                                onClick={() => setIsCreatingCommand(true)}
-                                title="Establish a new mercenary command"
-                            > {/* Added title to button */}
-                                <h3 className="terminal-text" style={{ margin: 0 }}>+ ESTABLISH NEW MERCENARY COMMAND</h3>
-                            </div>
-                        </div>
-                    </div>
+                    <MercenaryRegistryView
+                        commands={commands}
+                        selectedCommandId={selectedCommandId}
+                        onSelectCommand={setSelectedCommandId}
+                        onDeleteCommand={handleDeleteCommand}
+                        onEstablishCommand={() => setIsCreatingCommand(true)}
+                        onViewUnitProfile={() => setActiveTab('command-dashboard')}
+                    />
                 );
             case 'ledger':
                 const Dashboard = LedgerDashboard as any;
@@ -880,16 +818,18 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 <div className="sidebar-footer-main" style={{ padding: '20px', borderTop: '1px solid var(--terminal-border)', backgroundColor: 'rgba(0,0,0,0.3)', position: 'static' }}>
                     <div className="user-profile-mini sidebar-user-info">
                         👤 {isEditingName ? (
-                            <input
-                                className="table-input"
-                                value={editName}
-                                onChange={e => setEditName(e.target.value)}
-                                onBlur={handleNameUpdate}
-                                onKeyDown={e => e.key === 'Enter' && handleNameUpdate()}
-                                autoFocus
-                                style={{ fontSize: '0.8rem', padding: '2px', width: '150px' }}
-                                title="Enter to save, click away to cancel"
-                            />
+                            <div className="status-bar theme-amber" style={{ display: 'inline-flex', padding: '0 5px', alignItems: 'center' }}>
+                                <input
+                                    className="table-input"
+                                    value={editName}
+                                    onChange={e => setEditName(e.target.value)}
+                                    onBlur={handleNameUpdate}
+                                    onKeyDown={e => e.key === 'Enter' && handleNameUpdate()}
+                                    autoFocus
+                                    style={{ fontSize: '0.8rem', padding: '2px', width: '150px', border: 'none' }}
+                                    title="Enter to save, click away to cancel"
+                                />
+                            </div>
                         ) : (
                             <span onClick={() => setIsEditingName(true)} style={{ cursor: 'pointer' }} title="Click to set callsign">
                                 {user?.displayName || user?.name}

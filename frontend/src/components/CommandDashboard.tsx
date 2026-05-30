@@ -709,14 +709,17 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         return (
                             <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
                                 <label htmlFor="invite-token" className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
-                                <input
-                                    id="invite-token"
-                                    className="table-input"
-                                    placeholder="INVITE TOKEN..."
-                                    value={inviteToken}
-                                    onChange={(e) => setInviteToken(e.target.value)}
-                                    title="Enter campaign invitation key"
-                                />
+                                <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        id="invite-token"
+                                        className="table-input w-100"
+                                        style={{ border: 'none' }}
+                                        placeholder="INVITE TOKEN..."
+                                        value={inviteToken}
+                                        onChange={(e) => setInviteToken(e.target.value)}
+                                        title="Enter campaign invitation key"
+                                    />
+                                </div>
                                 <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
                             </div>
                         );

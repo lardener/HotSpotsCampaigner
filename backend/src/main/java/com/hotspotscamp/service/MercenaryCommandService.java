@@ -744,7 +744,7 @@ public class MercenaryCommandService {
                             .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
                             .campaignName(input.campaignName()).monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
                             .isNew(true).build();
-                    return ledgerEntryRepository.save(entry)
+                    return ledgerEntryRepository.save(Objects.requireNonNull(entry))
                             .flatMap(saved -> syncTotalSupportPoints(commandId)
                             .then(syncReputation(commandId))
                             .thenReturn(saved));
@@ -800,9 +800,6 @@ public class MercenaryCommandService {
                             camp.setNew(false);
                             if (input.name() != null) {
                                 camp.setName(input.name());
-                            }
-                            if (input.status() != null) {
-                                camp.setStatus(input.status());
                             }
                             if (input.systemName() != null) {
                                 camp.setSystemName(input.systemName());
@@ -882,6 +879,16 @@ public class MercenaryCommandService {
                             Integer newTrackCountInput = input.trackCount();
 
                             Mono<Campaign> chain = Mono.just(camp);
+
+                            if (input.status() != null) {
+                                String oldStatus = camp.getStatus();
+                                String newStatus = input.status();
+                                camp.setStatus(newStatus);
+                                if ("INACTIVE".equalsIgnoreCase(newStatus) && !"INACTIVE".equalsIgnoreCase(oldStatus)) {
+                                    chain = SqlUtils.bindUuid(databaseClient.sql("UPDATE detachments SET campaign_id = NULL WHERE campaign_id = :id"), "id", campaignId)
+                                            .fetch().rowsUpdated().then(chain);
+                                }
+                            }
 
                             if (newMonthsInput != null) {
                                 int targetMonths = Math.max(1, newMonthsInput);

@@ -460,7 +460,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     return (
         <section className="dashboard-section generator-panel">
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
-            <p className="restricted-text">HINTERLANDS REGIONAL INTEL UPDATED</p>
+            <p className="restricted-text">MERCENARY INTEL UPDATED</p>
 
             <div style={{ marginTop: '20px' }}>
                 <button type="button"
@@ -479,7 +479,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                 <div className="proposal-view" style={{ marginTop: '30px' }}>
                     <div className="campaign-summary-header" style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'rgba(0,0,0,0.1)', borderLeft: '4px solid #c00' }}>
                         <h3 className="section-title">
-                            DOBLESS INTEL:
+                            CAMPAIGN INTEL:
                             <div className="status-bar theme-red cursor-pointer" style={{ display: 'inline-flex', marginLeft: '10px', width: '60%', padding: '0 5px' }}>
                                 <input // Campaign name input
                                     id="proposal-name"
@@ -547,7 +547,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                                             value={c.employerCategory}
                                             onChange={(e) => updateProposalContract(i, 'employerCategory', e.target.value)}
                                             className="table-input w-100"
-                                            style={{ border: 'none' }}
+                                            style={{ border: 'none', width: '40em' }}
                                             title="Employer Faction and Category"
                                         />
                                     </div>

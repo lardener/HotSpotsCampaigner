@@ -7,7 +7,7 @@ export function Login() {
   };
 
   return (
-    <button type="button" onClick={handleGoogleLogin} className="login-button" title="Login with your Google account">
+    <button type="button" onClick={handleGoogleLogin} className="mode-btn theme-red" title="Login with your Google account" style={{ padding: '10px 20px' }}>
       Login with Google
     </button>
   );

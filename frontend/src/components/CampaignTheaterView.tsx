@@ -36,6 +36,7 @@ const UPDATE_CAMPAIGN = gql`
       monthlyMaintenance
       transportationCost
       combatPay
+      status
     }
   }
 `;
@@ -88,6 +89,7 @@ const GET_CAMPAIGN_INVITES = gql`
         description
         lengthInMonths
         trackCount
+        status
         monthlyPay
         monthlyMaintenance
         transportationCost
@@ -467,6 +469,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             }
             await updateCampaign({ variables: { id: selectedCampaignId, input } });
             await refetchCampaign();
+            if (onRefresh) await onRefresh();
             setIsSyncing(false);
         }, 1000) as unknown as number;
     };
@@ -504,6 +507,32 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     await deleteInvite({ variables: { id: inviteId } });
                     await refetchCampaign();
                 } catch (err) { console.error(err); }
+                setOverlay(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const handleStatusToggle = () => {
+        const isCurrentlyActive = campaign.status === 'ACTIVE';
+        const newStatus = isCurrentlyActive ? 'INACTIVE' : 'ACTIVE';
+
+        setOverlay({
+            isOpen: true,
+            title: isCurrentlyActive ? "DEACTIVATE THEATER" : "ACTIVATE THEATER",
+            message: isCurrentlyActive
+                ? "WARNING: DEACTIVATING THEATER WILL EJECT ALL DEPLOYED DETACHMENTS. PROCEED?"
+                : "RESTORE THEATER TO ACTIVE RECRUITMENT STATUS?",
+            onConfirm: async () => {
+                setIsSyncing(true);
+                await updateCampaign({
+                    variables: {
+                        id: selectedCampaignId,
+                        input: { status: newStatus }
+                    }
+                });
+                await refetchCampaign();
+                if (onRefresh) await onRefresh();
+                setIsSyncing(false);
                 setOverlay(prev => ({ ...prev, isOpen: false }));
             }
         });
@@ -585,8 +614,11 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             title: "COMMAND PROTOCOL",
             message: "EJECT THIS DETACHMENT FROM THE THEATER?",
             onConfirm: async () => {
+                setIsSyncing(true);
                 await assignDetachment({ variables: { detachmentId: detId, campaignId: null } });
-                window.location.reload();
+                await refetchCampaign();
+                if (onRefresh) await onRefresh();
+                setIsSyncing(false);
                 setOverlay(prev => ({ ...prev, isOpen: false }));
             }
         });
@@ -645,7 +677,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             <div className="placeholder-content" style={{ border: '1px dashed #444' }}>
                                 <h3 className="terminal-text">NO MANAGED CAMPAIGNS FOUND</h3>
                                 <p>Initialize a new operation via the New Campaign Enlistment protocol.</p>
-                                <button className="login-button" onClick={onCreateNew}>START NEW CAMPAIGN</button>
+                                <button className="mode-btn theme-red" onClick={onCreateNew}>START NEW CAMPAIGN</button>
                             </div>
                         )}
                     </div>
@@ -659,6 +691,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName?.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
                             </div>
                             <div className="flex flex-gap-10">
+                                <button
+                                    type="button"
+                                    className={`mode-btn ${campaign.status === 'ACTIVE' ? 'theme-red' : 'theme-green'}`}
+                                    onClick={handleStatusToggle}
+                                >
+                                    {campaign.status === 'ACTIVE' ? '[ DEACTIVATE THEATER ]' : '[ ACTIVATE THEATER ]'}
+                                </button>
                                 <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
                             </div>
                         </div>

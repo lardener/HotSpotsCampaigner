@@ -323,15 +323,18 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                     <div className="mb-20 pb-15" style={{ borderBottom: '1px dashed var(--accent-dim)' }}>
                                         <h3 className="zone-header" style={{ margin: '0 0 10px 0' }}>IMPORT DATA SOURCE</h3>
                                         <div className="flex flex-gap-10">
-                                            <input
-                                                id="import-link"
-                                                type="text"
-                                                className="table-input flex-grow inline-edit-input"
-                                                value={importLink}
-                                                onChange={(e) => setImportLink(e.target.value)}
-                                                placeholder="MASTER UNIT LIST LINK (MUL)..."
-                                                title="External data source URL"
-                                            />
+                                            <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                <input
+                                                    id="import-link"
+                                                    type="text"
+                                                    className="table-input w-100"
+                                                    style={{ border: 'none' }}
+                                                    value={importLink}
+                                                    onChange={(e) => setImportLink(e.target.value)}
+                                                    placeholder="MASTER UNIT LIST LINK (MUL)..."
+                                                    title="External data source URL"
+                                                />
+                                            </div>
                                             <button
                                                 type="button"
                                                 className="mode-btn theme-green"

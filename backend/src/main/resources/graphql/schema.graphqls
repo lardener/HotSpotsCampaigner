@@ -259,6 +259,8 @@ input CampaignCreateInput {
 }
 
 input CampaignUpdateInput {
+    name: String
+    status: String
     systemName: String
     description: String
     monthlyPay: Int
@@ -268,6 +270,16 @@ input CampaignUpdateInput {
     repairRules: RepairRulesInput
     lengthInMonths: Int
     trackCount: Int
+    payRate: Float
+    payStep: Int
+    salvageTerms: String
+    salvageStep: Int
+    supportTerms: String
+    supportStep: Int
+    transportTerms: String
+    transportStep: Int
+    commandRights: String
+    commandStep: Int
 }
 
 input CommandUpdateInput {
