@@ -7,7 +7,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hotspotscamp.service.CampaignService.RepairRules;
 
 import lombok.AllArgsConstructor;
@@ -73,11 +73,17 @@ public class Campaign implements Persistable<UUID> {
     private RepairRules repairRules;
 
     @Transient
-    private boolean isNew;
+    @Builder.Default
+    @JsonIgnore
+    private boolean isNew = true;
 
     @Override
+    @JsonIgnore
     public boolean isNew() {
         return isNew || id == null;
     }
-}
 
+    public void setNew(boolean isNew) {
+        this.isNew = isNew;
+    }
+}

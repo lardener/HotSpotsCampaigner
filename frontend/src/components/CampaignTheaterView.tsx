@@ -8,6 +8,7 @@ import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { Detachment } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
+import { GET_METADATA } from './CampaignGenerator';
 
 const CREATE_INVITE = gql`
   mutation CreateInvite($campaignId: ID!, $recipientName: String) {
@@ -37,6 +38,16 @@ const UPDATE_CAMPAIGN = gql`
       transportationCost
       combatPay
       status
+      payRate
+      payStep
+      salvageTerms
+      salvageStep
+      supportTerms
+      supportStep
+      transportTerms
+      transportStep
+      commandRights
+      commandStep
     }
   }
 `;
@@ -57,6 +68,7 @@ const UPDATE_TRACK = gql`
       attackerFactionId
       monthIndex
       complications
+      oppositionComplications
     }
   }
 `;
@@ -67,6 +79,7 @@ const REROLL_TRACK = gql`
       id
       trackName
       complications
+      oppositionComplications
     }
   }
 `;
@@ -76,6 +89,13 @@ const REORDER_TRACKS = gql`
     reorderTracks(campaignId: $campaignId, trackIds: $trackIds) {
         id
         sequenceOrder
+        trackName
+        location
+        nextSession
+        attackerFactionId
+        monthIndex
+        complications
+        oppositionComplications
     }
 }
 `;
@@ -90,6 +110,8 @@ const GET_CAMPAIGN_INVITES = gql`
         lengthInMonths
         trackCount
         status
+        primaryEmployer
+        secondaryEmployer
         monthlyPay
         monthlyMaintenance
         transportationCost
@@ -126,6 +148,7 @@ const GET_CAMPAIGN_INVITES = gql`
             attackerFactionId
             monthIndex
             complications
+            oppositionComplications
         }
       participatingDetachments {
             id
@@ -265,6 +288,7 @@ interface TrackDetail {
     attackerFactionId?: string;
     monthIndex?: number;
     complications?: string;
+    oppositionComplications?: string;
 }
 
 interface CampaignDetail {
@@ -306,6 +330,21 @@ interface CampaignDetail {
     participatingDetachments?: ParticipatingDetachment[];
 } // Use ParticipatingDetachment
 
+interface MetadataData {
+    publicCampaignMetadata: {
+        missions: { primary: string[]; opponent: string[] };
+        trackTypes: string[];
+        factions: string[];
+        employerTypes: string[];
+        resolvedSteps: { step: number; values: any }[];
+        repairRules: {
+            armorMultiplier: number; internalMultiplier: number; crippledMultiplier: number;
+            destroyedMultiplier: number; nonMechModifier: number; mixedTechModifier: number;
+            clanTechModifier: number;
+        };
+    };
+}
+
 interface CampaignTheaterViewProps {
     managedData: { managedCampaigns: CampaignDetail[] } | undefined;
     loadingManaged: boolean;
@@ -342,6 +381,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         fetchPolicy: 'network-only',
         notifyOnNetworkStatusChange: true
     });
+    const { data: metaData } = useQuery<MetadataData>(GET_METADATA);
 
     const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
@@ -460,7 +500,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             const numericFields = ['trackCount', 'lengthInMonths', 'monthlyPay', 'monthlyMaintenance', 'transportationCost', 'combatPay'];
             if (numericFields.includes(field)) {
                 const val = parseInt(value as string) || 0;
-                // Months and Tracks cannot be below 1 (enforced at call site but safe to repeat)
                 if (field === 'trackCount' || field === 'lengthInMonths') {
                     input[field] = Math.max(1, val);
                 } else {
@@ -1124,18 +1163,16 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         onDragLeave={() => setDragOverMonth(null)}
                                         onDrop={(e) => handleDrop(e, mIdx)}
                                     >
-                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
                                             <span>[ MONTH {mIdx} ]</span>
-                                            <div className="flex flex-gap-10 items-center">
-                                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
-                                                <button
-                                                    className="mode-btn theme-green"
-                                                    style={{ fontSize: '0.6rem', padding: '2px 6px' }}
-                                                    onClick={() => setShowMonthlyExpensesEditor(mIdx)}
-                                                >
-                                                    [ EXPENSES ]
-                                                </button>
-                                            </div>
+                                            <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
+                                            <button
+                                                className="mode-btn theme-blue"
+                                                style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                                                onClick={() => setShowMonthlyExpensesEditor(mIdx)}
+                                            >
+                                                [ EXPENSES ]
+                                            </button>
                                         </h4>
                                         <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                             {monthTracks.map((track: TrackDetail) => (
@@ -1150,21 +1187,29 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     className="asset-card"
                                                     style={{ padding: '12px', cursor: 'grab', position: 'relative', border: '1px solid var(--accent-dim)', width: '100%', boxSizing: 'border-box' }}
                                                 >
-                                                    <div className="flex-between mb-5">
+                                                    <div className="flex-between mb-5" style={{ alignItems: 'center' }}>
                                                         <div className="status-bar theme-amber" style={{ flex: 1, marginRight: '10px', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                                             {activeTrackField === `${track.id}-name` ? (
-                                                                <input
-                                                                    className="inline-edit"
-                                                                    key={`${track.id}-name-${track.trackName}`}
-                                                                    style={{ fontWeight: 'bold', width: '100%', border: 'none' }}
-                                                                    defaultValue={track.trackName}
-                                                                    autoFocus
-                                                                    onBlur={() => setActiveTrackField(null)}
-                                                                    onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
-                                                                    placeholder="DESIGNATION"
-                                                                    title="Operational designation"
-                                                                    aria-label="Track name"
-                                                                />
+                                                                <>
+                                                                    <input
+                                                                        className="inline-edit"
+                                                                        key={`${track.id}-name-${track.trackName}`}
+                                                                        list={`track-types-${track.id}`}
+                                                                        style={{ fontWeight: 'bold', width: '100%', border: 'none', background: 'transparent', color: 'inherit' }}
+                                                                        defaultValue={track.trackName}
+                                                                        autoFocus
+                                                                        onBlur={() => setActiveTrackField(null)}
+                                                                        onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
+                                                                        title="Track type"
+                                                                        placeholder="TRACK TYPE?"
+                                                                        aria-label="Track type"
+                                                                    />
+                                                                    <datalist id={`track-types-${track.id}`}>
+                                                                        {metaData?.publicCampaignMetadata?.trackTypes.map(t => (
+                                                                            <option key={t} value={t} />
+                                                                        ))}
+                                                                    </datalist>
+                                                                </>
                                                             ) : (
                                                                 <div
                                                                     className="inline-edit cursor-pointer theme-amber"
@@ -1175,10 +1220,18 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        <button
+                                                            className="mode-btn theme-amber sm-text mr-10"
+                                                            style={{ padding: '0 5px', height: '18px', fontSize: '0.6rem' }}
+                                                            onClick={() => handleReroll(track.id)}
+                                                        >REROLL</button>
                                                         <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
                                                     </div>
-                                                    <div className="flex flex-gap-5 mb-5" style={{ alignItems: 'flex-start' }}>
-                                                        <div className="status-bar theme-amber" style={{ flex: 1, padding: '5px', display: 'flex' }}>
+                                                    <div className="mb-5">
+                                                        <div className="restricted-text mb-2" style={{ fontSize: '0.55rem', opacity: 0.8 }}>
+                                                            {campaign.primaryEmployer?.toUpperCase() || 'UNKNOWN'} COMPLICATIONS
+                                                        </div>
+                                                        <div className="status-bar theme-green" style={{ width: '100%', padding: '5px', display: 'flex' }}>
                                                             {activeTrackField === `${track.id}-comp` ? (
                                                                 <textarea
                                                                     className="inline-edit"
@@ -1203,11 +1256,38 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <button
-                                                            className="mode-btn theme-amber sm-text"
-                                                            style={{ padding: '0 5px', height: '18px', fontSize: '0.6rem' }}
-                                                            onClick={() => handleReroll(track.id)}
-                                                        >REROLL</button>
+                                                    </div>
+                                                    <div className="flex flex-gap-5 mb-5">
+                                                        <div style={{ flex: 1 }}>
+                                                            <div className="restricted-text mb-2" style={{ fontSize: '0.55rem', opacity: 0.8, color: 'var(--terminal-red)' }}>
+                                                                {campaign.secondaryEmployer?.toUpperCase() || 'UNKNOWN'} COMPLICATIONS
+                                                            </div>
+                                                            <div className="status-bar theme-red" style={{ width: '100%', padding: '5px', display: 'flex', borderColor: 'var(--terminal-red-dim)' }}>
+                                                                {activeTrackField === `${track.id}-opp-comp` ? (
+                                                                    <textarea
+                                                                        className="inline-edit"
+                                                                        key={`${track.id}-opp-comp-${track.oppositionComplications}`}
+                                                                        style={{ fontSize: '0.7rem', width: '100%', resize: 'vertical', border: 'none', color: 'var(--terminal-red)' }}
+                                                                        rows={3}
+                                                                        autoFocus
+                                                                        onBlur={() => setActiveTrackField(null)}
+                                                                        defaultValue={track.oppositionComplications}
+                                                                        onChange={(e) => handleTrackUpdate(track.id, 'oppositionComplications', e.target.value)}
+                                                                        placeholder="OPPOSITION COMPLICATIONS"
+                                                                        title="Opposition mission complications"
+                                                                        aria-label="Opposition track complications"
+                                                                    />
+                                                                ) : (
+                                                                    <div
+                                                                        className="inline-edit cursor-pointer theme-red"
+                                                                        style={{ fontSize: '0.7rem', width: '100%', minHeight: '3.6em', whiteSpace: 'pre-wrap', padding: '2px', color: 'var(--terminal-red)' }}
+                                                                        onClick={() => setActiveTrackField(`${track.id}-opp-comp`)}
+                                                                    >
+                                                                        {track.oppositionComplications || 'OPPOSITION COMPLICATIONS'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div className="flex flex-gap-5 mb-5">
                                                         <div className="status-bar theme-amber" style={{ flex: 1, padding: '0 5px', display: 'flex', alignItems: 'center' }}>
@@ -1219,9 +1299,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                     onBlur={() => setActiveTrackField(null)}
                                                                     defaultValue={track.location}
                                                                     onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
-                                                                    placeholder="LOCATION"
+                                                                    placeholder="GAME LOCATION"
                                                                     title="Physical location"
-                                                                    aria-label="Track location"
+                                                                    aria-label="Game location"
                                                                 />
                                                             ) : (
                                                                 <div
@@ -1229,7 +1309,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                     style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
                                                                     onClick={() => setActiveTrackField(`${track.id}-loc`)}
                                                                 >
-                                                                    {track.location || 'LOCATION'}
+                                                                    {track.location || 'LOCATION?'}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1249,7 +1329,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                     defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
                                                                     onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
                                                                     aria-label="Next session time"
-                                                                    title="Deployment time"
+                                                                    title="Session date and time"
                                                                 />
                                                             ) : (
                                                                 <div
@@ -1257,7 +1337,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                     style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
                                                                     onClick={() => setActiveTrackField(`${track.id}-time`)}
                                                                 >
-                                                                    {track.nextSession ? new Date(track.nextSession).toLocaleString() : 'DEPLOYMENT TIME'}
+                                                                    {track.nextSession ? new Date(track.nextSession).toLocaleString() : 'SESSION DATE & TIME'}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1291,7 +1371,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     </div>
                                                     <div className="mt-10 pt-5" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
                                                         <button
-                                                            className="mode-btn theme-red w-100"
+                                                            className="mode-btn theme-amber w-100"
                                                             style={{ fontSize: '0.65rem', padding: '4px' }}
                                                             onClick={() => setShowAarForTrack(track)}
                                                         >
@@ -1369,6 +1449,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 <AfterActionReportEditor
                     campaign={campaign as any}
                     track={showAarForTrack}
+                    metaData={metaData as any}
                     onClose={async () => {
                         await refetchCampaign();
                         if (onRefresh) await onRefresh();

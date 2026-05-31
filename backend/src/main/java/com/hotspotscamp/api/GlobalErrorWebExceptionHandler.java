@@ -1,6 +1,8 @@
 package com.hotspotscamp.api;
 
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
@@ -24,6 +26,8 @@ import reactor.core.publisher.Mono;
 @Order(-2)
 public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalErrorWebExceptionHandler.class);
+
     public GlobalErrorWebExceptionHandler(ErrorAttributes errorAttributes,
             WebProperties webProperties,
             ApplicationContext applicationContext,
@@ -35,11 +39,15 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
 
     @Override
     protected RouterFunction<ServerResponse> getRoutingFunction(ErrorAttributes errorAttributes) {
-        return RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
+        log.trace("[TRACE] Entering getRoutingFunction");
+        RouterFunction<ServerResponse> route = RouterFunctions.route(RequestPredicates.all(), this::renderErrorResponse);
+        log.trace("[TRACE] Exiting getRoutingFunction");
+        return route;
     }
 
     @SuppressWarnings("null")
     private Mono<ServerResponse> renderErrorResponse(ServerRequest request) {
+        log.trace("[TRACE] Entering renderErrorResponse");
         Map<String, Object> errorPropertiesMap = getErrorAttributes(request,
                 ErrorAttributeOptions.defaults());
 
@@ -47,6 +55,7 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
 
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(errorPropertiesMap));
+                .body(BodyInserters.fromValue(errorPropertiesMap))
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting renderErrorResponse"));
     }
 }

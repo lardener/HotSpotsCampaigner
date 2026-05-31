@@ -28,14 +28,18 @@ public class UserService {
      * one is created.
      */
     public Mono<User> resolveOrCreateUser(String identity) {
-        return resolveOrCreateUser(identity, "ROLE_AUTHENTICATED");
+        log.trace("[TRACE] Starting resolveOrCreateUser: identity={}", identity);
+        return resolveOrCreateUser(identity, "ROLE_AUTHENTICATED")
+                .doOnTerminate(() -> log.trace("[TRACE] Finished resolveOrCreateUser: identity={}", identity));
     }
 
     /**
      * Overloaded to allow specifying the initial role for new users.
      */
     public Mono<User> resolveOrCreateUser(String identity, String role) {
+        log.trace("[TRACE] Starting resolveOrCreateUser: identity={}, role={}", identity, role);
         if (identity == null || identity.isBlank() || identity.equals("anonymousUser")) {
+            log.trace("[TRACE] Finished resolveOrCreateUser (anonymous or null)");
             return Mono.empty();
         }
 
@@ -61,6 +65,7 @@ public class UserService {
                     }
                     return Mono.just(user);
                 })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished resolveOrCreateUser: identity={}", identity))
                 .switchIfEmpty(Mono.defer(() -> {
                     // Onboarding new Google users
                     User newUser = User.builder()
@@ -79,18 +84,21 @@ public class UserService {
     }
 
     public Mono<User> updateDisplayName(String identity, String displayName) {
+        log.trace("[TRACE] Starting updateDisplayName: identity={}, displayName={}", identity, displayName);
         return resolveOrCreateUser(identity)
                 .flatMap(user -> {
                     user.setDisplayName(displayName);
                     user.setNew(false);
                     return userRepository.save(user);
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateDisplayName: identity={}", identity));
     }
 
     /**
      * Upgrades an invited user to an authenticated manager.
      */
     public Mono<User> upgradeToManager(UUID userId, String externalId, String email) {
+        log.trace("[TRACE] Starting upgradeToManager: userId={}, externalId={}", userId, externalId);
         return userRepository.findById(Objects.requireNonNull(userId))
                 .flatMap(user -> {
                     user.setNew(false);
@@ -99,6 +107,7 @@ public class UserService {
                     user.setRole("ROLE_AUTHENTICATED");
                     return userRepository.save(user)
                             .onErrorResume(DuplicateKeyException.class, e -> userRepository.findById(userId));
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished upgradeToManager: userId={}", userId));
     }
 }

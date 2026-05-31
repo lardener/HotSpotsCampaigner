@@ -15,7 +15,7 @@ public class SchemaGenerator {
         sql.append("-- HotSpots Campaigner Database Schema\n");
         sql.append("-- Generated for MySQL / R2DBC Compatibility\n\n");
 
-        sql.append("USE `BT_Campaigner`;\n\n");
+        sql.append("USE BT_Campaigner;\n\n");
 
         sql.append("SET FOREIGN_KEY_CHECKS = 0;\n\n");
 
@@ -107,6 +107,7 @@ public class SchemaGenerator {
         sql.append("    `attacker_faction_id` VARCHAR(36),\n");
         sql.append("    `month_index` INT,\n");
         sql.append("    `complications` VARCHAR(1000),\n");
+        sql.append("    `opposition_complications` VARCHAR(1000),\n");
         sql.append("    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");

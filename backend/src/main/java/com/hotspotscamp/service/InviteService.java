@@ -37,6 +37,7 @@ public class InviteService {
     private final UserRepository userRepository;
 
     public Mono<CampaignInvite> generateInvite(UUID campaignId, String recipientName) {
+        log.trace("[TRACE] Starting generateInvite: campaignId={}, recipient={}", campaignId, recipientName);
         String rawToken = RandomStringUtils.secure().nextAlphanumeric(12).toUpperCase();
         String hashedToken = hashToken(rawToken);
         LocalDateTime expiry = LocalDateTime.now().plusDays(7);
@@ -56,7 +57,10 @@ public class InviteService {
                 .recipientName(recipientName)
                 .expiresAt(expiry)
                 .used(false)
-                .build());
+                .build())
+                .doOnNext(invite -> log.debug("[INVITE] Generated invite for campaign {}: recipient='{}', tokenHash={}, expiresAt={}",
+                campaignId, recipientName, hashedToken.substring(0, 8) + "...", expiry))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished generateInvite"));
     }
 
     /**
@@ -64,6 +68,7 @@ public class InviteService {
      * session. The token serves as the external identity for the user.
      */
     public Mono<Boolean> authenticateViaToken(String token, WebSession session) {
+        log.trace("[TRACE] Starting authenticateViaToken");
         if (token == null || token.isBlank()) {
             return Mono.error(new RuntimeException("INVITATION KEY IS REQUIRED"));
         }
@@ -106,10 +111,12 @@ public class InviteService {
                                 session.getAttributes().put("SPRING_SECURITY_CONTEXT", securityContext);
                                 return session.changeSessionId().thenReturn(true);
                             });
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Finished authenticateViaToken"));
     }
 
     public Mono<CampaignInvite> validateAndConsumeInvite(String token) {
+        log.trace("[TRACE] Starting validateAndConsumeInvite");
         String normalizedToken = token.trim().toUpperCase();
         String hashedToken = hashToken(normalizedToken);
 
@@ -123,17 +130,22 @@ public class InviteService {
                     }
                     return inviteRepository.save(Objects.requireNonNull(invite.toBuilder().used(true).isNew(false).build()));
                 })
-                .switchIfEmpty(Mono.error(new RuntimeException("INVALID INVITATION KEY")));
+                .switchIfEmpty(Mono.error(new RuntimeException("INVALID INVITATION KEY")))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished validateAndConsumeInvite"));
     }
 
     private String hashToken(String token) {
+        log.trace("[TRACE] Starting hashToken");
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] encodedHash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().withUpperCase().formatHex(encodedHash);
+            String result = HexFormat.of().withUpperCase().formatHex(encodedHash);
+            log.trace("[TRACE] Finished hashToken");
+            return result;
         } catch (NoSuchAlgorithmException e) {
 
             log.error("SHA-256 algorithm not found", e);
+            log.trace("[TRACE] Finished hashToken (Error)");
             throw new RuntimeException("CRITICAL: SECURITY CONFIGURATION ERROR");
         }
     }

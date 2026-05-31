@@ -29,6 +29,7 @@ import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.util.RulesConstants;
 
+import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.CampaignService.CampaignProposal;
 import com.hotspotscamp.service.UserService;
@@ -49,23 +50,29 @@ public class CampaignGraphQLController {
     private final CampaignTrackRepository campaignTrackRepository;
     private final DetachmentRepository detachmentRepository;
     private final CampaignService campaignService;
+    private final MercenaryCommandService commandService;
     private final UserService userService;
 
     @QueryMapping
     public Flux<Campaign> activeCampaigns(@Argument Integer page, @Argument Integer size, Principal principal) {
+        log.trace("[TRACE] Entering activeCampaigns");
         if (isAnonymous(principal)) {
+            log.trace("[TRACE] Exiting activeCampaigns (anonymous)");
             return Flux.empty();
         }
         int pageSize = (size != null) ? size : 5;
         int offset = (page != null) ? page * pageSize : 0;
-        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset);
+        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting activeCampaigns"));
     }
 
     @QueryMapping
     public Flux<Campaign> managedCampaigns(@Argument String status, Principal principal) {
+        log.trace("[TRACE] Entering managedCampaigns: status={}", status);
         log.info("[GQL] managedCampaigns query received. Principal: {}", principal != null ? principal.getName() : "NULL");
         String identity = principal != null ? principal.getName() : null;
         if (identity == null || "anonymousUser".equals(identity)) {
+            log.trace("[TRACE] Exiting managedCampaigns (anonymous)");
             return Flux.empty();
         }
         return userService.resolveOrCreateUser(identity)
@@ -75,20 +82,26 @@ public class CampaignGraphQLController {
                         return campaignRepository.findAllByManagerIdAndStatus(internalId, status);
                     }
                     return campaignRepository.findAllByManagerId(internalId);
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting managedCampaigns"));
     }
 
     @QueryMapping
     public Mono<Campaign> getCampaign(@Argument UUID id) {
+        log.trace("[TRACE] Entering getCampaign: id={}", id);
         if (id == null) {
+            log.trace("[TRACE] Exiting getCampaign (null id)");
             return Mono.empty();
         }
-        return campaignRepository.findById(id);
+        return campaignRepository.findById(id)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getCampaign"));
     }
 
     @QueryMapping
     public Flux<Campaign> participatingCampaigns(@Argument UUID commandId) {
+        log.trace("[TRACE] Entering participatingCampaigns: commandId={}", commandId);
         if (commandId == null) {
+            log.trace("[TRACE] Exiting participatingCampaigns (null id)");
             return Flux.empty();
         }
         return campaignService.getParticipatingCampaigns(commandId)
@@ -98,66 +111,84 @@ public class CampaignGraphQLController {
                         return Mono.empty();
                     }
                     return campaignRepository.findById(id);
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting participatingCampaigns"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "primaryEmployer")
     public Mono<String> getPrimaryEmployer(Campaign campaign) {
+        log.trace("[TRACE] Entering getPrimaryEmployer for campaign: {}", campaign.getId());
         UUID id = campaign.getId();
         if (id == null) {
+            log.trace("[TRACE] Exiting getPrimaryEmployer (null id)");
             return Mono.empty();
         }
         return contractRepository.findAllByCampaignId(id)
                 .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
                 .map(Contract::getEmployerCategory)
                 .next()
-                .defaultIfEmpty("Unknown");
+                .defaultIfEmpty("Unknown")
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getPrimaryEmployer"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "secondaryEmployer")
     public Mono<String> getSecondaryEmployer(Campaign campaign) {
+        log.trace("[TRACE] Entering getSecondaryEmployer for campaign: {}", campaign.getId());
         UUID id = campaign.getId();
         if (id == null) {
+            log.trace("[TRACE] Exiting getSecondaryEmployer (null id)");
             return Mono.empty();
         }
         return contractRepository.findAllByCampaignId(id)
                 .filter(c -> Boolean.FALSE.equals(c.getPrimaryContract()))
                 .map(Contract::getEmployerCategory)
                 .next()
-                .defaultIfEmpty("Unknown");
+                .defaultIfEmpty("Unknown")
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getSecondaryEmployer"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "participatingDetachments")
     public Flux<Detachment> getParticipatingDetachments(Campaign campaign) {
+        log.trace("[TRACE] Entering getParticipatingDetachments for campaign: {}", campaign.getId());
         UUID id = campaign.getId();
         if (id == null) {
+            log.trace("[TRACE] Exiting getParticipatingDetachments (null id)");
             return Flux.empty();
         }
-        return detachmentRepository.findAllByCampaignId(id);
+        return detachmentRepository.findAllByCampaignId(id)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getParticipatingDetachments"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "tracks")
     public Flux<CampaignTrack> getTracks(Campaign campaign) {
-        return campaignTrackRepository.findAllByCampaignId(campaign.getId());
+        log.trace("[TRACE] Entering getTracks for campaign: {}", campaign.getId());
+        return campaignTrackRepository.findAllByCampaignId(campaign.getId())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getTracks"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "factions")
     public Flux<CampaignFaction> getFactions(Campaign campaign) {
-        return campaignFactionRepository.findAllByCampaignId(campaign.getId());
+        log.trace("[TRACE] Entering getFactions for campaign: {}", campaign.getId());
+        return campaignFactionRepository.findAllByCampaignId(campaign.getId())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getFactions"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "contracts")
     public Flux<Contract> getContracts(Campaign campaign) {
+        log.trace("[TRACE] Entering getContracts for campaign: {}", campaign.getId());
         UUID id = campaign.getId();
         if (id == null) {
+            log.trace("[TRACE] Exiting getContracts (null id)");
             return Flux.empty();
         }
-        return contractRepository.findAllByCampaignId(id);
+        return contractRepository.findAllByCampaignId(id)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getContracts"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "repairRules")
     public CampaignService.RepairRules getRepairRules(Campaign campaign) {
-        return new CampaignService.RepairRules(
+        log.trace("[TRACE] Entering getRepairRules for campaign: {}", campaign.getId());
+        CampaignService.RepairRules rules = new CampaignService.RepairRules(
                 Objects.requireNonNullElse(campaign.getArmorMultiplier(), RulesConstants.REPAIR_MULT_ARMOR),
                 Objects.requireNonNullElse(campaign.getInternalMultiplier(), RulesConstants.REPAIR_MULT_INTERNAL),
                 Objects.requireNonNullElse(campaign.getCrippledMultiplier(), RulesConstants.REPAIR_MULT_CRIPPLED),
@@ -166,36 +197,39 @@ public class CampaignGraphQLController {
                 Objects.requireNonNullElse(campaign.getMixedTechModifier(), RulesConstants.REPAIR_MULT_MIXED_TECH),
                 Objects.requireNonNullElse(campaign.getClanTechModifier(), RulesConstants.REPAIR_MULT_CLAN_TECH)
         );
+        log.trace("[TRACE] Exiting getRepairRules");
+        return rules;
     }
 
     @SchemaMapping(typeName = "Campaign", field = "campaignInvites")
     public Flux<CampaignInvite> getCampaignInvites(Campaign campaign) {
+        log.trace("[TRACE] Entering getCampaignInvites for campaign: {}", campaign.getId());
         UUID id = campaign.getId();
         if (id == null) {
+            log.trace("[TRACE] Exiting getCampaignInvites (null id)");
             return Flux.empty();
         }
-        return campaignService.getCampaignInvites(id);
+        return campaignService.getCampaignInvites(id)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting getCampaignInvites"));
     }
 
     @SchemaMapping(typeName = "CampaignProposal", field = "repairRules")
     public CampaignService.RepairRules getProposalRepairRules(CampaignProposal proposal) {
-        return proposal.campaign().getRepairRules();
-    }
-
-    @SchemaMapping(typeName = "CampaignProposal", field = "tracks")
-    public List<String> getProposalTracks(CampaignProposal proposal) {
-        return proposal.tracks().stream()
-                .map(t -> t.name() + (t.complication().equals("None") ? "" : " [" + t.complication() + "]"))
-                .collect(Collectors.toList());
+        log.trace("[TRACE] Entering getProposalRepairRules");
+        CampaignService.RepairRules rules = proposal.campaign().getRepairRules();
+        log.trace("[TRACE] Exiting getProposalRepairRules");
+        return rules;
     }
 
     @QueryMapping
     public CampaignMetadata campaignMetadata(Principal principal) {
+        log.trace("[TRACE] Entering campaignMetadata");
         if (isAnonymous(principal)) {
+            log.trace("[TRACE] Exiting campaignMetadata (anonymous)");
             return null;
         }
         CampaignService.CampaignMetadata meta = campaignService.getCampaignMetadata();
-        return new CampaignMetadata(
+        CampaignMetadata result = new CampaignMetadata(
                 new MissionMetadata(meta.missions().primary(), meta.missions().opponent()),
                 meta.trackTypes(),
                 meta.factions(),
@@ -208,16 +242,21 @@ public class CampaignGraphQLController {
                 meta.techBases(),
                 meta.unitStatuses()
         );
+        log.trace("[TRACE] Exiting campaignMetadata");
+        return result;
     }
 
     private ContractStepValues mapToValues(Map<String, String> map) {
-        return new ContractStepValues(
+        log.trace("[TRACE] Entering mapToValues");
+        ContractStepValues result = new ContractStepValues(
                 map.get("payRate"),
                 map.get("salvageRights"),
                 map.get("supportRights"),
                 map.get("transportation"),
                 map.get("commandRights")
         );
+        log.trace("[TRACE] Exiting mapToValues");
+        return result;
     }
 
     public record CampaignMetadata(
@@ -253,31 +292,42 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
-    public Mono<java.util.List<String>> generateTracks(@Argument String mission, @Argument String commandRights, @Argument Integer count) {
-        return Mono.just(campaignService.generateTracks(mission, commandRights, count).stream()
-                .map(t -> t.name() + (t.complication().equals("None") ? "" : " [" + t.complication() + "]"))
-                .collect(Collectors.toList())
-        );
+    public Mono<List<CampaignService.GeneratedTrack>> generateTracks(
+            @Argument String mission,
+            @Argument String commandRights,
+            @Argument String oppCommandRights,
+            @Argument Integer count,
+            @Argument List<CampaignService.GeneratedTrack> existing) {
+        log.trace("[TRACE] Entering generateTracks: mission={}, count={}", mission, count);
+        String finalOppRights = (oppCommandRights != null) ? oppCommandRights : "Independent";
+        return Mono.just(campaignService.generateTracks(mission, commandRights, finalOppRights, count, existing))
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting generateTracks"));
     }
 
     @QueryMapping
     public Mono<CampaignProposal> previewCampaign(@Argument CampaignService.CampaignCreateInput input, Principal principal) {
+        log.trace("[TRACE] Entering previewCampaign");
         if (isAnonymous(principal)) {
+            log.trace("[TRACE] Exiting previewCampaign (anonymous)");
             return Mono.empty();
         }
-        return Mono.just(campaignService.generateProposal(input));
+        return Mono.just(campaignService.generateProposal(input))
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting previewCampaign"));
     }
 
     @QueryMapping
     public Flux<Campaign> publicActiveCampaigns(@Argument Integer page, @Argument Integer size) {
+        log.trace("[TRACE] Entering publicActiveCampaigns");
         int pageSize = (size != null) ? size : 5;
         int offset = (page != null) ? page * pageSize : 0;
-        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset);
+        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting publicActiveCampaigns"));
     }
 
     @QueryMapping
     @SuppressWarnings("Convert2Lambda")
     public CampaignMetadata publicCampaignMetadata() {
+        log.trace("[TRACE] Entering publicCampaignMetadata");
         return campaignMetadata(new java.security.Principal() {
             @Override
             public String getName() {
@@ -289,6 +339,7 @@ public class CampaignGraphQLController {
     @QueryMapping
     @SuppressWarnings("Convert2Lambda")
     public Mono<CampaignProposal> publicPreviewCampaign(@Argument CampaignService.CampaignCreateInput input) {
+        log.trace("[TRACE] Entering publicPreviewCampaign");
         return previewCampaign(input, new java.security.Principal() {
             @Override
             public String getName() {
@@ -303,6 +354,7 @@ public class CampaignGraphQLController {
 
     @MutationMapping
     public Mono<Campaign> createCampaign(@Argument CampaignService.CampaignCreateInput input, Principal principal) {
+        log.trace("[TRACE] Entering createCampaign: name={}", input.name());
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required to create campaign"));
         }
@@ -311,57 +363,70 @@ public class CampaignGraphQLController {
                 .<Campaign>flatMap(user -> {
                     String internalId = user.getId().toString();
                     return campaignService.generateDoblessCampaign(internalId, input);
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting createCampaign"));
     }
 
     @MutationMapping
     public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, @Argument String recipientName, Principal principal) {
+        log.trace("[TRACE] Entering createInvite: campaignId={}, recipient={}", campaignId, recipientName);
         if (campaignId == null) {
             return Mono.error(new IllegalArgumentException("Campaign ID is required"));
         }
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required to create invite"));
         }
-        return campaignService.createInvite(campaignId, recipientName, principal.getName());
+        return campaignService.createInvite(campaignId, recipientName, principal.getName())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting createInvite"));
     }
 
     @MutationMapping
     public Mono<Boolean> deleteInvite(@Argument UUID id, Principal principal) {
+        log.trace("[TRACE] Entering deleteInvite: id={}", id);
         if (id == null) {
             return Mono.error(new IllegalArgumentException("Invite ID is required"));
         }
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required"));
         }
-        return campaignService.deleteInvite(id, principal.getName());
+        return campaignService.deleteInvite(id, principal.getName())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting deleteInvite"));
     }
 
     @MutationMapping
     public Mono<Boolean> joinCampaign(@Argument String token, @Argument @NonNull UUID detachmentId) {
-        return campaignService.joinCampaign(token, detachmentId);
+        log.trace("[TRACE] Entering joinCampaign: detachmentId={}", detachmentId);
+        return campaignService.joinCampaign(token, detachmentId)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting joinCampaign"));
     }
 
     @MutationMapping
     public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument CampaignService.TrackUpdateInput input, Principal principal) {
+        log.trace("[TRACE] Entering updateTrack: id={}", id);
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));
         }
-        return campaignService.updateTrack(id, input);
+        return commandService.updateTrack(id, input, principal.getName())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting updateTrack"));
     }
 
     @MutationMapping
     public Mono<CampaignTrack> rerollTrack(@Argument @NonNull UUID id, Principal principal) {
+        log.trace("[TRACE] Entering rerollTrack: id={}", id);
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));
         }
-        return campaignService.rerollTrack(id, principal.getName());
+        return campaignService.rerollTrack(id, principal.getName())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting rerollTrack"));
     }
 
     @MutationMapping
     public Flux<CampaignTrack> reorderTracks(@Argument UUID campaignId, @Argument List<UUID> trackIds, Principal principal) {
+        log.trace("[TRACE] Entering reorderTracks: campaignId={}", campaignId);
         if (principal == null) {
             return Flux.error(new RuntimeException("Unauthorized"));
         }
-        return campaignService.reorderTracks(campaignId, trackIds);
+        return commandService.reorderTracks(campaignId, trackIds, principal.getName())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting reorderTracks"));
     }
 }

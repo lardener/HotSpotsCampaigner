@@ -30,7 +30,8 @@ ADD COLUMN length_in_months INT;
 -- Alter table for CampaignTrack entity
 ALTER TABLE campaign_tracks
 ADD COLUMN month_index INT,
-ADD COLUMN complications VARCHAR(1000);
+ADD COLUMN complications VARCHAR(1000),
+ADD COLUMN opposition_complications VARCHAR(1000);
 ```
 
 ## Backend (`CampaignService.java`) Changes

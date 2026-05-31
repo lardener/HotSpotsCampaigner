@@ -50,6 +50,9 @@ public class CampaignTrack implements Persistable<UUID> {
     @Column("complications")
     private String complications;
 
+    @Column("opposition_complications")
+    private String oppositionComplications;
+
     @Transient
     @Builder.Default
     @JsonIgnore

@@ -3,7 +3,7 @@ import { gql } from '@apollo/client';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { ADD_LEDGER_ENTRY } from './LedgerEntryForm';
-import { CombatUnit, Pilot } from '../types/global.d';
+import { CombatUnit, Pilot, RepairRulesInput } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
 
@@ -27,15 +27,7 @@ const GET_METADATA = gql`
 interface MetadataData {
     publicCampaignMetadata: {
         unitStatuses: string[];
-        repairRules: {
-            armorMultiplier: number;
-            internalMultiplier: number;
-            crippledMultiplier: number;
-            destroyedMultiplier: number;
-            nonMechModifier: number;
-            mixedTechModifier: number;
-            clanTechModifier: number;
-        };
+        repairRules: RepairRulesInput;
     };
 }
 
@@ -50,6 +42,7 @@ interface DetachmentAarState {
 interface AfterActionReportEditorProps {
     campaign: any;
     track: any;
+    metaData?: MetadataData;
     onClose: () => void | Promise<void>;
     onLedgerEntryAdded?: () => void | Promise<void>;
 }
@@ -58,7 +51,7 @@ const AMMO_COST_PER_TON = 10;
 const INJURY_HEAL_COST = 30;
 
 // New helper function to calculate financial implications of a unit's status
-const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: any, statuses: string[]): {
+const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: RepairRulesInput | undefined, statuses: string[]): {
     baseRepairCost: number;
     baseReplacementValue: number;
     damageMultiplier: number;
@@ -117,9 +110,13 @@ const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: any, s
     };
 };
 
-export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, onClose, onLedgerEntryAdded }) => {
+export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded }) => {
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
-    const { loading: metadataLoading, data: metaData } = useQuery<MetadataData>(GET_METADATA);
+    const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataData>(GET_METADATA, {
+        skip: !!propMetaData
+    });
+
+    const metaData = propMetaData || queryMetaData;
 
     const [detachmentAars, setDetachmentAars] = useState<Record<string, DetachmentAarState>>({});
     const [unitStates, setUnitStates] = useState<Record<string, { status: string, ammo: number }>>({});

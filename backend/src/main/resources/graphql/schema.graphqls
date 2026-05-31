@@ -7,7 +7,7 @@ type Query {
     previewCampaign(input: CampaignCreateInput!): CampaignProposal
     campaignMetadata: CampaignMetadata
     participatingCampaigns(commandId: ID!): [Campaign]
-    generateTracks(mission: String!, commandRights: String!, count: Int!): [String]
+    generateTracks(mission: String!, commandRights: String!, oppCommandRights: String!, count: Int!, existing: [ProposedTrackInput]): [ProposedTrack]
     commandAssets(commandId: ID!): CommandAssetsResponse
     userProfile: UserProfile
 
@@ -232,11 +232,21 @@ type CampaignInvite {
     used: Boolean
 }
 
+input ProposedTrackInput {
+    name: String
+    complication: String
+    oppositionComplication: String
+}
+
 input CampaignCreateInput {
+    name: String
     employer: String
     opponent: String
     mission: String
     employerCategory: String
+    opponentCategory: String
+    oppMission: String
+    status: String
     systemName: String
     description: String
     payRate: Float
@@ -249,6 +259,16 @@ input CampaignCreateInput {
     supportStep: Int
     transportStep: Int
     commandStep: Int
+    oppPayRate: Float
+    oppPayStep: Int
+    oppSalvageTerms: String
+    oppSalvageStep: Int
+    oppSupportTerms: String
+    oppSupportStep: Int
+    oppTransportTerms: String
+    oppTransportStep: Int
+    oppCommandRights: String
+    oppCommandStep: Int
     trackCount: Int
     lengthInMonths: Int
     monthlyPay: Int
@@ -256,6 +276,7 @@ input CampaignCreateInput {
     transportationCost: Int
     combatPay: Int
     repairRules: RepairRulesInput
+    tracks: [ProposedTrackInput]
 }
 
 input CampaignUpdateInput {
@@ -263,6 +284,12 @@ input CampaignUpdateInput {
     status: String
     systemName: String
     description: String
+    employer: String
+    opponent: String
+    mission: String
+    employerCategory: String
+    opponentCategory: String
+    oppMission: String
     monthlyPay: Int
     monthlyMaintenance: Int
     transportationCost: Int
@@ -280,6 +307,16 @@ input CampaignUpdateInput {
     transportStep: Int
     commandRights: String
     commandStep: Int
+    oppPayRate: Float
+    oppPayStep: Int
+    oppSalvageTerms: String
+    oppSalvageStep: Int
+    oppSupportTerms: String
+    oppSupportStep: Int
+    oppTransportTerms: String
+    oppTransportStep: Int
+    oppCommandRights: String
+    oppCommandStep: Int
 }
 
 input CommandUpdateInput {
@@ -295,6 +332,7 @@ input TrackUpdateInput {
     attackerFactionId: ID
     monthIndex: Int
     complications: String
+    oppositionComplications: String
 }
 
 type CampaignTrack {
@@ -307,6 +345,7 @@ type CampaignTrack {
     attackerFactionId: ID
     monthIndex: Int
     complications: String
+    oppositionComplications: String
 }
 
 input CombatUnitUpdateInput {
@@ -349,10 +388,16 @@ input PilotUpdateInput {
     detachmentId: ID
 }
 
+type ProposedTrack {
+    name: String
+    complication: String
+    oppositionComplication: String
+}
+
 type CampaignProposal {
     campaign: Campaign
     contracts: [Contract]
-    tracks: [String]
+    tracks: [ProposedTrack]
     repairRules: RepairRules
 }
 

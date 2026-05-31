@@ -74,14 +74,22 @@ export const PREVIEW_CAMPAIGN = gql`
         commandStep
         trackCount
       }
-      tracks
+      tracks {
+        name
+        complication
+        oppositionComplication
+      }
     }
   }
 `;
 
 export const GENERATE_TRACKS = gql`
-  query GenerateTracks($mission: String!, $commandRights: String!, $count: Int!) {
-    generateTracks(mission: $mission, commandRights: $commandRights, count: $count)
+  query GenerateTracks($mission: String!, $commandRights: String!, $oppCommandRights: String!, $count: Int!, $existing: [ProposedTrackInput]) {
+    generateTracks(mission: $mission, commandRights: $commandRights, oppCommandRights: $oppCommandRights, count: $count, existing: $existing) {
+      name
+      complication
+      oppositionComplication
+    }
   }
 `;
 
@@ -113,6 +121,12 @@ interface ContractPreview {
     trackCount: number;
 }
 
+interface ProposedTrack {
+    name: string;
+    complication: string;
+    oppositionComplication: string;
+}
+
 interface Proposal {
     campaign: {
         name: string,
@@ -134,7 +148,15 @@ interface Proposal {
         };
     };
     contracts: ContractPreview[];
-    tracks: string[];
+    tracks: ProposedTrack[];
+}
+
+interface ResolvedStepValues {
+    payRate: string;
+    salvageRights: string;
+    supportRights: string;
+    transportation: string;
+    commandRights: string;
 }
 
 interface MetadataData {
@@ -148,7 +170,7 @@ interface MetadataData {
         employerTypes: string[];
         resolvedSteps: {
             step: number;
-            values: any;
+            values: ResolvedStepValues;
         }[];
         repairRules: {
             armorMultiplier: number;
@@ -167,13 +189,15 @@ interface PreviewData {
 }
 
 interface GenerateTracksData {
-    generateTracks: string[];
+    generateTracks: ProposedTrack[];
 }
 
 interface CreateCampaignData {
     createCampaign: {
         id: string;
         name: string;
+        lengthInMonths: number;
+        trackCount: number;
     };
 }
 
@@ -185,7 +209,7 @@ interface Props {
 export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [primaryMissions, setPrimaryMissions] = useState<string[]>([]);
     const [opponentMissions, setOpponentMissions] = useState<string[]>([]);
-    const [resolvedSteps, setResolvedSteps] = useState<Record<number, any>>({});
+    const [resolvedSteps, setResolvedSteps] = useState<Record<number, ResolvedStepValues>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
 
     const [previewError, setPreviewError] = useState<string | null>(null);
@@ -202,7 +226,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
             setOpponentMissions(metadataData.publicCampaignMetadata.missions.opponent);
             setTrackTypes(metadataData.publicCampaignMetadata.trackTypes);
 
-            const steps: Record<number, any> = {};
+            const steps: Record<number, ResolvedStepValues> = {};
             metadataData.publicCampaignMetadata.resolvedSteps.forEach((entry) => {
                 steps[entry.step] = entry.values;
             });
@@ -210,7 +234,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         }
     }, [metadataData]);
 
-    const resolveStepValueWithGravity = (step: number, field: string): any => {
+    const resolveStepValueWithGravity = (step: number, field: keyof ResolvedStepValues): string => {
         if (!resolvedSteps[step]) return '-';
         const val = resolvedSteps[step][field];
 
@@ -263,17 +287,23 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         const currentCount = proposal.tracks.length;
 
         if (targetCount > currentCount) {
-            const numToAdd = targetCount - currentCount;
             const primary = proposal.contracts[0];
+            const opposition = proposal.contracts[1];
             getTracks({
                 variables: {
                     mission: primary.missionType,
                     commandRights: primary.commandRights,
-                    count: numToAdd
+                    oppCommandRights: opposition?.commandRights || "Independent",
+                    count: targetCount,
+                    existing: proposal.tracks.map(t => ({
+                        name: t.name,
+                        complication: t.complication,
+                        oppositionComplication: t.oppositionComplication
+                    }))
                 }
             }).then(({ data: trackData }: any) => {
                 if (trackData?.generateTracks) {
-                    setProposal(prev => prev ? { ...prev, tracks: [...prev.tracks, ...trackData.generateTracks] } : null);
+                    setProposal(prev => prev ? { ...prev, tracks: trackData.generateTracks } : null);
                 }
             });
         }
@@ -313,13 +343,20 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         // Parse the combined string to extract faction and category for backend compatibility
         const primaryParts = primary.employerCategory.split(': ');
         const employerFaction = primaryParts[0];
-        const employerCategorySuffix = primaryParts.length > 1 ? primaryParts.slice(1).join(': ') : primaryParts[0];
+        const employerCategorySuffix = primaryParts.length > 1 ? primaryParts.slice(1).join(': ') : undefined;
+
+        const opponentParts = opponent.employerCategory.split(': ');
+        const opponentFaction = opponentParts[0];
+        const opponentCategorySuffix = opponentParts.length > 1 ? opponentParts.slice(1).join(': ') : undefined;
 
         return {
+            name: proposal.campaign.name,
             employer: employerFaction,
-            opponent: opponent.employerCategory.split(': ')[0],
+            opponent: opponentFaction,
             mission: primary.missionType,
             employerCategory: employerCategorySuffix,
+            opponentCategory: opponentCategorySuffix,
+            oppMission: opponent.missionType,
             systemName: proposal.campaign.systemName,
             payRate: primary.payRate,
             salvageTerms: primary.salvageTerms,
@@ -331,13 +368,28 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
             supportStep: primary.supportStep,
             transportStep: primary.transportStep,
             commandStep: primary.commandStep,
+            oppPayRate: opponent.payRate,
+            oppPayStep: opponent.payStep,
+            oppSalvageTerms: opponent.salvageTerms,
+            oppSalvageStep: opponent.salvageStep,
+            oppSupportTerms: opponent.supportTerms,
+            oppSupportStep: opponent.supportStep,
+            oppTransportTerms: opponent.transportTerms,
+            oppTransportStep: opponent.transportStep,
+            oppCommandRights: opponent.commandRights,
+            oppCommandStep: opponent.commandStep,
             trackCount: proposal.campaign.trackCount,
             lengthInMonths: proposal.campaign.lengthInMonths,
             monthlyPay: proposal.campaign.monthlyPay,
             monthlyMaintenance: proposal.campaign.monthlyMaintenance,
             transportationCost: proposal.campaign.transportationCost,
             combatPay: proposal.campaign.combatPay,
-            repairRules: cleanRepairRules
+            repairRules: cleanRepairRules,
+            tracks: proposal.tracks.map(t => ({
+                name: t.name,
+                complication: t.complication,
+                oppositionComplication: t.oppositionComplication
+            }))
         };
     };
 
@@ -396,15 +448,10 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         });
     };
 
-    const updateProposalTrack = (index: number, value: string) => {
+    const updateProposalTrack = (index: number, name: string) => {
         if (!proposal) return;
-        const currentTrack = proposal.tracks[index];
-        // Detect if there's an existing complication suffix (e.g., " (Forced Complication)" or " [Dense Jungle]")
-        const suffixMatch = currentTrack.match(/\s[([].*?[)\]]$/);
-        const suffix = suffixMatch ? suffixMatch[0] : '';
-
         const newTracks = [...proposal.tracks];
-        newTracks[index] = value + suffix;
+        newTracks[index] = { ...newTracks[index], name };
         setProposal({ ...proposal, tracks: newTracks });
     };
 
@@ -522,15 +569,20 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                     <div className="campaign-tracks bg-tracks-proposal mb-20 p-15">
                         <div className="restricted-text sm-text mb-10">THEATER OPERATIONAL TRACKS</div>
                         <div className="mt-10 fs-09em">
-                            {proposal.tracks.map((t: string, idx: number) => (
+                            {proposal.tracks.map((t: ProposedTrack, idx: number) => (
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`} className="restricted-text sm-text">TRACK {idx + 1}</label> {/* Added title to select */}
                                     <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
-                                        {/* Strip suffix for the value so it matches the options in trackTypes */}
-                                        <select id={`track-${idx}`} value={t.split(/ [(\[]/)[0]} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
+                                        <select id={`track-${idx}`} value={t.name} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
                                             {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                         </select>
                                     </div>
+                                    {(t.complication !== 'None' || t.oppositionComplication !== 'None') && (
+                                        <div className="sm-text mt-5 opacity-08" style={{ color: '#aaa', fontStyle: 'italic' }}>
+                                            {t.complication !== 'None' && <div className="mb-2">PRIMARY: {t.complication}</div>}
+                                            {t.oppositionComplication !== 'None' && <div>OPPOSITION: {t.oppositionComplication}</div>}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

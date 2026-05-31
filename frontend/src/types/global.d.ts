@@ -79,6 +79,12 @@ export interface CampaignUpdateInput {
     status?: string;
     systemName?: string;
     description?: string;
+    employer?: string;
+    opponent?: string;
+    mission?: string;
+    employerCategory?: string;
+    opponentCategory?: string;
+    oppMission?: string;
     monthlyPay?: number;
     monthlyMaintenance?: number;
     transportationCost?: number;
@@ -96,6 +102,22 @@ export interface CampaignUpdateInput {
     transportStep?: number;
     commandRights?: string;
     commandStep?: number;
+    oppPayRate?: number;
+    oppPayStep?: number;
+    oppSalvageTerms?: string;
+    oppSalvageStep?: number;
+    oppSupportTerms?: string;
+    oppSupportStep?: number;
+    oppTransportTerms?: string;
+    oppTransportStep?: number;
+    oppCommandRights?: string;
+    oppCommandStep?: number;
+}
+
+export interface ProposedTrackInput {
+    name?: string;
+    complication?: string;
+    oppositionComplication?: string;
 }
 
 export interface CampaignCreateInput {
@@ -104,6 +126,8 @@ export interface CampaignCreateInput {
     opponent?: string;
     mission?: string;
     employerCategory?: string;
+    opponentCategory?: string;
+    oppMission?: string;
     systemName?: string;
     description?: string;
     status?: string;
@@ -117,6 +141,16 @@ export interface CampaignCreateInput {
     supportStep?: number;
     transportStep?: number;
     commandStep?: number;
+    oppPayRate?: number;
+    oppPayStep?: number;
+    oppSalvageTerms?: string;
+    oppSalvageStep?: number;
+    oppSupportTerms?: string;
+    oppSupportStep?: number;
+    oppTransportTerms?: string;
+    oppTransportStep?: number;
+    oppCommandRights?: string;
+    oppCommandStep?: number;
     trackCount?: number;
     lengthInMonths?: number;
     monthlyPay?: number;
@@ -124,6 +158,7 @@ export interface CampaignCreateInput {
     transportationCost?: number;
     combatPay?: number;
     repairRules?: RepairRulesInput;
+    tracks?: ProposedTrackInput[];
 }
 
 export interface CommandUpdateInput {

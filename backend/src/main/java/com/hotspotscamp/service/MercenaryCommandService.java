@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,10 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.CombatUnit;
+import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.CombatUnitRepository;
@@ -46,6 +49,7 @@ public class MercenaryCommandService {
     private final MercenaryCommandRepository commandRepository;
     private final DetachmentRepository detachmentRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
+    private final CampaignFactionRepository campaignFactionRepository;
     private final CampaignTrackRepository campaignTrackRepository;
     private final CampaignRepository campaignRepository;
     private final ContractRepository contractRepository;
@@ -60,6 +64,7 @@ public class MercenaryCommandService {
             MercenaryCommandRepository commandRepository,
             DetachmentRepository detachmentRepository,
             LedgerEntryRepository ledgerEntryRepository,
+            CampaignFactionRepository campaignFactionRepository,
             CampaignTrackRepository campaignTrackRepository,
             CampaignRepository campaignRepository,
             ContractRepository contractRepository,
@@ -72,6 +77,7 @@ public class MercenaryCommandService {
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
+        this.campaignFactionRepository = campaignFactionRepository;
         this.campaignTrackRepository = campaignTrackRepository;
         this.campaignRepository = campaignRepository;
         this.contractRepository = contractRepository;
@@ -103,6 +109,9 @@ public class MercenaryCommandService {
             String status,
             String systemName,
             String description,
+            String employer,
+            String opponent,
+            String mission,
             Integer monthlyPay,
             Integer monthlyMaintenance,
             Integer transportationCost,
@@ -119,7 +128,20 @@ public class MercenaryCommandService {
             String transportTerms,
             Integer transportStep,
             String commandRights,
-            Integer commandStep
+            Integer commandStep,
+            String employerCategory,
+            String opponentCategory,
+            String oppMission,
+            Double oppPayRate,
+            Integer oppPayStep,
+            String oppSalvageTerms,
+            Integer oppSalvageStep,
+            String oppSupportTerms,
+            Integer oppSupportStep,
+            String oppTransportTerms,
+            Integer oppTransportStep,
+            String oppCommandRights,
+            Integer oppCommandStep
             ) {
 
     }
@@ -793,11 +815,14 @@ public class MercenaryCommandService {
         return userService.resolveOrCreateUser(userId).<Campaign>flatMap(user
                 -> campaignRepository.findById(campaignId)
                         .<Campaign>flatMap(camp -> {
+                            log.trace("[TRACE] Fetched campaign for update: id={}, managerId={}", camp.getId(), camp.getManagerId());
                             if (!camp.getManagerId().equals(user.getId().toString())) {
                                 return Mono.<Campaign>error(new RuntimeException("Access Denied: Not the theater manager."));
                             }
 
                             camp.setNew(false);
+                            log.trace("[TRACE] setIsNew(false) called for campaign: id={}", camp.getId());
+                            log.trace("[TRACE] Updating campaign details for campaign: id={}", camp.getId());
                             if (input.name() != null) {
                                 camp.setName(input.name());
                             }
@@ -849,6 +874,7 @@ public class MercenaryCommandService {
                             if (input.combatPay() != null) {
                                 camp.setCombatPay(input.combatPay());
                             }
+                            log.trace("[TRACE] Updated basic campaign details for campaign: id={}", camp.getId());
                             if (input.repairRules() != null) {
                                 CampaignService.RepairRules rules = input.repairRules();
                                 camp.setRepairRules(rules);
@@ -874,108 +900,242 @@ public class MercenaryCommandService {
                                     camp.setClanTechModifier(rules.clanTechModifier());
                                 }
                             }
+                            log.trace("[TRACE] Updated repair rules for campaign: id={}", camp.getId());
+                            return contractRepository.findAllByCampaignId(camp.getId()).collectList()
+                                    .flatMap(contracts -> {
+                                        Contract primary = contracts.stream()
+                                                .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
+                                                .findFirst().orElse(null);
+                                        Contract opposition = contracts.stream()
+                                                .filter(c -> Boolean.FALSE.equals(c.getPrimaryContract()))
+                                                .findFirst().orElse(null);
 
-                            Integer newMonthsInput = input.lengthInMonths();
-                            Integer newTrackCountInput = input.trackCount();
+                                        Mono<Void> factionUpdate = campaignFactionRepository.findAllByCampaignId(camp.getId()).collectList()
+                                                .flatMap(factions -> {
+                                                    Mono<Void> innerChain = Mono.empty();
+                                                    if (input.employer() != null) {
+                                                        com.hotspotscamp.entity.CampaignFaction f = factions.stream()
+                                                                .filter(fac -> primary != null && fac.getId().equals(primary.getEmployerFactionId()))
+                                                                .findFirst().orElse(null);
+                                                        if (f != null) {
+                                                            f.setNew(false);
+                                                            f.setFactionName(input.employer());
+                                                            innerChain = innerChain.then(campaignFactionRepository.save(f)).then();
+                                                        }
+                                                    }
+                                                    if (input.opponent() != null) {
+                                                        com.hotspotscamp.entity.CampaignFaction f = factions.stream()
+                                                                .filter(fac -> opposition != null && fac.getId().equals(opposition.getEmployerFactionId()))
+                                                                .findFirst().orElse(null);
+                                                        if (f != null) {
+                                                            f.setNew(false);
+                                                            f.setFactionName(input.opponent());
+                                                            innerChain = innerChain.then(campaignFactionRepository.save(f)).then();
+                                                        }
+                                                    }
+                                                    return innerChain;
+                                                });
 
-                            Mono<Campaign> chain = Mono.just(camp);
+                                        if (primary != null) {
+                                            primary.setNew(false);
+                                            if (input.employerCategory() != null) {
+                                                primary.setEmployerCategory(input.employerCategory());
+                                            }
+                                            if (input.mission() != null) {
+                                                primary.setMissionType(input.mission());
+                                            }
+                                            if (input.payRate() != null) {
+                                                primary.setPayRate(input.payRate());
+                                            }
+                                            if (input.payStep() != null) {
+                                                primary.setPayStep(input.payStep());
+                                            }
+                                            if (input.salvageTerms() != null) {
+                                                primary.setSalvageTerms(input.salvageTerms());
+                                            }
+                                            if (input.salvageStep() != null) {
+                                                primary.setSalvageStep(input.salvageStep());
+                                            }
+                                            if (input.supportTerms() != null) {
+                                                primary.setSupportTerms(input.supportTerms());
+                                            }
+                                            if (input.supportStep() != null) {
+                                                primary.setSupportStep(input.supportStep());
+                                            }
+                                            if (input.transportTerms() != null) {
+                                                primary.setTransportTerms(input.transportTerms());
+                                            }
+                                            if (input.transportStep() != null) {
+                                                primary.setTransportStep(input.transportStep());
+                                            }
+                                            if (input.commandRights() != null) {
+                                                primary.setCommandRights(input.commandRights());
+                                            }
+                                            if (input.commandStep() != null) {
+                                                primary.setCommandStep(input.commandStep());
+                                            }
+                                        }
 
-                            if (input.status() != null) {
-                                String oldStatus = camp.getStatus();
-                                String newStatus = input.status();
-                                camp.setStatus(newStatus);
-                                if ("INACTIVE".equalsIgnoreCase(newStatus) && !"INACTIVE".equalsIgnoreCase(oldStatus)) {
-                                    chain = SqlUtils.bindUuid(databaseClient.sql("UPDATE detachments SET campaign_id = NULL WHERE campaign_id = :id"), "id", campaignId)
-                                            .fetch().rowsUpdated().then(chain);
-                                }
-                            }
+                                        if (opposition != null) {
+                                            opposition.setNew(false);
+                                            if (input.opponentCategory() != null) {
+                                                opposition.setEmployerCategory(input.opponentCategory());
+                                            }
+                                            if (input.oppMission() != null) {
+                                                opposition.setMissionType(input.oppMission());
+                                            }
+                                            if (input.oppPayRate() != null) {
+                                                opposition.setPayRate(input.oppPayRate());
+                                            }
+                                            if (input.oppPayStep() != null) {
+                                                opposition.setPayStep(input.oppPayStep());
+                                            }
+                                            if (input.oppSalvageTerms() != null) {
+                                                opposition.setSalvageTerms(input.oppSalvageTerms());
+                                            }
+                                            if (input.oppSalvageStep() != null) {
+                                                opposition.setSalvageStep(input.oppSalvageStep());
+                                            }
+                                            if (input.oppSupportTerms() != null) {
+                                                opposition.setSupportTerms(input.oppSupportTerms());
+                                            }
+                                            if (input.oppSupportStep() != null) {
+                                                opposition.setSupportStep(input.oppSupportStep());
+                                            }
+                                            if (input.oppTransportTerms() != null) {
+                                                opposition.setTransportTerms(input.oppTransportTerms());
+                                            }
+                                            if (input.oppTransportStep() != null) {
+                                                opposition.setTransportStep(input.oppTransportStep());
+                                            }
+                                            if (input.oppCommandRights() != null) {
+                                                opposition.setCommandRights(input.oppCommandRights());
+                                            }
+                                            if (input.oppCommandStep() != null) {
+                                                opposition.setCommandStep(input.oppCommandStep());
+                                            }
+                                        }
 
-                            if (newMonthsInput != null) {
-                                int targetMonths = Math.max(1, newMonthsInput);
-                                // Ensure all tracks are within the updated theater duration.
-                                // If duration is reduced, orphaned tracks are moved to the final month.
-                                chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
-                                        .filter(t -> (Objects.requireNonNullElse(t.getMonthIndex(), 1)) > targetMonths)
-                                        .flatMap(t -> {
-                                            t.setMonthIndex(targetMonths);
-                                            t.setNew(false);
-                                            return campaignTrackRepository.save(t);
-                                        })
-                                        .then(Mono.fromCallable(() -> {
-                                            camp.setLengthInMonths(targetMonths);
-                                            return camp;
-                                        }));
-                            }
-                            return chain.flatMap(c -> {
-                                if (newTrackCountInput != null) {
-                                    int targetTracks = Math.max(1, newTrackCountInput);
-                                    if (targetTracks != Objects.requireNonNullElse(c.getTrackCount(), 0)) {
-                                        return reconcileTracks(c, targetTracks);
-                                    }
-                                }
-                                return campaignRepository.save(Objects.requireNonNull(c));
-                            });
+                                        Mono<Void> contractUpdate = (primary != null || opposition != null)
+                                                ? contractRepository.saveAll(Objects.requireNonNull(Stream.of(primary, opposition).filter(Objects::nonNull).toList())).then()
+                                                : Mono.empty();
+
+                                        Mono<Campaign> chain = Mono.just(camp);
+
+                                        if (input.status() != null) {
+                                            String oldStatus = camp.getStatus();
+                                            String newStatus = input.status();
+                                            camp.setStatus(newStatus);
+                                            if ("INACTIVE".equalsIgnoreCase(newStatus) && !"INACTIVE".equalsIgnoreCase(oldStatus)) {
+                                                chain = SqlUtils.bindUuid(databaseClient.sql("UPDATE detachments SET campaign_id = NULL WHERE campaign_id = :id"), "id", campaignId)
+                                                        .fetch().rowsUpdated().then(chain);
+                                            }
+                                        }
+
+                                        if (input.lengthInMonths() != null) {
+                                            int targetMonths = Math.max(1, input.lengthInMonths());
+                                            chain = campaignTrackRepository.findAllByCampaignId(camp.getId())
+                                                    .filter(t -> (Objects.requireNonNullElse(t.getMonthIndex(), 1)) > targetMonths)
+                                                    .flatMap(t -> {
+                                                        t.setMonthIndex(targetMonths);
+                                                        t.setNew(false);
+                                                        return campaignTrackRepository.save(t);
+                                                    })
+                                                    .then(Mono.fromCallable(() -> {
+                                                        camp.setLengthInMonths(targetMonths);
+                                                        return camp;
+                                                    }));
+                                        }
+
+                                        return factionUpdate.then(contractUpdate).then(chain).flatMap(c -> {
+                                            if (input.trackCount() != null) {
+                                                int targetTracks = Math.max(1, input.trackCount());
+                                                if (targetTracks != Objects.requireNonNullElse(c.getTrackCount(), 0)) {
+                                                    return campaignService.reconcileTracks(c, targetTracks);
+                                                }
+                                            }
+                                            c.setNew(false);
+                                             // Double-check flag before final theater save
+                                            return campaignRepository.save(Objects.requireNonNull(c));
+                                        });
+                                    });
                         })
         )
-                .doOnTerminate(() -> log.trace("[TRACE] Finished updateCampaignDetails"));
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateCampaignDetails"))
+                .doOnError(Exception.class, e -> log.error("[ERROR] Error occurred while updating campaign details for {}", campaignId, e));
     }
 
-    private Mono<Campaign> reconcileTracks(Campaign camp, int newCount) {
-        return campaignTrackRepository.findAllByCampaignId(camp.getId()).collectList()
-                .flatMap(existing -> {
-                    int targetCount = Math.max(1, newCount);
-                    int actualCount = existing.size();
-                    camp.setTrackCount(targetCount);
+    /**
+     * Administrative update for an individual track. Enforces that only the
+     * theater manager can modify track assignments or details.
+     */
+    @Transactional
+    public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, CampaignService.TrackUpdateInput input, String userId) {
+        log.trace("[TRACE] Starting updateTrack: trackId={}", trackId);
+        return campaignTrackRepository.findById(trackId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Track not found: " + trackId)))
+                .flatMap(track -> campaignRepository.findById(Objects.requireNonNull(track.getCampaignId()))
+                .flatMap(camp -> userService.resolveOrCreateUser(userId).flatMap(user -> {
+            if (!camp.getManagerId().equals(user.getId().toString())) {
+                return Mono.error(new RuntimeException("Access Denied: Only the theater manager can update tracks."));
+            }
+            track.setNew(false);
+            if (input.trackName() != null) {
+                track.setTrackName(input.trackName());
+            }
+            if (input.sequenceOrder() != null) {
+                track.setSequenceOrder(input.sequenceOrder());
+            }
+            if (input.location() != null) {
+                track.setLocation(input.location());
+            }
+            if (input.nextSession() != null) {
+                track.setNextSession(input.nextSession().isBlank() ? null : LocalDateTime.parse(input.nextSession()));
+            }
+            if (input.attackerFactionId() != null) {
+                track.setAttackerFactionId(input.attackerFactionId());
+            }
+            if (input.monthIndex() != null) {
+                track.setMonthIndex(input.monthIndex());
+            }
+            if (input.complications() != null) {
+                track.setComplications(input.complications());
+            }
+            if (input.oppositionComplications() != null) {
+                track.setOppositionComplications(input.oppositionComplications());
+            }
+            return campaignTrackRepository.save(track);
+        })))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished updateTrack"));
+    }
 
-                    if (targetCount > actualCount) {
-                        int numToAdd = targetCount - actualCount;
-                        int lastMonth = Objects.requireNonNullElse(camp.getLengthInMonths(), 1);
+    /**
+     * Global theater reordering. Sets the logical sequence of all operations.
+     * If the campaign is in "Simple Mode" (length matches track count), the
+     * monthIndex is automatically synchronized to maintain a
+     * 1-operation-per-month linear timeline.
+     */
+    @Transactional
+    public Flux<CampaignTrack> reorderTracks(@NonNull UUID campaignId, List<UUID> trackIds, String userId) {
+        log.trace("[TRACE] Starting reorderTracks: campaignId={}", campaignId);
+        return userService.resolveOrCreateUser(userId).flatMapMany(user
+                -> campaignRepository.findById(campaignId)
+                        .switchIfEmpty(Mono.error(new RuntimeException("Campaign not found")))
+                        .flatMapMany(camp -> {
+                            if (!camp.getManagerId().equals(user.getId().toString())) {
+                                return Flux.error(new RuntimeException("Access Denied: Only the theater manager can reorder tracks."));
+                            }
 
-                        return contractRepository.findAllByCampaignId(camp.getId())
-                                .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
-                                .next()
-                                .flatMap(primary -> {
-                                    List<CampaignService.GeneratedTrack> generated = campaignService.generateTracks(
-                                            primary.getMissionType(),
-                                            primary.getCommandRights(),
-                                            numToAdd);
-                                    return Flux.fromIterable(generated)
-                                            .index()
-                                            .flatMap(tuple -> campaignTrackRepository.save(Objects.requireNonNull(
-                                            CampaignTrack.builder()
-                                                    .id(UUID.randomUUID())
-                                                    .campaignId(camp.getId())
-                                                    .trackName(tuple.getT2().name())
-                                                    .complications(tuple.getT2().complication())
-                                                    .sequenceOrder(actualCount + tuple.getT1().intValue())
-                                                    .monthIndex(lastMonth)
-                                                    .isNew(true)
-                                                    .build())))
-                                            .then(campaignRepository.save(camp));
-                                })
-                                .switchIfEmpty(Mono.defer(() -> Flux.range(actualCount, numToAdd)
-                                .flatMap(i -> campaignTrackRepository.save(Objects.requireNonNull(
-                                CampaignTrack.builder()
-                                        .id(UUID.randomUUID())
-                                        .campaignId(camp.getId())
-                                        .trackName("NEW OPERATIONAL TRACK")
-                                        .sequenceOrder(i)
-                                        .monthIndex(lastMonth)
-                                        .isNew(true)
-                                        .build())))
-                                .then(campaignRepository.save(camp))));
-                    } else if (targetCount < actualCount) {
-                        // Requirement: Reducing number of tracks deletes tracks with higher sequence numbers
-                        List<CampaignTrack> toDelete = existing.stream()
-                                .sorted((a, b) -> b.getSequenceOrder().compareTo(a.getSequenceOrder()))
-                                .limit(actualCount - targetCount)
-                                .toList();
-                        return Flux.fromIterable(toDelete)
-                                .flatMap(campaignTrackRepository::delete)
-                                .then(campaignRepository.save(camp));
-                    }
-                    return campaignRepository.save(camp);
-                });
+                            return Flux.fromIterable(trackIds).index().flatMap(tuple
+                                    -> campaignTrackRepository.findById(Objects.requireNonNull(tuple.getT2())).flatMap(track -> {
+                                        track.setSequenceOrder(tuple.getT1().intValue());
+                                        track.setNew(false);
+                                        return campaignTrackRepository.save(track);
+                                    })
+                            );
+                        })
+        )
+                .doOnTerminate(() -> log.trace("[TRACE] Finished reorderTracks"));
     }
 
     @Transactional
@@ -1010,7 +1170,7 @@ public class MercenaryCommandService {
                     + "  WHERE mc.id = :cmdId "
                     + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
                     + ")";
-
+ 
             var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);
             spec = SqlUtils.bindString(spec, "userId", internalId);
             spec = SqlUtils.bindString(spec, "externalId", userId);

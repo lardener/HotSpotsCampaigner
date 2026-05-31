@@ -3,6 +3,8 @@ package com.hotspotscamp.api;
 import java.security.Principal;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -21,12 +23,16 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class UserGraphQLController {
 
+    private static final Logger log = LoggerFactory.getLogger(UserGraphQLController.class);
+
     private final UserService userService;
 
     @QueryMapping
     public Mono<UserProfile> userProfile(@AuthenticationPrincipal Object principal) {
+        log.trace("[TRACE] Entering userProfile");
         String identity = resolveIdentity(principal);
         if (identity == null || identity.equals("anonymousUser")) {
+            log.trace("[TRACE] Exiting userProfile (anonymous)");
             // Gracefully return empty for anonymous users to avoid triggering security exceptions
             return Mono.empty();
         }
@@ -58,20 +64,25 @@ public class UserGraphQLController {
                             user.getDisplayName(),
                             user.getRole()
                     );
-                });
+                })
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting userProfile"));
     }
 
     @MutationMapping
     public Mono<UserProfile> updateUserProfile(@Argument String displayName, @AuthenticationPrincipal Object principal) {
+        log.trace("[TRACE] Entering updateUserProfile: displayName={}", displayName);
         if (principal == null) {
+            log.trace("[TRACE] Exiting updateUserProfile (null principal)");
             return Mono.empty();
         }
 
         return userService.updateDisplayName(resolveIdentity(principal), displayName)
-                .flatMap(user -> userProfile(principal));
+                .flatMap(user -> userProfile(principal))
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting updateUserProfile"));
     }
 
     private String resolveIdentity(Object principal) {
+        log.trace("[TRACE] Entering resolveIdentity");
         if (principal == null) {
             return null;
         }
@@ -104,6 +115,7 @@ public class UserGraphQLController {
             return s.equals("anonymousUser") ? null : s;
         }
 
+        log.trace("[TRACE] Exiting resolveIdentity");
         return null;
     }
 

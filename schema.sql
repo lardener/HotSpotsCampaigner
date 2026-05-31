@@ -1,7 +1,7 @@
 -- HotSpots Campaigner Database Schema
 -- Generated for MySQL / R2DBC Compatibility
 
-USE `BT_Campaigner`;
+USE BT_Campaigner;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -94,6 +94,7 @@ CREATE TABLE campaign_tracks (
     `attacker_faction_id` VARCHAR(36),
     `month_index` INT,
     `complications` VARCHAR(1000),
+    `opposition_complications` VARCHAR(1000),
     CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
     CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL
 );
@@ -182,7 +183,6 @@ CREATE TABLE combat_units (
     `as_size` INT,
     `bv` INT,
     `pv` INT,
-    `available_from_month` INT DEFAULT 1,
     `status` VARCHAR(255),
     CONSTRAINT fk_combat_unit_command FOREIGN KEY (command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE,
     CONSTRAINT fk_combat_unit_detachment FOREIGN KEY (detachment_id) REFERENCES detachments(id) ON DELETE SET NULL
