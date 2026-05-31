@@ -165,6 +165,7 @@ const GET_CAMPAIGN_INVITES = gql`
                 asSize
                 bv
                 pv
+                status
             }
             pilots {
                 id
@@ -177,6 +178,7 @@ const GET_CAMPAIGN_INVITES = gql`
                 edgeAbilitySkill
                 edgeAbilities
                 handicap
+                wounds
             }
         }
       campaignInvites {
@@ -1163,9 +1165,11 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         onDragLeave={() => setDragOverMonth(null)}
                                         onDrop={(e) => handleDrop(e, mIdx)}
                                     >
-                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
-                                            <span>[ MONTH {mIdx} ]</span>
-                                            <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
+                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div className="flex items-center" style={{ gap: '10px' }}>
+                                                <span>[ MONTH {mIdx} ]</span>
+                                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[{monthTracks.length} OPS]</span>
+                                            </div>
                                             <button
                                                 className="mode-btn theme-blue"
                                                 style={{ fontSize: '0.6rem', padding: '2px 6px' }}
@@ -1187,7 +1191,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     className="asset-card"
                                                     style={{ padding: '12px', cursor: 'grab', position: 'relative', border: '1px solid var(--accent-dim)', width: '100%', boxSizing: 'border-box' }}
                                                 >
-                                                    <div className="flex-between mb-5" style={{ alignItems: 'center' }}>
+                                                    <div className="flex-between mb-5" style={{ alignItems: 'flex-start' }}>
                                                         <div className="status-bar theme-amber" style={{ flex: 1, marginRight: '10px', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                                             {activeTrackField === `${track.id}-name` ? (
                                                                 <>

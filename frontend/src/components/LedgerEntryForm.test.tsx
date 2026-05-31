@@ -16,7 +16,15 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY,
-                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', reputationChange: null },
+                    variables: {
+                        commandId: 'command-1',
+                        detachmentId: 'detachment-1',
+                        input: {
+                            amount: 50,
+                            description: 'Repair parts',
+                            reputationChange: null
+                        }
+                    },
                 },
                 result: {
                     data: { addLedgerEntry: { id: 'entry-123' } },
@@ -51,7 +59,15 @@ describe('LedgerEntryForm', () => {
             {
                 request: {
                     query: ADD_LEDGER_ENTRY, // Assuming the mutation variables will be updated in the test
-                    variables: { commandId: 'command-1', detachmentId: 'detachment-1', amount: 50, description: 'Repair parts', reputationChange: null },
+                    variables: {
+                        commandId: 'command-1',
+                        detachmentId: 'detachment-1',
+                        input: {
+                            amount: 50,
+                            description: 'Repair parts',
+                            reputationChange: null
+                        }
+                    },
                 },
                 error: new Error('GraphQL error'),
             },

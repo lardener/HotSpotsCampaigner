@@ -142,10 +142,12 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                 variables: {
                     commandId: form.mercenaryCommandId, // Use detachment's commandId
                     detachmentId: form.detachmentId,
-                    amount: form.amount,
-                    description: form.description,
-                    campaignName: campaignDetails.name,
-                    monthIndex: currentMonthIndex,
+                    input: {
+                        amount: form.amount,
+                        description: form.description,
+                        campaignName: campaignDetails.name,
+                        monthIndex: currentMonthIndex,
+                    }
                 }
             });
             onLedgerEntryAdded();

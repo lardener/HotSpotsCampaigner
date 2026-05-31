@@ -24,6 +24,30 @@ const GET_METADATA = gql`
   }
 `;
 
+const UPDATE_UNIT = gql`
+  mutation UpdateUnit($id: ID!, $input: CombatUnitUpdateInput!) {
+    updateCombatUnit(id: $id, input: $input) {
+      id
+      status
+    }
+  }
+`;
+
+const UPDATE_PILOT = gql`
+  mutation UpdatePilot($id: ID!, $input: PilotUpdateInput!) {
+    updatePilot(id: $id, input: $input) {
+      id
+      wounds
+    }
+  }
+`;
+
+const DELETE_UNIT = gql`
+  mutation DeleteUnit($unitId: ID!) {
+    deleteUnit(unitId: $unitId)
+  }
+`;
+
 interface MetadataData {
     publicCampaignMetadata: {
         unitStatuses: string[];
@@ -112,6 +136,9 @@ const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Repair
 
 export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded }) => {
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
+    const [updateUnit] = useMutation(UPDATE_UNIT);
+    const [updatePilot] = useMutation(UPDATE_PILOT);
+    const [deleteUnit] = useMutation(DELETE_UNIT);
     const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataData>(GET_METADATA, {
         skip: !!propMetaData
     });
@@ -125,6 +152,13 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [errorStates, setErrorStates] = useState<Record<string, string>>({});
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
     const [isFinalizing, setIsFinalizing] = useState(false);
+    const [overlay, setOverlay] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        onCancel?: () => void;
+        variant?: 'alert' | 'info';
+    } | null>(null);
 
     const addNotice = (key: string, msg: string) => {
         setNotices(prev => ({ ...prev, [key]: msg }));
@@ -136,20 +170,6 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             });
         }, 5000);
     };
-
-    useEffect(() => {
-        const initialAars: Record<string, DetachmentAarState> = {};
-        campaign.participatingDetachments?.forEach((det: any) => {
-            initialAars[det.id] = {
-                selectedContractId: campaign.contracts?.[0]?.id || '',
-                selectedLevel: 1,
-                outcomeMultiplier: 1.0,
-                salvageValue: 0,
-                customAward: 0
-            };
-        });
-        setDetachmentAars(initialAars);
-    }, [campaign, track]);
 
     if (metadataLoading) {
         return (
@@ -167,6 +187,32 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     const unitStatuses = metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
     const repairRules = campaign?.repairRules || metaData?.publicCampaignMetadata?.repairRules;
+
+    useEffect(() => {
+        const initialAars: Record<string, DetachmentAarState> = {};
+        const initialUnits: Record<string, { status: string, ammo: number }> = {};
+        const initialPilots: Record<string, { injuries: number, healed: number }> = {};
+
+        campaign.participatingDetachments?.forEach((det: any) => {
+            initialAars[det.id] = {
+                selectedContractId: campaign.contracts?.[0]?.id || '',
+                selectedLevel: 1,
+                outcomeMultiplier: 1.0,
+                salvageValue: 0,
+                customAward: 0
+            };
+
+            det.units?.forEach((u: any) => {
+                initialUnits[u.id] = { status: u.status || unitStatuses[0], ammo: 0 };
+            });
+            det.pilots?.forEach((p: any) => {
+                initialPilots[p.id] = { injuries: p.wounds || 0, healed: 0 };
+            });
+        });
+        setDetachmentAars(initialAars);
+        setUnitStates(initialUnits);
+        setPilotStates(initialPilots);
+    }, [campaign, track, unitStatuses]);
 
     const getDetachmentTerms = (detId: string) => {
         const state = detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1, salvageValue: 0, customAward: 0 };
@@ -224,10 +270,30 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
-    const handleProcessUnit = async (detId: string, cmdId: string, unit: CombatUnit) => {
+    const handleProcessUnit = (detId: string, cmdId: string, unit: CombatUnit) => {
+        const state = unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
+        const { isTrulyDestroyed } = calculateUnitFinancials(unit, state.status, repairRules, unitStatuses);
+
+        if (isTrulyDestroyed) {
+            setOverlay({
+                title: "CONFIRM ASSET DISPOSAL",
+                message: `UNIT ${unit.model} IS TRULY DESTROYED. COMMITTING THIS ROW WILL PERMANENTLY REMOVE THE ASSET FROM THE REGISTRY. PROCEED?`,
+                variant: 'alert',
+                onConfirm: () => {
+                    setOverlay(null);
+                    commitUnitLogistics(detId, cmdId, unit);
+                },
+                onCancel: () => setOverlay(null)
+            });
+        } else {
+            commitUnitLogistics(detId, cmdId, unit);
+        }
+    };
+
+    const commitUnitLogistics = async (detId: string, cmdId: string, unit: CombatUnit) => {
         const noticeKey = `${unit.id}-logistics`;
         const terms = getDetachmentTerms(detId);
-        const state = unitStates[unit.id] || { status: unitStatuses[0], ammo: 0 };
+        const state = unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
 
         const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, state.status, repairRules, unitStatuses);
 
@@ -264,7 +330,6 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         }
 
-        if (finalAmount === 0) return;
         setErrorStates(prev => {
             const next = { ...prev };
             delete next[noticeKey];
@@ -273,21 +338,37 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         setLoadingStates(prev => ({ ...prev, [noticeKey]: true }));
 
         try {
-            await addLedgerEntry({
-                variables: {
-                    commandId: cmdId,
-                    detachmentId: detId,
-                    amount: finalAmount,
-                    description: description,
-                    monthIndex: track.monthIndex || 1,
-                    campaignName: campaign.name
-                }
-            });
+            if (finalAmount !== 0) {
+                await addLedgerEntry({
+                    variables: {
+                        commandId: cmdId,
+                        detachmentId: detId,
+                        input: {
+                            amount: finalAmount,
+                            description: description,
+                            monthIndex: track.monthIndex || 1,
+                            campaignName: campaign.name
+                        }
+                    }
+                });
+            }
+
+            if (isTrulyDestroyed) {
+                await deleteUnit({ variables: { unitId: unit.id } });
+            } else {
+                // Restore unit to operational status in DB and local state
+                await updateUnit({ variables: { id: unit.id, input: { status: unitStatuses[0] } } });
+                setUnitStates(prev => ({
+                    ...prev,
+                    [unit.id]: { status: unitStatuses[0], ammo: 0 }
+                }));
+            }
+
             await onLedgerEntryAdded?.();
-            addNotice(noticeKey, `✓ ${isTrulyDestroyed ? 'REPLACEMENT' : 'LOGISTICS'} COMMITTED: ${Math.abs(finalAmount)} SP`);
+            addNotice(noticeKey, `✓ LOGISTICS COMPLETE: ${finalAmount !== 0 ? Math.abs(finalAmount) + ' SP RECORDED' : 'STATUS RESTORED'}`);
         } catch (err) {
-            setErrorStates(prev => ({ ...prev, [noticeKey]: `${isTrulyDestroyed ? 'REPLACEMENT' : 'LOGISTICS'} FAILURE: DATA UPLOAD ABORTED.` }));
-            console.error(`${isTrulyDestroyed ? 'Replacement' : 'Logistics'} error:`, err);
+            setErrorStates(prev => ({ ...prev, [noticeKey]: "LOGISTICS FAILURE: DATA UPLOAD ABORTED." }));
+            console.error("Logistics error:", err);
         } finally {
             setLoadingStates(prev => ({ ...prev, [noticeKey]: false }));
         }
@@ -309,8 +390,6 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             finalCost = totalCost * -1;
         }
 
-        if (finalCost === 0) return;
-
         setErrorStates(prev => {
             const next = { ...prev };
             delete next[noticeKey];
@@ -319,16 +398,26 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         setLoadingStates(prev => ({ ...prev, [noticeKey]: true }));
 
         try {
-            await addLedgerEntry({
-                variables: {
-                    commandId: cmdId,
-                    detachmentId: detId,
-                    amount: finalCost,
-                    description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${terms.support.type} ${terms.support.pct * 100}%)`,
-                    monthIndex: track.monthIndex || 1,
-                    campaignName: campaign.name
-                }
-            });
+            if (finalCost !== 0) {
+                await addLedgerEntry({
+                    variables: {
+                        commandId: cmdId,
+                        detachmentId: detId,
+                        input: {
+                            amount: finalCost,
+                            description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${terms.support.type} ${terms.support.pct * 100}%)`,
+                            monthIndex: track.monthIndex || 1,
+                            campaignName: campaign.name
+                        }
+                    }
+                });
+            }
+
+            // Calculate final wounds (Injuried minus Healed) and update database
+            const newWounds = Math.max(0, state.injuries - state.healed);
+            await updatePilot({ variables: { id: pilot.id, input: { wounds: newWounds } } });
+            setPilotStates(prev => ({ ...prev, [pilot.id]: { injuries: newWounds, healed: 0 } }));
+
             await onLedgerEntryAdded?.();
             addNotice(noticeKey, `✓ MEDICAL COMMITTED: ${Math.abs(finalCost)} SP`);
         } catch (err) {
@@ -533,10 +622,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                             className="inline-edit"
                                                             value={state.status}
                                                             onChange={(e) => {
+                                                                const newStatus = e.target.value;
                                                                 setUnitStates(prev => ({
                                                                     ...prev,
-                                                                    [u.id]: { ...state, status: e.target.value }
+                                                                    [u.id]: { ...state, status: newStatus }
                                                                 }));
+                                                                updateUnit({ variables: { id: u.id, input: { status: newStatus } } });
                                                             }}
                                                             title="Select unit status"
                                                         >
@@ -606,7 +697,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </thead>
                                     <tbody> {/* Use pilot.id for key */}
                                         {det.pilots?.map((p: any) => {
-                                            const state = pilotStates[p.id] || { injuries: 0, healed: 0 };
+                                            const state = pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
                                             const terms = getDetachmentTerms(det.id);
                                             const rawMedicalCost = state.healed * INJURY_HEAL_COST;
                                             const noticeKey = `${p.id}-medical`;
@@ -630,10 +721,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                             className="inline-edit"
                                                             value={state.injuries}
                                                             onChange={(e) => {
+                                                                const val = parseInt(e.target.value);
                                                                 setPilotStates(prev => ({
                                                                     ...prev,
-                                                                    [p.id]: { ...state, injuries: parseInt(e.target.value) }
+                                                                    [p.id]: { ...state, injuries: val }
                                                                 }));
+                                                                updatePilot({ variables: { id: p.id, input: { wounds: val } } });
                                                             }}
                                                             title="Select total pilot injuries"
                                                         >
@@ -660,7 +753,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         <button
                                                             className="mode-btn sm-text"
                                                             onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId, p)} // The actual ledger entry amount is calculated inside handleProcessPilot
-                                                            disabled={loadingStates[noticeKey] || pilotDisplayCost === 0}
+                                                            disabled={loadingStates[noticeKey]}
                                                             title="Commit pilot healing"
                                                         >
                                                             {loadingStates[noticeKey] ? '...' : 'COMMIT'}
@@ -686,6 +779,17 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     </div>
                 ))}
             </div>
+
+            {overlay && (
+                <TerminalOverlay
+                    title={overlay.title}
+                    message={overlay.message}
+                    variant={overlay.variant}
+                    onConfirm={overlay.onConfirm}
+                    onCancel={overlay.onCancel}
+                    themeClass="theme-red"
+                />
+            )}
 
             <style>{`
                 .w-40px { width: 40px; }

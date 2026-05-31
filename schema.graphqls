@@ -109,11 +109,7 @@ type Mutation {
     addLedgerEntry(
         commandId: ID!,
         detachmentId: ID, 
-        amount: Int!, 
-        description: String!,
-        reputationChange: Int,
-        campaignName: String,
-        monthIndex: Int
+        input: LedgerEntryInput!
     ): LedgerEntry
 }
 
@@ -277,6 +273,14 @@ input CampaignCreateInput {
     combatPay: Int
     repairRules: RepairRulesInput
     tracks: [ProposedTrackInput]
+}
+
+input LedgerEntryInput {
+    amount: Int!
+    description: String!
+    reputationChange: Int
+    campaignName: String
+    monthIndex: Int
 }
 
 input CampaignUpdateInput {

@@ -553,28 +553,28 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     if (!user) {
         return (
             <div className="public-landing">
-                <div className="landing-header">
+                <div className="landing-header" style={{ textAlign: 'center' }}>
                     <h1 className="main-title">HOTSPOTS: CAMPAIGNER</h1>
-                    <div className="login-options" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        <button type="button" className="mode-btn theme-red" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account" style={{ padding: '10px 20px' }}>
+                    <div className="login-options" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', justifyContent: 'center', marginTop: '30px' }}>
+                        <button type="button" className="mode-btn theme-red" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account" style={{ height: '36px', padding: '0 25px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', margin: 0 }}>
                             FEDERATED LOGIN
                         </button>
-                        <div className="token-login-box" style={{ borderLeft: '2px solid var(--terminal-border)', paddingLeft: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <div className="status-bar theme-red" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <div className="token-login-box" style={{ borderLeft: '2px solid var(--terminal-border)', paddingLeft: '20px', display: 'flex', gap: '10px', alignItems: 'flex-start', height: '36px' }}>
+                            <div className="status-bar theme-red" style={{ height: '36px', padding: 0, display: 'flex', alignItems: 'center', boxSizing: 'border-box', margin: 0 }}>
                                 <input
                                     type="text"
-                                    className="table-input"
+                                    className="terminal-input-reset"
                                     placeholder="ENTER INVITE KEY"
                                     value={inviteToken}
                                     onChange={(e) => setInviteToken(e.target.value.toUpperCase())}
-                                    style={{ width: '180px', textTransform: 'uppercase', border: 'none' }}
+                                    style={{ width: '200px', textTransform: 'uppercase', border: 'none', background: 'transparent', color: 'inherit', height: '100%', padding: '0 15px', margin: 0, outline: 'none', display: 'block', boxSizing: 'border-box', lineHeight: '36px' }}
                                 />
                             </div>
                             <button
                                 type="button"
                                 className="mode-btn theme-red"
                                 onClick={handleTokenLogin}
-                                style={{ fontSize: '0.8rem', padding: '5px 15px' }}
+                                style={{ fontSize: '0.8rem', height: '36px', padding: '0 20px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', margin: 0 }}
                             >
                                 JOIN
                             </button>
