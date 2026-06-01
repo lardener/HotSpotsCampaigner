@@ -68,6 +68,7 @@ const UPDATE_TRACK = gql`
       attackerFactionId
       monthIndex
       complications
+      afterActionNarrative
       oppositionComplications
     }
   }
@@ -95,6 +96,7 @@ const REORDER_TRACKS = gql`
         attackerFactionId
         monthIndex
         complications
+      afterActionNarrative
         oppositionComplications
     }
 }
@@ -148,6 +150,7 @@ const GET_CAMPAIGN_INVITES = gql`
             attackerFactionId
             monthIndex
             complications
+            afterActionNarrative
             oppositionComplications
         }
       participatingDetachments {
@@ -290,6 +293,7 @@ interface TrackDetail {
     attackerFactionId?: string;
     monthIndex?: number;
     complications?: string;
+    afterActionNarrative?: string;
     oppositionComplications?: string;
 }
 

@@ -2,7 +2,6 @@ package com.hotspotscamp.service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -145,7 +144,7 @@ public class CampaignService {
 
     }
 
-    public record TrackUpdateInput(String trackName, Integer sequenceOrder, String location, String nextSession, UUID attackerFactionId, Integer monthIndex, String complications, String oppositionComplications) {
+    public record TrackUpdateInput(String trackName, Integer sequenceOrder, String location, String nextSession, UUID attackerFactionId, Integer monthIndex, String complications, String oppositionComplications, String afterActionNarrative) {
 
     }
 
@@ -433,10 +432,10 @@ public class CampaignService {
         String baseOrg = factionOrgs.get(rand.nextInt(factionOrgs.size()));
         String result = baseOrg;
         if ("Corporate".equalsIgnoreCase(empType)) {
-            result = baseOrg + " " + corporateSuffixes.get(rand.nextInt(corporateSuffixes.size())); 
-        }else if ("Noble".equalsIgnoreCase(empType)) {
-            result = noblePrefixes.get(rand.nextInt(noblePrefixes.size())) + " of " + system; 
-        }else if (empType.toLowerCase().contains("government")) {
+            result = baseOrg + " " + corporateSuffixes.get(rand.nextInt(corporateSuffixes.size()));
+        } else if ("Noble".equalsIgnoreCase(empType)) {
+            result = noblePrefixes.get(rand.nextInt(noblePrefixes.size())) + " of " + system;
+        } else if (empType.toLowerCase().contains("government")) {
             result = system + " Planetary Council (" + baseOrg + ")";
         }
 
@@ -556,10 +555,10 @@ public class CampaignService {
                 return val;
             }
             if (currentStep < 7) {
-                currentStep++; 
-            }else if (currentStep > 7) {
-                currentStep--; 
-            }else {
+                currentStep++;
+            } else if (currentStep > 7) {
+                currentStep--;
+            } else {
                 break;
             }
         }
@@ -687,7 +686,7 @@ public class CampaignService {
                         CampaignFaction f1 = CampaignFaction.builder().id(UUID.randomUUID()).campaignId(saved.getId()).factionName(primaryEmp).offersContracts(true).isNew(true).build();
                         CampaignFaction f2 = CampaignFaction.builder().id(UUID.randomUUID()).campaignId(saved.getId()).factionName(oppositionEmp).offersContracts(true).isNew(true).build();
 
-                        return campaignFactionRepository.saveAll(List.of(f1, f2)).collectList()
+                        return campaignFactionRepository.saveAll(Objects.requireNonNull(List.of(f1, f2))).collectList()
                                 .flatMap(factions -> {
                                     Flux<Contract> conFlux = Flux.fromIterable(contractProposals).zipWith(Flux.fromIterable(factions)).concatMap(t -> {
                                         Contract c = t.getT1();

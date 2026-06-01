@@ -1104,6 +1104,9 @@ public class MercenaryCommandService {
             if (input.oppositionComplications() != null) {
                 track.setOppositionComplications(input.oppositionComplications());
             }
+            if (input.afterActionNarrative() != null) {
+                track.setAfterActionNarrative(input.afterActionNarrative());
+            }
             return campaignTrackRepository.save(track);
         })))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateTrack"));

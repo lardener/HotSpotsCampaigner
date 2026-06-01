@@ -108,6 +108,7 @@ public class SchemaGenerator {
         sql.append("    `month_index` INT,\n");
         sql.append("    `complications` VARCHAR(1000),\n");
         sql.append("    `opposition_complications` VARCHAR(1000),\n");
+        sql.append("    `after_action_narrative` TEXT,\n");
         sql.append("    CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,\n");
         sql.append("    CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL\n");
         sql.append(");\n\n");

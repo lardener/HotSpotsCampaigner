@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { ADD_LEDGER_ENTRY } from './LedgerEntryForm';
 import { CombatUnit, Pilot, RepairRulesInput } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
@@ -38,6 +40,17 @@ const UPDATE_PILOT = gql`
     updatePilot(id: $id, input: $input) {
       id
       wounds
+    }
+  }
+`;
+
+const UPDATE_TRACK = gql`
+  mutation UpdateTrack($id: ID!, $input: TrackUpdateInput!) {
+    updateTrack(id: $id, input: $input) {
+      id
+      afterActionNarrative
+      complications
+      oppositionComplications
     }
   }
 `;
@@ -138,6 +151,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
     const [updateUnit] = useMutation(UPDATE_UNIT);
     const [updatePilot] = useMutation(UPDATE_PILOT);
+    const [updateTrack] = useMutation(UPDATE_TRACK);
     const [deleteUnit] = useMutation(DELETE_UNIT);
     const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataData>(GET_METADATA, {
         skip: !!propMetaData
@@ -148,6 +162,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [detachmentAars, setDetachmentAars] = useState<Record<string, DetachmentAarState>>({});
     const [unitStates, setUnitStates] = useState<Record<string, { status: string, ammo: number }>>({});
     const [pilotStates, setPilotStates] = useState<Record<string, { injuries: number, healed: number }>>({});
+    const [afterActionNarrative, setAfterActionNarrative] = useState(track.afterActionNarrative || '');
+    const [isEditingNarrative, setIsEditingNarrative] = useState(false);
     const [notices, setNotices] = useState<Record<string, string>>({});
     const [errorStates, setErrorStates] = useState<Record<string, string>>({});
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
@@ -438,16 +454,55 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
+    const handleNarrativeBlur = () => {
+        setIsEditingNarrative(false);
+        if (afterActionNarrative !== track.afterActionNarrative) {
+            updateTrack({
+                variables: {
+                    id: track.id,
+                    input: { afterActionNarrative }
+                }
+            });
+        }
+    };
+
     return (
         <TerminalOverlay
             title={`AFTER ACTION REPORT: ${track.trackName.toUpperCase()}`}
             message="OPERATIONAL DEBRIEFING & LOGISTICS RECONCILIATION"
             onConfirm={handleFinalize}
-            confirmLabel={isFinalizing ? "SYNCHRONIZING..." : "FINALIZE REPORT"}
+            confirmLabel={isFinalizing ? "SYNCHRONIZING..." : "CLOSE DEBRIEFING"}
             themeClass="theme-red"
             loading={isFinalizing}
         >
-            <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px' }}>
+            <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px' }}>
+                <div className="tactical-panel narrative-editor mb-20 theme-red" data-id="AAR-NARRATIVE">
+                    <h3 className="zone-header mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>OPERATIONAL DEBRIEFING</h3>
+                    {isEditingNarrative ? (
+                        <textarea
+                            className="table-input w-100"
+                            style={{ height: '180px', background: 'rgba(0,0,0,0.3)', color: 'var(--terminal-amber)', border: '1px solid var(--terminal-amber)', padding: '10px', fontSize: '0.9rem' }}
+                            value={afterActionNarrative}
+                            onChange={(e) => setAfterActionNarrative(e.target.value)}
+                            onBlur={handleNarrativeBlur}
+                            autoFocus
+                            placeholder="Document the engagement history..."
+                        />
+                    ) : (
+                        <div
+                            className="markdown-preview restricted-text sm-text"
+                            style={{ minHeight: '60px', cursor: 'pointer' }}
+                            onClick={() => setIsEditingNarrative(true)}
+                        >
+                            {afterActionNarrative ? (
+                                <Markdown remarkPlugins={[remarkGfm]}>{afterActionNarrative}</Markdown>
+                            ) : (
+                                <span className="opacity-50">NO NARRATIVE RECORDED. CLICK TO INITIALIZE DEBRIEFING.</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+
                 {campaign.participatingDetachments?.map((det: any) => (
                     <div key={det.id} className="dashboard-section mb-20" style={{ border: '1px solid var(--accent-dim)', padding: '15px', backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
                         <div className="flex-between mb-15" style={{ borderBottom: '1px solid var(--accent-dim)', paddingBottom: '8px' }}>
@@ -800,6 +855,27 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
                 .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
                 .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+
+                /* Markdown Header Styling for Terminal Aesthetic */
+                .markdown-preview :is(h1, h2, h3, h4, h5, h6) {
+                    color: var(--terminal-amber); /* Primary header color */
+                    margin-top: 1em;
+                    margin-bottom: 0.5em;
+                    border-bottom: 1px dashed rgba(255, 176, 0, 0.3);
+                    padding-bottom: 0.2em;
+                    font-family: inherit;
+                    text-transform: uppercase;
+                }
+                .markdown-preview h1 { font-size: 1.4rem; color: var(--terminal-red); border-bottom: 2px solid var(--terminal-red); }
+                .markdown-preview h2 { font-size: 1.2rem; border-bottom: 1px solid var(--terminal-amber); }
+                .markdown-preview h3 { font-size: 1.1rem; }
+                .markdown-preview h4 { font-size: 1.0rem; }
+                .markdown-preview h5 { font-size: 0.9rem; }
+                .markdown-preview h6 { font-size: 0.8rem; opacity: 0.8; }
+                
+                /* Ensure lists and paragraphs match the terminal look */
+                .markdown-preview p { margin-bottom: 1em; line-height: 1.5; }
+                .markdown-preview ul { padding-left: 20px; margin-bottom: 1em; list-style-type: square; }
             `}</style>
         </TerminalOverlay>
     );

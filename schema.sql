@@ -95,6 +95,7 @@ CREATE TABLE campaign_tracks (
     `month_index` INT,
     `complications` VARCHAR(1000),
     `opposition_complications` VARCHAR(1000),
+    `after_action_narrative` TEXT,
     CONSTRAINT fk_track_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE,
     CONSTRAINT fk_track_attacker FOREIGN KEY (attacker_faction_id) REFERENCES campaign_factions(id) ON DELETE SET NULL
 );
@@ -222,4 +223,3 @@ CREATE TABLE faction_reputations (
     CONSTRAINT fk_reputation_faction FOREIGN KEY (campaign_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE,
     CONSTRAINT fk_reputation_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE
 );
-

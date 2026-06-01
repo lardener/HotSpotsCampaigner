@@ -337,6 +337,7 @@ input TrackUpdateInput {
     monthIndex: Int
     complications: String
     oppositionComplications: String
+    afterActionNarrative: String
 }
 
 type CampaignTrack {
@@ -350,6 +351,7 @@ type CampaignTrack {
     monthIndex: Int
     complications: String
     oppositionComplications: String
+    afterActionNarrative: String
 }
 
 input CombatUnitUpdateInput {
