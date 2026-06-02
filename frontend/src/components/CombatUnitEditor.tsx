@@ -322,29 +322,65 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                 {mode === 'create' && (
                                     <div className="mb-20 pb-15" style={{ borderBottom: '1px dashed var(--accent-dim)' }}>
                                         <h3 className="zone-header" style={{ margin: '0 0 10px 0' }}>IMPORT DATA SOURCE</h3>
-                                        <div className="flex flex-gap-10">
+                                        <div className="flex flex-gap-10" style={{ alignItems: 'top' }}>
                                             <div className="status-bar theme-amber flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                                 <input
                                                     id="import-link"
                                                     type="text"
                                                     className="table-input w-100"
-                                                    style={{ border: 'none' }}
+                                                    style={{ border: 'none', width: '30em' }}
                                                     value={importLink}
                                                     onChange={(e) => setImportLink(e.target.value)}
                                                     placeholder="MASTER UNIT LIST LINK (MUL)..."
                                                     title="External data source URL"
                                                 />
+
                                             </div>
                                             <button
                                                 type="button"
                                                 className="mode-btn theme-green"
                                                 onClick={handleImport}
                                                 disabled={isSaving || !importLink.trim()}
-                                                style={{ padding: '4px 15px', fontSize: '0.7rem' }}
+                                                style={{ padding: '2px 2px', fontSize: '0.7rem', height: '22px' }}
                                             >
                                                 {isSaving ? 'SCRAPING...' : '✓ IMPORT'}
                                             </button>
                                         </div>
+
+                                        {/* <div class="flex-between mb-5" style="align-items: flex-start;">
+                                            <div class="status-bar theme-amber" style="flex: 1 1 0%; margin-right: 10px; padding: 0px 5px; display: flex; align-items: center;">
+                                                <div class="inline-edit cursor-pointer theme-amber" style="font-weight: bold; width: 100%; min-height: 1.2em; padding: 0px 2px;">
+                                                    Flank
+                                                </div>
+                                            </div>
+                                            <button class="mode-btn theme-amber sm-text mr-10" style="padding: 0px 5px; height: 18px; font-size: 0.6rem;">
+                                                REROLL
+                                            </button>
+                                            <span class="restricted-text" style="font-size: 0.6rem;">
+                                                #1
+                                            </span>
+                                        </div> */}
+
+                                        {/* <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button
+                                    className="mode-btn theme-green"
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                                    title="Confirm and save"
+                                >
+                                    {isSaving ? '>> PROCESSING...' : (mode === 'create' ? '✓ PROCURE' : '✓ SAVE')}
+                                </button>
+                                <button
+                                    className="mode-btn theme-red"
+                                    onClick={onCancel}
+                                    disabled={isSaving}
+                                    style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                                    title="Discard changes and return"
+                                >
+                                    ✕ DISCARD
+                                </button>
+                            </div> */}
                                         <div className="restricted-text xs-text mt-5" style={{ opacity: 0.7 }}>
                                             SUPPORTED SOURCES: Master Unit List (MUL), Mordel.net
                                         </div>

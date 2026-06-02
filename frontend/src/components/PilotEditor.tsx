@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
@@ -89,27 +89,32 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 }) => {
     const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
 
-    const [formData, setFormData] = useState<Pilot>(
-        pilot || {
-            id: '',
-            name: 'NEW PILOT',
-            gunnery: 4,
-            piloting: 5,
-            asSkill: 4,
-            edgeTokensSkill: 1,
-            edgeAbilitySkill: 0,
-            edgeAbilities: '',
-            unitType: 'BM',
-            wounds: 0,
-            handicap: 0,
-            totalSpEarned: 0,
-            gunnerySpEarned: 0,
-            pilotingSpEarned: 0,
-            edgeTokensSpEarned: 0,
-            edgeAbilitySpEarned: 0,
-            detachmentId: detachmentId || null
-        }
-    );
+    const createDefaultPilot = (): Pilot => ({
+        id: '',
+        name: 'NEW PILOT',
+        gunnery: 4,
+        piloting: 5,
+        asSkill: 4,
+        edgeTokensSkill: 1,
+        edgeAbilitySkill: 0,
+        edgeAbilities: '',
+        unitType: 'BM',
+        wounds: 0,
+        handicap: 0,
+        totalSpEarned: 0,
+        gunnerySpEarned: 0,
+        pilotingSpEarned: 0,
+        edgeTokensSpEarned: 0,
+        edgeAbilitySpEarned: 0,
+        detachmentId: detachmentId || null
+    });
+
+    const [formData, setFormData] = useState<Pilot>(pilot || createDefaultPilot());
+
+    // Ensure form updates if the pilot prop changes or when initializing for a new detachment
+    useEffect(() => {
+        setFormData(pilot || createDefaultPilot());
+    }, [pilot, detachmentId]);
 
     const [isSaving, setIsSaving] = useState(false);
     const [overlay, setOverlay] = useState<{
