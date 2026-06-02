@@ -10,7 +10,6 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 
@@ -28,7 +27,7 @@ public class UserGraphQLController {
     private final UserService userService;
 
     @QueryMapping
-    public Mono<UserProfile> userProfile(@AuthenticationPrincipal Object principal) {
+    public Mono<UserProfile> userProfile(Principal principal) {
         log.trace("[TRACE] Entering userProfile");
         String identity = resolveIdentity(principal);
         if (identity == null || identity.equals("anonymousUser")) {
@@ -69,7 +68,7 @@ public class UserGraphQLController {
     }
 
     @MutationMapping
-    public Mono<UserProfile> updateUserProfile(@Argument String displayName, @AuthenticationPrincipal Object principal) {
+    public Mono<UserProfile> updateUserProfile(@Argument String displayName, Principal principal) {
         log.trace("[TRACE] Entering updateUserProfile: displayName={}", displayName);
         if (principal == null) {
             log.trace("[TRACE] Exiting updateUserProfile (null principal)");

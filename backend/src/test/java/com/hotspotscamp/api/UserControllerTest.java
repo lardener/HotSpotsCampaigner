@@ -1,37 +1,51 @@
 package com.hotspotscamp.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.graphql.test.tester.GraphQlTester;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.reactive.server.WebTestClient;
 
 @SpringBootTest
-@AutoConfigureWebTestClient
+@AutoConfigureGraphQlTester
 class UserControllerTest {
 
     @Autowired
-    private WebTestClient webTestClient;
+    private GraphQlTester graphQlTester;
 
     @Test
-    @WithMockUser(username = "testuser@gmail.com")
+    @WithMockUser(username = "00000000-0000-0000-0000-000000000000")
     void testGetUserProfile() {
-        webTestClient.get()
-                .uri("/api/user/profile")
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.email").isEqualTo("testuser@gmail.com")
-                .jsonPath("$.name").exists();
+        graphQlTester.document("""
+                query {
+                  userProfile {
+                    id
+                    name
+                    email
+                    displayName
+                    role
+                  }
+                }
+                """)
+                .execute()
+                .path("userProfile.email").entity(String.class).isEqualTo("unknown@merc.net")
+                .path("userProfile.id").hasValue();
     }
 
     @Test
     void testGetUserProfileUnauthorized() {
-        webTestClient.get()
-                .uri("/api/user/profile")
-                .exchange()
-                .expectStatus().isUnauthorized();
+        graphQlTester.document("""
+                query {
+                  userProfile {
+                    id
+                  }
+                }
+                """)
+                .execute()
+                .errors()
+                .satisfy(errors -> assertEquals(1, errors.size()));
     }
 
 }

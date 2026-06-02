@@ -1,14 +1,19 @@
 package com.hotspotscamp.service;
 
 import java.util.UUID;
+import java.util.function.BiFunction;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.r2dbc.core.RowsFetchSpec;
 
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.LedgerEntry;
@@ -17,7 +22,8 @@ import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 
-import reactor.core.publisher.Flux;
+import io.r2dbc.spi.Row;
+import io.r2dbc.spi.RowMetadata;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -30,6 +36,10 @@ class MercenaryCommandServiceTest {
     private LedgerEntryRepository ledgerEntryRepository;
     @Mock
     private MercenaryCommandRepository commandRepository;
+    @Mock
+    private DatabaseClient databaseClient;
+    @Mock
+    private RowsFetchSpec<Number> rowsFetchSpec;
 
     @InjectMocks
     private MercenaryCommandService commandService;
@@ -52,11 +62,17 @@ class MercenaryCommandServiceTest {
                 .totalSupportPoints(0)
                 .build();
 
-        when(detachmentRepository.findAllByMercenaryCommandId(cmdId)).thenReturn(Flux.just(det1, det2));
-        when(ledgerEntryRepository.findAllByDetachmentId(det1Id)).thenReturn(Flux.just(entry1, entry2));
-        when(ledgerEntryRepository.findAllByDetachmentId(det2Id)).thenReturn(Flux.just(entry3));
         when(commandRepository.findById(cmdId)).thenReturn(Mono.just(command));
         when(commandRepository.save(any())).thenAnswer(i -> Mono.just(i.getArgument(0)));
+        // Mock the DatabaseClient SQL path used in syncTotalSupportPoints
+        DatabaseClient.GenericExecuteSpec spec = mock(DatabaseClient.GenericExecuteSpec.class);
+        when(databaseClient.sql(ArgumentMatchers.<String>any())).thenReturn(spec);
+        // Ensure bind/bindNull return the spec so SqlUtils.bindUuid doesn't return null
+        org.mockito.Mockito.lenient().when(spec.bind(ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(spec);
+        org.mockito.Mockito.lenient().when(spec.bindNull(ArgumentMatchers.anyString(), ArgumentMatchers.<Class<?>>any())).thenReturn(spec);
+        // Provide a properly-typed matcher for the BiFunction used by GenericExecuteSpec.map
+        org.mockito.Mockito.lenient().when(spec.map(ArgumentMatchers.<BiFunction<Row, RowMetadata, Number>>any())).thenReturn(rowsFetchSpec);
+        org.mockito.Mockito.lenient().when(rowsFetchSpec.one()).thenReturn(Mono.just(1300L));
 
         StepVerifier.create(commandService.syncTotalSupportPoints(cmdId))
                 .expectNextMatches(savedCmd -> savedCmd.getTotalSupportPoints() == 1300)

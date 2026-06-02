@@ -22,7 +22,7 @@ describe('App Component', () => {
   it('shows loading state initially', () => {
     (campaignApi.getProfile as any).mockReturnValue(new Promise(() => { })); // Never resolves
     render(<App />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('INITIALIZING NEURAL LINK...')).toBeInTheDocument();
   });
 
   it('renders login when unauthenticated', async () => {
@@ -32,7 +32,7 @@ describe('App Component', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText('Login with Google')).toBeInTheDocument();
+      expect(screen.getByText('FEDERATED LOGIN')).toBeInTheDocument();
     });
   });
 });

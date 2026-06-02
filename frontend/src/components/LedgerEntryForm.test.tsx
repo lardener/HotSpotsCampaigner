@@ -21,8 +21,7 @@ describe('LedgerEntryForm', () => {
                         detachmentId: 'detachment-1',
                         input: {
                             amount: 50,
-                            description: 'Repair parts',
-                            reputationChange: null
+                            description: 'Repair parts'
                         }
                     },
                 },
@@ -44,8 +43,8 @@ describe('LedgerEntryForm', () => {
         );
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/support points \(sp\)/i), { target: { value: '50' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } }); // Updated to match UI label
+        fireEvent.change(screen.getByLabelText(/reputation/i), { target: { value: '' } }); // Updated to match UI label
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {
@@ -64,8 +63,7 @@ describe('LedgerEntryForm', () => {
                         detachmentId: 'detachment-1',
                         input: {
                             amount: 50,
-                            description: 'Repair parts',
-                            reputationChange: null
+                            description: 'Repair parts'
                         }
                     },
                 },
@@ -85,8 +83,8 @@ describe('LedgerEntryForm', () => {
         );
 
         fireEvent.change(screen.getByLabelText(/description/i), { target: { value: 'Repair parts' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/support points \(sp\)/i), { target: { value: '50' } }); // Added title to input
-        fireEvent.change(screen.getByLabelText(/reputation change/i), { target: { value: '' } }); // Added title to input
+        fireEvent.change(screen.getByLabelText(/support points/i), { target: { value: '50' } }); // Updated to match UI label
+        fireEvent.change(screen.getByLabelText(/reputation/i), { target: { value: '' } }); // Updated to match UI label
         fireEvent.click(screen.getByRole('button', { name: /commit transaction/i }));
 
         await waitFor(() => {

@@ -60,8 +60,8 @@ describe('CampaignGenerator Integration', () => {
 
         // Verify it loads metadata
         await waitFor(() => {
-            expect(screen.getByText(/DOBLESS INTEL:/i)).toBeInTheDocument();
-            expect(screen.getByDisplayValue(/TEST PREVIEW/i)).toBeInTheDocument();
+            expect(screen.getByText(/DOBLESS INFORMATION SERVICE/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /GENERATE CONTRACT OFFERS/i })).toBeInTheDocument();
         });
     });
 });
