@@ -1,8 +1,9 @@
 import React from 'react';
+import { CombatUnit, Pilot } from '../types/global.d';
 
 interface Props {
-    units: any[];
-    pilots: any[];
+    units: CombatUnit[];
+    pilots: Pilot[];
     compact?: boolean;
 }
 

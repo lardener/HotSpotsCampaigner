@@ -2,7 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing';
-import { CampaignGenerator, GET_METADATA, PREVIEW_CAMPAIGN } from './CampaignGenerator';
+import { CampaignGenerator } from './CampaignGenerator'; // Correctly import the component
+import { GET_METADATA, PREVIEW_CAMPAIGN } from '../types/operations'; // Import GraphQL operations
 import { describe, it, expect } from 'vitest';
 
 const metadataMock = {

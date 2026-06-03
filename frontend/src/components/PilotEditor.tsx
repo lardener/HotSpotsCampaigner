@@ -1,82 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { Pilot, PilotUpdateInput } from '../types/global.d';
+import { Pilot, PilotUpdateInput, HirePilotVars, UpdatePilotVars } from '../types/global.d';
+import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
+import { HirePilotData, UpdatePilotData } from '../types/graphql.d';
 
-interface PilotEditorProps { // Use imported Pilot type
+interface PilotEditorProps {
     pilot?: Pilot | null;
     commandId: string;
     detachmentId?: string | null;
     mode: 'create' | 'edit';
     onSave: (pilot: Pilot) => void;
     onCancel: () => void;
-}
-
-const HIRE_PILOT = gql`
-  mutation HirePilot($commandId: ID!, $input: PilotUpdateInput!) {
-    hirePilot(commandId: $commandId, input: $input) {
-      id
-      name
-      gunnery
-      piloting
-      asSkill
-      edgeTokensSkill
-      edgeAbilitySkill
-      edgeAbilities
-      unitType
-      wounds
-      handicap
-      totalSpEarned
-      gunnerySpEarned
-      pilotingSpEarned
-      edgeTokensSpEarned
-      edgeAbilitySpEarned
-      detachmentId
-    }
-  }
-`;
-
-interface UpdatePilotVars {
-    id: string;
-    input: PilotUpdateInput;
-}
-
-interface UpdatePilotData {
-    updatePilot: Pilot;
-}
-
-const UPDATE_PILOT = gql`
-  mutation UpdatePilot($id: ID!, $input: PilotUpdateInput!) {
-    updatePilot(id: $id, input: $input) { 
-      id
-      name
-      gunnery
-      piloting
-      asSkill
-      edgeTokensSkill
-      edgeAbilitySkill
-      edgeAbilities
-      unitType
-      wounds
-      handicap
-      totalSpEarned
-      gunnerySpEarned
-      pilotingSpEarned
-      edgeTokensSpEarned
-      edgeAbilitySpEarned
-      detachmentId
-    }
-  }
-`;
-
-interface HirePilotData {
-    hirePilot: Pilot & { detachmentId?: string | null };
-}
-
-interface HirePilotVars {
-    commandId: string;
-    input: PilotUpdateInput;
 }
 
 export const PilotEditor: React.FC<PilotEditorProps> = ({
@@ -604,11 +539,11 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             )}
 
             <style>{`
-                .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
-                .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
-                .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
-                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
-            `}</style>
+    .theme-amber.cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
+    .theme-blue.cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+    .theme-green.cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
+    .theme-red.cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+`}</style>
         </div>
     );
 };

@@ -1,9 +1,5 @@
 import { fetchVoid } from './apiClient';
-
-export interface LedgerEntryRequest {
-    description: string;
-    amount: number;
-}
+import { LedgerEntryInput as LedgerEntryRequest } from '../types/global.d';
 
 export const createLedgerEntry = async (detachmentId: string, entry: LedgerEntryRequest): Promise<void> => {
     if (!detachmentId || detachmentId.length === 0) {

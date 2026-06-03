@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import {
     useFloating,
@@ -11,93 +10,20 @@ import {
     FloatingFocusManager,
 } from '@floating-ui/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CombatUnit, CombatUnitUpdateInput } from '../types/global.d';
+import { CombatUnit, CombatUnitUpdateInput, AddUnitVars, UpdateUnitVars, ImportAssetsVars } from '../types/global.d'; // This was already correct
+import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS } from '../types/operations';
+import { AddUnitData, UpdateUnitData } from '../types/graphql.d';
 
 interface CombatUnitEditorProps {
     unit?: CombatUnit | null;
     commandId: string;
-    detachmentId?: string | null; // Add detachmentId to props
+    detachmentId?: string | null;
     mode: 'create' | 'edit';
     onSave: (unit: CombatUnit) => void;
     onCancel: () => void;
     unitTypes: string[];
     unitStatuses: string[];
     techBases: string[];
-}
-
-const ADD_UNIT = gql`
-  mutation AddCombatUnit($commandId: ID!, $input: CombatUnitUpdateInput!) {
-    addCombatUnit(commandId: $commandId, input: $input) {
-      id
-      model
-      type
-      variant
-      techBase
-      tonnage
-      asSize
-      bv
-      pv
-      status
-      detachmentId
-    }
-  }
-`;
-
-const UPDATE_UNIT = gql`
-  mutation UpdateUnit($id: ID!, $input: CombatUnitUpdateInput!) {
-    updateCombatUnit(id: $id, input: $input) { 
-      id
-      type
-      model
-      variant
-      techBase
-      tonnage
-      asSize
-      bv
-      pv
-      status
-    }
-  }
-`;
-
-const IMPORT_ASSETS = gql`
-  mutation ImportAssets($commandId: ID!, $detachmentId: ID, $link: String!) {
-    importCombatUnitsFromLink(commandId: $commandId, detachmentId: $detachmentId, link: $link) {
-      id
-      model
-      variant
-      type
-      techBase
-      tonnage
-      asSize
-      bv
-      pv
-    }
-  }
-`;
-
-interface AddUnitVars {
-    commandId: string;
-    input: CombatUnitUpdateInput;
-}
-
-interface UpdateUnitVars {
-    id: string;
-    input: CombatUnitUpdateInput;
-}
-
-interface AddUnitData {
-    addCombatUnit: CombatUnit;
-}
-
-interface UpdateUnitData {
-    updateCombatUnit: CombatUnit;
-}
-
-interface ImportAssetsVars {
-    commandId: string;
-    detachmentId: string | null;
-    link: string;
 }
 
 export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
@@ -109,7 +35,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     unitTypes,
     unitStatuses,
     techBases,
-    detachmentId // Destructure detachmentId from props
+    detachmentId
 }) => {
     const createDefaultUnit = () => ({
         id: '',

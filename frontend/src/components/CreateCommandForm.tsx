@@ -1,32 +1,9 @@
 import React, { useState } from 'react';
-import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CommandUpdateInput } from '../types/global'; // Import the shared interface
-
-// GraphQL mutation for establishing a command
-const ESTABLISH_COMMAND = gql`
-  mutation EstablishCommand($input: CommandUpdateInput!) {
-    establishCommand(input: $input) {
-      id
-      name
-      commandingOfficer
-      totalSupportPoints
-      reputation
-    }
-  }
-`;
-
-// Expected data structure from the mutation response
-interface EstablishCommandData {
-    establishCommand: {
-        id: string;
-        name: string;
-        commandingOfficer?: string;
-        totalSupportPoints: number;
-        reputation: number;
-    };
-}
+import { CommandUpdateInput } from '../types/global.d';
+import { ESTABLISH_COMMAND } from '../types/operations';
+import { EstablishCommandData } from '../types/graphql.d';
 
 // Props for the CreateCommandForm component
 interface CreateCommandFormProps {

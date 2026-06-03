@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { gql } from '@apollo/client';
 import { useMutation } from '@apollo/client/react'; // Keep this import style
 import { LedgerEntryInput } from '../types/global.d';
-
-export const ADD_LEDGER_ENTRY = gql`
-  mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $input: LedgerEntryInput!) {
-    addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, input: $input) {
-      id
-    }
-  }
-`;
+import { ADD_LEDGER_ENTRY } from '../types/operations';
+import { AddLedgerEntryData } from '../types/graphql.d';
 
 interface LedgerEntryFormProps {
     commandId: string;
@@ -25,7 +18,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
     const [reputationChange, setReputationChange] = useState<number | undefined>(undefined);
     const [campaignName, setCampaignName] = useState(initialCampaignName);
     const [monthIndex, setMonthIndex] = useState<number | undefined>(initialMonthIndex);
-    const [addLedgerEntry, { loading }] = useMutation<any, { commandId: string; detachmentId: string | null; input: LedgerEntryInput }>(ADD_LEDGER_ENTRY);
+    const [addLedgerEntry, { loading }] = useMutation<AddLedgerEntryData, { commandId: string; detachmentId: string | null; input: LedgerEntryInput }>(ADD_LEDGER_ENTRY);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
 
     useEffect(() => {

@@ -1,37 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LedgerEntryForm } from './LedgerEntryForm';
-import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
-
-const GET_LEDGER_DATA = gql`
-  query GetLedgerData($commandId: ID!) {
-    getCommand(id: $commandId) {
-      id
-      name
-      totalSupportPoints
-      detachments {
-        id
-        name
-        campaignId
-        campaignName
-      }
-    }
-  }
-`;
-
-interface LedgerData {
-    getCommand: {
-        id: string;
-        name: string;
-        totalSupportPoints: number;
-        detachments: {
-            id: string;
-            name: string;
-            campaignId?: string;
-            campaignName?: string;
-        }[];
-    };
-}
+import { GET_LEDGER_DATA } from '../types/operations';
+import { LedgerData } from '../types/graphql.d';
 
 interface LedgerDashboardProps {
     commandId: string;

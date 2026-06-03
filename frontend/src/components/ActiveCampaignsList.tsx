@@ -1,32 +1,7 @@
 import React from 'react';
-import { gql } from '@apollo/client';
 import { useQuery } from '@apollo/client/react';
-
-const GET_ACTIVE_CAMPAIGNS = gql`
-  query GetActiveCampaigns($page: Int, $size: Int) {
-    publicActiveCampaigns(page: $page, size: $size) {
-      id
-      name
-      systemName
-      status
-      trackCount
-      primaryEmployer
-      secondaryEmployer
-    }
-  }
-`;
-
-interface ActiveCampaignsData {
-    publicActiveCampaigns: {
-        id: string;
-        name: string;
-        systemName: string;
-        status: string;
-        trackCount: number;
-        primaryEmployer: string;
-        secondaryEmployer: string;
-    }[];
-}
+import { GET_ACTIVE_CAMPAIGNS } from '../types/operations';
+import { ActiveCampaignsData } from '../types/graphql.d';
 
 export const ActiveCampaignsList: React.FC = () => {
     const { loading, error, data } = useQuery<ActiveCampaignsData>(GET_ACTIVE_CAMPAIGNS, {

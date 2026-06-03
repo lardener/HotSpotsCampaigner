@@ -1,209 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { gql } from '@apollo/client';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
-import { CampaignCreateInput, RepairRulesInput } from '../types/global.d';
-
-export const GET_METADATA = gql`
-  query GetCampaignMetadata {
-    publicCampaignMetadata {
-      missions {
-        primary
-        opponent
-      }
-      trackTypes
-      factions
-      employerTypes
-      resolvedSteps {
-        step
-        values {
-          payRate
-          salvageRights
-          supportRights
-          transportation
-          commandRights
-        }
-      }
-      repairRules {
-        armorMultiplier
-        internalMultiplier
-        crippledMultiplier
-        destroyedMultiplier
-        nonMechModifier
-        mixedTechModifier
-        clanTechModifier
-      }
-    }
-  }
-`;
-
-export const PREVIEW_CAMPAIGN = gql`
-  query PreviewCampaign($input: CampaignCreateInput!) {
-    publicPreviewCampaign(input: $input) {
-      campaign {
-        name
-        systemName
-        trackCount
-        lengthInMonths
-        monthlyPay
-        monthlyMaintenance
-        transportationCost
-        combatPay
-      }
-      repairRules {
-        armorMultiplier
-        internalMultiplier
-        crippledMultiplier
-        destroyedMultiplier
-        nonMechModifier
-        mixedTechModifier
-        clanTechModifier
-      }
-      contracts {
-        employerCategory
-        missionType
-        primaryContract
-        payRate
-        payStep
-        salvageTerms
-        salvageStep
-        supportTerms
-        supportStep
-        transportTerms
-        transportStep
-        commandRights
-        commandStep
-        trackCount
-      }
-      tracks {
-        name
-        complication
-        oppositionComplication
-      }
-    }
-  }
-`;
-
-export const GENERATE_TRACKS = gql`
-  query GenerateTracks($mission: String!, $commandRights: String!, $oppCommandRights: String!, $count: Int!, $existing: [ProposedTrackInput]) {
-    generateTracks(mission: $mission, commandRights: $commandRights, oppCommandRights: $oppCommandRights, count: $count, existing: $existing) {
-      name
-      complication
-      oppositionComplication
-    }
-  }
-`;
-
-export const CREATE_CAMPAIGN = gql`
-  mutation CreateCampaign($input: CampaignCreateInput!) {
-    createCampaign(input: $input) {
-      id
-      name
-      lengthInMonths
-      trackCount
-    }
-  }
-`;
-
-interface ContractPreview {
-    employerCategory: string;
-    missionType: string;
-    primaryContract: boolean;
-    payRate: number;
-    payStep: number;
-    salvageTerms: string;
-    salvageStep: number;
-    supportTerms: string;
-    supportStep: number;
-    transportTerms: string;
-    transportStep: number;
-    commandRights: string;
-    commandStep: number;
-    trackCount: number;
-}
-
-interface ProposedTrack {
-    name: string;
-    complication: string;
-    oppositionComplication: string;
-}
-
-interface Proposal {
-    campaign: {
-        name: string,
-        systemName: string,
-        trackCount: number,
-        lengthInMonths: number,
-        monthlyPay?: number,
-        monthlyMaintenance?: number,
-        transportationCost?: number,
-        combatPay?: number
-        repairRules?: {
-            armorMultiplier: number;
-            internalMultiplier: number;
-            crippledMultiplier: number;
-            destroyedMultiplier: number;
-            nonMechModifier: number;
-            mixedTechModifier: number;
-            clanTechModifier: number;
-        };
-    };
-    contracts: ContractPreview[];
-    tracks: ProposedTrack[];
-}
-
-interface ResolvedStepValues {
-    payRate: string;
-    salvageRights: string;
-    supportRights: string;
-    transportation: string;
-    commandRights: string;
-}
-
-interface MetadataData {
-    publicCampaignMetadata: {
-        missions: {
-            primary: string[];
-            opponent: string[];
-        };
-        trackTypes: string[];
-        factions: string[];
-        employerTypes: string[];
-        resolvedSteps: {
-            step: number;
-            values: ResolvedStepValues;
-        }[];
-        repairRules: {
-            armorMultiplier: number;
-            internalMultiplier: number;
-            crippledMultiplier: number;
-            destroyedMultiplier: number;
-            nonMechModifier: number;
-            mixedTechModifier: number;
-            clanTechModifier: number;
-        };
-    };
-}
-
-interface PreviewData {
-    publicPreviewCampaign: Proposal;
-}
-
-interface GenerateTracksData {
-    generateTracks: ProposedTrack[];
-}
-
-interface CreateCampaignData {
-    createCampaign: {
-        id: string;
-        name: string;
-        lengthInMonths: number;
-        trackCount: number;
-    };
-}
+import { CampaignCreateInput, RepairRulesInput, ContractPreview, ProposedTrack, Proposal, ResolvedStepValues } from '../types/global.d';
+import { MetadataDataFull, PreviewData, GenerateTracksData, CreateCampaignData, UpdateCampaignData } from '../types/graphql.d';
+import {
+    GET_METADATA,
+    PREVIEW_CAMPAIGN,
+    GENERATE_TRACKS,
+    CREATE_CAMPAIGN
+} from '../types/operations';
 
 interface Props {
     user?: { name: string };
-    onSaveSuccess?: (newCampaign: any) => void;
+    onSaveSuccess?: (newCampaign: UpdateCampaignData['updateCampaign']) => void;
 }
 
 export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
@@ -218,7 +26,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<MetadataData>(GET_METADATA);
+    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<MetadataDataFull>(GET_METADATA);
 
     useEffect(() => {
         if (metadataData?.publicCampaignMetadata) {
@@ -273,8 +81,8 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                 c.commandRights = resolveStepValueWithGravity(c.commandStep, 'commandRights');
             });
             // Ensure repair rules are synchronized from metadata if not present in preview
-            if (!prop.campaign.repairRules && metadataData?.publicCampaignMetadata.repairRules) {
-                prop.campaign.repairRules = metadataData.publicCampaignMetadata.repairRules;
+            if (!prop.repairRules && metadataData?.publicCampaignMetadata.repairRules) {
+                prop.repairRules = metadataData.publicCampaignMetadata.repairRules;
             }
             setProposal(prop);
         }
@@ -334,9 +142,9 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
 
         // Strip metadata added by Apollo Client (__typename) which is invalid for GraphQL Input types
         let cleanRepairRules: RepairRulesInput | undefined;
-        if (proposal.campaign.repairRules) {
+        if (proposal.repairRules) {
             // Cast to any to safely destructure __typename, then cast the rest to RepairRulesInput
-            const { __typename, ...rest } = proposal.campaign.repairRules as any;
+            const { __typename, ...rest } = proposal.repairRules as any;
             cleanRepairRules = rest as RepairRulesInput;
         }
 
@@ -558,7 +366,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                                     <input id="proposal-tracks" type="number" value={proposal.campaign.trackCount}
                                         onChange={(e) => updateProposalCampaign('trackCount', e.target.value)} // Update state on change
                                         onBlur={(e) => updateProposalCampaign('trackCount', parseInt(e.target.value) || 0)} // Trigger backend call on blur
-                                        title="Number of tracks (months)"
+                                        title="Number of tracks"
                                         className="table-input"
                                         style={{ border: 'none', width: '100%' }} />
                                 </div>

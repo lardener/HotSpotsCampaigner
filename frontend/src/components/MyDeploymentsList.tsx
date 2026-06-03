@@ -1,9 +1,9 @@
 import React from 'react';
 import { NodeType } from './NavigationTree';
-import { Command } from '../types/global.d';
+import { MercenaryCommand } from '../types/global.d';
 
 interface MyDeploymentsListProps {
-    commands: Command[];
+    commands: MercenaryCommand[];
     onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
 }
 

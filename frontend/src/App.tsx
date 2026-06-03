@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { ApolloClient, InMemoryCache, HttpLink, split, gql } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, split } from '@apollo/client';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { ApolloProvider } from '@apollo/client/react';
 import { createClient } from 'graphql-ws';
 import { MainDashboard } from './components/MainDashboard';
 import * as campaignApi from './services/campaignApi';
+import { GET_USER_PROFILE } from './types/operations';
+import { UserAccount } from './types/global.d';
+import { UserProfileData } from './types/graphql.d';
 import './styles/index.css';
 
 const httpLink = new HttpLink({
@@ -36,30 +39,8 @@ const client = new ApolloClient({
   cache: new InMemoryCache(),
 });
 
-interface UserProfileData {
-  userProfile: {
-    id: string;
-    name: string;
-    email: string;
-    displayName?: string;
-    role: string;
-  } | null;
-}
-
-const GET_USER_PROFILE = gql`
-  query GetUserProfile {
-    userProfile {
-      id
-      name
-      email
-      displayName
-      role
-    }
-  }
-`;
-
 export function App() {
-  const [user, setUser] = useState<{ name: string; id: string; role?: string; displayName?: string | null } | null>(null);
+  const [user, setUser] = useState<UserAccount | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -91,7 +72,13 @@ export function App() {
       .then(result => {
         const profile = result.data?.userProfile;
         if (profile) {
-          setUser({ name: profile.name, id: profile.id, role: profile.role, displayName: profile.displayName });
+          setUser({
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role,
+            displayName: profile.displayName
+          });
         } else {
           setUser(null);
         }

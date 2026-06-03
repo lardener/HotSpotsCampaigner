@@ -1,38 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { Detachment } from '../types/global.d';
-import { ADD_LEDGER_ENTRY } from './LedgerEntryForm'; // Reusing the existing mutation
-import { parseMultiplier } from '../util/contractUtils';
-
-interface Contract {
-    id: string;
-    employerCategory: string;
-    missionType: string;
-    primaryContract: boolean;
-    payRate: number;
-    payStep: number;
-    salvageTerms: string;
-    salvageStep: number;
-    supportTerms: string;
-    supportStep: number;
-    transportTerms: string;
-    transportStep: number;
-    commandRights: string;
-    commandStep: number;
-    trackCount: number;
-}
-
-// Renamed to CampaignDetailSummary for clarity, as it's a subset of CampaignDetail
-interface CampaignDetailSummary {
-    id: string;
-    name: string;
-    monthlyPay?: number;
-    monthlyMaintenance?: number;
-    transportationCost?: number;
-    combatPay?: number;
-    contracts?: Contract[];
-}
+import { Detachment, CampaignDetailSummary } from '../types/global.d';
+import { ADD_LEDGER_ENTRY } from '../types/operations';
+import { parseMultiplier } from '../util/contractUtils'; // This was already correct
 
 interface MonthlyExpensesEditorProps {
     campaignDetails: CampaignDetailSummary; // Use CampaignDetailSummary

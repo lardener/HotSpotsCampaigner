@@ -1,93 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
-import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { CombatUnit, Pilot, Detachment } from '../types/global.d';
+import { CombatUnit, Pilot } from '../types/global.d';
+import { ForceData } from '../types/graphql.d'; // This was already correct
+import { GET_FORCE_DATA, ASSIGN_ASSET } from '../types/operations';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 import '../styles/theme.css';
-
-const GET_FORCE_DATA = gql`
-  query GetForceData($commandId: ID!) {
-    getCommand(id: $commandId) {
-      id
-      name
-      totalSupportPoints
-      reputation
-      units {
-        id
-        model
-        tonnage
-        status
-        detachmentId
-      }
-      pilots {
-        id
-        name
-        gunnery
-        piloting
-        asSkill
-        edgeTokensSkill
-        edgeAbilitySkill
-        edgeAbilities
-        wounds
-        handicap
-        totalSpEarned
-        gunnerySpEarned
-        pilotingSpEarned
-        edgeTokensSpEarned
-        edgeAbilitySpEarned
-        detachmentId
-      }
-      detachments {
-        id
-        name
-      }
-    }
-    managedCampaigns(status: "ACTIVE") {
-      id
-      name
-      systemName
-      trackCount
-    }
-    participatingCampaigns(commandId: $commandId) {
-      id
-      name
-      primaryEmployer
-    }
-    publicCampaignMetadata {
-      unitStatuses
-      unitTypes
-      techBases
-    }
-  }
-`;
-
-const ASSIGN_ASSET = gql`
-  mutation AssignAsset($assetType: String!, $assetId: ID!, $detachmentId: ID) {
-    assignAsset(assetType: $assetType, assetId: $assetId, detachmentId: $detachmentId)
-  }
-`;
-
-interface ForceData {
-    getCommand: {
-        id: string;
-        name: string;
-        totalSupportPoints: number;
-        reputation: number;
-        units: CombatUnit[];
-        pilots: Pilot[];
-        detachments: Detachment[];
-    };
-    managedCampaigns: any[];
-    participatingCampaigns: any[];
-    publicCampaignMetadata: {
-        unitStatuses: string[];
-        unitTypes: string[];
-        techBases: string[];
-    };
-}
 
 interface AssetProps {
     id: string;
@@ -159,11 +79,11 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
 
     useEffect(() => {
         if (data) {
-            setUnits(data.getCommand.units);
-            setPilots(data.getCommand.pilots);
-            setDetachments(data.getCommand.detachments);
-            setManagedCampaigns(data.managedCampaigns);
-            setParticipatingCampaigns(data.participatingCampaigns);
+            setUnits(data.getCommand.units || []);
+            setPilots(data.getCommand.pilots || []);
+            setDetachments(data.getCommand.detachments || []);
+            setManagedCampaigns(data.managedCampaigns || []);
+            setParticipatingCampaigns(data.participatingCampaigns || []);
         }
     }, [data]);
 

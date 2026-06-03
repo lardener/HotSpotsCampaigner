@@ -645,15 +645,6 @@ public class MercenaryCommandService {
     }
 
     /**
-     * Fetches all ledger entries for a specific detachment.
-     */
-    public Flux<LedgerEntry> getLedgerEntriesByDetachmentId(@NonNull UUID detachmentId) {
-        log.trace("[TRACE] Starting getLedgerEntriesByDetachmentId: id={}", detachmentId);
-        return ledgerEntryRepository.findAllByDetachmentId(detachmentId)
-                .doOnTerminate(() -> log.trace("[TRACE] Finished getLedgerEntriesByDetachmentId"));
-    }
-
-    /**
      * Fetches all ledger entries for a specific command.
      */
     public Flux<LedgerEntry> getLedgerEntriesByCommandId(@NonNull UUID commandId) {

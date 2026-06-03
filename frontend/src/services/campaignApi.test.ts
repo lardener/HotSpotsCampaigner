@@ -64,7 +64,7 @@ describe('campaignApi', () => {
         };
         const fetchMock = vi.fn().mockResolvedValue({
             ok: true,
-            json: () => Promise.resolve(proposal),
+            json: () => Promise.resolve({ data: { publicPreviewCampaign: proposal } }),
         } as unknown as Response);
         vi.stubGlobal('fetch', fetchMock);
 
@@ -72,8 +72,12 @@ describe('campaignApi', () => {
 
         expect(result).toEqual(proposal);
         expect(fetchMock).toHaveBeenCalledWith(
-            'http://localhost:8080/api/campaigns/dobless/preview?mission=Expedition',
-            expect.objectContaining({ credentials: 'include' })
+            'http://localhost:8080/graphql',
+            expect.objectContaining({
+                method: 'POST',
+                body: expect.stringContaining('"mission":"Expedition"'),
+                credentials: 'include'
+            })
         );
     });
 

@@ -1,85 +1,174 @@
-import React, { useState, useEffect } from 'react';
-import { gql } from '@apollo/client';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ADD_LEDGER_ENTRY } from './LedgerEntryForm';
-import { CombatUnit, Pilot, RepairRulesInput } from '../types/global.d';
+import { CombatUnit, Pilot, RepairRulesInput, DetachmentAarState, CampaignDetail, TrackDetail } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
+import { MetadataDataMinimal } from '../types/graphql.d';
+import {
+    GET_METADATA,
+    UPDATE_UNIT,
+    UPDATE_PILOT,
+    UPDATE_TRACK,
+    DELETE_UNIT,
+    ADD_LEDGER_ENTRY
+} from '../types/operations';
 
-const GET_METADATA = gql`
-  query GetMetadata {
-    publicCampaignMetadata {
-      unitStatuses
-      repairRules {
-        armorMultiplier
-        internalMultiplier
-        crippledMultiplier
-        destroyedMultiplier
-        nonMechModifier
-        mixedTechModifier
-        clanTechModifier
-      }
+export interface AarDataState {
+    detachmentAars: Record<string, DetachmentAarState>;
+    unitStates: Record<string, { status: string; ammo: number }>;
+    pilotStates: Record<string, { injuries: number; healed: number }>;
+    afterActionNarrative: string;
+    isNarrativeDirty: boolean;
+}
+
+export type AarAction =
+    | { type: 'SYNC_PROPS'; campaign: CampaignDetail; track: TrackDetail; unitStatuses: string[] }
+    | { type: 'UPDATE_DETACHMENT_AAR'; detId: string; patch: Partial<DetachmentAarState> }
+    | { type: 'UPDATE_UNIT_STATE'; unitId: string; patch: Partial<{ status: string; ammo: number }> }
+    | { type: 'UPDATE_PILOT_STATE'; pilotId: string; patch: Partial<{ injuries: number; healed: number }> }
+    | { type: 'SET_NARRATIVE'; narrative: string }
+    | { type: 'MARK_NARRATIVE_CLEAN' };
+
+export const aarReducer = (state: AarDataState, action: AarAction): AarDataState => {
+    switch (action.type) {
+        case 'SYNC_PROPS': {
+            const { campaign, track, unitStatuses } = action;
+            const nextAars: Record<string, DetachmentAarState> = {};
+            const nextUnits: Record<string, { status: string; ammo: number }> = {};
+            const nextPilots: Record<string, { injuries: number; healed: number }> = {};
+
+            campaign.participatingDetachments?.forEach((det) => {
+                // Merge existing local state with incoming prop data to preserve user input
+                nextAars[det.id] = state.detachmentAars[det.id] || {
+                    selectedContractId: campaign.contracts?.[0]?.id || '',
+                    selectedLevel: 1,
+                    outcomeMultiplier: 1.0,
+                    salvageValue: 0,
+                    customAward: 0
+                };
+
+                det.units?.forEach((u) => {
+                    nextUnits[u.id] = state.unitStates[u.id] || {
+                        status: u.status || unitStatuses[0],
+                        ammo: 0
+                    };
+                });
+                det.pilots?.forEach((p) => {
+                    nextPilots[p.id] = state.pilotStates[p.id] || {
+                        injuries: p.wounds || 0,
+                        healed: 0
+                    };
+                });
+            });
+
+            return {
+                ...state,
+                detachmentAars: nextAars,
+                unitStates: nextUnits,
+                pilotStates: nextPilots,
+                afterActionNarrative: state.isNarrativeDirty ? state.afterActionNarrative : (track.afterActionNarrative || ''),
+                isNarrativeDirty: state.isNarrativeDirty
+            };
+        }
+        case 'UPDATE_DETACHMENT_AAR':
+            return {
+                ...state,
+                detachmentAars: {
+                    ...state.detachmentAars,
+                    [action.detId]: { ...state.detachmentAars[action.detId], ...action.patch }
+                }
+            };
+        case 'UPDATE_UNIT_STATE':
+            return {
+                ...state,
+                unitStates: {
+                    ...state.unitStates,
+                    [action.unitId]: { ...state.unitStates[action.unitId], ...action.patch }
+                }
+            };
+        case 'UPDATE_PILOT_STATE':
+            return {
+                ...state,
+                pilotStates: {
+                    ...state.pilotStates,
+                    [action.pilotId]: { ...state.pilotStates[action.pilotId], ...action.patch }
+                }
+            };
+        case 'MARK_NARRATIVE_CLEAN':
+            return { ...state, isNarrativeDirty: false };
+        case 'SET_NARRATIVE':
+            return { ...state, afterActionNarrative: action.narrative, isNarrativeDirty: true };
+        default:
+            return state;
     }
-  }
-`;
+};
 
-const UPDATE_UNIT = gql`
-  mutation UpdateUnit($id: ID!, $input: CombatUnitUpdateInput!) {
-    updateCombatUnit(id: $id, input: $input) {
-      id
-      status
+const useAarState = (campaign: CampaignDetail, track: TrackDetail, unitStatuses: string[]) => {
+    const [state, dispatch] = useReducer(aarReducer, {
+        detachmentAars: {},
+        unitStates: {},
+        pilotStates: {},
+        afterActionNarrative: '',
+        isNarrativeDirty: false
+    });
+
+    useEffect(() => {
+        dispatch({ type: 'SYNC_PROPS', campaign, track, unitStatuses });
+    }, [campaign, track, unitStatuses]);
+
+    return [state, dispatch] as const;
+};
+
+export const calculatePilotFinancials = (pState: { healed: number }, terms: any) => {
+    const rawMedicalCost = pState.healed * INJURY_HEAL_COST;
+    let mercenaryCost = 0;
+
+    if (terms.support.type === 'BATTLE') {
+        mercenaryCost = 0;
+    } else if (terms.support.type === 'STRAIGHT') {
+        mercenaryCost = Math.round(rawMedicalCost * (1 - terms.support.pct));
+    } else {
+        mercenaryCost = rawMedicalCost;
     }
-  }
-`;
 
-const UPDATE_PILOT = gql`
-  mutation UpdatePilot($id: ID!, $input: PilotUpdateInput!) {
-    updatePilot(id: $id, input: $input) {
-      id
-      wounds
-    }
-  }
-`;
-
-const UPDATE_TRACK = gql`
-  mutation UpdateTrack($id: ID!, $input: TrackUpdateInput!) {
-    updateTrack(id: $id, input: $input) {
-      id
-      afterActionNarrative
-      complications
-      oppositionComplications
-    }
-  }
-`;
-
-const DELETE_UNIT = gql`
-  mutation DeleteUnit($unitId: ID!) {
-    deleteUnit(unitId: $unitId)
-  }
-`;
-
-interface MetadataData {
-    publicCampaignMetadata: {
-        unitStatuses: string[];
-        repairRules: RepairRulesInput;
+    return {
+        rawMedicalCost,
+        mercenaryCost,
+        mercenaryCostSigned: mercenaryCost * -1,
+        healed: pState.healed,
+        injuryHealCost: INJURY_HEAL_COST,
+        supportType: terms.support.type,
+        supportPct: terms.support.pct
     };
-}
+};
 
-interface DetachmentAarState {
-    selectedContractId: string;
-    selectedLevel: number;
-    outcomeMultiplier: number;
-    salvageValue: number;
-    customAward: number;
-}
+export const calculateAwardFinancials = (campaign: CampaignDetail, terms: any) => {
+    const baseCombatPay = campaign.combatPay || 0;
+    const payAward = Math.round(baseCombatPay * terms.outcomeMultiplier * terms.payRate * terms.selectedLevel);
+    const salvageAward = Math.round(terms.salvageValue * terms.salvageCoverage);
+    const total = payAward + salvageAward + terms.customAward;
+
+    return {
+        baseCombatPay,
+        outcomeMultiplier: terms.outcomeMultiplier,
+        payRate: terms.payRate,
+        selectedLevel: terms.selectedLevel,
+        payAward,
+        salvageValue: terms.salvageValue,
+        salvageCoverage: terms.salvageCoverage,
+        salvageAward,
+        customAward: terms.customAward,
+        total
+    };
+};
 
 interface AfterActionReportEditorProps {
-    campaign: any;
-    track: any;
-    metaData?: MetadataData;
+    campaign: CampaignDetail;
+    track: TrackDetail;
+    metaData?: MetadataDataMinimal;
     onClose: () => void | Promise<void>;
     onLedgerEntryAdded?: () => void | Promise<void>;
 }
@@ -88,14 +177,7 @@ const AMMO_COST_PER_TON = 10;
 const INJURY_HEAL_COST = 30;
 
 // New helper function to calculate financial implications of a unit's status
-const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: RepairRulesInput | undefined, statuses: string[]): {
-    baseRepairCost: number;
-    baseReplacementValue: number;
-    damageMultiplier: number;
-    unitModifier: number;
-    techTax: number;
-    isTrulyDestroyed: boolean;
-} => {
+export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: RepairRulesInput | undefined, statuses: string[]) => {
     const [operational, armor, internal, crippled, destroyed, trulyDestroyed] = statuses;
 
     const isTrulyDestroyed = status === trulyDestroyed;
@@ -140,10 +222,14 @@ const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Repair
     return {
         baseRepairCost,
         baseReplacementValue,
+        isTrulyDestroyed,
+        techTax,
         damageMultiplier,
         unitModifier,
-        techTax,
-        isTrulyDestroyed,
+        tonnage: unit.tonnage || 0,
+        bv: unit.bv || 0,
+        techBase: unit.techBase,
+        statusLabel: status
     };
 };
 
@@ -153,16 +239,14 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [updatePilot] = useMutation(UPDATE_PILOT);
     const [updateTrack] = useMutation(UPDATE_TRACK);
     const [deleteUnit] = useMutation(DELETE_UNIT);
-    const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataData>(GET_METADATA, {
+    const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataDataMinimal>(GET_METADATA, {
         skip: !!propMetaData
     });
 
     const metaData = propMetaData || queryMetaData;
 
-    const [detachmentAars, setDetachmentAars] = useState<Record<string, DetachmentAarState>>({});
-    const [unitStates, setUnitStates] = useState<Record<string, { status: string, ammo: number }>>({});
-    const [pilotStates, setPilotStates] = useState<Record<string, { injuries: number, healed: number }>>({});
-    const [afterActionNarrative, setAfterActionNarrative] = useState(track.afterActionNarrative || '');
+    const unitStatuses = metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
+    const [state, dispatch] = useAarState(campaign, track, unitStatuses);
     const [isEditingNarrative, setIsEditingNarrative] = useState(false);
     const [notices, setNotices] = useState<Record<string, string>>({});
     const [errorStates, setErrorStates] = useState<Record<string, string>>({});
@@ -201,53 +285,34 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         );
     }
 
-    const unitStatuses = metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
     const repairRules = campaign?.repairRules || metaData?.publicCampaignMetadata?.repairRules;
 
-    useEffect(() => {
-        const initialAars: Record<string, DetachmentAarState> = {};
-        const initialUnits: Record<string, { status: string, ammo: number }> = {};
-        const initialPilots: Record<string, { injuries: number, healed: number }> = {};
-
-        campaign.participatingDetachments?.forEach((det: any) => {
-            initialAars[det.id] = {
-                selectedContractId: campaign.contracts?.[0]?.id || '',
-                selectedLevel: 1,
-                outcomeMultiplier: 1.0,
-                salvageValue: 0,
-                customAward: 0
-            };
-
-            det.units?.forEach((u: any) => {
-                initialUnits[u.id] = { status: u.status || unitStatuses[0], ammo: 0 };
-            });
-            det.pilots?.forEach((p: any) => {
-                initialPilots[p.id] = { injuries: p.wounds || 0, healed: 0 };
-            });
-        });
-        setDetachmentAars(initialAars);
-        setUnitStates(initialUnits);
-        setPilotStates(initialPilots);
-    }, [campaign, track, unitStatuses]);
-
     const getDetachmentTerms = (detId: string) => {
-        const state = detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1, salvageValue: 0, customAward: 0 };
-        const contract = campaign.contracts?.find((c: any) => c.id === state.selectedContractId) || campaign;
+        const detAar = state.detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1.0, salvageValue: 0, customAward: 0 };
+        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
 
         return {
             support: parseSupportTerms(contract.supportTerms || ''),
             salvageCoverage: parseMultiplier(contract.salvageTerms || ''),
             payRate: contract.payRate || 1.0,
-            ...state
+            ...detAar
         };
     };
 
     const handleAwardToDetachment = async (detId: string, cmdId: string) => {
+        const detAar = state.detachmentAars[detId];
+        if (!detAar) return;
+
         const noticeKey = `${detId}-award`;
-        const terms = getDetachmentTerms(detId);
-        const totalPayAward = Math.round((campaign.combatPay || 0) * terms.outcomeMultiplier * terms.payRate * terms.selectedLevel);
-        const totalSalvageAward = Math.round(terms.salvageValue * terms.salvageCoverage);
-        const total = totalPayAward + totalSalvageAward + terms.customAward;
+        // Resolve contract based on the current selection in the reducer state
+        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+
+        const financials = calculateAwardFinancials(campaign, {
+            ...detAar,
+            payRate: contract.payRate || 1.0,
+            salvageCoverage: parseMultiplier(contract.salvageTerms || '')
+        });
+        const total = financials.total;
 
         if (total === 0) return;
 
@@ -258,22 +323,21 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         });
         setLoadingStates(prev => ({ ...prev, [noticeKey]: true }));
 
-        const description = `AAR AWARD: ${track.trackName} (PAY x${terms.outcomeMultiplier} [LVL ${terms.selectedLevel}], SALVAGE ${terms.salvageCoverage * 100}%)`;
+        const description = `AAR AWARD: ${track.trackName} (PAY x${financials.outcomeMultiplier} [LVL ${financials.selectedLevel}], SALVAGE ${financials.salvageCoverage * 100}%)`;
 
-        setDetachmentAars(prev => ({
-            ...prev,
-            [detId]: { ...prev[detId], salvageValue: 0, customAward: 0 }
-        }));
+        dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId, patch: { salvageValue: 0, customAward: 0 } });
 
         try {
             await addLedgerEntry({
                 variables: {
                     commandId: cmdId,
                     detachmentId: detId,
-                    amount: total,
-                    description: description,
-                    monthIndex: track.monthIndex || 1,
-                    campaignName: campaign.name
+                    input: {
+                        amount: total,
+                        description: description,
+                        monthIndex: track.monthIndex || 1,
+                        campaignName: campaign.name
+                    }
                 }
             });
             await onLedgerEntryAdded?.();
@@ -287,8 +351,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     };
 
     const handleProcessUnit = (detId: string, cmdId: string, unit: CombatUnit) => {
-        const state = unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
-        const { isTrulyDestroyed } = calculateUnitFinancials(unit, state.status, repairRules, unitStatuses);
+        const uState = state.unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
+        const { isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses);
 
         if (isTrulyDestroyed) {
             setOverlay({
@@ -307,11 +371,18 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     };
 
     const commitUnitLogistics = async (detId: string, cmdId: string, unit: CombatUnit) => {
-        const noticeKey = `${unit.id}-logistics`;
-        const terms = getDetachmentTerms(detId);
-        const state = unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
+        const detAar = state.detachmentAars[detId];
+        if (!detAar) return;
 
-        const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, state.status, repairRules, unitStatuses);
+        const noticeKey = `${unit.id}-logistics`;
+        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+        const terms = {
+            support: parseSupportTerms(contract.supportTerms || ''),
+            ...detAar
+        };
+        const uState = state.unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
+
+        const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses);
 
         let finalAmount = 0;
         let description = ''; // Determine financial outcome based on support term type
@@ -328,7 +399,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         } else {
             const repairCost = Math.ceil(baseRepairCost);
-            const ammoCost = state.ammo * AMMO_COST_PER_TON;
+            const ammoCost = uState.ammo * AMMO_COST_PER_TON;
             const totalRawCost = repairCost + ammoCost;
 
             if (terms.support.type === 'BATTLE') {
@@ -374,10 +445,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             } else {
                 // Restore unit to operational status in DB and local state
                 await updateUnit({ variables: { id: unit.id, input: { status: unitStatuses[0] } } });
-                setUnitStates(prev => ({
-                    ...prev,
-                    [unit.id]: { status: unitStatuses[0], ammo: 0 }
-                }));
+                dispatch({ type: 'UPDATE_UNIT_STATE', unitId: unit.id, patch: { status: unitStatuses[0], ammo: 0 } });
             }
 
             await onLedgerEntryAdded?.();
@@ -391,20 +459,19 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     };
 
     const handleProcessPilot = async (detId: string, cmdId: string, pilot: Pilot) => {
-        const noticeKey = `${pilot.id}-medical`;
-        const terms = getDetachmentTerms(detId);
-        const state = pilotStates[pilot.id] || { injuries: 0, healed: 0 };
-        const totalCost = state.healed * INJURY_HEAL_COST;
+        const detAar = state.detachmentAars[detId];
+        if (!detAar) return;
 
-        let finalCost = 0;
-        if (terms.support.type === 'BATTLE') {
-            // Battle terms cover 100% of medical
-            finalCost = 0;
-        } else if (terms.support.type === 'STRAIGHT') {
-            finalCost = Math.round(totalCost * (1 - terms.support.pct)) * -1;
-        } else {
-            finalCost = totalCost * -1;
-        }
+        const noticeKey = `${pilot.id}-medical`;
+        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+        const terms = {
+            support: parseSupportTerms(contract.supportTerms || ''),
+            ...detAar
+        };
+        const pState = state.pilotStates[pilot.id] || { injuries: 0, healed: 0 };
+
+        const financials = calculatePilotFinancials(pState, terms);
+        const finalCost = financials.mercenaryCostSigned;
 
         setErrorStates(prev => {
             const next = { ...prev };
@@ -421,7 +488,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                         detachmentId: detId,
                         input: {
                             amount: finalCost,
-                            description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${terms.support.type} ${terms.support.pct * 100}%)`,
+                            description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${financials.supportType} ${financials.supportPct * 100}%)`,
                             monthIndex: track.monthIndex || 1,
                             campaignName: campaign.name
                         }
@@ -430,9 +497,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
 
             // Calculate final wounds (Injuried minus Healed) and update database
-            const newWounds = Math.max(0, state.injuries - state.healed);
+            const newWounds = Math.max(0, pState.injuries - pState.healed);
             await updatePilot({ variables: { id: pilot.id, input: { wounds: newWounds } } });
-            setPilotStates(prev => ({ ...prev, [pilot.id]: { injuries: newWounds, healed: 0 } }));
+            dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: pilot.id, patch: { injuries: newWounds, healed: 0 } });
 
             await onLedgerEntryAdded?.();
             addNotice(noticeKey, `✓ MEDICAL COMMITTED: ${Math.abs(finalCost)} SP`);
@@ -448,22 +515,28 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         if (isFinalizing) return;
         setIsFinalizing(true);
         try {
+            await syncNarrative();
             await onClose();
         } finally {
             setIsFinalizing(false);
         }
     };
 
-    const handleNarrativeBlur = () => {
-        setIsEditingNarrative(false);
-        if (afterActionNarrative !== track.afterActionNarrative) {
-            updateTrack({
+    const syncNarrative = async () => {
+        if (state.isNarrativeDirty) {
+            await updateTrack({
                 variables: {
                     id: track.id,
-                    input: { afterActionNarrative }
+                    input: { afterActionNarrative: state.afterActionNarrative }
                 }
             });
+            dispatch({ type: 'MARK_NARRATIVE_CLEAN' });
         }
+    };
+
+    const handleNarrativeBlur = () => {
+        setIsEditingNarrative(false);
+        syncNarrative();
     };
 
     return (
@@ -482,8 +555,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                         <textarea
                             className="table-input w-100"
                             style={{ height: '180px', background: 'rgba(0,0,0,0.3)', color: 'var(--terminal-amber)', border: '1px solid var(--terminal-amber)', padding: '10px', fontSize: '0.9rem' }}
-                            value={afterActionNarrative}
-                            onChange={(e) => setAfterActionNarrative(e.target.value)}
+                            value={state.afterActionNarrative}
+                            onChange={(e) => dispatch({ type: 'SET_NARRATIVE', narrative: e.target.value })}
                             onBlur={handleNarrativeBlur}
                             autoFocus
                             placeholder="Document the engagement history..."
@@ -494,8 +567,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                             style={{ minHeight: '60px', cursor: 'pointer' }}
                             onClick={() => setIsEditingNarrative(true)}
                         >
-                            {afterActionNarrative ? (
-                                <Markdown remarkPlugins={[remarkGfm]}>{afterActionNarrative}</Markdown>
+                            {state.afterActionNarrative ? (
+                                <Markdown remarkPlugins={[remarkGfm]}>{state.afterActionNarrative}</Markdown>
                             ) : (
                                 <span className="opacity-50">NO NARRATIVE RECORDED. CLICK TO INITIALIZE DEBRIEFING.</span>
                             )}
@@ -519,8 +592,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         <select
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
-                                            value={detachmentAars[det.id]?.selectedContractId}
-                                            onChange={(e) => { const val = e.target.value; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], selectedContractId: val } })); }}
+                                            value={state.detachmentAars[det.id]?.selectedContractId}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { selectedContractId: e.target.value } })}
                                             title="Select contract for this detachment"
                                         >
                                             {campaign.contracts?.map((c: any) => (
@@ -535,8 +608,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         <select
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
-                                            value={detachmentAars[det.id]?.selectedLevel}
-                                            onChange={(e) => { const val = parseInt(e.target.value); setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], selectedLevel: val } })); }}
+                                            value={state.detachmentAars[det.id]?.selectedLevel}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { selectedLevel: parseInt(e.target.value) } })}
                                             title="Select deployment level"
                                         >
                                             {[1, 2, 3].map(v => <option key={v} value={v}>{v}</option>)}
@@ -549,8 +622,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         <select
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
-                                            value={detachmentAars[det.id]?.outcomeMultiplier}
-                                            onChange={(e) => { const val = parseFloat(e.target.value); setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], outcomeMultiplier: val } })); }}
+                                            value={state.detachmentAars[det.id]?.outcomeMultiplier}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { outcomeMultiplier: parseFloat(e.target.value) } })}
                                             title="Select track outcome multiplier"
                                         >
                                             <option value="0.5">UNSUCCESSFUL (50%)</option>
@@ -566,8 +639,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             type="number"
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
-                                            value={detachmentAars[det.id]?.salvageValue}
-                                            onChange={(e) => { const val = parseInt(e.target.value) || 0; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], salvageValue: val } })); }}
+                                            value={state.detachmentAars[det.id]?.salvageValue}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { salvageValue: parseInt(e.target.value) || 0 } })}
                                             title="Enter raw salvage value"
                                         />
                                     </div>
@@ -579,8 +652,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             type="number"
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
-                                            value={detachmentAars[det.id]?.customAward}
-                                            onChange={(e) => { const val = parseInt(e.target.value) || 0; setDetachmentAars(prev => ({ ...prev, [det.id]: { ...prev[det.id], customAward: val } })); }}
+                                            value={state.detachmentAars[det.id]?.customAward}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { customAward: parseInt(e.target.value) || 0 } })}
                                             title="Enter misc adjustment"
                                         />
                                     </div>
@@ -591,13 +664,15 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 <div className="status-bar theme-green sm-text flex-grow mr-10" style={{ padding: '4px 10px' }}>
                                     {(() => {
                                         const t = getDetachmentTerms(det.id);
-                                        const pay = Math.round((campaign.combatPay || 0) * t.outcomeMultiplier * t.payRate * t.selectedLevel);
-                                        const salv = Math.round(t.salvageValue * t.salvageCoverage);
+                                        const financials = calculateAwardFinancials(campaign, t);
+                                        const tooltip = `Combat Pay: ${financials.baseCombatPay} SP * ${financials.outcomeMultiplier} (Outcome) * ${financials.payRate} (Contract) * ${financials.selectedLevel} (Level) = ${financials.payAward} SP\n` +
+                                            `Salvage: ${financials.salvageValue} SP * ${financials.salvageCoverage} (Coverage) = ${financials.salvageAward} SP\n` +
+                                            `Misc: ${financials.customAward} SP`;
                                         return (
-                                            <>
-                                                TOTAL AWARD: {pay + salv + t.customAward} SP
-                                                <span className="opacity-70 ml-10">(Pay: {pay} | Salvage: {salv} @ {t.salvageCoverage * 100}%)</span>
-                                            </>
+                                            <div title={tooltip}>
+                                                TOTAL AWARD: {financials.total} SP
+                                                <span className="opacity-70 ml-10">(Pay: {financials.payAward} | Salvage: {financials.salvageAward} @ {financials.salvageCoverage * 100}%)</span>
+                                            </div>
                                         );
                                     })()}
                                 </div>
@@ -633,9 +708,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </thead>
                                     <tbody>
                                         {det.units?.map((u: any) => {
-                                            const state = unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
+                                            const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
                                             const terms = getDetachmentTerms(det.id);
-                                            const { baseRepairCost, baseReplacementValue, techTax, isTrulyDestroyed } = calculateUnitFinancials(u, state.status, repairRules, unitStatuses);
+                                            const financials = calculateUnitFinancials(u, uState.status, repairRules, unitStatuses);
+                                            const { baseRepairCost, baseReplacementValue, isTrulyDestroyed, techTax } = financials;
 
                                             let displayAmount = 0;
                                             let tooltip = '';
@@ -644,7 +720,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             if (isTrulyDestroyed) {
                                                 if (terms.support.type === 'BATTLE') {
                                                     displayAmount = -1 * Math.ceil(baseReplacementValue * terms.support.pct);
-                                                    tooltip = `Replacement Value: ${u.bv} BV * 0.5${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${baseReplacementValue} SP\n` +
+                                                    tooltip = `Replacement Value: ${financials.bv} BV * 0.5${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${baseReplacementValue} SP\n` +
                                                         `Battle Support: ${terms.support.pct * 100}% = +${displayAmount} SP`;
                                                 } else {
                                                     displayAmount = 0;
@@ -654,7 +730,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 ammoInputDisabled = true;
                                             } else {
                                                 const repairCost = Math.ceil(baseRepairCost);
-                                                const ammoCost = state.ammo * AMMO_COST_PER_TON;
+                                                const ammoCost = uState.ammo * AMMO_COST_PER_TON;
                                                 const totalRawCost = repairCost + ammoCost;
 
                                                 if (terms.support.type === 'BATTLE') {
@@ -663,8 +739,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                     displayAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
                                                 }
 
-                                                tooltip = `Base Repair: ${repairCost} SP\n` +
-                                                    `Ammo: ${state.ammo}T x ${AMMO_COST_PER_TON} SP/T = ${state.ammo * AMMO_COST_PER_TON} SP\n` +
+                                                tooltip = `Base Repair: ${financials.tonnage}T * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
+                                                    `Ammo: ${uState.ammo}T x ${AMMO_COST_PER_TON} SP/T = ${uState.ammo * AMMO_COST_PER_TON} SP\n` +
                                                     `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
                                             }
 
@@ -675,13 +751,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                     <td>
                                                         <select
                                                             className="inline-edit"
-                                                            value={state.status}
+                                                            value={uState.status}
                                                             onChange={(e) => {
                                                                 const newStatus = e.target.value;
-                                                                setUnitStates(prev => ({
-                                                                    ...prev,
-                                                                    [u.id]: { ...state, status: newStatus }
-                                                                }));
+                                                                dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { status: newStatus } });
                                                                 updateUnit({ variables: { id: u.id, input: { status: newStatus } } });
                                                             }}
                                                             title="Select unit status"
@@ -696,12 +769,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                             <input
                                                                 type="number"
                                                                 className="inline-edit w-40px"
-                                                                value={state.ammo}
+                                                                value={uState.ammo}
                                                                 onChange={(e) => {
-                                                                    setUnitStates(prev => ({
-                                                                        ...prev,
-                                                                        [u.id]: { ...state, ammo: parseInt(e.target.value) || 0 }
-                                                                    }));
+                                                                    dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: parseInt(e.target.value) || 0 } });
                                                                 }}
                                                                 title="Enter tons of ammunition to rearm"
                                                                 disabled={ammoInputDisabled}
@@ -725,13 +795,13 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </tbody>
                                 </table>
                                 {det.units?.map((u: any) => {
-                                    const isTrulyDestroyed = (unitStates[u.id]?.status || u.status) === unitStatuses[5];
+                                    const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
                                     return notices[`${u.id}-logistics`] && !isTrulyDestroyed && (
                                         <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
                                     );
                                 })}
                                 {det.units?.map((u: any) => {
-                                    const isTrulyDestroyed = (unitStates[u.id]?.status || u.status) === unitStatuses[5];
+                                    const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
                                     return errorStates[`${u.id}-logistics`] && !isTrulyDestroyed && (
                                         <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
                                     );
@@ -752,35 +822,25 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </thead>
                                     <tbody> {/* Use pilot.id for key */}
                                         {det.pilots?.map((p: any) => {
-                                            const state = pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
+                                            const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
                                             const terms = getDetachmentTerms(det.id);
-                                            const rawMedicalCost = state.healed * INJURY_HEAL_COST;
+                                            const financials = calculatePilotFinancials(pState, terms);
                                             const noticeKey = `${p.id}-medical`;
 
-                                            let pilotDisplayCost = 0;
-                                            if (terms.support.type === 'BATTLE') {
-                                                // Battle terms cover 100% of medical, so display 0 cost to mercenary
-                                                pilotDisplayCost = 0;
-                                            } else if (terms.support.type === 'STRAIGHT') {
-                                                // Straight terms cover a percentage, so mercenary pays (1 - pct)
-                                                pilotDisplayCost = Math.round(rawMedicalCost * (1 - terms.support.pct));
-                                            } else {
-                                                // None covers 0%, so mercenary pays full raw cost
-                                                pilotDisplayCost = Math.round(rawMedicalCost);
-                                            }
+                                            const tooltip = `Medical Cost: ${financials.healed} injuries x ${financials.injuryHealCost} SP = ${financials.rawMedicalCost} SP\n` +
+                                                `Support: ${financials.supportType === 'BATTLE' ? '100% (BATTLE)' : `${financials.supportPct * 100}% (${financials.supportType})`}`;
+
+                                            const pilotDisplayCost = financials.mercenaryCostSigned;
                                             return (
                                                 <tr key={p.id}>
                                                     <td>{p.name}</td>
                                                     <td>
                                                         <select
                                                             className="inline-edit"
-                                                            value={state.injuries}
+                                                            value={pState.injuries}
                                                             onChange={(e) => {
                                                                 const val = parseInt(e.target.value);
-                                                                setPilotStates(prev => ({
-                                                                    ...prev,
-                                                                    [p.id]: { ...state, injuries: val }
-                                                                }));
+                                                                dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { injuries: val } });
                                                                 updatePilot({ variables: { id: p.id, input: { wounds: val } } });
                                                             }}
                                                             title="Select total pilot injuries"
@@ -791,19 +851,16 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                     <td>
                                                         <select
                                                             className="inline-edit"
-                                                            value={state.healed}
+                                                            value={pState.healed}
                                                             onChange={(e) => {
-                                                                setPilotStates(prev => ({
-                                                                    ...prev,
-                                                                    [p.id]: { ...state, healed: parseInt(e.target.value) }
-                                                                }));
+                                                                dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { healed: parseInt(e.target.value) } });
                                                             }}
                                                             title="Select number of injuries healed"
                                                         >
                                                             {[0, 1, 2].map(v => <option key={v} value={v}>{v}</option>)}
                                                         </select>
                                                     </td>
-                                                    <td className="text-right">{pilotDisplayCost}</td>
+                                                    <td className="text-right" title={tooltip}>{pilotDisplayCost > 0 ? `+${pilotDisplayCost}` : pilotDisplayCost}</td>
                                                     <td className="text-right">
                                                         <button
                                                             className="mode-btn sm-text"

@@ -1,199 +1,24 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { gql } from '@apollo/client';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { NodeType } from './NavigationTree';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
-import { Detachment } from '../types/global.d';
+import { Detachment, CampaignDetail, TrackDetail, CampaignInvite, Contract, CreateInviteVars } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
-import { GET_METADATA } from './CampaignGenerator';
-
-const CREATE_INVITE = gql`
-  mutation CreateInvite($campaignId: ID!, $recipientName: String) {
-    createInvite(campaignId: $campaignId, recipientName: $recipientName) {
-      token
-      recipientName
-    }
-  }
-`;
-
-const DELETE_INVITE = gql`
-  mutation DeleteInvite($id: ID!) {
-    deleteInvite(id: $id)
-  }
-`;
-
-const UPDATE_CAMPAIGN = gql`
-  mutation UpdateCampaign($id: ID!, $input: CampaignUpdateInput!) {
-    updateCampaign(id: $id, input: $input) {
-      id
-      systemName
-      description
-      lengthInMonths
-      trackCount
-      monthlyPay
-      monthlyMaintenance
-      transportationCost
-      combatPay
-      status
-      payRate
-      payStep
-      salvageTerms
-      salvageStep
-      supportTerms
-      supportStep
-      transportTerms
-      transportStep
-      commandRights
-      commandStep
-    }
-  }
-`;
-
-const ASSIGN_DETACHMENT = gql`
-  mutation AssignDetachmentToCampaign($detachmentId: ID!, $campaignId: ID) {
-    assignDetachmentToCampaign(detachmentId: $detachmentId, campaignId: $campaignId)
-  }
-`;
-
-const UPDATE_TRACK = gql`
-  mutation UpdateTrack($id: ID!, $input: TrackUpdateInput!) {
-    updateTrack(id: $id, input: $input) {
-      id
-      trackName
-      location
-      nextSession
-      attackerFactionId
-      monthIndex
-      complications
-      afterActionNarrative
-      oppositionComplications
-    }
-  }
-`;
-
-const REROLL_TRACK = gql`
-  mutation RerollTrack($id: ID!) {
-    rerollTrack(id: $id) {
-      id
-      trackName
-      complications
-      oppositionComplications
-    }
-  }
-`;
-
-const REORDER_TRACKS = gql`
-  mutation ReorderTracks($campaignId: ID!, $trackIds: [ID!]!) {
-    reorderTracks(campaignId: $campaignId, trackIds: $trackIds) {
-        id
-        sequenceOrder
-        trackName
-        location
-        nextSession
-        attackerFactionId
-        monthIndex
-        complications
-      afterActionNarrative
-        oppositionComplications
-    }
-}
-`;
-
-const GET_CAMPAIGN_INVITES = gql`
-  query GetCampaignInvites($campaignId: ID!) {
-    getCampaign(id: $campaignId) {
-        id
-        name
-        systemName
-        description
-        lengthInMonths
-        trackCount
-        status
-        primaryEmployer
-        secondaryEmployer
-        monthlyPay
-        monthlyMaintenance
-        transportationCost
-        combatPay
-        payRate
-        payStep
-        salvageTerms
-        salvageStep
-        supportTerms
-        supportStep
-        transportTerms
-        transportStep
-        commandRights
-        commandStep
-        repairRules {
-            armorMultiplier
-            internalMultiplier
-            crippledMultiplier
-            destroyedMultiplier
-            nonMechModifier
-            mixedTechModifier
-            clanTechModifier
-        }
-      factions {
-            id
-            factionName
-        }
-      tracks {
-            id
-            trackName
-            sequenceOrder
-            location
-            nextSession
-            attackerFactionId
-            monthIndex
-            complications
-            afterActionNarrative
-            oppositionComplications
-        }
-      participatingDetachments {
-            id
-            name
-            mercenaryCommandId
-            mercenaryCommandName
-            units {
-                id
-                type
-                model
-                variant
-                techBase
-                tonnage
-                asSize
-                bv
-                pv
-                status
-            }
-            pilots {
-                id
-                name
-                unitType
-                gunnery
-                piloting
-                asSkill
-                edgeTokensSkill
-                edgeAbilitySkill
-                edgeAbilities
-                handicap
-                wounds
-            }
-        }
-      campaignInvites {
-            id
-            token
-            recipientName
-            expiresAt
-            used
-        }
-    }
-}
-`;
+import {
+    GET_METADATA,
+    GET_CAMPAIGN_DETAILS,
+    UPDATE_CAMPAIGN,
+    UPDATE_TRACK,
+    CREATE_INVITE,
+    DELETE_INVITE,
+    ASSIGN_DETACHMENT,
+    REROLL_TRACK,
+    REORDER_TRACKS
+} from '../types/operations';
+import { CreateInviteData, MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
 
 /**
  * Custom Terminal-themed overlay to replace native browser popups.
@@ -237,120 +62,6 @@ const TerminalOverlay: React.FC<{
     );
 };
 
-interface CreateInviteData {
-    createInvite: {
-        token: string;
-        recipientName: string;
-    };
-}
-
-interface CreateInviteVars {
-    campaignId: string;
-    recipientName?: string | null;
-}
-
-interface CampaignInvite {
-    id: string;
-    token: string;
-    recipientName?: string;
-    expiresAt: string;
-    used: boolean;
-}
-
-interface Contract {
-    id: string;
-    employerCategory: string;
-    missionType: string;
-    primaryContract: boolean;
-    payRate: number;
-    payStep: number;
-    salvageTerms: string;
-    salvageStep: number;
-    supportTerms: string;
-    supportStep: number;
-    transportTerms: string;
-    transportStep: number;
-    commandRights: string;
-    commandStep: number;
-    trackCount: number;
-}
-
-interface ParticipatingDetachment extends Detachment {
-    id: string;
-    name: string;
-    mercenaryCommandId: string; // Ensure this is present for ledger entries
-    mercenaryCommandName?: string;
-    units?: any[];
-    pilots?: any[];
-}
-
-interface TrackDetail {
-    id: string;
-    trackName: string;
-    sequenceOrder: number;
-    location?: string;
-    nextSession?: string;
-    attackerFactionId?: string;
-    monthIndex?: number;
-    complications?: string;
-    afterActionNarrative?: string;
-    oppositionComplications?: string;
-}
-
-interface CampaignDetail {
-    id: string;
-    name: string;
-    systemName: string;
-    description?: string;
-    lengthInMonths?: number;
-    trackCount?: number;
-    status: string;
-    primaryEmployer: string;
-    secondaryEmployer: string;
-    payRate?: number;
-    payStep?: number;
-    salvageTerms?: string;
-    salvageStep?: number;
-    supportTerms?: string;
-    supportStep?: number;
-    transportTerms?: string;
-    transportStep?: number;
-    commandRights?: string;
-    commandStep?: number;
-    monthlyPay?: number;
-    monthlyMaintenance?: number;
-    transportationCost?: number;
-    combatPay?: number;
-    repairRules?: {
-        armorMultiplier: number;
-        internalMultiplier: number;
-        crippledMultiplier: number;
-        destroyedMultiplier: number;
-        nonMechModifier: number;
-        mixedTechModifier: number;
-        clanTechModifier: number;
-    };
-    contracts?: Contract[];
-    factions?: { id: string, factionName: string }[];
-    tracks?: TrackDetail[];
-    participatingDetachments?: ParticipatingDetachment[];
-} // Use ParticipatingDetachment
-
-interface MetadataData {
-    publicCampaignMetadata: {
-        missions: { primary: string[]; opponent: string[] };
-        trackTypes: string[];
-        factions: string[];
-        employerTypes: string[];
-        resolvedSteps: { step: number; values: any }[];
-        repairRules: {
-            armorMultiplier: number; internalMultiplier: number; crippledMultiplier: number;
-            destroyedMultiplier: number; nonMechModifier: number; mixedTechModifier: number;
-            clanTechModifier: number;
-        };
-    };
-}
-
 interface CampaignTheaterViewProps {
     managedData: { managedCampaigns: CampaignDetail[] } | undefined;
     loadingManaged: boolean;
@@ -381,13 +92,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const campaignFromProps = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
 
     // --- Queries & Mutations ---
-    const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<any>(GET_CAMPAIGN_INVITES, {
+    const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId: selectedCampaignId || '' },
         skip: !selectedCampaignId,
         fetchPolicy: 'network-only',
         notifyOnNetworkStatusChange: true
     });
-    const { data: metaData } = useQuery<MetadataData>(GET_METADATA);
+    const { data: metaData } = useQuery<MetadataDataFull>(GET_METADATA);
 
     const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
@@ -466,13 +177,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         setTransportationCost(campaign?.transportationCost || 300);
         setCombatPay(campaign?.combatPay || 500);
         if (campaign.repairRules) {
-            setArmorMult(campaign.repairRules.armorMultiplier);
-            setInternalMult(campaign.repairRules.internalMultiplier);
-            setCrippledMult(campaign.repairRules.crippledMultiplier);
-            setDestroyedMult(campaign.repairRules.destroyedMultiplier);
-            setNonMechMod(campaign.repairRules.nonMechModifier);
-            setMixedTechTax(campaign.repairRules.mixedTechModifier);
-            setClanTechTax(campaign.repairRules.clanTechModifier);
+            setArmorMult(campaign.repairRules.armorMultiplier || 0.5);
+            setInternalMult(campaign.repairRules.internalMultiplier || 2.0);
+            setCrippledMult(campaign.repairRules.crippledMultiplier || 3.0);
+            setDestroyedMult(campaign.repairRules.destroyedMultiplier || 5.0);
+            setNonMechMod(campaign.repairRules.nonMechModifier || 0.5);
+            setMixedTechTax(campaign.repairRules.mixedTechModifier || 1.5);
+            setClanTechTax(campaign.repairRules.clanTechModifier || 2.0);
         }
     }, [campaign]);
 
@@ -1405,7 +1116,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     <div className="dashboard-section tactical-panel">
                         <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                         <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                            {campaign?.participatingDetachments?.map((det: ParticipatingDetachment) => (
+                            {campaign?.participatingDetachments?.map((det: Detachment) => (
                                 <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
                                     <div
                                         style={{ cursor: 'pointer' }} // Use DetachmentReadinessSummary

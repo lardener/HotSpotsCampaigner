@@ -1,62 +1,11 @@
 import { fetchJson, fetchVoid } from './apiClient';
-
-export interface ContractPreview {
-    employerCategory: string;
-    missionType: string;
-    primaryContract: boolean;
-    payRate: number;
-    payStep: number;
-    salvageTerms: string;
-    salvageStep: number;
-    supportTerms: string;
-    supportStep: number;
-    transportTerms: string;
-    transportStep: number;
-    commandRights: string;
-    commandStep: number;
-    trackCount: number;
-}
-
-export interface CampaignProposal {
-    campaign: {
-        name: string;
-        systemName: string;
-        lengthInMonths: number;
-        trackCount: number;
-    };
-    contracts: ContractPreview[];
-    tracks: string[];
-}
-
-export interface ActiveCampaignSummary {
-    id: string;
-    name: string;
-    systemName: string;
-    trackCount: number;
-    primaryEmployer: string;
-    secondaryEmployer: string;
-}
-
-export interface ActiveCampaignPage {
-    content: ActiveCampaignSummary[];
-    totalElements: number;
-    totalPages: number;
-}
-
-export interface ResolvedStep {
-    payRate: string;
-    salvageRights: string;
-    supportRights: string;
-    transportation: string;
-    commandRights: string;
-}
-
-export type ResolvedSteps = Record<string, ResolvedStep>;
-
-export interface Profile {
-    email: string;
-    name: string;
-}
+import {
+    ActiveCampaignPage,
+    CampaignProposal,
+    ResolvedSteps,
+    Profile
+} from '../types/global.d';
+import { PREVIEW_CAMPAIGN_RAW } from '../types/operations';
 
 export const getActiveCampaigns = async (page: number = 0, size: number = 5): Promise<ActiveCampaignPage> => {
     const query = new URLSearchParams({ page: String(page), size: String(size) });
@@ -98,10 +47,21 @@ const buildQuery = (params: Record<string, string | number | undefined>): URLSea
     return query;
 };
 
-export const previewCampaign = async (params: Record<string, string | number | undefined>): Promise<CampaignProposal> => {
-    const query = buildQuery(params);
-    const queryString = query.toString();
-    return fetchJson<CampaignProposal>(`/api/campaigns/dobless/preview${queryString ? `?${queryString}` : ''}`);
+export const previewCampaign = async (input: Record<string, string | number | undefined>): Promise<CampaignProposal> => {
+    const response = await fetchJson<{ data: { publicPreviewCampaign: CampaignProposal } }>('/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            query: PREVIEW_CAMPAIGN_RAW,
+            variables: { input }
+        })
+    });
+
+    if (!response.data || !response.data.publicPreviewCampaign) {
+        throw new Error('GraphQL error: Failed to fetch campaign preview.');
+    }
+
+    return response.data.publicPreviewCampaign;
 };
 
 export const saveCampaign = async (params: Record<string, string | number | undefined>): Promise<void> => {

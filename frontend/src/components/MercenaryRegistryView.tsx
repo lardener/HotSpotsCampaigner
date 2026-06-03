@@ -1,7 +1,8 @@
 import React from 'react';
+import { MercenaryCommand } from '../types/global.d';
 
 interface MercenaryRegistryViewProps {
-    commands: { id: string; name: string; commandingOfficer: string; totalSupportPoints: number; reputation: number; experienceLevel?: string }[];
+    commands: MercenaryCommand[];
     selectedCommandId: string | null;
     onSelectCommand: (id: string) => void;
     onDeleteCommand: (id: string) => void;
@@ -44,7 +45,7 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                             <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMANDING OFFICER</span> {cmd.commandingOfficer || 'UNKNOWN'}</div>
                             <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>SUPPORT POINTS</span> {cmd.totalSupportPoints || 0}</div>
-                            <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0} ({cmd.experienceLevel || 'Green'})</div> {/* Added title to button */}
+                            <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>REPUTATION</span> {cmd.reputation || 0}</div>
                         </div>
 
                         {selectedCommandId === cmd.id && (

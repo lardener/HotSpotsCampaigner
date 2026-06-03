@@ -1,193 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { gql, ApolloCache } from "@apollo/client";
+import { ApolloCache } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { LedgerEntryForm } from './LedgerEntryForm';
 import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
-import { CombatUnit, Pilot, Detachment, CommandUpdateInput } from '../types/global.d';
+import { CombatUnit, Pilot, Detachment, CommandUpdateInput, LedgerEntry, UpdateCommandVars, DeleteUnitVars, DeletePilotVars, DeleteDetachmentVars, CreateDetachmentVars } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
-
-const GET_UNIT_DOSSIER = gql`
-  query GetUnitDossier($commandId: ID!) {
-    getCommand(id: $commandId) {
-      id
-      name
-      totalSupportPoints
-      reputation
-      commandingOfficer
-      units {
-        id
-        type
-        model
-        variant
-        techBase
-        tonnage
-        asSize
-        bv
-        pv
-        status
-        detachmentId
-      }
-      pilots {
-        id
-        name
-        gunnery
-        piloting
-        asSkill
-        edgeTokensSkill
-        edgeAbilitySkill
-        edgeAbilities
-        unitType
-        wounds
-        handicap
-        totalSpEarned
-        gunnerySpEarned
-        pilotingSpEarned
-        edgeTokensSpEarned
-        edgeAbilitySpEarned
-        detachmentId
-      }
-      detachments {
-        id
-        name
-        campaignId
-        campaignName
-      }
-      allLedgerEntries {
-        id
-        timestamp
-        detachmentId
-        description
-        amount
-        reputationChange
-        campaignName
-        monthIndex
-      }
-    }
-    managedCampaigns(status: "ACTIVE") {
-      id
-      name
-    }
-    publicCampaignMetadata {
-      unitStatuses
-      unitTypes
-      techBases
-    }
-  }
-`;
-
-const CREATE_DETACHMENT = gql`
-  mutation CreateDetachment($commandId: ID!, $campaignId: ID, $name: String!) {
-    createDetachment(commandId: $commandId, campaignId: $campaignId, name: $name) {
-      id
-      name
-    }
-  }
-`;
-
-const ASSIGN_ASSET = gql`
-  mutation AssignAsset($assetType: String!, $assetId: ID!, $detachmentId: ID) {
-    assignAsset(assetType: $assetType, assetId: $assetId, detachmentId: $detachmentId)
-  }
-`;
-
-const DELETE_DETACHMENT = gql`
-  mutation DeleteDetachment($detachmentId: ID!) {
-    deleteDetachment(detachmentId: $detachmentId)
-  }
-`;
-
-const ASSIGN_DETACHMENT = gql`
-  mutation AssignDetachmentToCampaign($detachmentId: ID!, $campaignId: ID) {
-    assignDetachmentToCampaign(detachmentId: $detachmentId, campaignId: $campaignId)
-  }
-`;
-
-const DELETE_UNIT = gql`
-  mutation DeleteUnit($unitId: ID!) {
-    deleteUnit(unitId: $unitId)
-  }
-`;
-
-const DELETE_PILOT = gql`
-  mutation DeletePilot($pilotId: ID!) {
-    deletePilot(pilotId: $pilotId)
-  }
-`;
-
-const UPDATE_COMMAND = gql`
-  mutation UpdateCommand($id: ID!, $input: CommandUpdateInput!) {
-    updateCommand(id: $id, input: $input) {
-      id
-      name
-      commandingOfficer
-      totalSupportPoints
-      reputation
-    }
-  }
-`;
-
-const JOIN_CAMPAIGN = gql`
-  mutation JoinCampaign($token: String!, $detachmentId: ID!) {
-    joinCampaign(token: $token, detachmentId: $detachmentId)
-  }
-`;
-
-interface LedgerEntry {
-    id: string;
-    detachmentId?: string;
-    amount: number;
-    description: string;
-    timestamp: string;
-    reputationChange?: number;
-    campaignName?: string;
-    monthIndex?: number;
-}
-
-interface UpdateCommandVars {
-    id: string;
-    input: CommandUpdateInput;
-}
-
-interface DeleteUnitVars {
-    unitId: string;
-}
-
-interface DeletePilotVars {
-    pilotId: string;
-}
-
-interface DeleteDetachmentVars {
-    detachmentId: string;
-}
-
-interface CreateDetachmentVars {
-    commandId: string;
-    campaignId: string | null;
-    name: string;
-}
-
-interface UnitDossierData {
-    getCommand: {
-        id: string;
-        name: string;
-        totalSupportPoints: number;
-        reputation: number;
-        commandingOfficer: string;
-        units: CombatUnit[];
-        detachments: Detachment[];
-        pilots: Pilot[];
-        allLedgerEntries: LedgerEntry[];
-    };
-    managedCampaigns: { id: string; name: string; }[]; // Keep this local for now as it's a simplified version
-    publicCampaignMetadata: {
-        unitStatuses: string[];
-        unitTypes: string[];
-        techBases: string[];
-    };
-}
+import { UnitDossierData } from '../types/graphql.d';
+import {
+    GET_UNIT_DOSSIER,
+    UPDATE_COMMAND,
+    CREATE_DETACHMENT,
+    ASSIGN_ASSET,
+    DELETE_DETACHMENT,
+    ASSIGN_DETACHMENT,
+    JOIN_CAMPAIGN,
+    DELETE_UNIT,
+    DELETE_PILOT
+} from '../types/operations';
 
 interface CommandDashboardProps {
     commandId: string;
@@ -258,9 +90,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     const { assetType, assetId, detachmentId } = variables;
                     const getCommand = { ...existing.getCommand };
                     if (assetType === 'UNIT') {
-                        getCommand.units = getCommand.units.map((u: CombatUnit) => u.id === assetId ? { ...u, detachmentId } : u);
+                        getCommand.units = (getCommand.units || []).map((u: CombatUnit) => u.id === assetId ? { ...u, detachmentId } : u);
                     } else {
-                        getCommand.pilots = getCommand.pilots.map((p: Pilot) => p.id === assetId ? { ...p, detachmentId } : p);
+                        getCommand.pilots = (getCommand.pilots || []).map((p: Pilot) => p.id === assetId ? { ...p, detachmentId } : p);
                     }
                     cache.writeQuery({ query: GET_UNIT_DOSSIER, variables: queryVars, data: { ...existing, getCommand } });
                 }
@@ -562,16 +394,16 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     // Filter rosters for the focused detachment
     const filteredUnits = selectedDetachmentId
-        ? command.units.filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
-        : command.units;
+        ? (command.units || []).filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
+        : (command.units || []);
 
     const filteredPilots = selectedDetachmentId
-        ? command.pilots.filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
-        : command.pilots;
+        ? (command.pilots || []).filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
+        : (command.pilots || []);
 
     const filteredLedger = selectedDetachmentId
-        ? command.allLedgerEntries.filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
-        : command.allLedgerEntries;
+        ? (command.allLedgerEntries || []).filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
+        : (command.allLedgerEntries || []);
 
     const detachments: Detachment[] = command.detachments || [];
 
