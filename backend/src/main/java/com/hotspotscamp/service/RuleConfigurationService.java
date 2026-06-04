@@ -1,0 +1,293 @@
+package com.hotspotscamp.service;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class RuleConfigurationService {
+
+    private static final Logger log = LoggerFactory.getLogger(RuleConfigurationService.class);
+
+    // Rule Configuration DTOs
+    public record RollEntry(int minRoll, int maxRoll, String value) {
+
+    }
+
+    public record CountEntry(int minRoll, int maxRoll, int value) {
+
+    }
+
+    public record SubTable(int diceCount, int diceSides, List<RollEntry> entries) {
+
+    }
+
+    public record MissionEntry(int minRoll, int maxRoll, SubTable primary, SubTable opponent) {
+
+    }
+
+    public record MissionTableConfig(int diceCount, int diceSides, List<MissionEntry> entries) {
+
+    }
+
+    public record SystemEntry(int roll, String name) {
+
+    }
+
+    public record SystemGroup(int roll, List<SystemEntry> entries) {
+
+    }
+
+    public record SystemTableConfig(Integer groupDiceCount, Integer groupDiceSides, Integer entryDiceCount, Integer entryDiceSides, List<SystemGroup> groups) {
+
+    }
+
+    public record ContractStepEntry(int step, String payRate, String salvageRights, String supportRights, String transportation, String commandRights) {
+
+    }
+
+    public record ContractStepsTableConfig(int diceCount, int diceSides, List<ContractStepEntry> entries) {
+
+    }
+
+    public record RollToStepEntry(int minRoll, int maxRoll, int step) {
+
+    }
+
+    public record TrackGroup(List<String> missions, List<RollEntry> entries) {
+
+    }
+
+    public record TrackTableConfig(int diceCount, int diceSides, List<TrackGroup> groups) {
+
+    }
+
+    public record TrackCountGroup(List<String> missions, List<CountEntry> entries) {
+
+    }
+
+    public record TrackCountTableConfig(int diceCount, int diceSides, List<TrackCountGroup> groups) {
+
+    }
+
+    public record EmployerEntry(int roll, String type) {
+
+    }
+
+    public record ComplicationRule(int diceCount, int diceSides, int modifier) {
+
+    }
+
+    public record ComplicationsTableConfig(Map<String, ComplicationRule> rules, List<RollEntry> entries) {
+
+    }
+
+    public record EmployerTableConfig(int diceCount, int diceSides, List<EmployerEntry> entries) {
+
+    }
+
+    public record ContractTableConfigV2(int diceCount, int diceSides, List<RollToStepEntry> rollToStep, Map<String, Integer> employerModifiers, Map<String, Integer> missionModifiers) {
+
+    }
+
+    public record IntensityMonthEntry(int minRoll, int maxRoll, String intensity) {
+
+    }
+
+    public record IntensityTrackCountEntry(int count, List<IntensityMonthEntry> months) {
+
+    }
+
+    public record IntensityTracksConfig(int diceCount, int diceSides, List<IntensityTrackCountEntry> tracks) {
+
+    }
+
+    public record IntensityTableEntry(int campaignLength, IntensityTracksConfig tracks) {
+
+    }
+
+    public record ResolvedStepEntry(Integer step, Map<String, String> values) {
+
+    }
+
+    public record MissionMetadata(List<String> primary, List<String> opponent) {
+
+    }
+
+    // Loaded Tables
+    private EmployerTableConfig employerTableConfig;
+    private SystemTableConfig systemTableConfig;
+    private MissionTableConfig missionTableData;
+    private TrackTableConfig trackTableData;
+    private TrackCountTableConfig trackCountTableData;
+    private ContractStepsTableConfig contractStepsTableConfig;
+    private ComplicationsTableConfig complicationsTableConfig;
+    private Map<String, List<String>> factionOrganizations;
+    private List<String> corporateSuffixes;
+    private List<String> noblePrefixes;
+    private List<String> availableFactions;
+    private List<String> availablePrimaryMissions;
+    private List<String> availableOpponentMissions;
+    private List<String> availableTrackTypes;
+    private final Map<String, ContractTableConfigV2> contractTables = new HashMap<>();
+    private List<IntensityTableEntry> trackIntensityTable;
+
+    @PostConstruct
+    public void init() throws IOException {
+        log.info("Starting initialization of campaign rules from JSON configuration files.");
+        ObjectMapper mapper = new ObjectMapper();
+
+        employerTableConfig = loadMapTyped("employerTable.json", mapper, new TypeReference<>() {
+        });
+        systemTableConfig = loadMapTyped("systemTable.json", mapper, new TypeReference<>() {
+        });
+        missionTableData = loadMapTyped("missionTable.json", mapper, new TypeReference<>() {
+        });
+        availableFactions = loadList("factions.json", mapper);
+
+        availablePrimaryMissions = missionTableData.entries().stream()
+                .flatMap(entry -> entry.primary().entries().stream().map(RollEntry::value)).distinct().sorted().toList();
+        availableOpponentMissions = missionTableData.entries().stream()
+                .flatMap(entry -> entry.opponent().entries().stream().map(RollEntry::value)).distinct().sorted().toList();
+
+        trackTableData = loadMapTyped("trackTable.json", mapper, new TypeReference<>() {
+        });
+        availableTrackTypes = trackTableData.groups().stream()
+                .flatMap(g -> g.entries().stream()).map(RollEntry::value).distinct().sorted().toList();
+
+        trackCountTableData = loadMapTyped("trackCountTable.json", mapper, new TypeReference<>() {
+        });
+        contractStepsTableConfig = loadMapTyped("contractStepsTable.json", mapper, new TypeReference<>() {
+        });
+        complicationsTableConfig = loadMapTyped("complicationsTable.json", mapper, new TypeReference<>() {
+        });
+        factionOrganizations = loadMapTyped("factionOrganizations.json", mapper, new TypeReference<>() {
+        });
+        corporateSuffixes = loadList("corporateSuffixes.json", mapper);
+        noblePrefixes = loadList("noblePrefixes.json", mapper);
+        trackIntensityTable = loadMapTyped("trackIntensityTable.json", mapper, new TypeReference<>() {
+        });
+
+        String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
+        for (String key : tableKeys) {
+            contractTables.put(key, loadMapTyped(key + ".json", mapper, new TypeReference<>() {
+            }));
+        }
+        log.info("Successfully loaded all campaign configuration tables.");
+    }
+
+    private <T> T loadMapTyped(String fileName, ObjectMapper mapper, TypeReference<T> typeReference) throws IOException {
+        try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
+            return mapper.readValue(is, typeReference);
+        } catch (IOException e) {
+            log.error("CRITICAL: Failed to load configuration file: rules/{}", fileName, e);
+            throw e;
+        }
+    }
+
+    private List<String> loadList(String fileName, ObjectMapper mapper) throws IOException {
+        try (InputStream is = new ClassPathResource("rules/" + fileName).getInputStream()) {
+            return mapper.readValue(is, new TypeReference<>() {
+            });
+        } catch (IOException e) {
+            log.error("CRITICAL: Failed to load rules list: rules/{}", fileName, e);
+            throw e;
+        }
+    }
+
+    public Map<Integer, Map<String, String>> getResolvedStepsTable() {
+        Map<Integer, Map<String, String>> resolvedSteps = new HashMap<>();
+        if (contractStepsTableConfig == null || contractStepsTableConfig.entries() == null) {
+            return resolvedSteps;
+        }
+        for (ContractStepEntry entry : contractStepsTableConfig.entries()) {
+            Map<String, String> values = new HashMap<>();
+            values.put("payRate", entry.payRate());
+            values.put("salvageRights", entry.salvageRights());
+            values.put("supportRights", entry.supportRights());
+            values.put("transportation", entry.transportation());
+            values.put("commandRights", entry.commandRights());
+            resolvedSteps.put(entry.step(), values);
+        }
+        return resolvedSteps;
+    }
+
+    // Getters
+    public EmployerTableConfig getEmployerTableConfig() {
+        return employerTableConfig;
+    }
+
+    public SystemTableConfig getSystemTableConfig() {
+        return systemTableConfig;
+    }
+
+    public MissionTableConfig getMissionTableData() {
+        return missionTableData;
+    }
+
+    public TrackTableConfig getTrackTableData() {
+        return trackTableData;
+    }
+
+    public TrackCountTableConfig getTrackCountTableData() {
+        return trackCountTableData;
+    }
+
+    public ContractStepsTableConfig getContractStepsTableConfig() {
+        return contractStepsTableConfig;
+    }
+
+    public ComplicationsTableConfig getComplicationsTableConfig() {
+        return complicationsTableConfig;
+    }
+
+    public Map<String, List<String>> getFactionOrganizations() {
+        return factionOrganizations;
+    }
+
+    public List<String> getCorporateSuffixes() {
+        return corporateSuffixes;
+    }
+
+    public List<String> getNoblePrefixes() {
+        return noblePrefixes;
+    }
+
+    public List<String> getAvailableFactions() {
+        return availableFactions;
+    }
+
+    public List<String> getAvailablePrimaryMissions() {
+        return availablePrimaryMissions;
+    }
+
+    public List<String> getAvailableOpponentMissions() {
+        return availableOpponentMissions;
+    }
+
+    public List<String> getAvailableTrackTypes() {
+        return availableTrackTypes;
+    }
+
+    public Map<String, ContractTableConfigV2> getContractTables() {
+        return contractTables;
+    }
+
+    public List<IntensityTableEntry> getTrackIntensityTable() {
+        return trackIntensityTable;
+    }
+}

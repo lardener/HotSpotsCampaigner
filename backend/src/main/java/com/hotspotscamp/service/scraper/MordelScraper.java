@@ -2,9 +2,6 @@ package com.hotspotscamp.service.scraper;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -23,6 +20,7 @@ import reactor.core.scheduler.Schedulers;
  */
 @Component
 public class MordelScraper implements UnitScraper {
+
     private static final Logger log = LoggerFactory.getLogger(MordelScraper.class);
 
     @Override
@@ -85,16 +83,6 @@ public class MordelScraper implements UnitScraper {
                 .build();
     }
 
-    private String extractRegex(String text, String patternStr) {
-        Pattern pattern = Pattern.compile(patternStr, Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(text);
-        if (matcher.find()) {
-            return matcher.group(1).trim();
-        }
-        log.warn("Mordel Scraper: Regex match failed for pattern: {}", patternStr);
-        return null;
-    }
-
     private String parseUnitTypeFromUrl(String url) {
         if (url.contains("ut=bm")) {
             return "BM";
@@ -117,15 +105,4 @@ public class MordelScraper implements UnitScraper {
         return "BM";
     }
 
-    private Integer parseSafeInt(String val) {
-        if (val == null || val.isEmpty()) {
-            return 0;
-        }
-        try {
-            String cleaned = val.replaceAll("[^0-9]", "");
-            return cleaned.isEmpty() ? 0 : Integer.valueOf(cleaned);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
 }

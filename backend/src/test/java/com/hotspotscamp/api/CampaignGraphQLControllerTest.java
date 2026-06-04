@@ -2,6 +2,8 @@ package com.hotspotscamp.api;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.service.CampaignService;
+import com.hotspotscamp.service.RuleConfigurationService;
+import com.hotspotscamp.dto.*;
 import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -33,8 +35,8 @@ public class CampaignGraphQLControllerTest {
 
     @Test
     void campaignMetadata_ShouldBeAccessibleWithoutAuth() {
-        CampaignService.CampaignMetadata mockMeta = new CampaignService.CampaignMetadata(
-                new CampaignService.MissionMetadata(List.of("Raid"), List.of("Defense")),
+        CampaignMetadata mockMeta = new CampaignMetadata(
+                new RuleConfigurationService.MissionMetadata(List.of("Raid"), List.of("Defense")),
                 List.of("Assault"),
                 Collections.emptyList(),
                 Collections.emptyList(),
@@ -72,8 +74,8 @@ public class CampaignGraphQLControllerTest {
                 .trackCount(5)
                 .build();
 
-        when(campaignService.generateProposal(any(CampaignService.CampaignCreateInput.class)))
-                .thenReturn(new CampaignService.CampaignProposal(previewCampaign, Collections.emptyList(), Collections.emptyList()));
+        when(campaignService.generateProposal(any(CampaignCreateInput.class)))
+                .thenReturn(new CampaignProposal(previewCampaign, Collections.emptyList(), Collections.emptyList(), "Employer", "Opponent"));
 
         String query = """
             query($input: CampaignCreateInput!) {

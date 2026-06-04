@@ -32,6 +32,7 @@ import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
+import com.hotspotscamp.dto.*;
 import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.util.SqlUtils;
 import com.hotspotscamp.util.TypeUtils;
@@ -116,7 +117,7 @@ public class MercenaryCommandService {
             Integer monthlyMaintenance,
             Integer transportationCost,
             Integer combatPay,
-            CampaignService.RepairRules repairRules,
+            RepairRules repairRules,
             Integer lengthInMonths,
             Integer trackCount,
             Double payRate,
@@ -867,7 +868,7 @@ public class MercenaryCommandService {
                             }
                             log.trace("[TRACE] Updated basic campaign details for campaign: id={}", camp.getId());
                             if (input.repairRules() != null) {
-                                CampaignService.RepairRules rules = input.repairRules();
+                                RepairRules rules = input.repairRules();
                                 camp.setRepairRules(rules);
                                 if (rules.armorMultiplier() != null) {
                                     camp.setArmorMultiplier(rules.armorMultiplier());
@@ -1046,7 +1047,7 @@ public class MercenaryCommandService {
                                                 }
                                             }
                                             c.setNew(false);
-                                             // Double-check flag before final theater save
+                                            // Double-check flag before final theater save
                                             return campaignRepository.save(Objects.requireNonNull(c));
                                         });
                                     });
@@ -1061,7 +1062,7 @@ public class MercenaryCommandService {
      * theater manager can modify track assignments or details.
      */
     @Transactional
-    public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, CampaignService.TrackUpdateInput input, String userId) {
+    public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, TrackUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateTrack: trackId={}", trackId);
         return campaignTrackRepository.findById(trackId)
                 .switchIfEmpty(Mono.error(new RuntimeException("Track not found: " + trackId)))
@@ -1164,7 +1165,7 @@ public class MercenaryCommandService {
                     + "  WHERE mc.id = :cmdId "
                     + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
                     + ")";
- 
+
             var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);
             spec = SqlUtils.bindString(spec, "userId", internalId);
             spec = SqlUtils.bindString(spec, "externalId", userId);

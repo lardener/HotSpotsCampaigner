@@ -30,7 +30,8 @@ public class TypeUtils {
                 if (string.isBlank()) {
                     return defaultValue;
                 }
-                return Integer.valueOf(string);
+                String cleaned = string.replaceAll("[^0-9]", "");
+                return cleaned.isEmpty() ? defaultValue : Integer.valueOf(cleaned);
             } catch (NumberFormatException e) {
                 return defaultValue;
             }

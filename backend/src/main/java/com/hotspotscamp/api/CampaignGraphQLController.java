@@ -2,11 +2,10 @@ package com.hotspotscamp.api;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -15,7 +14,10 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
+import com.hotspotscamp.dto.*;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignInvite;
@@ -27,16 +29,10 @@ import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
 import com.hotspotscamp.repository.DetachmentRepository;
-import com.hotspotscamp.util.RulesConstants;
-
-import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.CampaignService;
-import com.hotspotscamp.service.CampaignService.CampaignProposal;
+import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.UserService;
-
-import lombok.RequiredArgsConstructor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import com.hotspotscamp.util.RulesConstants;
 
 @Controller
 @RequiredArgsConstructor
@@ -186,9 +182,9 @@ public class CampaignGraphQLController {
     }
 
     @SchemaMapping(typeName = "Campaign", field = "repairRules")
-    public CampaignService.RepairRules getRepairRules(Campaign campaign) {
+    public RepairRules getRepairRules(Campaign campaign) {
         log.trace("[TRACE] Entering getRepairRules for campaign: {}", campaign.getId());
-        CampaignService.RepairRules rules = new CampaignService.RepairRules(
+        RepairRules rules = new RepairRules(
                 Objects.requireNonNullElse(campaign.getArmorMultiplier(), RulesConstants.REPAIR_MULT_ARMOR),
                 Objects.requireNonNullElse(campaign.getInternalMultiplier(), RulesConstants.REPAIR_MULT_INTERNAL),
                 Objects.requireNonNullElse(campaign.getCrippledMultiplier(), RulesConstants.REPAIR_MULT_CRIPPLED),
@@ -214,11 +210,9 @@ public class CampaignGraphQLController {
     }
 
     @SchemaMapping(typeName = "CampaignProposal", field = "repairRules")
-    public CampaignService.RepairRules getProposalRepairRules(CampaignProposal proposal) {
+    public RepairRules getProposalRepairRules(CampaignProposal proposal) {
         log.trace("[TRACE] Entering getProposalRepairRules");
-        CampaignService.RepairRules rules = proposal.campaign().getRepairRules();
-        log.trace("[TRACE] Exiting getProposalRepairRules");
-        return rules;
+        return getRepairRules(proposal.campaign());
     }
 
     @QueryMapping
@@ -228,76 +222,16 @@ public class CampaignGraphQLController {
             log.trace("[TRACE] Exiting campaignMetadata (anonymous)");
             return null;
         }
-        CampaignService.CampaignMetadata meta = campaignService.getCampaignMetadata();
-        CampaignMetadata result = new CampaignMetadata(
-                new MissionMetadata(meta.missions().primary(), meta.missions().opponent()),
-                meta.trackTypes(),
-                meta.factions(),
-                meta.employerTypes(),
-                meta.resolvedSteps().stream()
-                        .map(e -> new ResolvedStepEntry(e.step(), mapToValues(e.values())))
-                        .collect(Collectors.toList()),
-                meta.repairRules(),
-                meta.unitTypes(),
-                meta.techBases(),
-                meta.unitStatuses()
-        );
-        log.trace("[TRACE] Exiting campaignMetadata");
-        return result;
-    }
-
-    private ContractStepValues mapToValues(Map<String, String> map) {
-        log.trace("[TRACE] Entering mapToValues");
-        ContractStepValues result = new ContractStepValues(
-                map.get("payRate"),
-                map.get("salvageRights"),
-                map.get("supportRights"),
-                map.get("transportation"),
-                map.get("commandRights")
-        );
-        log.trace("[TRACE] Exiting mapToValues");
-        return result;
-    }
-
-    public record CampaignMetadata(
-            MissionMetadata missions,
-            List<String> trackTypes,
-            List<String> factions,
-            List<String> employerTypes,
-            List<ResolvedStepEntry> resolvedSteps,
-            CampaignService.RepairRules repairRules,
-            List<String> unitTypes,
-            List<String> techBases,
-            List<String> unitStatuses
-            ) {
-
-    }
-
-    public record MissionMetadata(List<String> primary, List<String> opponent) {
-
-    }
-
-    public record ResolvedStepEntry(Integer step, ContractStepValues values) {
-
-    }
-
-    public record ContractStepValues(
-            String payRate,
-            String salvageRights,
-            String supportRights,
-            String transportation,
-            String commandRights
-            ) {
-
+        return campaignService.getCampaignMetadata();
     }
 
     @QueryMapping
-    public Mono<List<CampaignService.GeneratedTrack>> generateTracks(
+    public Mono<List<GeneratedTrack>> generateTracks(
             @Argument String mission,
             @Argument String commandRights,
             @Argument String oppCommandRights,
             @Argument Integer count,
-            @Argument List<CampaignService.GeneratedTrack> existing) {
+            @Argument List<GeneratedTrack> existing) {
         log.trace("[TRACE] Entering generateTracks: mission={}, count={}", mission, count);
         String finalOppRights = (oppCommandRights != null) ? oppCommandRights : "Independent";
         return Mono.just(campaignService.generateTracks(mission, commandRights, finalOppRights, count, existing))
@@ -305,7 +239,7 @@ public class CampaignGraphQLController {
     }
 
     @QueryMapping
-    public Mono<CampaignProposal> previewCampaign(@Argument CampaignService.CampaignCreateInput input, Principal principal) {
+    public Mono<CampaignProposal> previewCampaign(@Argument CampaignCreateInput input, Principal principal) {
         log.trace("[TRACE] Entering previewCampaign");
         if (isAnonymous(principal)) {
             log.trace("[TRACE] Exiting previewCampaign (anonymous)");
@@ -338,7 +272,7 @@ public class CampaignGraphQLController {
 
     @QueryMapping
     @SuppressWarnings("Convert2Lambda")
-    public Mono<CampaignProposal> publicPreviewCampaign(@Argument CampaignService.CampaignCreateInput input) {
+    public Mono<CampaignProposal> publicPreviewCampaign(@Argument CampaignCreateInput input) {
         log.trace("[TRACE] Entering publicPreviewCampaign");
         return previewCampaign(input, new java.security.Principal() {
             @Override
@@ -353,7 +287,7 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Campaign> createCampaign(@Argument CampaignService.CampaignCreateInput input, Principal principal) {
+    public Mono<Campaign> createCampaign(@Argument CampaignCreateInput input, Principal principal) {
         log.trace("[TRACE] Entering createCampaign: name={}", input.name());
         if (principal == null) {
             return Mono.error(new RuntimeException("Authentication required to create campaign"));
@@ -401,7 +335,7 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument CampaignService.TrackUpdateInput input, Principal principal) {
+    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument TrackUpdateInput input, Principal principal) {
         log.trace("[TRACE] Entering updateTrack: id={}", id);
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));

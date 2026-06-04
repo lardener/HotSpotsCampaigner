@@ -8,7 +8,7 @@ import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.hotspotscamp.service.CampaignService.RepairRules;
+import com.hotspotscamp.dto.RepairRules;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

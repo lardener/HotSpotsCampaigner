@@ -13,35 +13,11 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.ClassPathResource;
 
-import com.hotspotscamp.repository.CampaignFactionRepository;
-import com.hotspotscamp.repository.CampaignInviteRepository;
-import com.hotspotscamp.repository.CampaignRepository;
-import com.hotspotscamp.repository.CampaignTrackRepository;
-import com.hotspotscamp.repository.ContractRepository;
-import com.hotspotscamp.repository.DetachmentRepository;
-
 @ExtendWith(MockitoExtension.class)
-class CampaignServiceStartupTest {
-
-    @Mock
-    private CampaignRepository campaignRepository;
-    @Mock
-    private CampaignFactionRepository campaignFactionRepository;
-    @Mock
-    private CampaignTrackRepository campaignTrackRepository;
-    @Mock
-    private ContractRepository contractRepository;
-    @Mock
-    private CampaignInviteRepository campaignInviteRepository;
-    @Mock
-    private DetachmentRepository detachmentRepository;
-    @Mock
-    private UserService userService;
-    @Mock
-    private InviteService inviteService;
+class RuleConfigurationServiceStartupTest {
 
     @InjectMocks
-    private CampaignService campaignService;
+    private RuleConfigurationService ruleConfigurationService;
 
     @Test
     void init_ShouldThrowIOException_WhenConfigurationFileIsMissing() {
@@ -53,7 +29,7 @@ class CampaignServiceStartupTest {
                     when(mock.getInputStream()).thenThrow(new IOException("Simulated missing resource"));
                 })) {
 
-            assertThrows(IOException.class, () -> campaignService.init());
+            assertThrows(IOException.class, () -> ruleConfigurationService.init());
         }
     }
 }

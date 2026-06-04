@@ -1,8 +1,5 @@
 package com.hotspotscamp.service.scraper;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -29,7 +26,7 @@ public class MulScraper implements UnitScraper {
     @Override
     public Flux<CombatUnit> scrape(String url) {
         log.info("Scraping unit from URL: {}", url);
-        String unitId = extractUnitId(url);
+        String unitId = extractRegex(url, "Details/(\\d+)");
         if (unitId == null) {
             return Flux.error(new IllegalArgumentException("Could not resolve unit ID from URL: " + url));
         }
@@ -55,12 +52,6 @@ public class MulScraper implements UnitScraper {
         })
                 .subscribeOn(Schedulers.boundedElastic())
                 .flux();
-    }
-
-    private String extractUnitId(String url) {
-        Pattern pattern = Pattern.compile("Details/(\\d+)");
-        Matcher matcher = pattern.matcher(url);
-        return matcher.find() ? matcher.group(1) : null;
     }
 
     private CombatUnit initializeUnit(Document doc) {
@@ -121,11 +112,4 @@ public class MulScraper implements UnitScraper {
         log.info("Finished reading custom card data for unit: " + unit.getModel() + " " + unit.getVariant());
     }
 
-    private Integer parseSafeInt(String val) {
-        try {
-            return Integer.valueOf(val);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
 }
