@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -135,6 +136,22 @@ public class CampaignService {
 
     }
 
+    private record IntensityMonthEntry(int minRoll, int maxRoll, String intensity) {
+
+    }
+
+    private record IntensityTrackCountEntry(int count, List<IntensityMonthEntry> months) {
+
+    }
+
+    private record IntensityTracksConfig(int diceCount, int diceSides, List<IntensityTrackCountEntry> tracks) {
+
+    }
+
+    private record IntensityTableEntry(int campaignLength, IntensityTracksConfig tracks) {
+
+    }
+
     // --- Public DTOs ---
     public record RepairRules(Double armorMultiplier, Double internalMultiplier, Double crippledMultiplier, Double destroyedMultiplier, Double nonMechModifier, Double mixedTechModifier, Double clanTechModifier) {
 
@@ -189,6 +206,7 @@ public class CampaignService {
     private List<String> availableTrackTypes;
     private final Map<String, ContractTableConfigV2> contractTables = new HashMap<>();
     private int systemGroupDiceCount, systemGroupDiceSides, systemEntryDiceCount, systemEntryDiceSides;
+    private List<IntensityTableEntry> trackIntensityTable;
 
     @PostConstruct
     public void init() throws IOException {
@@ -227,6 +245,10 @@ public class CampaignService {
         noblePrefixes = loadList("noblePrefixes.json", mapper);
 
         String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
+
+        trackIntensityTable = loadMapTyped("trackIntensityTable.json", mapper, new TypeReference<List<IntensityTableEntry>>() {
+        });
+
         for (String key : tableKeys) {
             contractTables.put(key, loadMapTyped(key + ".json", mapper, new TypeReference<ContractTableConfigV2>() {
             }));
@@ -319,8 +341,11 @@ public class CampaignService {
     public CampaignProposal generateProposal(CampaignCreateInput input) {
         log.trace("[TRACE] Starting generateProposal");
         Random rand = new Random();
-        String finalEmp = (input.employer() == null || input.employer().isEmpty()) ? getRandomFaction(null) : input.employer();
-        String finalOpp = (input.opponent() == null || input.opponent().isEmpty()) ? getRandomFaction(finalEmp) : input.opponent();
+        boolean employerProvided = input.employer() != null && !input.employer().isEmpty();
+        boolean opponentProvided = input.opponent() != null && !input.opponent().isEmpty();
+
+        String finalEmp = employerProvided ? input.employer() : getRandomFaction(null);
+        String finalOpp = opponentProvided ? input.opponent() : getRandomFaction(finalEmp);
 
         String empMission, oppMission;
         if (input.mission() == null || input.mission().isEmpty()) {
@@ -342,6 +367,19 @@ public class CampaignService {
         int finalTracksCount = Math.max(1, TypeUtils.asInt(input.trackCount(), rollTrackCount(empMission, rand)));
         String finalSystemName = (input.systemName() != null && !input.systemName().isEmpty()) ? input.systemName() : rollSystemName(rand);
 
+        // Determine campaign duration based on mission type if not explicitly provided
+        Integer calculatedLength = input.lengthInMonths();
+        if (calculatedLength == null) {
+            String missionLower = empMission.toLowerCase();
+            if (missionLower.contains("raid") || missionLower.contains("expedition")) {
+                calculatedLength = 3;
+            } else if (missionLower.contains("garrison") || missionLower.contains("invasion")) {
+                calculatedLength = 6;
+            } else {
+                calculatedLength = finalTracksCount;
+            }
+        }
+
         RepairRules rules = Objects.requireNonNullElse(input.repairRules(), new RepairRules(
                 RulesConstants.REPAIR_MULT_ARMOR, RulesConstants.REPAIR_MULT_INTERNAL,
                 RulesConstants.REPAIR_MULT_CRIPPLED, RulesConstants.REPAIR_MULT_DESTROYED,
@@ -351,13 +389,13 @@ public class CampaignService {
 
         Contract primaryContract = generateContract(finalEmp, empMission, input.employerCategory(),
                 input.payRate(), input.salvageTerms(), input.supportTerms(), input.transportTerms(), input.commandRights(),
-                input.payStep(), input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand);
+                input.payStep(), input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand, employerProvided);
 
         Campaign campaign = Campaign.builder()
                 .name(input.name() != null && !input.name().isBlank() ? input.name() : finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
                 .systemName(finalSystemName)
                 .trackCount(finalTracksCount)
-                .lengthInMonths(Math.max(1, TypeUtils.asInt(input.lengthInMonths(), finalTracksCount)))
+                .lengthInMonths(Math.max(1, calculatedLength))
                 .description(input.description() != null && !input.description().isBlank() ? input.description() : "Theater established in the " + finalSystemName + " system.")
                 .payRate(primaryContract.getPayRate()).payStep(primaryContract.getPayStep())
                 .salvageTerms(primaryContract.getSalvageTerms()).salvageStep(primaryContract.getSalvageStep())
@@ -375,10 +413,10 @@ public class CampaignService {
                 .status(input.status() != null && !input.status().isBlank() ? input.status() : "PREVIEW")
                 .build();
 
-        Contract oppositionContract = generateContract(finalOpp, oppMission, input.opponentCategory() != null ? input.opponentCategory() : "Minor Power",
+        Contract oppositionContract = generateContract(finalOpp, oppMission, input.opponentCategory(),
                 input.oppPayRate(), input.oppSalvageTerms(), input.oppSupportTerms(), input.oppTransportTerms(), input.oppCommandRights(),
                 input.oppPayStep(), input.oppSalvageStep(), input.oppSupportStep(), input.oppTransportStep(), input.oppCommandStep(),
-                finalTracksCount, false, finalSystemName, rand);
+                finalTracksCount, false, finalSystemName, rand, opponentProvided);
 
         List<GeneratedTrack> tracksList = (input.tracks() != null && !input.tracks().isEmpty()) ? input.tracks()
                 : generateTracks(empMission, primaryContract.getCommandRights(), oppositionContract.getCommandRights(), finalTracksCount, null);
@@ -391,21 +429,48 @@ public class CampaignService {
     private Contract generateContract(String faction, String type, String category,
             Double payRate, String salvage, String support, String transport, String rights,
             Integer payStepIn, Integer salvageStepIn, Integer supportStepIn, Integer transportStepIn, Integer commandStepIn,
-            int tracks, boolean isPrimary, String system, Random rand) {
+            int tracks, boolean isPrimary, String system, Random rand, boolean isUserProvided) {
         log.trace("[TRACE] Starting generateContract: faction={}, mission={}", faction, type);
-        String empType = category != null ? category : rollEmployerType(rand);
-        int payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", empType, type, rand);
-        int salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", empType, type, rand);
-        int supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", empType, type, rand);
-        int transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", empType, type, rand);
-        int rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", empType, type, rand);
+
+        String employerCategory;
+        int payStep, salvageStep, supportStep, transportStep, rightsStep;
+
+        if (category != null) {
+            // Path A: Explicit category provided (user edit "Name: Category" or refined proposal)
+            employerCategory = faction + ": " + category;
+            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", category, type, rand);
+            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", category, type, rand);
+            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", category, type, rand);
+            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", category, type, rand);
+            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", category, type, rand);
+        } else if (isUserProvided) {
+            // Path B: User provided an employer name but removed/didn't provide a category suffix
+            employerCategory = faction;
+            String lookupType = "Minor Power"; // Default for table lookup when category is absent
+            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", lookupType, type, rand);
+            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", lookupType, type, rand);
+            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", lookupType, type, rand);
+            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", lookupType, type, rand);
+            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", lookupType, type, rand);
+        } else {
+            // Path C: Procedural generation (Initial Preview)
+            String empType = rollEmployerType(rand);
+            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", empType, type, rand);
+            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", empType, type, rand);
+            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", empType, type, rand);
+            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", empType, type, rand);
+            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", empType, type, rand);
+
+            String finalOrgName = empType.contains(" (") ? empType.substring(0, empType.indexOf(" (")) : getPlausibleOrganization(faction, empType, system, rand);
+            String finalCategory = empType.contains(" (") ? empType.substring(empType.indexOf(" (") + 2, empType.length() - 1) : empType;
+            employerCategory = finalOrgName + ": " + finalCategory;
+        }
 
         Double resolvedPayRate = parsePayRate(resolveStepValue(payStep, "payRate"));
-        String finalOrgName = empType.contains(" (") ? empType.substring(0, empType.indexOf(" (")) : getPlausibleOrganization(faction, empType, system, rand);
 
-        Contract contract = Contract.builder()
+        return Contract.builder()
                 .missionType(type)
-                .employerCategory(finalOrgName + ": " + (empType.contains(" (") ? empType.substring(empType.indexOf(" (") + 2, empType.length() - 1) : empType))
+                .employerCategory(employerCategory)
                 .payRate(payRate != null ? payRate : resolvedPayRate)
                 .payStep(payStep)
                 .salvageTerms(salvage != null ? salvage : resolveStepValue(salvageStep, "salvageRights"))
@@ -419,8 +484,6 @@ public class CampaignService {
                 .primaryContract(isPrimary)
                 .trackCount(tracks)
                 .build();
-        log.trace("[TRACE] Finished generateContract");
-        return contract;
     }
 
     // --- Utility Rolling Methods ---
@@ -626,7 +689,11 @@ public class CampaignService {
                     camp.setTrackCount(targetCount);
 
                     if (targetCount > actualCount) {
-                        int lastMonth = Objects.requireNonNullElse(camp.getLengthInMonths(), 1);
+                        IntSupplier monthSupplier = getMonthSupplier(trackIntensityTable, camp.getLengthInMonths(), targetCount);
+                        // Skip distribution indices for existing tracks to align new ones correctly
+                        for (int i = 0; i < actualCount; i++) {
+                            monthSupplier.getAsInt();
+                        }
                         return contractRepository.findAllByCampaignId(camp.getId()).collectList()
                                 .flatMap(contracts -> {
                                     Contract primary = contracts.stream().filter(c -> Boolean.TRUE.equals(c.getPrimaryContract())).findFirst().orElse(null);
@@ -641,15 +708,15 @@ public class CampaignService {
                                     List<GeneratedTrack> allTracks = generateTracks(primary.getMissionType(), primary.getCommandRights(), oppRights, targetCount, existingGen);
                                     List<GeneratedTrack> newOnes = allTracks.subList(actualCount, allTracks.size());
 
-                                    return Flux.fromIterable(newOnes).index()
-                                            .flatMap(tuple -> campaignTrackRepository.save(Objects.requireNonNull(
-                                            CampaignTrack.builder().id(UUID.randomUUID()).campaignId(camp.getId()).trackName(tuple.getT2().name()).complications(tuple.getT2().complication()).oppositionComplications(tuple.getT2().oppositionComplication())
-                                                    .sequenceOrder(actualCount + tuple.getT1().intValue()).monthIndex(lastMonth).isNew(true).build())))
+                                    return Flux.fromIterable(newOnes).index().concatMap(tuple
+                                            -> campaignTrackRepository.save(Objects.requireNonNull(
+                                                    CampaignTrack.builder().id(UUID.randomUUID()).campaignId(camp.getId()).trackName(tuple.getT2().name()).complications(tuple.getT2().complication()).oppositionComplications(tuple.getT2().oppositionComplication())
+                                                            .sequenceOrder(actualCount + tuple.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
                                             .then(campaignRepository.save(camp));
                                 })
                                 .switchIfEmpty(Mono.defer(() -> Flux.range(actualCount, targetCount - actualCount)
-                                .flatMap(i -> campaignTrackRepository.save(Objects.requireNonNull(
-                                CampaignTrack.builder().id(UUID.randomUUID()).campaignId(camp.getId()).trackName("NEW OPERATIONAL TRACK").sequenceOrder(i).monthIndex(lastMonth).isNew(true).build())))
+                                .concatMap(i -> campaignTrackRepository.save(Objects.requireNonNull(
+                                CampaignTrack.builder().id(UUID.randomUUID()).campaignId(camp.getId()).trackName("NEW OPERATIONAL TRACK").sequenceOrder(i).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
                                 .then(campaignRepository.save(camp))));
                     }
 
@@ -678,8 +745,8 @@ public class CampaignService {
             campaign.setStatus(input.status() != null && !input.status().isBlank() ? input.status() : "ACTIVE");
 
             final List<Contract> contractProposals = proposal.contracts();
-            final String primaryEmp = contractProposals.get(0).getEmployerCategory().split(": ", 2)[0];
-            final String oppositionEmp = contractProposals.get(1).getEmployerCategory().split(": ", 2)[0];
+            final String primaryEmp = (input.employer() != null && !input.employer().isBlank()) ? input.employer() : contractProposals.get(0).getEmployerCategory().split(": ", 2)[0];
+            final String oppositionEmp = (input.opponent() != null && !input.opponent().isBlank()) ? input.opponent() : contractProposals.get(1).getEmployerCategory().split(": ", 2)[0];
 
             return campaignRepository.save(campaign).onErrorResume(DuplicateKeyException.class, e -> campaignRepository.findById(Objects.requireNonNull(campaign.getId())))
                     .flatMap(saved -> {
@@ -696,9 +763,17 @@ public class CampaignService {
                                         c.setEmployerFactionId(t.getT2().getId());
                                         return contractRepository.save(c);
                                     });
-                                    Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks()).index().concatMap(t -> campaignTrackRepository.save(Objects.requireNonNull(
-                                            CampaignTrack.builder().id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().oppositionComplication())
-                                                    .sequenceOrder(t.getT1().intValue()).monthIndex(t.getT1().intValue() + 1).isNew(true).build())));
+
+                                    IntSupplier monthSupplier = getMonthSupplier(trackIntensityTable, saved.getLengthInMonths(), saved.getTrackCount());
+
+                                    Flux<CampaignTrack> trackFlux = Flux.fromIterable(proposal.tracks()).index().concatMap(t -> {
+                                        int idx = t.getT1().intValue();
+                                        int monthIdx = monthSupplier.getAsInt();
+
+                                        return campaignTrackRepository.save(Objects.requireNonNull(
+                                                CampaignTrack.builder().id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().oppositionComplication())
+                                                        .sequenceOrder(idx).monthIndex(monthIdx).isNew(true).build()));
+                                    });
                                     return Mono.when(conFlux.then(), trackFlux.then()).thenReturn(saved);
                                 });
                     });
@@ -746,6 +821,67 @@ public class CampaignService {
                     return campaignInviteRepository.delete(invite).thenReturn(true);
                 })))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deleteInvite"));
+    }
+
+    private IntSupplier getMonthSupplier(List<IntensityTableEntry> table, int length, int trackCount) {
+        log.trace("[TRACE] Starting getMonthSupplier: length={}, tracks={}", length, trackCount);
+        Random rand = new Random();
+
+        IntensityTableEntry lengthEntry = table.stream()
+                .filter(e -> e.campaignLength() == length)
+                .findFirst().orElse(null);
+
+        if (lengthEntry == null) {
+            return new IntSupplier() {
+                private int current = 1;
+
+                @Override
+                public int getAsInt() {
+                    return current++;
+                }
+            };
+        }
+
+        IntensityTracksConfig config = lengthEntry.tracks();
+        int roll = rollDice(config.diceCount(), config.diceSides(), rand);
+
+        IntensityTrackCountEntry countEntry = config.tracks().stream()
+                .filter(e -> e.count() == trackCount)
+                .findFirst().orElse(null);
+
+        if (countEntry == null) {
+            return new IntSupplier() {
+                private int current = 1;
+
+                @Override
+                public int getAsInt() {
+                    return current++;
+                }
+            };
+        }
+
+        String intensityStr = countEntry.months().stream()
+                .filter(m -> roll >= m.minRoll() && roll <= m.maxRoll())
+                .map(IntensityMonthEntry::intensity)
+                .findFirst().orElse("");
+
+        List<Integer> distribution = new java.util.ArrayList<>();
+        for (int i = 0; i < intensityStr.length(); i++) {
+            int monthNum = i + 1;
+            int tracksThisMonth = Character.getNumericValue(intensityStr.charAt(i));
+            for (int t = 0; t < tracksThisMonth; t++) {
+                distribution.add(monthNum);
+            }
+        }
+
+        return new IntSupplier() {
+            private int index = 0;
+
+            @Override
+            public int getAsInt() {
+                return (index < distribution.size()) ? Objects.requireNonNull(distribution.get(index++)) : length;
+            }
+        };
     }
 
     public Flux<CampaignInvite> getCampaignInvites(@NonNull UUID campaignId) {
