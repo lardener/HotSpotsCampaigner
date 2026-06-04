@@ -152,6 +152,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         contracts: campaignQueryData?.getCampaign?.contracts || campaignFromProps?.contracts || []
     }), [campaignFromProps, campaignQueryData]);
 
+    // Determine the total number of months to display based on metadata and actual track data
+    const displayMonthCount = useMemo(() => {
+        const trackMax = (campaign?.tracks || []).reduce((max, t) => Math.max(max, t.monthIndex || 1), 0);
+        return Math.max(campaignLengthInMonths, trackMax, 1);
+    }, [campaignLengthInMonths, campaign?.tracks]);
+
     const opposition = useMemo(() =>
         campaign?.contracts?.find((c: Contract) => !c.primaryContract),
         [campaign]
@@ -862,7 +868,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     <div className="dashboard-section tactical-panel mb-30">
                         <h3 className="section-title">TRACK OPERATIONS</h3>
                         <div className="month-panel-grid mt-15" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                            {Array.from({ length: Math.max(1, campaignLengthInMonths) }, (_, i) => i + 1).map(mIdx => {
+                            {Array.from({ length: displayMonthCount }, (_, i) => i + 1).map(mIdx => {
                                 const monthTracks = (campaign?.tracks || []).filter((t: TrackDetail) => (t.monthIndex || 1) === mIdx)
                                     .sort((a: TrackDetail, b: TrackDetail) => a.sequenceOrder - b.sequenceOrder);
                                 return (

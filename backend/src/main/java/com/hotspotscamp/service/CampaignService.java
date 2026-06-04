@@ -837,7 +837,8 @@ public class CampaignService {
 
                 @Override
                 public int getAsInt() {
-                    return current++;
+                    int val = current++;
+                    return Math.min(val, length);
                 }
             };
         }
@@ -855,7 +856,8 @@ public class CampaignService {
 
                 @Override
                 public int getAsInt() {
-                    return current++;
+                    int val = current++;
+                    return Math.min(val, length);
                 }
             };
         }
