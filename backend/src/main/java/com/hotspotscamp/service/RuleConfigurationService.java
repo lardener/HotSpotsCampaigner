@@ -120,6 +120,14 @@ public class RuleConfigurationService {
 
     }
 
+    public record AttackerRule(String missionType, List<Integer> primaryAttackerRolls, List<String> attackerTracks, List<String> defenderTracks) {
+
+    }
+
+    public record AttackerDeterminationConfig(int diceCount, int diceSides, List<AttackerRule> rules) {
+
+    }
+
     public record ResolvedStepEntry(Integer step, Map<String, String> values) {
 
     }
@@ -137,6 +145,7 @@ public class RuleConfigurationService {
     private ContractStepsTableConfig contractStepsTableConfig;
     private ComplicationsTableConfig complicationsTableConfig;
     private Map<String, List<String>> factionOrganizations;
+    private AttackerDeterminationConfig attackerDeterminationConfig;
     private List<String> corporateSuffixes;
     private List<String> noblePrefixes;
     private List<String> availableFactions;
@@ -180,6 +189,8 @@ public class RuleConfigurationService {
         corporateSuffixes = loadList("corporateSuffixes.json", mapper);
         noblePrefixes = loadList("noblePrefixes.json", mapper);
         trackIntensityTable = loadMapTyped("trackIntensityTable.json", mapper, new TypeReference<>() {
+        });
+        attackerDeterminationConfig = loadMapTyped("attackerDeterminationTable.json", mapper, new TypeReference<>() {
         });
 
         String[] tableKeys = {"payRateTable", "salvageTable", "supportTable", "transportationTable", "commandRightsTable"};
@@ -289,5 +300,9 @@ public class RuleConfigurationService {
 
     public List<IntensityTableEntry> getTrackIntensityTable() {
         return trackIntensityTable;
+    }
+
+    public AttackerDeterminationConfig getAttackerDeterminationConfig() {
+        return attackerDeterminationConfig;
     }
 }
