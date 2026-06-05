@@ -1,26 +1,42 @@
 package com.hotspotscamp.service;
 
-import com.hotspotscamp.entity.Campaign;
-import com.hotspotscamp.entity.Contract;
-import com.hotspotscamp.dto.CampaignProposal;
-import com.hotspotscamp.dto.CampaignCreateInput;
-import com.hotspotscamp.dto.GeneratedTrack;
-import com.hotspotscamp.dto.RepairRules;
-import com.hotspotscamp.service.RuleConfigurationService.*;
-import com.hotspotscamp.util.RulesConstants;
-import com.hotspotscamp.util.TypeUtils;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
+
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import com.hotspotscamp.dto.CampaignCreateInput;
+import com.hotspotscamp.dto.CampaignProposal;
+import com.hotspotscamp.dto.GeneratedTrack;
+import com.hotspotscamp.dto.RepairRules;
+import com.hotspotscamp.entity.Campaign;
+import com.hotspotscamp.entity.Contract;
+import com.hotspotscamp.service.RuleConfigurationService.ComplicationRule;
+import com.hotspotscamp.service.RuleConfigurationService.ComplicationsTableConfig;
+import com.hotspotscamp.service.RuleConfigurationService.ContractTableConfigV2;
+import com.hotspotscamp.service.RuleConfigurationService.EmployerEntry;
+import com.hotspotscamp.service.RuleConfigurationService.EmployerTableConfig;
+import com.hotspotscamp.service.RuleConfigurationService.MissionTableConfig;
+import com.hotspotscamp.service.RuleConfigurationService.RollEntry;
+import com.hotspotscamp.service.RuleConfigurationService.RollToStepEntry;
+import com.hotspotscamp.service.RuleConfigurationService.SubTable;
+import com.hotspotscamp.service.RuleConfigurationService.SystemEntry;
+import com.hotspotscamp.service.RuleConfigurationService.SystemTableConfig;
+import com.hotspotscamp.service.RuleConfigurationService.TrackCountTableConfig;
+import com.hotspotscamp.service.RuleConfigurationService.TrackTableConfig;
+import com.hotspotscamp.util.RulesConstants;
+import com.hotspotscamp.util.TypeUtils;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class CampaignGenerationService {
 
-    private static final Logger log = LoggerFactory.getLogger(CampaignGenerationService.class);
     private final RuleConfigurationService configService;
 
     public CampaignProposal generateProposal(CampaignCreateInput input) {
@@ -233,7 +249,7 @@ public class CampaignGenerationService {
         return Math.max(1, Math.min(13, initialStep + empMod + missionMod));
     }
 
-    private String resolveStepValue(int step, String column) {
+    private String resolveStepValue(int step, @NonNull String column) {
         int currentStep = step;
         while (true) {
             final int lookup = currentStep;
@@ -241,7 +257,7 @@ public class CampaignGenerationService {
             if (entry == null) {
                 return "-";
             }
-            String val = switch (column) {
+            String val = switch (Objects.requireNonNull(column)) {
                 case "payRate" ->
                     entry.payRate();
                 case "salvageRights" ->

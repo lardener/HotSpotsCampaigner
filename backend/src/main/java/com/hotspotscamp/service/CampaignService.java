@@ -12,7 +12,12 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.hotspotscamp.dto.*;
+import com.hotspotscamp.dto.ActiveCampaignSummary;
+import com.hotspotscamp.dto.CampaignCreateInput;
+import com.hotspotscamp.dto.CampaignMetadata;
+import com.hotspotscamp.dto.CampaignProposal;
+import com.hotspotscamp.dto.GeneratedTrack;
+import com.hotspotscamp.dto.RepairRules;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignInvite;
@@ -200,7 +205,7 @@ public class CampaignService {
     @Transactional
     public Mono<Boolean> deleteInvite(@NonNull UUID inviteId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> campaignInviteRepository.findById(inviteId)
-                .flatMap(invite -> campaignRepository.findById(invite.getCampaignId())
+                .flatMap(invite -> campaignRepository.findById(Objects.requireNonNull(invite.getCampaignId()))
                 .flatMap(camp -> camp.getManagerId().equals(user.getId().toString())
                 ? campaignInviteRepository.delete(invite).thenReturn(true)
                 : Mono.error(new RuntimeException("Access Denied")))));

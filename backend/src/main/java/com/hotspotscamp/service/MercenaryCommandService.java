@@ -3,7 +3,6 @@ package com.hotspotscamp.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -15,6 +14,8 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotspotscamp.dto.RepairRules;
+import com.hotspotscamp.dto.TrackUpdateInput;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.CombatUnit;
@@ -33,7 +34,6 @@ import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
-import com.hotspotscamp.dto.*;
 import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.util.SqlUtils;
 import com.hotspotscamp.util.TypeUtils;
