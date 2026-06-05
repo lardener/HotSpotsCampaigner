@@ -3,6 +3,7 @@ package com.hotspotscamp.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -94,13 +95,6 @@ public class MercenaryCommandService {
      * Reactive sink for broadcasting command updates to subscribers.
      */
     private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
-
-    /**
-     * DTO for returning all assets belonging to a command.
-     */
-    public record CommandAssetsResponse(List<CombatUnit> units, List<Pilot> pilots) {
-
-    }
 
     /**
      * DTO for updating campaign details via GraphQL.
@@ -1065,10 +1059,12 @@ public class MercenaryCommandService {
                                                     return campaignService.reconcileTracks(c, targetTracks);
                                                 }
                                             }
-                                            c.setNew(false);
-                                            // Double-check flag before final theater save
-                                            return campaignRepository.save(Objects.requireNonNull(c));
-                                        });
+                                            return Mono.just(c);
+                                        })
+                                                .flatMap(c -> {
+                                                    c.setNew(false);
+                                                    return campaignRepository.save(Objects.requireNonNull(c));
+                                                });
                                     });
                         })
         )
@@ -1223,4 +1219,5 @@ public class MercenaryCommandService {
         )
                 .doOnTerminate(() -> log.trace("[TRACE] Finished importAssetsFromLink"));
     }
+
 }

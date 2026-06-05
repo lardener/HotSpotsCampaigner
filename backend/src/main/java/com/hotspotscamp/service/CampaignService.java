@@ -2,6 +2,7 @@ package com.hotspotscamp.service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -130,12 +131,34 @@ public class CampaignService {
                                     return conFlux.thenMany(Flux.fromIterable(proposal.tracks()).index())
                                             .concatMap(t -> campaignTrackRepository.save(Objects.requireNonNull(CampaignTrack.builder()
                                             .id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().oppositionComplication())
+                                            .attackerFactionId(primaryIsAttacker(input.mission(), t.getT2().name()) ? f1.getId() : f2.getId())
                                             .sequenceOrder(t.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
                                             .then(Mono.just(saved));
                                 });
                     });
         })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished generateDoblessCampaign"));
+    }
+
+    private boolean primaryIsAttacker(String mission, String trackName) {
+        boolean playerIsAttacker = false;
+        int roll = new Random().nextInt(6) + 1;
+
+        if ("Raid".equalsIgnoreCase(mission)) {
+            playerIsAttacker = roll >= 2;
+        } else if ("Defense".equalsIgnoreCase(mission) || "Retainer".equalsIgnoreCase(mission)) {
+            playerIsAttacker = roll == 1;
+        } else if ("Covert".equalsIgnoreCase(mission)) {
+            String name = trackName != null ? trackName : "";
+            if (name.contains("Recon") || name.contains("Strike")) {
+                playerIsAttacker = true;
+            } else if (name.contains("Pursuit") || name.contains("Flank") || name.contains("Retreat")) {
+                playerIsAttacker = false;
+            }
+        } else if ("Assault".equalsIgnoreCase(mission)) {
+            playerIsAttacker = roll >= 3;
+        }
+        return playerIsAttacker;
     }
 
     public Flux<CampaignInvite> getCampaignInvites(@NonNull UUID campaignId) {

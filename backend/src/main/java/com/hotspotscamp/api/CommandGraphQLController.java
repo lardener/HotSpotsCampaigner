@@ -4,6 +4,7 @@ import java.security.Principal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.service.CommandAssetsResponse;
 import com.hotspotscamp.service.MercenaryCommandService;
 
 import lombok.RequiredArgsConstructor;
@@ -60,7 +62,7 @@ public class CommandGraphQLController {
     }
 
     @QueryMapping
-    public Mono<MercenaryCommandService.CommandAssetsResponse> commandAssets(@Argument UUID commandId, Principal principal) {
+    public Mono<CommandAssetsResponse> commandAssets(@Argument UUID commandId, Principal principal) {
         log.trace("[TRACE] Entering commandAssets: id={}", commandId);
         if (commandId == null) {
             log.trace("[TRACE] Exiting commandAssets (null id)");
