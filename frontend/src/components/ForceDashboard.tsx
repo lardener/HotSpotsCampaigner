@@ -197,7 +197,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         {/* ACTIVE DETACHMENTS */}
                         <div className="detachments-container">
                             {detachments.map(det => (
-                                <DroppableZone key={det.id} id={det.id} title={`DETACHMENT: ${det.name}`}>
+                                <DroppableZone key={det.id} id={det.id} title={`DETACHMENT: ${det.name} (RATING: ${det.campaignRating || 0})`}>
                                     <div className="flex flex-gap-5 justify-end" style={{ marginBottom: '8px' }}>
                                         <button type="button" className="mode-btn theme-green xs-text" onClick={() => handleAddUnit(det.id)} title="Add unit directly to this detachment">+</button>
                                         <button type="button" className="mode-btn theme-green xs-text" onClick={() => handleHirePilot(det.id)} title="Add pilot directly to this detachment">👤+</button>
@@ -244,7 +244,17 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                     <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-status" title={`System: ${camp.systemName} | Tracks: ${camp.trackCount}`}>SYSTEM: {camp.systemName} | TRACKS: {camp.trackCount}</div>
-                                        <button type="button" className="mode-btn theme-blue sm-text mt-05rem">VIEW THEATER</button>
+                                        {camp.participatingDetachments && camp.participatingDetachments.length > 0 && (
+                                            <div className="mt-10" style={{ borderTop: '1px dashed var(--accent-dim)', paddingTop: '5px' }}>
+                                                <div className="restricted-text xs-text mb-2">DEPLOYED FORCES</div>
+                                                {camp.participatingDetachments.map((d: any) => (
+                                                    <div key={d.id} className="xs-text subdued">
+                                                        • {d.name} <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating || 0})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <button type="button" className="mode-btn theme-blue sm-text mt-10">VIEW THEATER</button>
                                     </div>
                                 ))}
                                 {managedCampaigns.length === 0 && (
@@ -261,7 +271,17 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                     <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-meta" title={`Employer: ${camp.primaryEmployer}`}>EMPLOYER: {camp.primaryEmployer}</div>
-                                        <div className="ops-meta">CURRENT WARCHEST: 4500 SP</div>
+                                        <div className="ops-meta">THEATER RATING: {detachments.find(d => d.campaignId === camp.id)?.campaignRating || 0}</div>
+                                        {camp.participatingDetachments && camp.participatingDetachments.length > 0 && (
+                                            <div className="mt-10" style={{ borderTop: '1px dashed var(--accent-dim)', paddingTop: '5px' }}>
+                                                <div className="restricted-text xs-text mb-2">THEATER FORCES</div>
+                                                {camp.participatingDetachments.map((d: any) => (
+                                                    <div key={d.id} className="xs-text subdued">
+                                                        • {d.name} <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating || 0})</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="ops-actions flex flex-gap-10">
                                             <button type="button" className="mode-btn theme-green sm-text mt-05rem">OPEN LOGBOOK</button>
                                         </div>

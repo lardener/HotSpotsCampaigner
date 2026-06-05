@@ -158,6 +158,7 @@ export interface Detachment {
     mercenaryCommandName?: string;
     units?: CombatUnit[];
     pilots?: Pilot[];
+    campaignRating?: number;
 }
 
 export type Command = MercenaryCommand;
@@ -266,6 +267,7 @@ export interface ActiveCampaignSummary {
     status: string;
     primaryEmployer: string;
     secondaryEmployer: string;
+    participatingDetachments?: Detachment[];
 }
 
 export interface ActiveCampaignPage {

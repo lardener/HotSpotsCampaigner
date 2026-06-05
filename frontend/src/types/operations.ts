@@ -113,6 +113,7 @@ export const FRAGMENT_DETACHMENT = gql`
     mercenaryCommandName
     campaignId
     campaignName
+    campaignRating
   }
 `;
 
@@ -171,8 +172,12 @@ export const GET_ACTIVE_CAMPAIGNS = gql`
       trackCount
       primaryEmployer
       secondaryEmployer
+      participatingDetachments {
+        ...DetachmentFields
+      }
     }
   }
+  ${FRAGMENT_DETACHMENT}
 `;
 
 export const GET_METADATA = gql`
@@ -603,8 +608,7 @@ export const GET_FORCE_DATA = gql`
         ...PilotFields
       }
       detachments {
-        id
-        name
+        ...DetachmentFields
       }
     }
     managedCampaigns(status: "ACTIVE") {
@@ -612,11 +616,17 @@ export const GET_FORCE_DATA = gql`
       name
       systemName
       trackCount
+      participatingDetachments {
+        ...DetachmentFields
+      }
     }
     participatingCampaigns(commandId: $commandId) {
       id
       name
       primaryEmployer
+      participatingDetachments {
+        ...DetachmentFields
+      }
     }
     publicCampaignMetadata {
       unitStatuses
@@ -626,6 +636,7 @@ export const GET_FORCE_DATA = gql`
   }
   ${FRAGMENT_COMMAND}
   ${FRAGMENT_PILOT}
+  ${FRAGMENT_DETACHMENT}
 `;
 
 // ==================== Ledger Operations ====================

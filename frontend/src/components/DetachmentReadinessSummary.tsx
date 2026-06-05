@@ -4,10 +4,11 @@ import { CombatUnit, Pilot } from '../types/global.d';
 interface Props {
     units: CombatUnit[];
     pilots: Pilot[];
+    campaignRating?: number;
     compact?: boolean;
 }
 
-export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, compact = false }) => {
+export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, campaignRating, compact = false }) => {
     const unitSummaries = Object.values(units.reduce((acc, u) => {
         const type = u.type || 'UNKNOWN';
         if (!acc[type]) acc[type] = { type, count: 0, tons: 0, bv: 0, pv: 0, sz: 0 };
@@ -32,6 +33,12 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, com
 
     return (
         <div className="flex flex-gap-20" style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: '15px' }}>
+            {campaignRating !== undefined && (
+                <div style={{ gridColumn: '1 / -1', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', marginBottom: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span className="restricted-text" style={{ fontSize: '0.65rem' }}>DETACHMENT CAMPAIGN RATING</span>
+                    <span className="terminal-text" style={{ color: 'var(--terminal-amber)', fontWeight: 'bold' }}>{campaignRating}</span>
+                </div>
+            )}
             <div>
                 <span className="restricted-text" style={{ fontSize: '0.6rem' }}>UNIT READINESS</span>
                 <table className="tactical-table sm-text" style={{ marginTop: '5px', fontSize: '0.7rem' }}>

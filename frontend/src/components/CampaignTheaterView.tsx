@@ -423,11 +423,22 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     </span>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr 1fr 1.5fr 1fr', gap: '20px', marginTop: '15px' }}>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>PRIMARY EMPLOYER</span> {camp.primaryEmployer || 'UNKNOWN'}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>OPPOSITION</span> {camp.secondaryEmployer || 'UNKNOWN'}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>LOCATION</span> {camp.systemName}</div>
                                     <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>TRACKS</span> {camp.trackCount}</div>
+                                    <div>
+                                        <span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>DETACHMENTS</span>
+                                        <div style={{ maxHeight: '60px', overflowY: 'auto' }}>
+                                            {camp.participatingDetachments?.map(d => (
+                                                <div key={d.id} className="sm-text" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    • {d.name} <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating || 0})</span>
+                                                </div>
+                                            ))}
+                                            {(!camp.participatingDetachments || camp.participatingDetachments.length === 0) && <span className="sm-text subdued">NONE</span>}
+                                        </div>
+                                    </div>
                                     <div className="text-right" style={{ alignSelf: 'end' }}>
                                         <button className="mode-btn" style={{ fontSize: '0.8rem' }} onClick={() => onSelectCampaign(camp.id)}>MANAGE THEATER</button>
                                     </div>
@@ -1134,8 +1145,14 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         })}
                                     >
                                         <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
-                                        <div className="asset-label" style={{ marginBottom: '10px' }}>{det.name}</div>
-                                        <DetachmentReadinessSummary units={det.units || []} pilots={det.pilots || []} />
+                                        <div className="asset-label" style={{ marginBottom: '10px', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>{det.name}</span>
+                                            <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating || 0}</span>
+                                        </div>
+                                        <DetachmentReadinessSummary
+                                            units={det.units || []}
+                                            pilots={det.pilots || []}
+                                        />
                                     </div>
                                     <button type="button" className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>
                                 </div>

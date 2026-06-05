@@ -35,6 +35,18 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
 }) => {
     const [detachmentForms, setDetachmentForms] = useState<DetachmentFormState[]>([]);
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
+    const [notices, setNotices] = useState<Record<string, string>>({});
+
+    const addNotice = (key: string, msg: string) => {
+        setNotices(prev => ({ ...prev, [key]: msg }));
+        setTimeout(() => {
+            setNotices(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            });
+        }, 5000);
+    };
 
     const calculateFormDefaults = (chargeType: DetachmentFormState['chargeType'], level: number, contractId: string) => {
         const contract = campaignDetails.contracts?.find(c => c.id === contractId);
@@ -65,23 +77,33 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     };
 
     useEffect(() => {
-        const initialForms: DetachmentFormState[] = detachments.map(det => {
-            const defaultContractId = campaignDetails.contracts?.[0]?.id || '';
-            const { amount, description } = calculateFormDefaults('Monthly Pay & Expenses', 1, defaultContractId); // Use defaultContractId
-            return {
-                detachmentId: det.id,
-                detachmentName: det.name,
-                mercenaryCommandId: det.mercenaryCommandId || '',
-                selectedContractId: defaultContractId,
-                selectedLevel: 1,
-                chargeType: 'Monthly Pay & Expenses',
-                amount,
-                description,
-                isSubmitting: false,
-                error: null,
-            };
+        setDetachmentForms(prevForms => {
+            // Create a lookup map of existing form states to preserve user input during prop refreshes
+            const existingFormsMap = new Map(prevForms.map(f => [f.detachmentId, f]));
+
+            return detachments.map(det => {
+                // If we already have state for this detachment, keep it
+                if (existingFormsMap.has(det.id)) {
+                    return existingFormsMap.get(det.id)!;
+                }
+
+                // Otherwise, initialize a new form row with defaults
+                const defaultContractId = campaignDetails.contracts?.[0]?.id || '';
+                const { amount, description } = calculateFormDefaults('Monthly Pay & Expenses', 1, defaultContractId);
+                return {
+                    detachmentId: det.id,
+                    detachmentName: det.name,
+                    mercenaryCommandId: det.mercenaryCommandId || '',
+                    selectedContractId: defaultContractId,
+                    selectedLevel: 1,
+                    chargeType: 'Monthly Pay & Expenses',
+                    amount,
+                    description,
+                    isSubmitting: false,
+                    error: null,
+                };
+            });
         });
-        setDetachmentForms(initialForms);
     }, [detachments, campaignDetails, currentMonthIndex]);
 
     const handleFormChange = (detachmentId: string, field: keyof DetachmentFormState, value: any) => {
@@ -122,6 +144,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                 }
             });
             onLedgerEntryAdded();
+            addNotice(form.detachmentId, `✓ COMMITTED: ${form.amount} SP`);
             setDetachmentForms(prevForms => prevForms.map(f =>
                 f.detachmentId === detachmentId ? { ...f, isSubmitting: false, error: null, amount: 0, description: '' } : f
             ));
@@ -235,6 +258,9 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                                     </div>
                                 </td>
                                 <td className="text-center">
+                                    {notices[form.detachmentId] && (
+                                        <div className="restricted-text theme-green xs-text blink-slow mb-5" style={{ whiteSpace: 'nowrap' }}>{notices[form.detachmentId]}</div>
+                                    )}
                                     <button
                                         className="mode-btn"
                                         onClick={() => handleCommit(form.detachmentId)}
@@ -256,6 +282,10 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                     )
                 }
             </div>
+            <style>{`
+                .xs-text { font-size: 0.65rem; }
+                .theme-green { color: var(--terminal-green); }
+            `}</style>
         </TerminalOverlay>
     );
 };

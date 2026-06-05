@@ -172,6 +172,7 @@ type Detachment {
     mercenaryCommandName: String
     units: [CombatUnit]
     pilots: [Pilot]
+    campaignRating: Int
 }
 
 type LedgerEntry {

@@ -9,6 +9,7 @@ import { LedgerDashboard } from './LedgerDashboard';
 import { CommandDashboard } from './CommandDashboard';
 import { CampaignTheaterView } from './CampaignTheaterView';
 import { MercenaryRegistryView } from './MercenaryRegistryView';
+import { PublicCampaignTheaterView } from './PublicCampaignTheaterView';
 import { Sidebar } from './Sidebar';
 import { Detachment, UserAccount } from '../types/global.d';
 import { MyDeploymentsList } from './MyDeploymentsList';
@@ -45,6 +46,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
     const [isChildSyncing, setIsChildSyncing] = useState(false);
+    const [publicViewingCampaignId, setPublicViewingCampaignId] = useState<string | null>(null);
 
     const [overlay, setOverlay] = useState<{
         title: string;
@@ -204,7 +206,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     if (det.campaignId) {
                         deploymentNodes.push({
                             id: `deployment-${det.id}`,
-                            label: `${cmd.name} - ${det.name}`,
+                            label: `${cmd.name} - ${det.name} (Rating: ${det.campaignRating || 0})`,
                             type: 'DEPLOYMENT' as NodeType,
                             metadata: { detachmentId: det.id, commandId: cmd.id }
                         });
@@ -243,7 +245,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     type: 'COMMAND' as NodeType,
                     children: cmd.detachments?.map((det: Detachment) => ({
                         id: `cmd-det-${det.id}`,
-                        label: det.name,
+                        label: `${det.name} (Rating: ${det.campaignRating || 0})`,
                         type: 'DETACHMENT' as NodeType,
                         metadata: { detachmentId: det.id, commandId: cmd.id }
                     }))
@@ -260,7 +262,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     type: 'CAMPAIGN' as NodeType,
                     children: camp.participatingDetachments?.map((det: Detachment) => ({
                         id: `camp-det-${det.id}`,
-                        label: det.name,
+                        label: `${det.name} (Rating: ${det.campaignRating || 0})`,
                         type: 'DETACHMENT' as NodeType,
                         metadata: {
                             detachmentId: det.id,
@@ -289,6 +291,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const handleTreeSelect = (item: TreeItem) => {
         // 1. Always exit creation mode when navigating via the tree
         setIsCreatingCommand(false);
+        setPublicViewingCampaignId(null);
         setSelectedNodeId(item.id);
 
         // 2. Map tree nodes to the specific pages described in the plan
@@ -395,6 +398,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
     // If not authenticated, show available campaigns and the generator
     if (!user) {
+        if (publicViewingCampaignId) {
+            return (
+                <div className="public-landing">
+                    <PublicCampaignTheaterView campaignId={publicViewingCampaignId} onBack={() => setPublicViewingCampaignId(null)} />
+                </div>
+            );
+        }
         return (
             <div className="public-landing">
                 <div className="landing-header" style={{ textAlign: 'center' }}>
@@ -427,7 +437,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 </div>
                 <div className="container landing-section">
                     <h2 className="section-title">AVAILABLE CAMPAIGNS</h2>
-                    <ActiveCampaignsList />
+                    <ActiveCampaignsList onSelectCampaign={setPublicViewingCampaignId} />
                 </div>
                 <div className="container landing-section mt-40">
                     <h2 className="section-title">CAMPAIGN GENERATOR</h2>
@@ -573,12 +583,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     />
                 ) : null;
             case 'public-campaigns':
+                if (publicViewingCampaignId) {
+                    return <PublicCampaignTheaterView campaignId={publicViewingCampaignId} onBack={() => setPublicViewingCampaignId(null)} />;
+                }
+
                 return (
                     <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
                         <header className="dashboard-header">
                             <h1 className="terminal-text">AVAILABLE CAMPAIGNS</h1>
                         </header> {/* Added title to button */}
-                        <ActiveCampaignsList />
+                        <ActiveCampaignsList onSelectCampaign={setPublicViewingCampaignId} />
                     </div>
                 );
             case 'my-deployments':

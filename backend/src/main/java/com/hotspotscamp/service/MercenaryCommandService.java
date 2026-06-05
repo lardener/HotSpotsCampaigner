@@ -412,6 +412,25 @@ public class MercenaryCommandService {
     }
 
     /**
+     * Calculates the campaign rating for a detachment by summing its ledger
+     * entries.
+     */
+    public Mono<Integer> getDetachmentRating(@NonNull UUID detachmentId, String campaignName) {
+        log.trace("[TRACE] Starting getDetachmentRating: id={}, campaignName={}", detachmentId, campaignName);
+        if (campaignName == null) {
+            return Mono.just(0);
+        }
+
+        String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
+                + "WHERE detachment_id = :id AND campaign_name = :campaignName";
+        var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "id", detachmentId);
+        spec = SqlUtils.bindString(spec, "campaignName", campaignName);
+        return spec.map((row, metadata) -> row.get("total", Number.class))
+                .one()
+                .map(total -> total != null ? total.intValue() : 0);
+    }
+
+    /**
      * Returns a stream of updates for a specific command.
      */
     public Flux<MercenaryCommand> getCommandUpdates(@NonNull UUID commandId) {

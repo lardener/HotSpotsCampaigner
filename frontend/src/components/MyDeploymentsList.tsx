@@ -42,9 +42,10 @@ export const MyDeploymentsList: React.FC<MyDeploymentsListProps> = ({ commands, 
                                 <h3 className="section-title" style={{ margin: 0 }}>{det.name}</h3>
                                 <span className="restricted-text" style={{ color: 'var(--terminal-green)' }}>[ DEPLOYED ]</span>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                                 <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>COMMAND</span> {det.commandName}</div>
                                 <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>CAMPAIGN</span> {det.campaignName || 'UNKNOWN THEATER'}</div>
+                                <div><span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>THEATER RATING</span> <span style={{ color: 'var(--terminal-amber)' }}>{det.campaignRating || 0}</span></div>
                             </div>
                         </div>
                     ))

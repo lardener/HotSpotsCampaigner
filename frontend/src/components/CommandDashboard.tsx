@@ -561,7 +561,11 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                     <section className="dashboard-section tactical-panel" data-id="FORCE-SUMMARY">
                         <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT READINESS' : 'COMMAND READINESS'}</h3>
-                        <DetachmentReadinessSummary units={filteredUnits} pilots={filteredPilots} />
+                        <DetachmentReadinessSummary
+                            units={filteredUnits}
+                            pilots={filteredPilots}
+                            campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating || 0) : undefined}
+                        />
                     </section>
 
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">

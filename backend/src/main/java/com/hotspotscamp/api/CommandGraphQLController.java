@@ -152,6 +152,18 @@ public class CommandGraphQLController {
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getDetachmentPilots"));
     }
 
+    @SchemaMapping(typeName = "Detachment", field = "campaignRating")
+    public Mono<Integer> getCampaignRating(Detachment detachment) {
+        log.trace("[TRACE] Entering getCampaignRating for detachment: {}", detachment.getId());
+        UUID campaignId = detachment.getCampaignId();
+        if (campaignId == null) {
+            return Mono.just(0);
+        }
+        return commandService.getCampaignName(campaignId)
+                .flatMap(name -> commandService.getDetachmentRating(detachment.getId(), name))
+                .defaultIfEmpty(0);
+    }
+
     @SchemaMapping(typeName = "MercenaryCommand", field = "allLedgerEntries")
     public Flux<LedgerEntry> getAllLedgerEntries(MercenaryCommand command) {
         log.trace("[TRACE] Entering getAllLedgerEntries for command: {}", command.getId());
