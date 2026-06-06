@@ -861,61 +861,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     </div>
 
                                     <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>ACTIVITY COSTS</h5>
-                                    <div className="grid-6-col flex-gap-10 mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>OMNI MOD</label>
-                                            {editingField === 'omnimechReconfigureModifier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={omnimechMod} autoFocus
-                                                        onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value); setEditingField(null); }}
-                                                        title="OmniMech reconfiguration cost modifier" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('omnimechReconfigureModifier')} tabIndex={0}>
-                                                    {omnimechMod}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>BUY MULT</label>
-                                            {editingField === 'purchaseUnitMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={purchaseMult} autoFocus
-                                                        onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('purchaseUnitMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Purchase unit multiplier" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('purchaseUnitMultiplier')} tabIndex={0}>
-                                                    {purchaseMult}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>SELL MULT</label>
-                                            {editingField === 'sellUnitMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={sellMult} autoFocus
-                                                        onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('sellUnitMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Sell unit multiplier" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('sellUnitMultiplier')} tabIndex={0}>
-                                                    {sellMult}
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="grid-7-col flex-gap-10 mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM TON</label>
                                             {editingField === 'rearmCostPerTon' ? (
@@ -1171,7 +1117,61 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     </div>
 
                                     <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>LOGISTICS & REPAIR MULTIPLIERS</h5>
-                                    <div className="grid-4-col flex-gap-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                    <div className="grid-5-col flex-gap-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>OMNI MOD</label>
+                                            {editingField === 'omnimechReconfigureModifier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={omnimechMod} autoFocus
+                                                        onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value); setEditingField(null); }}
+                                                        title="OmniMech reconfiguration cost modifier" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('omnimechReconfigureModifier')} tabIndex={0}>
+                                                    {omnimechMod}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>BUY MULT</label>
+                                            {editingField === 'purchaseUnitMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={purchaseMult} autoFocus
+                                                        onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('purchaseUnitMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Purchase unit multiplier" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('purchaseUnitMultiplier')} tabIndex={0}>
+                                                    {purchaseMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>SELL MULT</label>
+                                            {editingField === 'sellUnitMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={sellMult} autoFocus
+                                                        onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('sellUnitMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Sell unit multiplier" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('sellUnitMultiplier')} tabIndex={0}>
+                                                    {sellMult}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ARMOR MULT</label>
                                             {editingField === 'armorMultiplier' ? (
