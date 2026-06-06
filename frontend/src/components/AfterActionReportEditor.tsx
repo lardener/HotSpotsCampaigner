@@ -122,8 +122,8 @@ const useAarState = (campaign: CampaignDetail, track: TrackDetail, unitStatuses:
     return [state, dispatch] as const;
 };
 
-export const calculatePilotFinancials = (pState: { healed: number }, terms: any) => {
-    const rawMedicalCost = pState.healed * INJURY_HEAL_COST;
+export const calculatePilotFinancials = (pState: { healed: number }, terms: any, healCost: number) => {
+    const rawMedicalCost = pState.healed * healCost;
     let mercenaryCost = 0;
 
     if (terms.support.type === 'BATTLE') {
@@ -139,7 +139,7 @@ export const calculatePilotFinancials = (pState: { healed: number }, terms: any)
         mercenaryCost,
         mercenaryCostSigned: mercenaryCost * -1,
         healed: pState.healed,
-        injuryHealCost: INJURY_HEAL_COST,
+        injuryHealCost: healCost,
         supportType: terms.support.type,
         supportPct: terms.support.pct
     };
@@ -147,7 +147,7 @@ export const calculatePilotFinancials = (pState: { healed: number }, terms: any)
 
 export const calculateAwardFinancials = (campaign: CampaignDetail, terms: any) => {
     const baseCombatPay = campaign.combatPay || 0;
-    const payAward = Math.round(baseCombatPay * terms.outcomeMultiplier * terms.payRate * terms.selectedLevel);
+    const payAward = Math.round(baseCombatPay * terms.outcomeMultiplier * terms.selectedLevel);
     const salvageAward = Math.round(terms.salvageValue * terms.salvageCoverage);
     const total = payAward + salvageAward + terms.customAward;
 
@@ -172,9 +172,6 @@ interface AfterActionReportEditorProps {
     onClose: () => void | Promise<void>;
     onLedgerEntryAdded?: () => void | Promise<void>;
 }
-
-const AMMO_COST_PER_TON = 10;
-const INJURY_HEAL_COST = 30;
 
 // New helper function to calculate financial implications of a unit's status
 export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Partial<CampaignDetail> | undefined, statuses: string[]) => {
@@ -286,6 +283,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     }
 
     const repairRules = campaign || metaData?.publicCampaignMetadata;
+
+    const ammoCostPerTon = campaign.rearmCostPerTon ?? metaData?.publicCampaignMetadata?.rearmCostPerTon ?? 10;
+    const injuryHealCost = campaign.healMechWarriorPerWoundBoxCost ?? metaData?.publicCampaignMetadata?.healMechWarriorPerWoundBoxCost ?? 30;
+    const healMonthLimit = campaign.healMechWarriorPerMonthLimit ?? metaData?.publicCampaignMetadata?.healMechWarriorPerMonthLimit ?? 2;
 
     const getDetachmentTerms = (detId: string) => {
         const detAar = state.detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1.0, salvageValue: 0, customAward: 0 };
@@ -399,7 +400,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         } else {
             const repairCost = Math.ceil(baseRepairCost);
-            const ammoCost = uState.ammo * AMMO_COST_PER_TON;
+            const ammoCost = uState.ammo * ammoCostPerTon;
             const totalRawCost = repairCost + ammoCost;
 
             if (terms.support.type === 'BATTLE') {
@@ -470,7 +471,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         };
         const pState = state.pilotStates[pilot.id] || { injuries: 0, healed: 0 };
 
-        const financials = calculatePilotFinancials(pState, terms);
+        const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
         const finalCost = financials.mercenaryCostSigned;
 
         setErrorStates(prev => {
@@ -665,7 +666,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     {(() => {
                                         const t = getDetachmentTerms(det.id);
                                         const financials = calculateAwardFinancials(campaign, t);
-                                        const tooltip = `Combat Pay: ${financials.baseCombatPay} SP * ${financials.outcomeMultiplier} (Outcome) * ${financials.payRate} (Contract) * ${financials.selectedLevel} (Level) = ${financials.payAward} SP\n` +
+                                        const tooltip = `Combat Pay: ${financials.baseCombatPay} SP * ${financials.outcomeMultiplier} (Outcome) * ${financials.selectedLevel} (Level) = ${financials.payAward} SP\n` +
                                             `Salvage: ${financials.salvageValue} SP * ${financials.salvageCoverage} (Coverage) = ${financials.salvageAward} SP\n` +
                                             `Misc: ${financials.customAward} SP`;
                                         return (
@@ -730,7 +731,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 ammoInputDisabled = true;
                                             } else {
                                                 const repairCost = Math.ceil(baseRepairCost);
-                                                const ammoCost = uState.ammo * AMMO_COST_PER_TON;
+                                                const ammoCost = uState.ammo * ammoCostPerTon;
                                                 const totalRawCost = repairCost + ammoCost;
 
                                                 if (terms.support.type === 'BATTLE') {
@@ -740,7 +741,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 }
 
                                                 tooltip = `Base Repair: ${financials.tonnage}T * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
-                                                    `Ammo: ${uState.ammo}T x ${AMMO_COST_PER_TON} SP/T = ${uState.ammo * AMMO_COST_PER_TON} SP\n` +
+                                                    `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${uState.ammo * ammoCostPerTon} SP\n` +
                                                     `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
                                             }
 
@@ -824,7 +825,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         {det.pilots?.map((p: any) => {
                                             const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
                                             const terms = getDetachmentTerms(det.id);
-                                            const financials = calculatePilotFinancials(pState, terms);
+                                            const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
                                             const noticeKey = `${p.id}-medical`;
 
                                             const tooltip = `Medical Cost: ${financials.healed} injuries x ${financials.injuryHealCost} SP = ${financials.rawMedicalCost} SP\n` +
@@ -857,7 +858,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                             }}
                                                             title="Select number of injuries healed"
                                                         >
-                                                            {[0, 1, 2].map(v => <option key={v} value={v}>{v}</option>)}
+                                                            {[...Array(healMonthLimit + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
                                                         </select>
                                                     </td>
                                                     <td className="text-right" title={tooltip}>{pilotDisplayCost > 0 ? `+${pilotDisplayCost}` : pilotDisplayCost}</td>

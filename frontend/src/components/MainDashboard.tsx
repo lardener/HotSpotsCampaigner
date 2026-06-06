@@ -206,7 +206,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     if (det.campaignId) {
                         deploymentNodes.push({
                             id: `deployment-${det.id}`,
-                            label: `${cmd.name} - ${det.name} (Rating: ${det.campaignRating || 0})`,
+                            label: `${cmd.name} - ${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
                             type: 'DEPLOYMENT' as NodeType,
                             metadata: { detachmentId: det.id, commandId: cmd.id }
                         });
@@ -245,7 +245,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     type: 'COMMAND' as NodeType,
                     children: cmd.detachments?.map((det: Detachment) => ({
                         id: `cmd-det-${det.id}`,
-                        label: `${det.name} (Rating: ${det.campaignRating || 0})`,
+                        label: `${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
                         type: 'DETACHMENT' as NodeType,
                         metadata: { detachmentId: det.id, commandId: cmd.id }
                     }))
@@ -262,7 +262,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     type: 'CAMPAIGN' as NodeType,
                     children: camp.participatingDetachments?.map((det: Detachment) => ({
                         id: `camp-det-${det.id}`,
-                        label: `${det.name} (Rating: ${det.campaignRating || 0})`,
+                        label: `${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
                         type: 'DETACHMENT' as NodeType,
                         metadata: {
                             detachmentId: det.id,

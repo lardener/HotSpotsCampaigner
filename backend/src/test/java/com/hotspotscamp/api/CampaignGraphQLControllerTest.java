@@ -41,10 +41,11 @@ public class CampaignGraphQLControllerTest {
                 Collections.emptyList(),
                 Collections.emptyList(),
                 Collections.emptyList(),
-                null,
                 RulesConstants.UNIT_TYPES,
                 RulesConstants.TECH_BASES,
-                RulesConstants.UNIT_STATUS_OPTIONS
+                RulesConstants.UNIT_STATUS_OPTIONS,
+                0.5, 2.0, 3.0, 5.0, 0.5, 1.5, 2.0, 0.5,
+                40, 20, 10, 20, 100, 150, 20, 30, 2, 10, 500, 250, 250, 500, 750, 250
         );
         when(campaignService.getCampaignMetadata()).thenReturn(mockMeta);
 
@@ -75,7 +76,9 @@ public class CampaignGraphQLControllerTest {
                 .build();
 
         when(campaignService.generateProposal(any(CampaignCreateInput.class)))
-                .thenReturn(new CampaignProposal(previewCampaign, Collections.emptyList(), Collections.emptyList(), "Employer", "Opponent"));
+                .thenReturn(new CampaignProposal(previewCampaign, Collections.emptyList(), Collections.emptyList(), "Employer", "Opponent",
+                        0.5, 2.0, 3.0, 5.0, 0.5, 1.5, 2.0, 0.5,
+                        40, 20, 10, 20, 100, 150, 20, 30, 2, 10, 500, 250, 250, 500, 750, 250));
 
         String query = """
             query($input: CampaignCreateInput!) {

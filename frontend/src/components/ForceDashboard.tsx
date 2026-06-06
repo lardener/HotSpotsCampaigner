@@ -197,7 +197,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                         {/* ACTIVE DETACHMENTS */}
                         <div className="detachments-container">
                             {detachments.map(det => (
-                                <DroppableZone key={det.id} id={det.id} title={`DETACHMENT: ${det.name} (RATING: ${det.campaignRating || 0})`}>
+                                <DroppableZone key={det.id} id={det.id} title={`DETACHMENT: ${det.name}${det.campaignRating != null ? ` (RATING: ${det.campaignRating})` : ''}`}>
                                     <div className="flex flex-gap-5 justify-end" style={{ marginBottom: '8px' }}>
                                         <button type="button" className="mode-btn theme-green xs-text" onClick={() => handleAddUnit(det.id)} title="Add unit directly to this detachment">+</button>
                                         <button type="button" className="mode-btn theme-green xs-text" onClick={() => handleHirePilot(det.id)} title="Add pilot directly to this detachment">👤+</button>
@@ -271,13 +271,15 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                     <div key={camp.id} className="ops-item tactical-panel mb-05rem">
                                         <div className="ops-title">{camp.name}</div>
                                         <div className="ops-meta" title={`Employer: ${camp.primaryEmployer}`}>EMPLOYER: {camp.primaryEmployer}</div>
-                                        <div className="ops-meta">THEATER RATING: {detachments.find(d => d.campaignId === camp.id)?.campaignRating || 0}</div>
+                                        {detachments.find(d => d.campaignId === camp.id)?.campaignRating != null && (
+                                            <div className="ops-meta">THEATER RATING: {detachments.find(d => d.campaignId === camp.id)?.campaignRating}</div>
+                                        )}
                                         {camp.participatingDetachments && camp.participatingDetachments.length > 0 && (
                                             <div className="mt-10" style={{ borderTop: '1px dashed var(--accent-dim)', paddingTop: '5px' }}>
                                                 <div className="restricted-text xs-text mb-2">THEATER FORCES</div>
                                                 {camp.participatingDetachments.map((d: any) => (
                                                     <div key={d.id} className="xs-text subdued">
-                                                        • {d.name} <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating || 0})</span>
+                                                        • {d.name} {d.campaignRating != null && <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating})</span>}
                                                     </div>
                                                 ))}
                                             </div>

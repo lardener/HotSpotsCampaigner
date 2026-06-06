@@ -33,7 +33,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
 
     return (
         <div className="flex flex-gap-20" style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: '15px' }}>
-            {campaignRating !== undefined && (
+            {campaignRating != null && (
                 <div style={{ gridColumn: '1 / -1', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', marginBottom: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span className="restricted-text" style={{ fontSize: '0.65rem' }}>DETACHMENT CAMPAIGN RATING</span>
                     <span className="terminal-text" style={{ color: 'var(--terminal-amber)', fontWeight: 'bold' }}>{campaignRating}</span>

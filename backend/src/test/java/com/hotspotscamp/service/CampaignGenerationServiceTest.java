@@ -34,7 +34,10 @@ class CampaignGenerationServiceTest {
                 "Op Test", "Davion", "Kurita", "Raid", null, null, null, "Terra", null, "ACTIVE",
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                5, 5, null, null, null, null, null, null, Collections.emptyList()
+                5, 5, null, null, null, null,
+                null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                Collections.emptyList()
         );
 
         RuleConfigurationService.ContractTableConfigV2 mockTable = new RuleConfigurationService.ContractTableConfigV2(

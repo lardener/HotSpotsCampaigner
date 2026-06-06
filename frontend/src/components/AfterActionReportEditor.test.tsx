@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateAwardFinancials, calculateUnitFinancials, aarReducer, AarDataState, AarAction } from './AfterActionReportEditor';
+import { calculateAwardFinancials, calculateUnitFinancials, calculatePilotFinancials, aarReducer, AarDataState, AarAction } from './AfterActionReportEditor';
 import { CampaignDetail, CombatUnit, TrackDetail } from '../types/global.d';
 
 describe('AfterActionReportEditor Financial Helpers', () => {
     const mockCampaign = {
         combatPay: 1000,
-    } as CampaignDetail;
+    } as unknown as CampaignDetail;
 
     describe('calculateAwardFinancials', () => {
         it('should calculate standard successful award correctly', () => {
@@ -82,6 +82,41 @@ describe('AfterActionReportEditor Financial Helpers', () => {
         });
     });
 
+    describe('calculatePilotFinancials', () => {
+        const terms = {
+            support: { type: 'STRAIGHT', pct: 0.5 }
+        };
+        const healCost = 30;
+
+        it('should calculate medical cost with straight coverage', () => {
+            const pState = { healed: 2 };
+            const result = calculatePilotFinancials(pState, terms, healCost);
+
+            // 2 wounds * 30 SP = 60 Raw
+            // 50% Coverage = 30 Mercenary Cost
+            expect(result.rawMedicalCost).toBe(60);
+            expect(result.mercenaryCost).toBe(30);
+            expect(result.mercenaryCostSigned).toBe(-30);
+        });
+
+        it('should handle battle support (100% coverage)', () => {
+            const battleTerms = { support: { type: 'BATTLE', pct: 1.0 } };
+            const result = calculatePilotFinancials({ healed: 1 }, battleTerms, healCost);
+            expect(result.mercenaryCost).toBe(0);
+        });
+
+        it('should handle no support coverage', () => {
+            const noTerms = { support: { type: 'NONE', pct: 0 } };
+            const result = calculatePilotFinancials({ healed: 1 }, noTerms, healCost);
+            expect(result.mercenaryCost).toBe(30);
+        });
+
+        it('should use provided custom heal cost', () => {
+            const result = calculatePilotFinancials({ healed: 1 }, { support: { type: 'NONE', pct: 0 } }, 50);
+            expect(result.rawMedicalCost).toBe(50);
+        });
+    });
+
     describe('calculateUnitFinancials', () => {
         const mockUnit = {
             tonnage: 50,
@@ -91,7 +126,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
         } as CombatUnit;
 
         const statuses = ['OPERATIONAL', 'ARMOR DAMAGE', 'INTERNAL DAMAGE', 'CRIPPLED', 'DESTROYED', 'TRULY DESTROYED'];
-        const rules = {} as CampaignDetail; // Will use defaults
+        const rules = {} as unknown as CampaignDetail; // Will use defaults
 
         it('should return 0 cost for operational status', () => {
             const result = calculateUnitFinancials(mockUnit, 'OPERATIONAL', rules, statuses);
@@ -127,6 +162,14 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             // 1000 BV * 0.5 (baseline) * 1.5 (Mixed) = 750
             expect(result.baseReplacementValue).toBe(750);
             expect(result.isTrulyDestroyed).toBe(true);
+        });
+
+        it('should use custom salvage ratio from flattened campaign rules', () => {
+            const unit = { ...mockUnit, bv: 1000, techBase: 'Inner Sphere' } as CombatUnit;
+            // 10/40 = 0.25 salvage ratio
+            const customRules = { pvSellUnitMultiplier: 10, pvPurchaseUnitMultiplier: 40 } as unknown as CampaignDetail;
+            const result = calculateUnitFinancials(unit, 'TRULY DESTROYED', customRules, statuses);
+            expect(result.baseReplacementValue).toBe(250);
         });
     });
 

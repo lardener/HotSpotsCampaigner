@@ -57,15 +57,17 @@ public class TrackManagementService {
                                         return Mono.<Campaign>empty();
                                     }
 
+                                    String primaryRights = camp.getCommandRights() != null ? camp.getCommandRights() : (primary.getCommandRights() != null ? primary.getCommandRights() : "Independent");
                                     String oppRights = (opposition != null && opposition.getCommandRights() != null) ? opposition.getCommandRights() : "Independent";
                                     List<GeneratedTrack> existingGen = existing.stream().map(t -> new GeneratedTrack(t.getTrackName(), t.getComplications(), t.getOppositionComplications())).toList();
-                                    List<GeneratedTrack> allTracks = generationService.generateTracks(primary.getMissionType(), primary.getCommandRights(), oppRights, targetCount, existingGen);
+                                    List<GeneratedTrack> allTracks = generationService.generateTracks(primary.getMissionType(), primaryRights, oppRights, targetCount, existingGen);
                                     List<GeneratedTrack> newOnes = allTracks.subList(actualCount, allTracks.size());
 
                                     return Flux.fromIterable(newOnes).index().concatMap(tuple
                                             -> campaignTrackRepository.save(Objects.requireNonNull(CampaignTrack.builder()
                                                     .id(UUID.randomUUID()).campaignId(camp.getId()).trackName(tuple.getT2().name())
                                                     .complications(tuple.getT2().complication()).oppositionComplications(tuple.getT2().oppositionComplication())
+                                                    .attackerFactionId(primaryIsAttacker(primary.getMissionType(), tuple.getT2().name()) ? primary.getEmployerFactionId() : (opposition != null ? opposition.getEmployerFactionId() : null))
                                                     .sequenceOrder(actualCount + tuple.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
                                             .then(campaignRepository.save(camp));
                                 });
@@ -163,5 +165,38 @@ public class TrackManagementService {
                 }
             }
         };
+    }
+
+    public boolean primaryIsAttacker(String mission, String trackName) {
+        RuleConfigurationService.AttackerDeterminationConfig config = configService.getAttackerDeterminationConfig();
+        if (config == null || mission == null) {
+            return false;
+        }
+
+        // Extract base mission type (e.g. "Raid" from "Raid: Planetary")
+        String baseType = mission.split(":")[0].trim();
+
+        return config.rules().stream()
+                .filter(r -> r.missionType().equalsIgnoreCase(baseType))
+                .findFirst()
+                .map(rule -> {
+                    // 1. Check for track-based assignment (e.g. Covert tracks)
+                    if (trackName != null) {
+                        if (rule.attackerTracks() != null && rule.attackerTracks().stream().anyMatch(trackName::contains)) {
+                            return true;
+                        }
+                        if (rule.defenderTracks() != null && rule.defenderTracks().stream().anyMatch(trackName::contains)) {
+                            return false;
+                        }
+                    }
+
+                    // 2. Roll-based determination
+                    if (rule.primaryAttackerRolls() != null && !rule.primaryAttackerRolls().isEmpty()) {
+                        int roll = generationService.rollDice(config.diceCount(), config.diceSides(), new Random());
+                        return rule.primaryAttackerRolls().contains(roll);
+                    }
+                    return false;
+                })
+                .orElse(false);
     }
 }

@@ -2,7 +2,6 @@ package com.hotspotscamp.service;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -147,46 +146,13 @@ public class CampaignService {
                                     return conFlux.thenMany(Flux.fromIterable(proposal.tracks()).index())
                                             .concatMap(t -> campaignTrackRepository.save(Objects.requireNonNull(CampaignTrack.builder()
                                             .id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().oppositionComplication())
-                                            .attackerFactionId(primaryIsAttacker(proposal.contracts().get(0).getMissionType(), t.getT2().name()) ? f1.getId() : f2.getId())
+                                            .attackerFactionId(trackManagementService.primaryIsAttacker(proposal.contracts().get(0).getMissionType(), t.getT2().name()) ? f1.getId() : f2.getId())
                                             .sequenceOrder(t.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
                                             .then(Mono.just(saved));
                                 });
                     });
         })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished generateDoblessCampaign"));
-    }
-
-    private boolean primaryIsAttacker(String mission, String trackName) {
-        RuleConfigurationService.AttackerDeterminationConfig config = configService.getAttackerDeterminationConfig();
-        if (config == null || mission == null) {
-            return false;
-        }
-
-        // Extract base mission type (e.g. "Raid" from "Raid: Planetary")
-        String baseType = mission.split(":")[0].trim();
-
-        return config.rules().stream()
-                .filter(r -> r.missionType().equalsIgnoreCase(baseType))
-                .findFirst()
-                .map(rule -> {
-                    // 1. Check for track-based assignment (e.g. Covert tracks)
-                    if (trackName != null) {
-                        if (rule.attackerTracks() != null && rule.attackerTracks().stream().anyMatch(trackName::contains)) {
-                            return true;
-                        }
-                        if (rule.defenderTracks() != null && rule.defenderTracks().stream().anyMatch(trackName::contains)) {
-                            return false;
-                        }
-                    }
-
-                    // 2. Roll-based determination
-                    if (rule.primaryAttackerRolls() != null && !rule.primaryAttackerRolls().isEmpty()) {
-                        int roll = generationService.rollDice(config.diceCount(), config.diceSides(), new Random());
-                        return rule.primaryAttackerRolls().contains(roll);
-                    }
-                    return false;
-                })
-                .orElse(false);
     }
 
     public Flux<CampaignInvite> getCampaignInvites(@NonNull UUID campaignId) {

@@ -631,7 +631,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <div style={{ maxHeight: '60px', overflowY: 'auto' }}>
                                             {camp.participatingDetachments?.map(d => (
                                                 <div key={d.id} className="sm-text" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                    • {d.name} <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating || 0})</span>
+                                                    • {d.name} {d.campaignRating != null && <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating})</span>}
                                                 </div>
                                             ))}
                                             {(!camp.participatingDetachments || camp.participatingDetachments.length === 0) && <span className="sm-text subdued">NONE</span>}
@@ -962,7 +962,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={healMonth} autoFocus
                                                         onChange={(e) => setHealMonth(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('healMechWarriorPerMonthCost', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('healMechWarriorPerMonthLimit', e.target.value); setEditingField(null); }}
                                                         title="Heal MechWarrior per month cost" />
                                                 </div>
                                             ) : (
@@ -1034,7 +1034,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={ability1} autoFocus
                                                         onChange={(e) => setAbility1(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('learnFirstAbilityCost', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('learnCommandAbility1Cost', e.target.value); setEditingField(null); }}
                                                         title="Learn first ability cost" />
                                                 </div>
                                             ) : (
@@ -1052,7 +1052,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={ability2} autoFocus
                                                         onChange={(e) => setAbility2(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('learnSecondAbilityCost', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('learnCommandAbility2Cost', e.target.value); setEditingField(null); }}
                                                         title="Learn second ability cost" />
                                                 </div>
                                             ) : (
@@ -1070,7 +1070,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={ability3} autoFocus
                                                         onChange={(e) => setAbility3(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('learnThirdAbilityCost', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('learnCommandAbility3Cost', e.target.value); setEditingField(null); }}
                                                         title="Learn third ability cost" />
                                                 </div>
                                             ) : (
@@ -1088,7 +1088,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={replaceAbility} autoFocus
                                                         onChange={(e) => setReplaceAbility(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('replaceAbilityCost', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('replaceCommandAbilityCost', e.target.value); setEditingField(null); }}
                                                         title="Replace ability cost" />
                                                 </div>
                                             ) : (
@@ -1128,7 +1128,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={purchaseMult} autoFocus
                                                         onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('purchaseUnitMultiplier', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('pvPurchaseUnitMultiplier', e.target.value); setEditingField(null); }}
                                                         title="Purchase unit multiplier" />
                                                 </div>
                                             ) : (
@@ -1146,7 +1146,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         value={sellMult} autoFocus
                                                         onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
                                                         onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('sellUnitMultiplier', e.target.value); setEditingField(null); }}
+                                                        onBlur={(e) => { handleActivityCostUpdate('pvSellUnitMultiplier', e.target.value); setEditingField(null); }}
                                                         title="Sell unit multiplier" />
                                                 </div>
                                             ) : (
@@ -1598,9 +1598,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                     title="Attacker"
                                                                 >
                                                                     <option value="">[ ATK ]</option>
-                                                                    {campaign?.factions?.map((f: { id: string, factionName: string }) => (
-                                                                        <option key={f.id} value={f.id}>{f.factionName.substring(0, 3).toUpperCase()}</option>
-                                                                    ))}
+                                                                    {campaign?.factions?.map((f: { id: string, factionName: string }) => {
+                                                                        const isPri = campaign?.contracts?.find(c => c.primaryContract)?.employerCategory.startsWith(f.factionName);
+                                                                        return (
+                                                                            <option key={f.id} value={f.id}>{isPri ? 'Pri: ' : 'Opp: '}{f.factionName.substring(0, 3).toUpperCase()}</option>
+                                                                        );
+                                                                    })}
                                                                 </select>
                                                             ) : (
                                                                 <div
@@ -1608,7 +1611,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                     style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
                                                                     onClick={() => setActiveTrackField(`${track.id}-atk`)}
                                                                 >
-                                                                    {track.attackerFactionId ? campaign?.factions?.find((f: any) => f.id === track.attackerFactionId)?.factionName.substring(0, 3).toUpperCase() : '[ ATK ]'}
+                                                                    {(() => {
+                                                                        if (!track.attackerFactionId) return '[ ATK ]';
+                                                                        const f = campaign?.factions?.find((fac: any) => fac.id === track.attackerFactionId);
+                                                                        if (!f) return '[ ATK ]';
+                                                                        const isPri = campaign?.contracts?.find(c => c.primaryContract)?.employerCategory.startsWith(f.factionName);
+                                                                        return `${isPri ? 'Pri: ' : 'Opp: '}${f.factionName.substring(0, 3).toUpperCase()}`;
+                                                                    })()}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1655,7 +1664,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                         <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
                                         <div className="asset-label" style={{ marginBottom: '10px', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', display: 'flex', justifyContent: 'space-between' }}>
                                             <span>{det.name}</span>
-                                            <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating || 0}</span>
+                                            {det.campaignRating != null && <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating}</span>}
                                         </div>
                                         <DetachmentReadinessSummary
                                             units={det.units || []}

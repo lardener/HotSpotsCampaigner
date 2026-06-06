@@ -2,10 +2,8 @@ package com.hotspotscamp.api;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.graphql.data.method.annotation.Argument;
@@ -14,10 +12,12 @@ import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Controller;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-import com.hotspotscamp.dto.*;
+import com.hotspotscamp.dto.CampaignCreateInput;
+import com.hotspotscamp.dto.CampaignMetadata;
+import com.hotspotscamp.dto.CampaignProposal;
+import com.hotspotscamp.dto.GeneratedTrack;
+import com.hotspotscamp.dto.TrackUpdateInput;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignInvite;
@@ -32,6 +32,10 @@ import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.UserService;
+
+import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Controller
 @RequiredArgsConstructor

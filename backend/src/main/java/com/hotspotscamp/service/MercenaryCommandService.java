@@ -120,22 +120,22 @@ public class MercenaryCommandService {
             Double mixedTechModifier,
             Double clanTechModifier,
             Double omnimechReconfigureModifier,
-            Integer purchaseUnitMultiplier,
-            Integer sellUnitMultiplier,
+            Integer pvPurchaseUnitMultiplier,
+            Integer pvSellUnitMultiplier,
             Integer rearmCostPerTon,
             Integer rearmCostPerTonAlphaStrike,
             Integer hireMechWarriorCost,
             Integer hireNamedPilotCost,
             Integer hireBattleArmorCost,
             Integer healMechWarriorPerWoundBoxCost,
-            Integer healMechWarriorPerMonthCost,
+            Integer healMechWarriorPerMonthLimit,
             Integer healBattleArmorCost,
             Integer trainFormationCommanderCost,
             Integer changeFormationTrainingCost,
-            Integer learnFirstAbilityCost,
-            Integer learnSecondAbilityCost,
-            Integer learnThirdAbilityCost,
-            Integer replaceAbilityCost,
+            Integer learnCommandAbility1Cost,
+            Integer learnCommandAbility2Cost,
+            Integer learnCommandAbility3Cost,
+            Integer replaceCommandAbilityCost,
             Integer lengthInMonths,
             Integer trackCount,
             Double payRate,
@@ -435,8 +435,8 @@ public class MercenaryCommandService {
      */
     public Mono<Integer> getDetachmentRating(@NonNull UUID detachmentId, String campaignName) {
         log.trace("[TRACE] Starting getDetachmentRating: id={}, campaignName={}", detachmentId, campaignName);
-        if (campaignName == null) {
-            return Mono.just(0);
+        if (campaignName == null || campaignName.isBlank()) {
+            return Mono.empty();
         }
 
         String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
@@ -930,11 +930,11 @@ public class MercenaryCommandService {
                             if (input.omnimechReconfigureModifier() != null) {
                                 camp.setOmnimechReconfigureModifier(input.omnimechReconfigureModifier());
                             }
-                            if (input.purchaseUnitMultiplier() != null) {
-                                camp.setPvPurchaseUnitMultiplier(input.purchaseUnitMultiplier());
+                            if (input.pvPurchaseUnitMultiplier() != null) {
+                                camp.setPvPurchaseUnitMultiplier(input.pvPurchaseUnitMultiplier());
                             }
-                            if (input.sellUnitMultiplier() != null) {
-                                camp.setPvSellUnitMultiplier(input.sellUnitMultiplier());
+                            if (input.pvSellUnitMultiplier() != null) {
+                                camp.setPvSellUnitMultiplier(input.pvSellUnitMultiplier());
                             }
                             if (input.rearmCostPerTon() != null) {
                                 camp.setRearmCostPerTon(input.rearmCostPerTon());
@@ -954,8 +954,8 @@ public class MercenaryCommandService {
                             if (input.healMechWarriorPerWoundBoxCost() != null) {
                                 camp.setHealMechWarriorPerWoundBoxCost(input.healMechWarriorPerWoundBoxCost());
                             }
-                            if (input.healMechWarriorPerMonthCost() != null) {
-                                camp.setHealMechWarriorPerMonthLimit(input.healMechWarriorPerMonthCost());
+                            if (input.healMechWarriorPerMonthLimit() != null) {
+                                camp.setHealMechWarriorPerMonthLimit(input.healMechWarriorPerMonthLimit());
                             }
                             if (input.healBattleArmorCost() != null) {
                                 camp.setHealBattleArmorCost(input.healBattleArmorCost());
@@ -966,17 +966,17 @@ public class MercenaryCommandService {
                             if (input.changeFormationTrainingCost() != null) {
                                 camp.setChangeFormationTrainingCost(input.changeFormationTrainingCost());
                             }
-                            if (input.learnFirstAbilityCost() != null) {
-                                camp.setLearnCommandAbility1Cost(input.learnFirstAbilityCost());
+                            if (input.learnCommandAbility1Cost() != null) {
+                                camp.setLearnCommandAbility1Cost(input.learnCommandAbility1Cost());
                             }
-                            if (input.learnSecondAbilityCost() != null) {
-                                camp.setLearnCommandAbility2Cost(input.learnSecondAbilityCost());
+                            if (input.learnCommandAbility2Cost() != null) {
+                                camp.setLearnCommandAbility2Cost(input.learnCommandAbility2Cost());
                             }
-                            if (input.learnThirdAbilityCost() != null) {
-                                camp.setLearnCommandAbility3Cost(input.learnThirdAbilityCost());
+                            if (input.learnCommandAbility3Cost() != null) {
+                                camp.setLearnCommandAbility3Cost(input.learnCommandAbility3Cost());
                             }
-                            if (input.replaceAbilityCost() != null) {
-                                camp.setReplaceCommandAbilityCost(input.replaceAbilityCost());
+                            if (input.replaceCommandAbilityCost() != null) {
+                                camp.setReplaceCommandAbilityCost(input.replaceCommandAbilityCost());
                             }
                             log.trace("[TRACE] Updated flattened activity costs for campaign: id={}", camp.getId());
 
@@ -1210,9 +1210,14 @@ public class MercenaryCommandService {
                                 return Flux.error(new RuntimeException("Access Denied: Only the theater manager can reorder tracks."));
                             }
 
+                            boolean isSimpleMode = Objects.equals(camp.getLengthInMonths(), camp.getTrackCount());
+
                             return Flux.fromIterable(trackIds).index().flatMap(tuple
                                     -> campaignTrackRepository.findById(Objects.requireNonNull(tuple.getT2())).flatMap(track -> {
                                         track.setSequenceOrder(tuple.getT1().intValue());
+                                        if (isSimpleMode) {
+                                            track.setMonthIndex(tuple.getT1().intValue() + 1);
+                                        }
                                         track.setNew(false);
                                         return campaignTrackRepository.save(track);
                                     })

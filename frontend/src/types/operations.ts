@@ -199,22 +199,22 @@ export const GET_METADATA = gql`
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
     }
   }
 `;
@@ -240,22 +240,22 @@ export const PREVIEW_CAMPAIGN_RAW = `
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       contracts {
         employerCategory
         missionType
@@ -325,22 +325,22 @@ export const CREATE_CAMPAIGN = gql`
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
     }
   }
 `;
@@ -377,22 +377,22 @@ export const UPDATE_CAMPAIGN = gql`
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
     }
   }
 `;
@@ -426,22 +426,22 @@ export const GET_MANAGED_CAMPAIGNS = gql`
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       contracts {
         ...ContractFields
       }
@@ -523,22 +523,22 @@ export const GET_CAMPAIGN_DETAILS = gql`
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       factions {
         id
         factionName
@@ -677,22 +677,22 @@ export const GET_UNIT_DOSSIER = gql`
       mixedTechModifier
       clanTechModifier
       omnimechReconfigureModifier
-      purchaseUnitMultiplier
-      sellUnitMultiplier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
       rearmCostPerTon
       rearmCostPerTonAlphaStrike
       hireMechWarriorCost
       hireNamedPilotCost
       hireBattleArmorCost
       healMechWarriorPerWoundBoxCost
-      healMechWarriorPerMonthCost
+      healMechWarriorPerMonthLimit
       healBattleArmorCost
       trainFormationCommanderCost
       changeFormationTrainingCost
-      learnFirstAbilityCost
-      learnSecondAbilityCost
-      learnThirdAbilityCost
-      replaceAbilityCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
     }
   }
   ${FRAGMENT_COMMAND}

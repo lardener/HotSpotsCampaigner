@@ -111,7 +111,7 @@ export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps>
                             <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
                             <div className="asset-label" style={{ marginBottom: '10px', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', display: 'flex', justifyContent: 'space-between' }}>
                                 <span>{det.name}</span>
-                                <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating || 0}</span>
+                                {det.campaignRating != null && <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating}</span>}
                             </div>
                             <DetachmentReadinessSummary
                                 units={det.units || []}

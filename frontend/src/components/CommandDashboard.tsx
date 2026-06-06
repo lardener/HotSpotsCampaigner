@@ -564,7 +564,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         <DetachmentReadinessSummary
                             units={filteredUnits}
                             pilots={filteredPilots}
-                            campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating || 0) : undefined}
+                            campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
                         />
                     </section>
 
