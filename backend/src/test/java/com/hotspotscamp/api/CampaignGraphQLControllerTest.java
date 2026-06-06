@@ -1,11 +1,12 @@
 package com.hotspotscamp.api;
 
-import com.hotspotscamp.entity.Campaign;
-import com.hotspotscamp.service.CampaignService;
-import com.hotspotscamp.service.RuleConfigurationService;
-import com.hotspotscamp.dto.*;
-import com.hotspotscamp.util.RulesConstants;
-import com.hotspotscamp.service.UserService;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester;
@@ -13,12 +14,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.graphql.test.tester.GraphQlTester;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import com.hotspotscamp.dto.CampaignCreateInput;
+import com.hotspotscamp.dto.CampaignMetadata;
+import com.hotspotscamp.dto.CampaignProposal;
+import com.hotspotscamp.entity.Campaign;
+import com.hotspotscamp.service.CampaignService;
+import com.hotspotscamp.service.RuleConfigurationService;
+import com.hotspotscamp.service.UserService;
+import com.hotspotscamp.util.RulesConstants;
 
 @SpringBootTest
 @AutoConfigureGraphQlTester

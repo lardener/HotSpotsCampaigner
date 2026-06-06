@@ -1,23 +1,32 @@
 package com.hotspotscamp.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.hotspotscamp.dto.*;
+import com.hotspotscamp.dto.CampaignCreateInput;
+import com.hotspotscamp.dto.CampaignMetadata;
+import com.hotspotscamp.dto.CampaignProposal;
+import com.hotspotscamp.dto.GeneratedTrack;
 import com.hotspotscamp.entity.Campaign;
-import com.hotspotscamp.repository.*;
+import com.hotspotscamp.repository.CampaignFactionRepository;
+import com.hotspotscamp.repository.CampaignInviteRepository;
+import com.hotspotscamp.repository.CampaignRepository;
+import com.hotspotscamp.repository.CampaignTrackRepository;
+import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.repository.DetachmentRepository;
 
 import reactor.core.publisher.Mono;
 

@@ -1,24 +1,24 @@
 package com.hotspotscamp.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 import java.util.Collections;
 import java.util.UUID;
 import java.util.function.IntSupplier;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
-import com.hotspotscamp.repository.ContractRepository;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

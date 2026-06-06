@@ -1,5 +1,8 @@
 package com.hotspotscamp.api;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester;
@@ -8,15 +11,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.graphql.test.tester.GraphQlTester;
 import org.springframework.security.test.context.support.WithMockUser;
 
-import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.CampaignService;
+import com.hotspotscamp.service.MercenaryCommandService;
 
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureGraphQlTester
