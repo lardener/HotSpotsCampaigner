@@ -72,6 +72,23 @@ public class SchemaGenerator {
         sql.append("    `non_mech_modifier` DOUBLE,\n");
         sql.append("    `mixed_tech_modifier` DOUBLE,\n");
         sql.append("    `clan_tech_modifier` DOUBLE,\n");
+        sql.append("    `omnimech_reconfigure_modifier` DOUBLE,\n");
+        sql.append("    `purchase_unit_multiplier` INT,\n");
+        sql.append("    `sell_unit_multiplier` INT,\n");
+        sql.append("    `rearm_cost_per_ton` INT,\n");
+        sql.append("    `rearm_cost_per_ton_alpha_strike` INT,\n");
+        sql.append("    `hire_mechwarrior_cost` INT,\n");
+        sql.append("    `hire_named_pilot_cost` INT,\n");
+        sql.append("    `hire_battle_armor_cost` INT,\n");
+        sql.append("    `heal_mechwarrior_per_wound_box_cost` INT,\n");
+        sql.append("    `heal_mechwarrior_per_month_cost` INT,\n");
+        sql.append("    `heal_battle_armor_cost` INT,\n");
+        sql.append("    `train_formation_commander_cost` INT,\n");
+        sql.append("    `change_formation_training_cost` INT,\n");
+        sql.append("    `learn_first_ability_cost` INT,\n");
+        sql.append("    `learn_second_ability_cost` INT,\n");
+        sql.append("    `learn_third_ability_cost` INT,\n");
+        sql.append("    `replace_ability_cost` INT,\n");
         sql.append("    CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 

@@ -1,17 +1,18 @@
 package com.hotspotscamp.service;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.hotspotscamp.dto.CampaignCreateInput;
@@ -33,7 +34,7 @@ class CampaignGenerationServiceTest {
                 "Op Test", "Davion", "Kurita", "Raid", null, null, null, "Terra", null, "ACTIVE",
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                5, 5, null, null, null, null, null, Collections.emptyList()
+                5, 5, null, null, null, null, null, null, Collections.emptyList()
         );
 
         RuleConfigurationService.ContractTableConfigV2 mockTable = new RuleConfigurationService.ContractTableConfigV2(

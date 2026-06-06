@@ -59,6 +59,23 @@ CREATE TABLE campaigns (
     `non_mech_modifier` DOUBLE,
     `mixed_tech_modifier` DOUBLE,
     `clan_tech_modifier` DOUBLE,
+    `omnimech_reconfigure_modifier` DOUBLE,
+    `purchase_unit_multiplier` INT,
+    `sell_unit_multiplier` INT,
+    `rearm_cost_per_ton` INT,
+    `rearm_cost_per_ton_alpha_strike` INT,
+    `hire_mechwarrior_cost` INT,
+    `hire_named_pilot_cost` INT,
+    `hire_battle_armor_cost` INT,
+    `heal_mechwarrior_per_wound_box_cost` INT,
+    `heal_mechwarrior_per_month_cost` INT,
+    `heal_battle_armor_cost` INT,
+    `train_formation_commander_cost` INT,
+    `change_formation_training_cost` INT,
+    `learn_first_ability_cost` INT,
+    `learn_second_ability_cost` INT,
+    `learn_third_ability_cost` INT,
+    `replace_ability_cost` INT,
     CONSTRAINT fk_campaign_manager FOREIGN KEY (manager_id) REFERENCES app_users(id)
 );
 
@@ -223,3 +240,4 @@ CREATE TABLE faction_reputations (
     CONSTRAINT fk_reputation_faction FOREIGN KEY (campaign_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE,
     CONSTRAINT fk_reputation_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE
 );
+

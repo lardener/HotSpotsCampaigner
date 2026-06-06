@@ -7,7 +7,9 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.hotspotscamp.dto.ActivityCosts;
 import com.hotspotscamp.dto.RepairRules;
 
 import lombok.AllArgsConstructor;
@@ -68,9 +70,64 @@ public class Campaign implements Persistable<UUID> {
     @Column("clan_tech_modifier")
     private Double clanTechModifier;
 
+    // R2DBC Persisted Activity Costs
+    @Column("omnimech_reconfigure_modifier")
+    private Double omnimechReconfigureModifier;
+
+    @Column("purchase_unit_multiplier")
+    private Integer purchaseUnitMultiplier;
+
+    @Column("sell_unit_multiplier")
+    private Integer sellUnitMultiplier;
+
+    @Column("rearm_cost_per_ton")
+    private Integer rearmCostPerTon;
+
+    @Column("rearm_cost_per_ton_alpha_strike")
+    private Integer rearmCostPerTonAlphaStrike;
+
+    @Column("hire_mechwarrior_cost")
+    private Integer hireMechWarriorCost;
+
+    @Column("hire_named_pilot_cost")
+    private Integer hireNamedPilotCost;
+
+    @Column("hire_battle_armor_cost")
+    private Integer hireBattleArmorCost;
+
+    @Column("heal_mechwarrior_per_wound_box_cost")
+    private Integer healMechWarriorPerWoundBoxCost;
+
+    @Column("heal_mechwarrior_per_month_cost")
+    private Integer healMechWarriorPerMonthCost;
+
+    @Column("heal_battle_armor_cost")
+    private Integer healBattleArmorCost;
+
+    @Column("train_formation_commander_cost")
+    private Integer trainFormationCommanderCost;
+
+    @Column("change_formation_training_cost")
+    private Integer changeFormationTrainingCost;
+
+    @Column("learn_first_ability_cost")
+    private Integer learnFirstAbilityCost;
+
+    @Column("learn_second_ability_cost")
+    private Integer learnSecondAbilityCost;
+
+    @Column("learn_third_ability_cost")
+    private Integer learnThirdAbilityCost;
+
+    @Column("replace_ability_cost")
+    private Integer replaceAbilityCost;
+
     // Transient object for business logic compatibility
     @Transient
     private RepairRules repairRules;
+
+    @Transient
+    private ActivityCosts activityCosts;
 
     @Transient
     @Builder.Default

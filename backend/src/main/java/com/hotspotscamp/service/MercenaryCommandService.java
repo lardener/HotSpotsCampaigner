@@ -14,6 +14,7 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotspotscamp.dto.ActivityCosts;
 import com.hotspotscamp.dto.RepairRules;
 import com.hotspotscamp.dto.TrackUpdateInput;
 import com.hotspotscamp.entity.Campaign;
@@ -112,6 +113,7 @@ public class MercenaryCommandService {
             Integer transportationCost,
             Integer combatPay,
             RepairRules repairRules,
+            ActivityCosts activityCosts,
             Integer lengthInMonths,
             Integer trackCount,
             Double payRate,
@@ -882,7 +884,6 @@ public class MercenaryCommandService {
                             log.trace("[TRACE] Updated basic campaign details for campaign: id={}", camp.getId());
                             if (input.repairRules() != null) {
                                 RepairRules rules = input.repairRules();
-                                camp.setRepairRules(rules);
                                 if (rules.armorMultiplier() != null) {
                                     camp.setArmorMultiplier(rules.armorMultiplier());
                                 }
@@ -906,6 +907,63 @@ public class MercenaryCommandService {
                                 }
                             }
                             log.trace("[TRACE] Updated repair rules for campaign: id={}", camp.getId());
+
+                            if (input.activityCosts() != null) {
+                                ActivityCosts costs = input.activityCosts();
+                                if (costs.omnimechReconfigureModifier() != null) {
+                                    camp.setOmnimechReconfigureModifier(costs.omnimechReconfigureModifier());
+                                }
+                                if (costs.purchaseUnitMultiplier() != null) {
+                                    camp.setPurchaseUnitMultiplier(costs.purchaseUnitMultiplier());
+                                }
+                                if (costs.sellUnitMultiplier() != null) {
+                                    camp.setSellUnitMultiplier(costs.sellUnitMultiplier());
+                                }
+                                if (costs.rearmCostPerTon() != null) {
+                                    camp.setRearmCostPerTon(costs.rearmCostPerTon());
+                                }
+                                if (costs.rearmCostPerTonAlphaStrike() != null) {
+                                    camp.setRearmCostPerTonAlphaStrike(costs.rearmCostPerTonAlphaStrike());
+                                }
+                                if (costs.hireMechWarriorCost() != null) {
+                                    camp.setHireMechWarriorCost(costs.hireMechWarriorCost());
+                                }
+                                if (costs.hireNamedPilotCost() != null) {
+                                    camp.setHireNamedPilotCost(costs.hireNamedPilotCost());
+                                }
+                                if (costs.hireBattleArmorCost() != null) {
+                                    camp.setHireBattleArmorCost(costs.hireBattleArmorCost());
+                                }
+                                if (costs.healMechWarriorPerWoundBoxCost() != null) {
+                                    camp.setHealMechWarriorPerWoundBoxCost(costs.healMechWarriorPerWoundBoxCost());
+                                }
+                                if (costs.healMechWarriorPerMonthCost() != null) {
+                                    camp.setHealMechWarriorPerMonthCost(costs.healMechWarriorPerMonthCost());
+                                }
+                                if (costs.healBattleArmorCost() != null) {
+                                    camp.setHealBattleArmorCost(costs.healBattleArmorCost());
+                                }
+                                if (costs.trainFormationCommanderCost() != null) {
+                                    camp.setTrainFormationCommanderCost(costs.trainFormationCommanderCost());
+                                }
+                                if (costs.changeFormationTrainingCost() != null) {
+                                    camp.setChangeFormationTrainingCost(costs.changeFormationTrainingCost());
+                                }
+                                if (costs.learnFirstAbilityCost() != null) {
+                                    camp.setLearnFirstAbilityCost(costs.learnFirstAbilityCost());
+                                }
+                                if (costs.learnSecondAbilityCost() != null) {
+                                    camp.setLearnSecondAbilityCost(costs.learnSecondAbilityCost());
+                                }
+                                if (costs.learnThirdAbilityCost() != null) {
+                                    camp.setLearnThirdAbilityCost(costs.learnThirdAbilityCost());
+                                }
+                                if (costs.replaceAbilityCost() != null) {
+                                    camp.setReplaceAbilityCost(costs.replaceAbilityCost());
+                                }
+                                log.trace("[TRACE] Updated activity costs for campaign: id={}", camp.getId());
+                            }
+
                             return contractRepository.findAllByCampaignId(camp.getId()).collectList()
                                     .flatMap(contracts -> {
                                         Contract primary = contracts.stream()

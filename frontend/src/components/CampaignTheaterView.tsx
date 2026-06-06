@@ -5,7 +5,16 @@ import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
-import { Detachment, CampaignDetail, TrackDetail, CampaignInvite, Contract, CreateInviteVars } from '../types/global.d';
+import {
+    Detachment,
+    CampaignDetail,
+    TrackDetail,
+    CampaignInvite,
+    Contract,
+    CreateInviteVars,
+    RepairRules,
+    ActivityCosts
+} from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
     GET_METADATA,
@@ -76,6 +85,285 @@ interface CampaignTheaterViewProps {
     onSyncChange?: (syncing: boolean) => void;
 }
 
+interface TheaterCampaign extends CampaignDetail {
+    repairRules?: RepairRules;
+    activityCosts?: ActivityCosts;
+}
+
+/**
+ * Custom hook to manage campaign theater state and server synchronization.
+ */
+const useTheaterCampaignSync = (
+    managedData: { managedCampaigns: CampaignDetail[] } | undefined,
+    campaignQueryData: CampaignDetailsData | undefined,
+    metaData: MetadataDataFull | undefined,
+    selectedCampaignId: string | null,
+    queryLoading: boolean,
+    updateCampaign: any,
+    rerollTrack: any,
+    refetchCampaign: any,
+    onSyncChange?: (syncing: boolean) => void,
+    onRefresh?: () => Promise<void>
+) => {
+    const [isSyncing, setIsSyncing] = useState(false);
+    const saveTimeoutRef = useRef<Record<string, number>>({});
+
+    const metaRules = metaData?.publicCampaignMetadata?.repairRules;
+    const metaCosts = metaData?.publicCampaignMetadata?.activityCosts;
+
+    // Local UI states for advanced parameters
+    const [monthlyPay, setMonthlyPay] = useState(500);
+    const [monthlyMaintenance, setMonthlyMaintenance] = useState(500);
+    const [transportationCost, setTransportationCost] = useState(300);
+    const [combatPay, setCombatPay] = useState(500);
+    const [armorMult, setArmorMult] = useState(0.5);
+    const [internalMult, setInternalMult] = useState(2.0);
+    const [crippledMult, setCrippledMult] = useState(3.0);
+    const [destroyedMult, setDestroyedMult] = useState(5.0);
+    const [nonMechMod, setNonMechMod] = useState(0.5);
+    const [mixedTechTax, setMixedTechTax] = useState(1.5);
+    const [clanTechTax, setClanTechTax] = useState(2.0);
+    const [omnimechMod, setOmnimechMod] = useState(0.5);
+    const [purchaseMult, setPurchaseMult] = useState(40);
+    const [sellMult, setSellMult] = useState(20);
+    const [rearmTon, setRearmTon] = useState(10);
+    const [rearmAS, setRearmAS] = useState(20);
+    const [hireMW, setHireMW] = useState(100);
+    const [hirePilot, setHirePilot] = useState(150);
+    const [hireBA, setHireBA] = useState(20);
+    const [healWound, setHealWound] = useState(30);
+    const [healMonth, setHealMonth] = useState(2);
+    const [healBA, setHealBA] = useState(10);
+    const [trainCmd, setTrainCmd] = useState(500);
+    const [trainForm, setTrainForm] = useState(250);
+    const [ability1, setAbility1] = useState(250);
+    const [ability2, setAbility2] = useState(500);
+    const [ability3, setAbility3] = useState(750);
+    const [replaceAbility, setReplaceAbility] = useState(250);
+    const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(1);
+    const [campaignTrackCount, setCampaignTrackCount] = useState(0);
+
+    // Merge props data with fresh query data for theater management
+    const campaign: TheaterCampaign = useMemo(() => {
+        const campaignFromProps = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
+        const baseCampaign = (campaignFromProps || {}) as Partial<TheaterCampaign>;
+
+        // Ensure detailed query data only applies to the matching campaign ID.
+        // This prevents data bleeding from previous theater views during loading.
+        const queryCampaign = (campaignQueryData?.getCampaign?.id === selectedCampaignId)
+            ? (campaignQueryData.getCampaign as Partial<TheaterCampaign>)
+            : {};
+
+        return {
+            ...baseCampaign,
+            ...queryCampaign,
+            id: queryCampaign.id || baseCampaign.id || selectedCampaignId || '',
+            contracts: queryCampaign.contracts || baseCampaign.contracts || []
+        } as TheaterCampaign;
+    }, [managedData, campaignQueryData, selectedCampaignId]);
+
+    // Derived state for theater layout
+    const displayMonthCount = useMemo(() => {
+        const trackMax = (campaign.tracks || []).reduce((max: number, t: TrackDetail) => Math.max(max, t.monthIndex || 1), 0);
+        return Math.max(campaignLengthInMonths, trackMax, 1);
+    }, [campaignLengthInMonths, campaign?.tracks]);
+
+    const opposition = useMemo(() =>
+        campaign?.contracts?.find((c: Contract) => !c.primaryContract),
+        [campaign]
+    );
+
+    const campaignInvites = campaignQueryData?.getCampaign?.campaignInvites || [];
+
+    useEffect(() => {
+        onSyncChange?.(queryLoading || isSyncing);
+    }, [queryLoading, isSyncing, onSyncChange]);
+
+    useEffect(() => {
+        const timeouts = saveTimeoutRef.current;
+        return () => Object.values(timeouts).forEach(clearTimeout);
+    }, []);
+
+    // Sync local input states with campaign data on load/refetch
+    useEffect(() => {
+        if (!campaign || !selectedCampaignId) return;
+
+        setCampaignLengthInMonths(campaign?.lengthInMonths || 1);
+        setCampaignTrackCount(campaign?.trackCount || 0);
+        setMonthlyPay(campaign?.monthlyPay || 500);
+        setMonthlyMaintenance(campaign?.monthlyMaintenance || 500);
+        setTransportationCost(campaign?.transportationCost || 300);
+        setCombatPay(campaign?.combatPay || 500);
+
+        // Always reset repair and activity costs to defaults before applying campaign values.
+        // This prevents data bleeding between campaigns when switching theaters.
+        setArmorMult(campaign.repairRules?.armorMultiplier ?? metaRules?.armorMultiplier ?? 0.5);
+        setInternalMult(campaign.repairRules?.internalMultiplier ?? metaRules?.internalMultiplier ?? 2.0);
+        setCrippledMult(campaign.repairRules?.crippledMultiplier ?? metaRules?.crippledMultiplier ?? 3.0);
+        setDestroyedMult(campaign.repairRules?.destroyedMultiplier ?? metaRules?.destroyedMultiplier ?? 5.0);
+        setNonMechMod(campaign.repairRules?.nonMechModifier ?? metaRules?.nonMechModifier ?? 0.5);
+        setMixedTechTax(campaign.repairRules?.mixedTechModifier ?? metaRules?.mixedTechModifier ?? 1.5);
+        setClanTechTax(campaign.repairRules?.clanTechModifier ?? metaRules?.clanTechModifier ?? 2.0);
+
+        setOmnimechMod(campaign.activityCosts?.omnimechReconfigureModifier ?? metaCosts?.omnimechReconfigureModifier ?? 0.5);
+        setPurchaseMult(campaign.activityCosts?.purchaseUnitMultiplier ?? metaCosts?.purchaseUnitMultiplier ?? 40);
+        setSellMult(campaign.activityCosts?.sellUnitMultiplier ?? metaCosts?.sellUnitMultiplier ?? 20);
+        setRearmTon(campaign.activityCosts?.rearmCostPerTon ?? metaCosts?.rearmCostPerTon ?? 10);
+        setRearmAS(campaign.activityCosts?.rearmCostPerTonAlphaStrike ?? metaCosts?.rearmCostPerTonAlphaStrike ?? 20);
+        setHireMW(campaign.activityCosts?.hireMechWarriorCost ?? metaCosts?.hireMechWarriorCost ?? 100);
+        setHirePilot(campaign.activityCosts?.hireNamedPilotCost ?? metaCosts?.hireNamedPilotCost ?? 150);
+        setHireBA(campaign.activityCosts?.hireBattleArmorCost ?? metaCosts?.hireBattleArmorCost ?? 20);
+        setHealWound(campaign.activityCosts?.healMechWarriorPerWoundBoxCost ?? metaCosts?.healMechWarriorPerWoundBoxCost ?? 30);
+        setHealMonth(campaign.activityCosts?.healMechWarriorPerMonthCost ?? metaCosts?.healMechWarriorPerMonthCost ?? 2);
+        setHealBA(campaign.activityCosts?.healBattleArmorCost ?? metaCosts?.healBattleArmorCost ?? 10);
+        setTrainCmd(campaign.activityCosts?.trainFormationCommanderCost ?? metaCosts?.trainFormationCommanderCost ?? 500);
+        setTrainForm(campaign.activityCosts?.changeFormationTrainingCost ?? metaCosts?.changeFormationTrainingCost ?? 250);
+        setAbility1(campaign.activityCosts?.learnFirstAbilityCost ?? metaCosts?.learnFirstAbilityCost ?? 250);
+        setAbility2(campaign.activityCosts?.learnSecondAbilityCost ?? metaCosts?.learnSecondAbilityCost ?? 500);
+        setAbility3(campaign.activityCosts?.learnThirdAbilityCost ?? metaCosts?.learnThirdAbilityCost ?? 750);
+        setReplaceAbility(campaign.activityCosts?.replaceAbilityCost ?? metaCosts?.replaceAbilityCost ?? 250);
+    }, [campaign, selectedCampaignId, metaData]);
+
+    const handleUpdate = (field: string, value: string | number) => {
+        const targetId = selectedCampaignId;
+        if (!targetId) return;
+        const key = `camp-${field}`;
+        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
+
+        saveTimeoutRef.current[key] = setTimeout(async () => {
+            if (selectedCampaignId !== targetId) return;
+            setIsSyncing(true);
+            const input: { [key: string]: any } = { [field]: value };
+            const numericFields = ['trackCount', 'lengthInMonths', 'monthlyPay', 'monthlyMaintenance', 'transportationCost', 'combatPay'];
+            if (numericFields.includes(field)) {
+                const val = parseInt(value as string) || 0;
+                if (field === 'trackCount' || field === 'lengthInMonths') {
+                    input[field] = Math.max(1, val);
+                } else {
+                    input[field] = Math.max(0, val);
+                }
+            }
+            await updateCampaign({ variables: { id: targetId, input } });
+            await refetchCampaign();
+            if (onRefresh) await onRefresh();
+            setIsSyncing(false);
+        }, 1000) as unknown as number;
+    };
+
+    const handleRepairRuleUpdate = (field: string, value: string | number) => {
+        const targetId = selectedCampaignId;
+        if (!targetId) return;
+        const key = `camp-repair-${field}`;
+        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
+
+        saveTimeoutRef.current[key] = setTimeout(async () => {
+            if (selectedCampaignId !== targetId) return;
+            setIsSyncing(true);
+            const val = parseFloat(value as string) || 0;
+            const input = {
+                repairRules: {
+                    [field]: val
+                }
+            };
+
+            await updateCampaign({ variables: { id: targetId, input } });
+            await refetchCampaign();
+            setIsSyncing(false);
+        }, 1000) as unknown as number;
+    };
+
+    const handleActivityCostUpdate = (field: string, value: string | number) => {
+        const targetId = selectedCampaignId;
+        if (!targetId) return;
+        const key = `camp-activity-${field}`;
+        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
+
+        saveTimeoutRef.current[key] = setTimeout(async () => {
+            if (selectedCampaignId !== targetId) return;
+            setIsSyncing(true);
+            const isFloat = field === 'omnimechReconfigureModifier';
+            const val = isFloat ? parseFloat(value as string) : parseInt(value as string);
+            const input = {
+                activityCosts: {
+                    [field]: isNaN(val) ? 0 : val
+                }
+            };
+
+            await updateCampaign({ variables: { id: targetId, input } });
+            await refetchCampaign();
+            setIsSyncing(false);
+        }, 1000) as unknown as number;
+    };
+
+    const handleReroll = async (trackId: string) => {
+        setIsSyncing(true);
+        try {
+            await rerollTrack({ variables: { id: trackId } });
+            await refetchCampaign();
+        } catch (err) { console.error(err); }
+        setIsSyncing(false);
+    };
+
+    const performStatusUpdate = async (newStatus: string) => {
+        setIsSyncing(true);
+        await updateCampaign({
+            variables: {
+                id: selectedCampaignId,
+                input: { status: newStatus }
+            }
+        });
+        await refetchCampaign();
+        if (onRefresh) await onRefresh();
+        setIsSyncing(false);
+    };
+
+    return {
+        campaign,
+        isSyncing,
+        setIsSyncing,
+        displayMonthCount,
+        opposition,
+        campaignInvites,
+        params: {
+            monthlyPay, setMonthlyPay,
+            monthlyMaintenance, setMonthlyMaintenance,
+            transportationCost, setTransportationCost,
+            combatPay, setCombatPay,
+            armorMult, setArmorMult,
+            internalMult, setInternalMult,
+            crippledMult, setCrippledMult,
+            destroyedMult, setDestroyedMult,
+            nonMechMod, setNonMechMod,
+            mixedTechTax, setMixedTechTax,
+            clanTechTax, setClanTechTax,
+            omnimechMod, setOmnimechMod,
+            purchaseMult, setPurchaseMult,
+            sellMult, setSellMult,
+            rearmTon, setRearmTon,
+            rearmAS, setRearmAS,
+            hireMW, setHireMW,
+            hirePilot, setHirePilot,
+            hireBA, setHireBA,
+            healWound, setHealWound,
+            healMonth, setHealMonth,
+            healBA, setHealBA,
+            trainCmd, setTrainCmd,
+            trainForm, setTrainForm,
+            ability1, setAbility1,
+            ability2, setAbility2,
+            ability3, setAbility3,
+            replaceAbility, setReplaceAbility,
+            campaignLengthInMonths, setCampaignLengthInMonths,
+            campaignTrackCount, setCampaignTrackCount
+        },
+        handleUpdate,
+        handleRepairRuleUpdate,
+        handleActivityCostUpdate,
+        handleReroll,
+        performStatusUpdate
+    };
+};
+
 export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     managedData,
     loadingManaged,
@@ -89,8 +377,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onRefresh,
     onSyncChange
 }) => {
-    const campaignFromProps = managedData?.managedCampaigns.find((c) => c.id === selectedCampaignId);
-
     // --- Queries & Mutations ---
     const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId: selectedCampaignId || '' },
@@ -108,11 +394,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [reorderTracks] = useMutation(REORDER_TRACKS);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
 
-    // --- Refs ---
-    const saveTimeoutRef = useRef<Record<string, number>>({});
-
     // --- State ---
-    const [isSyncing, setIsSyncing] = useState(false);
+    const saveTimeoutRef = useRef<Record<string, number>>({});
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
@@ -128,70 +411,66 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
     const [editingField, setEditingField] = useState<string | null>(null);
     const [activeTrackField, setActiveTrackField] = useState<string | null>(null);
-    const [monthlyPay, setMonthlyPay] = useState(500);
-    const [monthlyMaintenance, setMonthlyMaintenance] = useState(500);
-    const [transportationCost, setTransportationCost] = useState(300);
-    const [combatPay, setCombatPay] = useState(500);
-    const [armorMult, setArmorMult] = useState(0.5);
-    const [internalMult, setInternalMult] = useState(2.0);
-    const [crippledMult, setCrippledMult] = useState(3.0);
-    const [destroyedMult, setDestroyedMult] = useState(5.0);
-    const [nonMechMod, setNonMechMod] = useState(0.5);
-    const [mixedTechTax, setMixedTechTax] = useState(1.5);
-    const [clanTechTax, setClanTechTax] = useState(2.0);
     const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
-    const [campaignLengthInMonths, setCampaignLengthInMonths] = useState(1);
-    const [campaignTrackCount, setCampaignTrackCount] = useState(0);
 
-    // --- Memos ---
-    // Merge props data with fresh query data for theater management
-    const campaign = useMemo(() => ({
-        ...campaignFromProps,
-        ...(campaignQueryData?.getCampaign || {}),
-        // Ensure contracts are always an array, even if empty from query
-        contracts: campaignQueryData?.getCampaign?.contracts || campaignFromProps?.contracts || []
-    }), [campaignFromProps, campaignQueryData]);
-
-    // Determine the total number of months to display based on metadata and actual track data
-    const displayMonthCount = useMemo(() => {
-        const trackMax = (campaign?.tracks || []).reduce((max, t) => Math.max(max, t.monthIndex || 1), 0);
-        return Math.max(campaignLengthInMonths, trackMax, 1);
-    }, [campaignLengthInMonths, campaign?.tracks]);
-
-    const opposition = useMemo(() =>
-        campaign?.contracts?.find((c: Contract) => !c.primaryContract),
-        [campaign]
+    const {
+        campaign,
+        isSyncing,
+        setIsSyncing,
+        displayMonthCount,
+        opposition,
+        campaignInvites,
+        params,
+        handleUpdate,
+        handleRepairRuleUpdate,
+        handleActivityCostUpdate,
+        handleReroll,
+        performStatusUpdate
+    } = useTheaterCampaignSync(
+        managedData,
+        campaignQueryData,
+        metaData,
+        selectedCampaignId,
+        loading,
+        updateCampaign,
+        rerollTrack,
+        refetchCampaign,
+        onSyncChange,
+        onRefresh
     );
 
-    const campaignInvites = campaignQueryData?.getCampaign?.campaignInvites || [];
-
-    // --- Effects ---
-    useEffect(() => {
-        onSyncChange?.(loading || isSyncing);
-    }, [loading, isSyncing, onSyncChange]);
-
-    useEffect(() => {
-        const timeouts = saveTimeoutRef.current;
-        return () => Object.values(timeouts).forEach(clearTimeout);
-    }, []);
-
-    useEffect(() => {
-        setCampaignLengthInMonths(campaign?.lengthInMonths || 1);
-        setCampaignTrackCount(campaign?.trackCount || 0);
-        setMonthlyPay(campaign?.monthlyPay || 500);
-        setMonthlyMaintenance(campaign?.monthlyMaintenance || 500);
-        setTransportationCost(campaign?.transportationCost || 300);
-        setCombatPay(campaign?.combatPay || 500);
-        if (campaign.repairRules) {
-            setArmorMult(campaign.repairRules.armorMultiplier || 0.5);
-            setInternalMult(campaign.repairRules.internalMultiplier || 2.0);
-            setCrippledMult(campaign.repairRules.crippledMultiplier || 3.0);
-            setDestroyedMult(campaign.repairRules.destroyedMultiplier || 5.0);
-            setNonMechMod(campaign.repairRules.nonMechModifier || 0.5);
-            setMixedTechTax(campaign.repairRules.mixedTechModifier || 1.5);
-            setClanTechTax(campaign.repairRules.clanTechModifier || 2.0);
-        }
-    }, [campaign]);
+    const {
+        monthlyPay, setMonthlyPay,
+        monthlyMaintenance, setMonthlyMaintenance,
+        transportationCost, setTransportationCost,
+        combatPay, setCombatPay,
+        armorMult, setArmorMult,
+        internalMult, setInternalMult,
+        crippledMult, setCrippledMult,
+        destroyedMult, setDestroyedMult,
+        nonMechMod, setNonMechMod,
+        mixedTechTax, setMixedTechTax,
+        clanTechTax, setClanTechTax,
+        omnimechMod, setOmnimechMod,
+        purchaseMult, setPurchaseMult,
+        sellMult, setSellMult,
+        rearmTon, setRearmTon,
+        rearmAS, setRearmAS,
+        hireMW, setHireMW,
+        hirePilot, setHirePilot,
+        hireBA, setHireBA,
+        healWound, setHealWound,
+        healMonth, setHealMonth,
+        healBA, setHealBA,
+        trainCmd, setTrainCmd,
+        trainForm, setTrainForm,
+        ability1, setAbility1,
+        ability2, setAbility2,
+        ability3, setAbility3,
+        replaceAbility, setReplaceAbility,
+        campaignLengthInMonths, setCampaignLengthInMonths,
+        campaignTrackCount, setCampaignTrackCount
+    } = params;
 
     const handleGenerateInvite = () => {
         if (!selectedCampaignId) return;
@@ -209,54 +488,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 setOverlay(prev => ({ ...prev, isOpen: false }));
             }
         });
-    };
-
-    const handleUpdate = (field: string, value: string | number) => {
-        if (!selectedCampaignId) return;
-        const key = `camp-${field}`;
-        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
-
-        saveTimeoutRef.current[key] = setTimeout(async () => {
-            setIsSyncing(true);
-            const input: { [key: string]: any } = { [field]: value };
-            // Ensure numbers are parsed correctly for trackCount and lengthInMonths
-            const numericFields = ['trackCount', 'lengthInMonths', 'monthlyPay', 'monthlyMaintenance', 'transportationCost', 'combatPay'];
-            if (numericFields.includes(field)) {
-                const val = parseInt(value as string) || 0;
-                if (field === 'trackCount' || field === 'lengthInMonths') {
-                    input[field] = Math.max(1, val);
-                } else {
-                    input[field] = Math.max(0, val);
-                }
-            }
-            await updateCampaign({ variables: { id: selectedCampaignId, input } });
-            await refetchCampaign();
-            if (onRefresh) await onRefresh();
-            setIsSyncing(false);
-        }, 1000) as unknown as number;
-    };
-
-    const handleRepairRuleUpdate = (field: string, value: string | number) => {
-        if (!selectedCampaignId) return;
-        const key = `camp-repair-${field}`;
-        if (saveTimeoutRef.current[key]) clearTimeout(saveTimeoutRef.current[key]);
-
-        saveTimeoutRef.current[key] = setTimeout(async () => {
-            setIsSyncing(true);
-            const val = parseFloat(value as string) || 0;
-            const { __typename, ...currentRules } = (campaign as any).repairRules || {};
-
-            const input = {
-                repairRules: {
-                    ...currentRules,
-                    [field]: val
-                }
-            };
-
-            await updateCampaign({ variables: { id: selectedCampaignId, input } });
-            await refetchCampaign();
-            setIsSyncing(false);
-        }, 1000) as unknown as number;
     };
 
     const handleDeleteInvite = (inviteId: string) => {
@@ -285,16 +516,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 ? "WARNING: DEACTIVATING THEATER WILL EJECT ALL DEPLOYED DETACHMENTS. PROCEED?"
                 : "RESTORE THEATER TO ACTIVE RECRUITMENT STATUS?",
             onConfirm: async () => {
-                setIsSyncing(true);
-                await updateCampaign({
-                    variables: {
-                        id: selectedCampaignId,
-                        input: { status: newStatus }
-                    }
-                });
-                await refetchCampaign();
-                if (onRefresh) await onRefresh();
-                setIsSyncing(false);
+                await performStatusUpdate(newStatus);
                 setOverlay(prev => ({ ...prev, isOpen: false }));
             }
         });
@@ -315,14 +537,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         }, 1000) as unknown as number;
     };
 
-    const handleReroll = async (trackId: string) => {
-        setIsSyncing(true);
-        try {
-            await rerollTrack({ variables: { id: trackId } });
-            await refetchCampaign();
-        } catch (err) { console.error(err); }
-        setIsSyncing(false);
-    };
     const handleDrop = async (e: React.DragEvent, targetMonth: number, targetTrackId?: string) => {
         e.preventDefault();
         setDragOverMonth(null);
@@ -641,6 +855,316 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                 <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
                                                     onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
                                                     {combatPay}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>ACTIVITY COSTS</h5>
+                                    <div className="grid-6-col flex-gap-10 mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>OMNI MOD</label>
+                                            {editingField === 'omnimechReconfigureModifier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={omnimechMod} autoFocus
+                                                        onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value); setEditingField(null); }}
+                                                        title="OmniMech reconfiguration cost modifier" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('omnimechReconfigureModifier')} tabIndex={0}>
+                                                    {omnimechMod}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>BUY MULT</label>
+                                            {editingField === 'purchaseUnitMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={purchaseMult} autoFocus
+                                                        onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('purchaseUnitMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Purchase unit multiplier" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('purchaseUnitMultiplier')} tabIndex={0}>
+                                                    {purchaseMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>SELL MULT</label>
+                                            {editingField === 'sellUnitMultiplier' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={sellMult} autoFocus
+                                                        onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('sellUnitMultiplier', e.target.value); setEditingField(null); }}
+                                                        title="Sell unit multiplier" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('sellUnitMultiplier')} tabIndex={0}>
+                                                    {sellMult}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM TON</label>
+                                            {editingField === 'rearmCostPerTon' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={rearmTon} autoFocus
+                                                        onChange={(e) => setRearmTon(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('rearmCostPerTon', e.target.value); setEditingField(null); }}
+                                                        title="Rearm cost per ton" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('rearmCostPerTon')} tabIndex={0}>
+                                                    {rearmTon}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM AS</label>
+                                            {editingField === 'rearmCostPerTonAlphaStrike' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={rearmAS} autoFocus
+                                                        onChange={(e) => setRearmAS(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('rearmCostPerTonAlphaStrike', e.target.value); setEditingField(null); }}
+                                                        title="Rearm cost per ton (Alpha Strike)" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('rearmCostPerTonAlphaStrike')} tabIndex={0}>
+                                                    {rearmAS}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE MW</label>
+                                            {editingField === 'hireMechWarriorCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={hireMW} autoFocus
+                                                        onChange={(e) => setHireMW(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('hireMechWarriorCost', e.target.value); setEditingField(null); }}
+                                                        title="Hire MechWarrior cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('hireMechWarriorCost')} tabIndex={0}>
+                                                    {hireMW}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE PILOT</label>
+                                            {editingField === 'hireNamedPilotCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={hirePilot} autoFocus
+                                                        onChange={(e) => setHirePilot(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('hireNamedPilotCost', e.target.value); setEditingField(null); }}
+                                                        title="Hire named pilot cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('hireNamedPilotCost')} tabIndex={0}>
+                                                    {hirePilot}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE BA</label>
+                                            {editingField === 'hireBattleArmorCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={hireBA} autoFocus
+                                                        onChange={(e) => setHireBA(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('hireBattleArmorCost', e.target.value); setEditingField(null); }}
+                                                        title="Hire Battle Armor cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('hireBattleArmorCost')} tabIndex={0}>
+                                                    {hireBA}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL WOUND</label>
+                                            {editingField === 'healMechWarriorPerWoundBoxCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={healWound} autoFocus
+                                                        onChange={(e) => setHealWound(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('healMechWarriorPerWoundBoxCost', e.target.value); setEditingField(null); }}
+                                                        title="Heal MechWarrior per wound box cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('healMechWarriorPerWoundBoxCost')} tabIndex={0}>
+                                                    {healWound}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL MONTH</label>
+                                            {editingField === 'healMechWarriorPerMonthCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={healMonth} autoFocus
+                                                        onChange={(e) => setHealMonth(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('healMechWarriorPerMonthCost', e.target.value); setEditingField(null); }}
+                                                        title="Heal MechWarrior per month cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('healMechWarriorPerMonthCost')} tabIndex={0}>
+                                                    {healMonth}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL BA</label>
+                                            {editingField === 'healBattleArmorCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={healBA} autoFocus
+                                                        onChange={(e) => setHealBA(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('healBattleArmorCost', e.target.value); setEditingField(null); }}
+                                                        title="Heal Battle Armor cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('healBattleArmorCost')} tabIndex={0}>
+                                                    {healBA}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN CMD</label>
+                                            {editingField === 'trainFormationCommanderCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={trainCmd} autoFocus
+                                                        onChange={(e) => setTrainCmd(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('trainFormationCommanderCost', e.target.value); setEditingField(null); }}
+                                                        title="Train formation commander cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('trainFormationCommanderCost')} tabIndex={0}>
+                                                    {trainCmd}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN FORM</label>
+                                            {editingField === 'changeFormationTrainingCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={trainForm} autoFocus
+                                                        onChange={(e) => setTrainForm(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('changeFormationTrainingCost', e.target.value); setEditingField(null); }}
+                                                        title="Change formation training cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('changeFormationTrainingCost')} tabIndex={0}>
+                                                    {trainForm}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 1</label>
+                                            {editingField === 'learnFirstAbilityCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={ability1} autoFocus
+                                                        onChange={(e) => setAbility1(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('learnFirstAbilityCost', e.target.value); setEditingField(null); }}
+                                                        title="Learn first ability cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('learnFirstAbilityCost')} tabIndex={0}>
+                                                    {ability1}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 2</label>
+                                            {editingField === 'learnSecondAbilityCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={ability2} autoFocus
+                                                        onChange={(e) => setAbility2(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('learnSecondAbilityCost', e.target.value); setEditingField(null); }}
+                                                        title="Learn second ability cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('learnSecondAbilityCost')} tabIndex={0}>
+                                                    {ability2}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 3</label>
+                                            {editingField === 'learnThirdAbilityCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={ability3} autoFocus
+                                                        onChange={(e) => setAbility3(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('learnThirdAbilityCost', e.target.value); setEditingField(null); }}
+                                                        title="Learn third ability cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('learnThirdAbilityCost')} tabIndex={0}>
+                                                    {ability3}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REPLACE ABIL</label>
+                                            {editingField === 'replaceAbilityCost' ? (
+                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
+                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={replaceAbility} autoFocus
+                                                        onChange={(e) => setReplaceAbility(parseInt(e.target.value) || 0)}
+                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                                                        onBlur={(e) => { handleActivityCostUpdate('replaceAbilityCost', e.target.value); setEditingField(null); }}
+                                                        title="Replace ability cost" />
+                                                </div>
+                                            ) : (
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setEditingField('replaceAbilityCost')} tabIndex={0}>
+                                                    {replaceAbility}
                                                 </div>
                                             )}
                                         </div>

@@ -17,8 +17,6 @@ public class RulesConstants {
     // Command Initialization
     public static final int STARTING_SUPPORT_POINTS = 3000;
     public static final int STARTING_REPUTATION = 1;
-    public static final int BASE_UNIT_UPKEEP = 50; // Per unit per month
-    public static final int BASE_PILOT_UPKEEP = 20; // Per pilot per month
 
     // Repair Multipliers (Cost = Tonnage * Multiplier)
     public static final double REPAIR_MULT_ARMOR = 0.5;
@@ -28,6 +26,25 @@ public class RulesConstants {
     public static final double REPAIR_MULT_NON_MECH_MODIFIER = 0.5; // For CV, BA, CI
     public static final double REPAIR_MULT_MIXED_TECH = 1.5;
     public static final double REPAIR_MULT_CLAN_TECH = 2.0;
+
+    // SP Activity Costs
+    public static final double OMNIMECH_RECONFIGURE_MODIFIER = 0.5;
+    public static final int PURCHASE_UNIT_POINT_VALUE_MULTIPLIER = 40;
+    public static final int SELLING_UNIT_POINT_VALUE_MULTIPLIER = 20;
+    public static final int REARM_COST_PER_TON = 10;
+    public static final int REARM_COST_ALPHA_STRIKE = 20;
+    public static final int HIRE_NON_NAMED_MECHWARRIOR_CREW = 100;
+    public static final int HIRE_NAMED_PILOT = 150;
+    public static final int HIRE_BATTLE_ARMOR_TROOPER = 20;
+    public static final int HEAL_MECHWARRIOR_PER_WOUND_BOX = 30;
+    public static final int HEAL_MECHWARRIOR_PER_MONTH = 2;
+    public static final int HEAL_BATTLE_ARMOR_TROOPER = 10;
+    public static final int TRAIN_FORMATION_COMMANDER = 500;
+    public static final int CHANGE_FORMATION_TRAINING = 250;
+    public static final int LEARN_FIRST_COMMAND_ABILITY = 250;
+    public static final int LEARN_SECOND_COMMAND_ABILITY = 500;
+    public static final int LEARN_THIRD_COMMAND_ABILITY = 750;
+    public static final int REPLACE_COMMAND_ABILITY = 250;
 
     // Asset Taxonomy & Statuses
     public static final List<String> UNIT_TYPES = List.of("BM", "CV", "PM", "IM", "BA", "CI");

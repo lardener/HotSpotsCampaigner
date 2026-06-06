@@ -9,6 +9,7 @@ import java.util.Random;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
+import com.hotspotscamp.dto.ActivityCosts;
 import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignProposal;
 import com.hotspotscamp.dto.GeneratedTrack;
@@ -88,6 +89,26 @@ public class CampaignGenerationService {
                 RulesConstants.REPAIR_MULT_CLAN_TECH
         ));
 
+        ActivityCosts activityCosts = Objects.requireNonNullElse(input.activityCosts(), new ActivityCosts(
+                RulesConstants.OMNIMECH_RECONFIGURE_MODIFIER,
+                RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER,
+                RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER,
+                RulesConstants.REARM_COST_PER_TON,
+                RulesConstants.REARM_COST_ALPHA_STRIKE,
+                RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW,
+                RulesConstants.HIRE_NAMED_PILOT,
+                RulesConstants.HIRE_BATTLE_ARMOR_TROOPER,
+                RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX,
+                RulesConstants.HEAL_MECHWARRIOR_PER_MONTH,
+                RulesConstants.HEAL_BATTLE_ARMOR_TROOPER,
+                RulesConstants.TRAIN_FORMATION_COMMANDER,
+                RulesConstants.CHANGE_FORMATION_TRAINING,
+                RulesConstants.LEARN_FIRST_COMMAND_ABILITY,
+                RulesConstants.LEARN_SECOND_COMMAND_ABILITY,
+                RulesConstants.LEARN_THIRD_COMMAND_ABILITY,
+                RulesConstants.REPLACE_COMMAND_ABILITY
+        ));
+
         Contract primaryContract = generateContract(finalEmp, empMission, input.employerCategory(),
                 input.payRate(), input.salvageTerms(), input.supportTerms(), input.transportTerms(), input.commandRights(),
                 input.payStep(), input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand, employerProvided);
@@ -110,6 +131,24 @@ public class CampaignGenerationService {
                 .nonMechModifier(rules.nonMechModifier())
                 .mixedTechModifier(rules.mixedTechModifier())
                 .clanTechModifier(rules.clanTechModifier())
+                .omnimechReconfigureModifier(activityCosts.omnimechReconfigureModifier())
+                .purchaseUnitMultiplier(activityCosts.purchaseUnitMultiplier())
+                .sellUnitMultiplier(activityCosts.sellUnitMultiplier())
+                .rearmCostPerTon(activityCosts.rearmCostPerTon())
+                .rearmCostPerTonAlphaStrike(activityCosts.rearmCostPerTonAlphaStrike())
+                .hireMechWarriorCost(activityCosts.hireMechWarriorCost())
+                .hireNamedPilotCost(activityCosts.hireNamedPilotCost())
+                .hireBattleArmorCost(activityCosts.hireBattleArmorCost())
+                .healMechWarriorPerWoundBoxCost(activityCosts.healMechWarriorPerWoundBoxCost())
+                .healMechWarriorPerMonthCost(activityCosts.healMechWarriorPerMonthCost())
+                .healBattleArmorCost(activityCosts.healBattleArmorCost())
+                .trainFormationCommanderCost(activityCosts.trainFormationCommanderCost())
+                .changeFormationTrainingCost(activityCosts.changeFormationTrainingCost())
+                .learnFirstAbilityCost(activityCosts.learnFirstAbilityCost())
+                .learnSecondAbilityCost(activityCosts.learnSecondAbilityCost())
+                .learnThirdAbilityCost(activityCosts.learnThirdAbilityCost())
+                .replaceAbilityCost(activityCosts.replaceAbilityCost())
+                .activityCosts(activityCosts)
                 .monthlyPay(TypeUtils.asInt(input.monthlyPay(), RulesConstants.DEFAULT_MONTHLY_PAY))
                 .monthlyMaintenance(TypeUtils.asInt(input.monthlyMaintenance(), RulesConstants.DEFAULT_MONTHLY_MAINTENANCE))
                 .transportationCost(TypeUtils.asInt(input.transportationCost(), RulesConstants.DEFAULT_TRANSPORTATION_COST))

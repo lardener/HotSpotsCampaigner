@@ -22,6 +22,28 @@ export const FRAGMENT_REPAIR_RULES = gql`
   }
 `;
 
+export const FRAGMENT_ACTIVITY_COSTS = gql`
+  fragment ActivityCostsFields on ActivityCosts {
+    omnimechReconfigureModifier
+    purchaseUnitMultiplier
+    sellUnitMultiplier
+    rearmCostPerTon
+    rearmCostPerTonAlphaStrike
+    hireMechWarriorCost
+    hireNamedPilotCost
+    hireBattleArmorCost
+    healMechWarriorPerWoundBoxCost
+    healMechWarriorPerMonthCost
+    healBattleArmorCost
+    trainFormationCommanderCost
+    changeFormationTrainingCost
+    learnFirstAbilityCost
+    learnSecondAbilityCost
+    learnThirdAbilityCost
+    replaceAbilityCost
+  }
+`;
+
 export const FRAGMENT_COMBAT_UNIT = gql`
   fragment CombatUnitFields on CombatUnit {
     id
@@ -206,9 +228,13 @@ export const GET_METADATA = gql`
       repairRules {
         ...RepairRulesFields
       }
+      activityCosts {
+        ...ActivityCostsFields
+      }
     }
   }
   ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const PREVIEW_CAMPAIGN_RAW = `
@@ -232,6 +258,25 @@ export const PREVIEW_CAMPAIGN_RAW = `
         nonMechModifier
         mixedTechModifier
         clanTechModifier
+      }
+      activityCosts {
+        omnimechReconfigureModifier
+        purchaseUnitMultiplier
+        sellUnitMultiplier
+        rearmCostPerTon
+        rearmCostPerTonAlphaStrike
+        hireMechWarriorCost
+        hireNamedPilotCost
+        hireBattleArmorCost
+        healMechWarriorPerWoundBoxCost
+        healMechWarriorPerMonthCost
+        healBattleArmorCost
+        trainFormationCommanderCost
+        changeFormationTrainingCost
+        learnFirstAbilityCost
+        learnSecondAbilityCost
+        learnThirdAbilityCost
+        replaceAbilityCost
       }
       contracts {
         employerCategory
@@ -294,8 +339,16 @@ export const CREATE_CAMPAIGN = gql`
       transportStep
       commandRights
       commandStep
+      repairRules {
+        ...RepairRulesFields
+      }
+      activityCosts {
+        ...ActivityCostsFields
+      }
     }
   }
+  ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const UPDATE_CAMPAIGN = gql`
@@ -322,8 +375,16 @@ export const UPDATE_CAMPAIGN = gql`
       transportStep
       commandRights
       commandStep
+      repairRules {
+        ...RepairRulesFields
+      }
+      activityCosts {
+        ...ActivityCostsFields
+      }
     }
   }
+  ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const GET_MANAGED_CAMPAIGNS = gql`
@@ -347,6 +408,12 @@ export const GET_MANAGED_CAMPAIGNS = gql`
       supportStep
       transportStep
       commandStep
+      repairRules {
+        ...RepairRulesFields
+      }
+      activityCosts {
+        ...ActivityCostsFields
+      }
       contracts {
         ...ContractFields
       }
@@ -362,6 +429,8 @@ export const GET_MANAGED_CAMPAIGNS = gql`
       }
     }
   }
+  ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
   ${FRAGMENT_CONTRACT}
   ${FRAGMENT_TRACK}
   ${FRAGMENT_DETACHMENT}
@@ -423,6 +492,9 @@ export const GET_CAMPAIGN_DETAILS = gql`
       repairRules {
         ...RepairRulesFields
       }
+      activityCosts {
+        ...ActivityCostsFields
+      }
       factions {
         id
         factionName
@@ -449,6 +521,7 @@ export const GET_CAMPAIGN_DETAILS = gql`
     }
   }
   ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
   ${FRAGMENT_TRACK}
   ${FRAGMENT_COMBAT_UNIT}
   ${FRAGMENT_PILOT}
@@ -554,6 +627,12 @@ export const GET_UNIT_DOSSIER = gql`
       unitStatuses
       unitTypes
       techBases
+      repairRules {
+        ...RepairRulesFields
+      }
+      activityCosts {
+        ...ActivityCostsFields
+      }
     }
   }
   ${FRAGMENT_COMMAND}
@@ -561,6 +640,8 @@ export const GET_UNIT_DOSSIER = gql`
   ${FRAGMENT_PILOT}
   ${FRAGMENT_LEDGER_ENTRY}
   ${FRAGMENT_DETACHMENT}
+  ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const ESTABLISH_COMMAND = gql`
@@ -632,11 +713,19 @@ export const GET_FORCE_DATA = gql`
       unitStatuses
       unitTypes
       techBases
+      repairRules {
+        ...RepairRulesFields
+      }
+      activityCosts {
+        ...ActivityCostsFields
+      }
     }
   }
   ${FRAGMENT_COMMAND}
   ${FRAGMENT_PILOT}
   ${FRAGMENT_DETACHMENT}
+  ${FRAGMENT_REPAIR_RULES}
+  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 // ==================== Ledger Operations ====================

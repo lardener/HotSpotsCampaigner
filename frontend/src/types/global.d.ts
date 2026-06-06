@@ -9,6 +9,7 @@ export interface CampaignMetadata {
     employerTypes: string[];
     resolvedSteps: ResolvedStepEntry[];
     repairRules: RepairRules;
+    activityCosts: ActivityCosts;
     unitTypes: string[];
     techBases: string[];
     unitStatuses: string[];
@@ -74,6 +75,28 @@ export interface RepairRulesInput {
 
 export type RepairRules = RepairRulesInput;
 
+export interface ActivityCosts {
+    omnimechReconfigureModifier?: number;
+    purchaseUnitMultiplier?: number;
+    sellUnitMultiplier?: number;
+    rearmCostPerTon?: number;
+    rearmCostPerTonAlphaStrike?: number;
+    hireMechWarriorCost?: number;
+    hireNamedPilotCost?: number;
+    hireBattleArmorCost?: number;
+    healMechWarriorPerWoundBoxCost?: number;
+    healMechWarriorPerMonthCost?: number;
+    healBattleArmorCost?: number;
+    trainFormationCommanderCost?: number;
+    changeFormationTrainingCost?: number;
+    learnFirstAbilityCost?: number;
+    learnSecondAbilityCost?: number;
+    learnThirdAbilityCost?: number;
+    replaceAbilityCost?: number;
+}
+
+export type ActivityCostsInput = ActivityCosts;
+
 export interface TrackUpdateInput {
     trackName?: string;
     location?: string;
@@ -122,6 +145,7 @@ export interface CampaignCreateInput {
     transportationCost?: number;
     combatPay?: number;
     repairRules?: RepairRulesInput;
+    activityCosts?: ActivityCostsInput;
     tracks?: ProposedTrackInput[];
 }
 
@@ -207,7 +231,7 @@ export type PublicCampaignMetadata = Pick<
 >;
 
 export type PublicCampaignMetadataWithRules = PublicCampaignMetadata &
-    Pick<CampaignMetadata, 'repairRules'>;
+    Pick<CampaignMetadata, 'repairRules' | 'activityCosts'>;
 
 export type PublicCampaignMetadataMinimal = Pick<
     CampaignMetadata,
@@ -327,6 +351,7 @@ export interface CampaignDetail {
     transportationCost?: number;
     combatPay?: number;
     repairRules?: RepairRulesInput;
+    activityCosts?: ActivityCosts;
     contracts?: Contract[];
     factions?: CampaignFaction[];
     tracks?: TrackDetail[];

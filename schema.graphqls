@@ -24,6 +24,7 @@ type CampaignMetadata {
   employerTypes: [String]
   resolvedSteps: [ResolvedStepEntry]
   repairRules: RepairRules
+  activityCosts: ActivityCosts
   unitTypes: [String]
   techBases: [String]
   unitStatuses: [String]
@@ -57,6 +58,26 @@ type RepairRules {
     clanTechModifier: Float
 }
 
+type ActivityCosts {
+    omnimechReconfigureModifier: Float
+    purchaseUnitMultiplier: Int
+    sellUnitMultiplier: Int
+    rearmCostPerTon: Int
+    rearmCostPerTonAlphaStrike: Int
+    hireMechWarriorCost: Int
+    hireNamedPilotCost: Int
+    hireBattleArmorCost: Int
+    healMechWarriorPerWoundBoxCost: Int
+    healMechWarriorPerMonthCost: Int
+    healBattleArmorCost: Int
+    trainFormationCommanderCost: Int
+    changeFormationTrainingCost: Int
+    learnFirstAbilityCost: Int
+    learnSecondAbilityCost: Int
+    learnThirdAbilityCost: Int
+    replaceAbilityCost: Int
+}
+
 input RepairRulesInput {
     armorMultiplier: Float
     internalMultiplier: Float
@@ -65,6 +86,26 @@ input RepairRulesInput {
     nonMechModifier: Float
     mixedTechModifier: Float
     clanTechModifier: Float
+}
+
+input ActivityCostsInput {
+    omnimechReconfigureModifier: Float
+    purchaseUnitMultiplier: Int
+    sellUnitMultiplier: Int
+    rearmCostPerTon: Int
+    rearmCostPerTonAlphaStrike: Int
+    hireMechWarriorCost: Int
+    hireNamedPilotCost: Int
+    hireBattleArmorCost: Int
+    healMechWarriorPerWoundBoxCost: Int
+    healMechWarriorPerMonthCost: Int
+    healBattleArmorCost: Int
+    trainFormationCommanderCost: Int
+    changeFormationTrainingCost: Int
+    learnFirstAbilityCost: Int
+    learnSecondAbilityCost: Int
+    learnThirdAbilityCost: Int
+    replaceAbilityCost: Int
 }
 
 type Subscription {
@@ -273,6 +314,7 @@ input CampaignCreateInput {
     transportationCost: Int
     combatPay: Int
     repairRules: RepairRulesInput
+    activityCosts: ActivityCostsInput
     tracks: [ProposedTrackInput]
 }
 
@@ -300,6 +342,7 @@ input CampaignUpdateInput {
     transportationCost: Int
     combatPay: Int
     repairRules: RepairRulesInput
+    activityCosts: ActivityCostsInput
     lengthInMonths: Int
     trackCount: Int
     payRate: Float
@@ -406,6 +449,7 @@ type CampaignProposal {
     contracts: [Contract]
     tracks: [ProposedTrack]
     repairRules: RepairRules
+    activityCosts: ActivityCosts
 }
 
 type Contract {
@@ -458,4 +502,5 @@ type Campaign {
     transportationCost: Int
     combatPay: Int
     repairRules: RepairRules
+    activityCosts: ActivityCosts
 }

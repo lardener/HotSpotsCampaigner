@@ -24,7 +24,7 @@ export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps>
     const campaign = data?.getCampaign;
     if (!campaign) return <div className="error-message">THEATER NOT FOUND.</div>;
 
-    const trackMax = (campaign.tracks || []).reduce((max, t) => Math.max(max, t.monthIndex || 1), 0);
+    const trackMax = (campaign.tracks || []).reduce((max: number, t: TrackDetail) => Math.max(max, t.monthIndex || 1), 0);
     const displayMonthCount = Math.max(campaign.lengthInMonths || 1, trackMax, 1);
 
     return (
