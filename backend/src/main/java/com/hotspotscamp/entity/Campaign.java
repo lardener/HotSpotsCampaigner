@@ -9,8 +9,6 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.hotspotscamp.dto.ActivityCosts;
-import com.hotspotscamp.dto.RepairRules;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -75,10 +73,10 @@ public class Campaign implements Persistable<UUID> {
     private Double omnimechReconfigureModifier;
 
     @Column("purchase_unit_multiplier")
-    private Integer purchaseUnitMultiplier;
+    private Integer pvPurchaseUnitMultiplier;
 
     @Column("sell_unit_multiplier")
-    private Integer sellUnitMultiplier;
+    private Integer pvSellUnitMultiplier;
 
     @Column("rearm_cost_per_ton")
     private Integer rearmCostPerTon;
@@ -99,7 +97,7 @@ public class Campaign implements Persistable<UUID> {
     private Integer healMechWarriorPerWoundBoxCost;
 
     @Column("heal_mechwarrior_per_month_cost")
-    private Integer healMechWarriorPerMonthCost;
+    private Integer healMechWarriorPerMonthLimit;
 
     @Column("heal_battle_armor_cost")
     private Integer healBattleArmorCost;
@@ -111,23 +109,16 @@ public class Campaign implements Persistable<UUID> {
     private Integer changeFormationTrainingCost;
 
     @Column("learn_first_ability_cost")
-    private Integer learnFirstAbilityCost;
+    private Integer learnCommandAbility1Cost;
 
     @Column("learn_second_ability_cost")
-    private Integer learnSecondAbilityCost;
+    private Integer learnCommandAbility2Cost;
 
     @Column("learn_third_ability_cost")
-    private Integer learnThirdAbilityCost;
+    private Integer learnCommandAbility3Cost;
 
     @Column("replace_ability_cost")
-    private Integer replaceAbilityCost;
-
-    // Transient object for business logic compatibility
-    @Transient
-    private RepairRules repairRules;
-
-    @Transient
-    private ActivityCosts activityCosts;
+    private Integer replaceCommandAbilityCost;
 
     @Transient
     @Builder.Default

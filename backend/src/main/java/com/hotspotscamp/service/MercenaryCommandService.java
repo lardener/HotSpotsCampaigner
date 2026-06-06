@@ -14,8 +14,6 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.hotspotscamp.dto.ActivityCosts;
-import com.hotspotscamp.dto.RepairRules;
 import com.hotspotscamp.dto.TrackUpdateInput;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
@@ -35,7 +33,6 @@ import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
 import com.hotspotscamp.service.scraper.ScraperFactory;
-import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.util.SqlUtils;
 import com.hotspotscamp.util.TypeUtils;
 
@@ -62,6 +59,7 @@ public class MercenaryCommandService {
     private final DatabaseClient databaseClient;
     private final ScraperFactory scraperFactory;
     private final CampaignService campaignService;
+    private final RuleConfigurationService configService;
 
     public MercenaryCommandService(
             MercenaryCommandRepository commandRepository,
@@ -76,7 +74,8 @@ public class MercenaryCommandService {
             UserService userService,
             DatabaseClient databaseClient,
             ScraperFactory scraperFactory,
-            @Lazy CampaignService campaignService) {
+            @Lazy CampaignService campaignService,
+            RuleConfigurationService configService) {
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
@@ -90,6 +89,7 @@ public class MercenaryCommandService {
         this.databaseClient = databaseClient;
         this.scraperFactory = scraperFactory;
         this.campaignService = campaignService;
+        this.configService = configService;
     }
 
     /**
@@ -112,8 +112,30 @@ public class MercenaryCommandService {
             Integer monthlyMaintenance,
             Integer transportationCost,
             Integer combatPay,
-            RepairRules repairRules,
-            ActivityCosts activityCosts,
+            Double armorMultiplier,
+            Double internalMultiplier,
+            Double crippledMultiplier,
+            Double destroyedMultiplier,
+            Double nonMechModifier,
+            Double mixedTechModifier,
+            Double clanTechModifier,
+            Double omnimechReconfigureModifier,
+            Integer purchaseUnitMultiplier,
+            Integer sellUnitMultiplier,
+            Integer rearmCostPerTon,
+            Integer rearmCostPerTonAlphaStrike,
+            Integer hireMechWarriorCost,
+            Integer hireNamedPilotCost,
+            Integer hireBattleArmorCost,
+            Integer healMechWarriorPerWoundBoxCost,
+            Integer healMechWarriorPerMonthCost,
+            Integer healBattleArmorCost,
+            Integer trainFormationCommanderCost,
+            Integer changeFormationTrainingCost,
+            Integer learnFirstAbilityCost,
+            Integer learnSecondAbilityCost,
+            Integer learnThirdAbilityCost,
+            Integer replaceAbilityCost,
             Integer lengthInMonths,
             Integer trackCount,
             Double payRate,
@@ -285,8 +307,8 @@ public class MercenaryCommandService {
             }
 
             // Initial values are handled via ledger entry
-            int startingSp = Objects.requireNonNullElse(command.getTotalSupportPoints(), RulesConstants.STARTING_SUPPORT_POINTS);
-            int startingRep = Objects.requireNonNullElse(command.getReputation(), RulesConstants.STARTING_REPUTATION);
+            int startingSp = Objects.requireNonNullElse(command.getTotalSupportPoints(), configService.getCommandDefault("startingSP"));
+            int startingRep = Objects.requireNonNullElse(command.getReputation(), configService.getCommandDefault("startingRep"));
 
             command.setTotalSupportPoints(0);
             command.setReputation(0);
@@ -882,87 +904,81 @@ public class MercenaryCommandService {
                                 camp.setCombatPay(input.combatPay());
                             }
                             log.trace("[TRACE] Updated basic campaign details for campaign: id={}", camp.getId());
-                            if (input.repairRules() != null) {
-                                RepairRules rules = input.repairRules();
-                                if (rules.armorMultiplier() != null) {
-                                    camp.setArmorMultiplier(rules.armorMultiplier());
-                                }
-                                if (rules.internalMultiplier() != null) {
-                                    camp.setInternalMultiplier(rules.internalMultiplier());
-                                }
-                                if (rules.crippledMultiplier() != null) {
-                                    camp.setCrippledMultiplier(rules.crippledMultiplier());
-                                }
-                                if (rules.destroyedMultiplier() != null) {
-                                    camp.setDestroyedMultiplier(rules.destroyedMultiplier());
-                                }
-                                if (rules.nonMechModifier() != null) {
-                                    camp.setNonMechModifier(rules.nonMechModifier());
-                                }
-                                if (rules.mixedTechModifier() != null) {
-                                    camp.setMixedTechModifier(rules.mixedTechModifier());
-                                }
-                                if (rules.clanTechModifier() != null) {
-                                    camp.setClanTechModifier(rules.clanTechModifier());
-                                }
+                            if (input.armorMultiplier() != null) {
+                                camp.setArmorMultiplier(input.armorMultiplier());
                             }
-                            log.trace("[TRACE] Updated repair rules for campaign: id={}", camp.getId());
+                            if (input.internalMultiplier() != null) {
+                                camp.setInternalMultiplier(input.internalMultiplier());
+                            }
+                            if (input.crippledMultiplier() != null) {
+                                camp.setCrippledMultiplier(input.crippledMultiplier());
+                            }
+                            if (input.destroyedMultiplier() != null) {
+                                camp.setDestroyedMultiplier(input.destroyedMultiplier());
+                            }
+                            if (input.nonMechModifier() != null) {
+                                camp.setNonMechModifier(input.nonMechModifier());
+                            }
+                            if (input.mixedTechModifier() != null) {
+                                camp.setMixedTechModifier(input.mixedTechModifier());
+                            }
+                            if (input.clanTechModifier() != null) {
+                                camp.setClanTechModifier(input.clanTechModifier());
+                            }
+                            log.trace("[TRACE] Updated flattened repair rules for campaign: id={}", camp.getId());
 
-                            if (input.activityCosts() != null) {
-                                ActivityCosts costs = input.activityCosts();
-                                if (costs.omnimechReconfigureModifier() != null) {
-                                    camp.setOmnimechReconfigureModifier(costs.omnimechReconfigureModifier());
-                                }
-                                if (costs.purchaseUnitMultiplier() != null) {
-                                    camp.setPurchaseUnitMultiplier(costs.purchaseUnitMultiplier());
-                                }
-                                if (costs.sellUnitMultiplier() != null) {
-                                    camp.setSellUnitMultiplier(costs.sellUnitMultiplier());
-                                }
-                                if (costs.rearmCostPerTon() != null) {
-                                    camp.setRearmCostPerTon(costs.rearmCostPerTon());
-                                }
-                                if (costs.rearmCostPerTonAlphaStrike() != null) {
-                                    camp.setRearmCostPerTonAlphaStrike(costs.rearmCostPerTonAlphaStrike());
-                                }
-                                if (costs.hireMechWarriorCost() != null) {
-                                    camp.setHireMechWarriorCost(costs.hireMechWarriorCost());
-                                }
-                                if (costs.hireNamedPilotCost() != null) {
-                                    camp.setHireNamedPilotCost(costs.hireNamedPilotCost());
-                                }
-                                if (costs.hireBattleArmorCost() != null) {
-                                    camp.setHireBattleArmorCost(costs.hireBattleArmorCost());
-                                }
-                                if (costs.healMechWarriorPerWoundBoxCost() != null) {
-                                    camp.setHealMechWarriorPerWoundBoxCost(costs.healMechWarriorPerWoundBoxCost());
-                                }
-                                if (costs.healMechWarriorPerMonthCost() != null) {
-                                    camp.setHealMechWarriorPerMonthCost(costs.healMechWarriorPerMonthCost());
-                                }
-                                if (costs.healBattleArmorCost() != null) {
-                                    camp.setHealBattleArmorCost(costs.healBattleArmorCost());
-                                }
-                                if (costs.trainFormationCommanderCost() != null) {
-                                    camp.setTrainFormationCommanderCost(costs.trainFormationCommanderCost());
-                                }
-                                if (costs.changeFormationTrainingCost() != null) {
-                                    camp.setChangeFormationTrainingCost(costs.changeFormationTrainingCost());
-                                }
-                                if (costs.learnFirstAbilityCost() != null) {
-                                    camp.setLearnFirstAbilityCost(costs.learnFirstAbilityCost());
-                                }
-                                if (costs.learnSecondAbilityCost() != null) {
-                                    camp.setLearnSecondAbilityCost(costs.learnSecondAbilityCost());
-                                }
-                                if (costs.learnThirdAbilityCost() != null) {
-                                    camp.setLearnThirdAbilityCost(costs.learnThirdAbilityCost());
-                                }
-                                if (costs.replaceAbilityCost() != null) {
-                                    camp.setReplaceAbilityCost(costs.replaceAbilityCost());
-                                }
-                                log.trace("[TRACE] Updated activity costs for campaign: id={}", camp.getId());
+                            if (input.omnimechReconfigureModifier() != null) {
+                                camp.setOmnimechReconfigureModifier(input.omnimechReconfigureModifier());
                             }
+                            if (input.purchaseUnitMultiplier() != null) {
+                                camp.setPvPurchaseUnitMultiplier(input.purchaseUnitMultiplier());
+                            }
+                            if (input.sellUnitMultiplier() != null) {
+                                camp.setPvSellUnitMultiplier(input.sellUnitMultiplier());
+                            }
+                            if (input.rearmCostPerTon() != null) {
+                                camp.setRearmCostPerTon(input.rearmCostPerTon());
+                            }
+                            if (input.rearmCostPerTonAlphaStrike() != null) {
+                                camp.setRearmCostPerTonAlphaStrike(input.rearmCostPerTonAlphaStrike());
+                            }
+                            if (input.hireMechWarriorCost() != null) {
+                                camp.setHireMechWarriorCost(input.hireMechWarriorCost());
+                            }
+                            if (input.hireNamedPilotCost() != null) {
+                                camp.setHireNamedPilotCost(input.hireNamedPilotCost());
+                            }
+                            if (input.hireBattleArmorCost() != null) {
+                                camp.setHireBattleArmorCost(input.hireBattleArmorCost());
+                            }
+                            if (input.healMechWarriorPerWoundBoxCost() != null) {
+                                camp.setHealMechWarriorPerWoundBoxCost(input.healMechWarriorPerWoundBoxCost());
+                            }
+                            if (input.healMechWarriorPerMonthCost() != null) {
+                                camp.setHealMechWarriorPerMonthLimit(input.healMechWarriorPerMonthCost());
+                            }
+                            if (input.healBattleArmorCost() != null) {
+                                camp.setHealBattleArmorCost(input.healBattleArmorCost());
+                            }
+                            if (input.trainFormationCommanderCost() != null) {
+                                camp.setTrainFormationCommanderCost(input.trainFormationCommanderCost());
+                            }
+                            if (input.changeFormationTrainingCost() != null) {
+                                camp.setChangeFormationTrainingCost(input.changeFormationTrainingCost());
+                            }
+                            if (input.learnFirstAbilityCost() != null) {
+                                camp.setLearnCommandAbility1Cost(input.learnFirstAbilityCost());
+                            }
+                            if (input.learnSecondAbilityCost() != null) {
+                                camp.setLearnCommandAbility2Cost(input.learnSecondAbilityCost());
+                            }
+                            if (input.learnThirdAbilityCost() != null) {
+                                camp.setLearnCommandAbility3Cost(input.learnThirdAbilityCost());
+                            }
+                            if (input.replaceAbilityCost() != null) {
+                                camp.setReplaceCommandAbilityCost(input.replaceAbilityCost());
+                            }
+                            log.trace("[TRACE] Updated flattened activity costs for campaign: id={}", camp.getId());
 
                             return contractRepository.findAllByCampaignId(camp.getId()).collectList()
                                     .flatMap(contracts -> {

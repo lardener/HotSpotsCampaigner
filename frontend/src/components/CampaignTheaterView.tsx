@@ -11,9 +11,7 @@ import {
     TrackDetail,
     CampaignInvite,
     Contract,
-    CreateInviteVars,
-    RepairRules,
-    ActivityCosts
+    CreateInviteVars
 } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
@@ -86,8 +84,6 @@ interface CampaignTheaterViewProps {
 }
 
 interface TheaterCampaign extends CampaignDetail {
-    repairRules?: RepairRules;
-    activityCosts?: ActivityCosts;
 }
 
 /**
@@ -107,9 +103,6 @@ const useTheaterCampaignSync = (
 ) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const saveTimeoutRef = useRef<Record<string, number>>({});
-
-    const metaRules = metaData?.publicCampaignMetadata?.repairRules;
-    const metaCosts = metaData?.publicCampaignMetadata?.activityCosts;
 
     // Local UI states for advanced parameters
     const [monthlyPay, setMonthlyPay] = useState(500);
@@ -197,31 +190,31 @@ const useTheaterCampaignSync = (
 
         // Always reset repair and activity costs to defaults before applying campaign values.
         // This prevents data bleeding between campaigns when switching theaters.
-        setArmorMult(campaign.repairRules?.armorMultiplier ?? metaRules?.armorMultiplier ?? 0.5);
-        setInternalMult(campaign.repairRules?.internalMultiplier ?? metaRules?.internalMultiplier ?? 2.0);
-        setCrippledMult(campaign.repairRules?.crippledMultiplier ?? metaRules?.crippledMultiplier ?? 3.0);
-        setDestroyedMult(campaign.repairRules?.destroyedMultiplier ?? metaRules?.destroyedMultiplier ?? 5.0);
-        setNonMechMod(campaign.repairRules?.nonMechModifier ?? metaRules?.nonMechModifier ?? 0.5);
-        setMixedTechTax(campaign.repairRules?.mixedTechModifier ?? metaRules?.mixedTechModifier ?? 1.5);
-        setClanTechTax(campaign.repairRules?.clanTechModifier ?? metaRules?.clanTechModifier ?? 2.0);
+        setArmorMult(campaign.armorMultiplier ?? metaData?.publicCampaignMetadata?.armorMultiplier ?? 0.5);
+        setInternalMult(campaign.internalMultiplier ?? metaData?.publicCampaignMetadata?.internalMultiplier ?? 2.0);
+        setCrippledMult(campaign.crippledMultiplier ?? metaData?.publicCampaignMetadata?.crippledMultiplier ?? 3.0);
+        setDestroyedMult(campaign.destroyedMultiplier ?? metaData?.publicCampaignMetadata?.destroyedMultiplier ?? 5.0);
+        setNonMechMod(campaign.nonMechModifier ?? metaData?.publicCampaignMetadata?.nonMechModifier ?? 0.5);
+        setMixedTechTax(campaign.mixedTechModifier ?? metaData?.publicCampaignMetadata?.mixedTechModifier ?? 1.5);
+        setClanTechTax(campaign.clanTechModifier ?? metaData?.publicCampaignMetadata?.clanTechModifier ?? 2.0);
 
-        setOmnimechMod(campaign.activityCosts?.omnimechReconfigureModifier ?? metaCosts?.omnimechReconfigureModifier ?? 0.5);
-        setPurchaseMult(campaign.activityCosts?.purchaseUnitMultiplier ?? metaCosts?.purchaseUnitMultiplier ?? 40);
-        setSellMult(campaign.activityCosts?.sellUnitMultiplier ?? metaCosts?.sellUnitMultiplier ?? 20);
-        setRearmTon(campaign.activityCosts?.rearmCostPerTon ?? metaCosts?.rearmCostPerTon ?? 10);
-        setRearmAS(campaign.activityCosts?.rearmCostPerTonAlphaStrike ?? metaCosts?.rearmCostPerTonAlphaStrike ?? 20);
-        setHireMW(campaign.activityCosts?.hireMechWarriorCost ?? metaCosts?.hireMechWarriorCost ?? 100);
-        setHirePilot(campaign.activityCosts?.hireNamedPilotCost ?? metaCosts?.hireNamedPilotCost ?? 150);
-        setHireBA(campaign.activityCosts?.hireBattleArmorCost ?? metaCosts?.hireBattleArmorCost ?? 20);
-        setHealWound(campaign.activityCosts?.healMechWarriorPerWoundBoxCost ?? metaCosts?.healMechWarriorPerWoundBoxCost ?? 30);
-        setHealMonth(campaign.activityCosts?.healMechWarriorPerMonthCost ?? metaCosts?.healMechWarriorPerMonthCost ?? 2);
-        setHealBA(campaign.activityCosts?.healBattleArmorCost ?? metaCosts?.healBattleArmorCost ?? 10);
-        setTrainCmd(campaign.activityCosts?.trainFormationCommanderCost ?? metaCosts?.trainFormationCommanderCost ?? 500);
-        setTrainForm(campaign.activityCosts?.changeFormationTrainingCost ?? metaCosts?.changeFormationTrainingCost ?? 250);
-        setAbility1(campaign.activityCosts?.learnFirstAbilityCost ?? metaCosts?.learnFirstAbilityCost ?? 250);
-        setAbility2(campaign.activityCosts?.learnSecondAbilityCost ?? metaCosts?.learnSecondAbilityCost ?? 500);
-        setAbility3(campaign.activityCosts?.learnThirdAbilityCost ?? metaCosts?.learnThirdAbilityCost ?? 750);
-        setReplaceAbility(campaign.activityCosts?.replaceAbilityCost ?? metaCosts?.replaceAbilityCost ?? 250);
+        setOmnimechMod(campaign.omnimechReconfigureModifier ?? metaData?.publicCampaignMetadata?.omnimechReconfigureModifier ?? 0.5);
+        setPurchaseMult(campaign.pvPurchaseUnitMultiplier ?? metaData?.publicCampaignMetadata?.pvPurchaseUnitMultiplier ?? 40);
+        setSellMult(campaign.pvSellUnitMultiplier ?? metaData?.publicCampaignMetadata?.pvSellUnitMultiplier ?? 20);
+        setRearmTon(campaign.rearmCostPerTon ?? metaData?.publicCampaignMetadata?.rearmCostPerTon ?? 10);
+        setRearmAS(campaign.rearmCostPerTonAlphaStrike ?? metaData?.publicCampaignMetadata?.rearmCostPerTonAlphaStrike ?? 20);
+        setHireMW(campaign.hireMechWarriorCost ?? metaData?.publicCampaignMetadata?.hireMechWarriorCost ?? 100);
+        setHirePilot(campaign.hireNamedPilotCost ?? metaData?.publicCampaignMetadata?.hireNamedPilotCost ?? 150);
+        setHireBA(campaign.hireBattleArmorCost ?? metaData?.publicCampaignMetadata?.hireBattleArmorCost ?? 20);
+        setHealWound(campaign.healMechWarriorPerWoundBoxCost ?? metaData?.publicCampaignMetadata?.healMechWarriorPerWoundBoxCost ?? 30);
+        setHealMonth(campaign.healMechWarriorPerMonthLimit ?? metaData?.publicCampaignMetadata?.healMechWarriorPerMonthLimit ?? 2);
+        setHealBA(campaign.healBattleArmorCost ?? metaData?.publicCampaignMetadata?.healBattleArmorCost ?? 10);
+        setTrainCmd(campaign.trainFormationCommanderCost ?? metaData?.publicCampaignMetadata?.trainFormationCommanderCost ?? 500);
+        setTrainForm(campaign.changeFormationTrainingCost ?? metaData?.publicCampaignMetadata?.changeFormationTrainingCost ?? 250);
+        setAbility1(campaign.learnCommandAbility1Cost ?? metaData?.publicCampaignMetadata?.learnCommandAbility1Cost ?? 250);
+        setAbility2(campaign.learnCommandAbility2Cost ?? metaData?.publicCampaignMetadata?.learnCommandAbility2Cost ?? 500);
+        setAbility3(campaign.learnCommandAbility3Cost ?? metaData?.publicCampaignMetadata?.learnCommandAbility3Cost ?? 750);
+        setReplaceAbility(campaign.replaceCommandAbilityCost ?? metaData?.publicCampaignMetadata?.replaceCommandAbilityCost ?? 250);
     }, [campaign, selectedCampaignId, metaData]);
 
     const handleUpdate = (field: string, value: string | number) => {
@@ -259,12 +252,7 @@ const useTheaterCampaignSync = (
         saveTimeoutRef.current[key] = setTimeout(async () => {
             if (selectedCampaignId !== targetId) return;
             setIsSyncing(true);
-            const val = parseFloat(value as string) || 0;
-            const input = {
-                repairRules: {
-                    [field]: val
-                }
-            };
+            const input: { [key: string]: any } = { [field]: parseFloat(value as string) || 0 };
 
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
@@ -283,11 +271,7 @@ const useTheaterCampaignSync = (
             setIsSyncing(true);
             const isFloat = field === 'omnimechReconfigureModifier';
             const val = isFloat ? parseFloat(value as string) : parseInt(value as string);
-            const input = {
-                activityCosts: {
-                    [field]: isNaN(val) ? 0 : val
-                }
-            };
+            const input: { [key: string]: any } = { [field]: isNaN(val) ? 0 : val };
 
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();

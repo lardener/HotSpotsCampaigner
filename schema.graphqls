@@ -23,8 +23,30 @@ type CampaignMetadata {
   factions: [String]
   employerTypes: [String]
   resolvedSteps: [ResolvedStepEntry]
-  repairRules: RepairRules
-  activityCosts: ActivityCosts
+  armorMultiplier: Float
+  internalMultiplier: Float
+  crippledMultiplier: Float
+  destroyedMultiplier: Float
+  nonMechModifier: Float
+  mixedTechModifier: Float
+  clanTechModifier: Float
+  omnimechReconfigureModifier: Float
+  pvPurchaseUnitMultiplier: Int
+  pvSellUnitMultiplier: Int
+  rearmCostPerTon: Int
+  rearmCostPerTonAlphaStrike: Int
+  hireMechWarriorCost: Int
+  hireNamedPilotCost: Int
+  hireBattleArmorCost: Int
+  healMechWarriorPerWoundBoxCost: Int
+  healMechWarriorPerMonthLimit: Int
+  healBattleArmorCost: Int
+  trainFormationCommanderCost: Int
+  changeFormationTrainingCost: Int
+  learnCommandAbility1Cost: Int
+  learnCommandAbility2Cost: Int
+  learnCommandAbility3Cost: Int
+  replaceCommandAbilityCost: Int
   unitTypes: [String]
   techBases: [String]
   unitStatuses: [String]
@@ -46,66 +68,6 @@ type ResolvedStepValues {
     supportRights: String
     transportation: String
     commandRights: String
-}
-
-type RepairRules {
-    armorMultiplier: Float
-    internalMultiplier: Float
-    crippledMultiplier: Float
-    destroyedMultiplier: Float
-    nonMechModifier: Float
-    mixedTechModifier: Float
-    clanTechModifier: Float
-}
-
-type ActivityCosts {
-    omnimechReconfigureModifier: Float
-    purchaseUnitMultiplier: Int
-    sellUnitMultiplier: Int
-    rearmCostPerTon: Int
-    rearmCostPerTonAlphaStrike: Int
-    hireMechWarriorCost: Int
-    hireNamedPilotCost: Int
-    hireBattleArmorCost: Int
-    healMechWarriorPerWoundBoxCost: Int
-    healMechWarriorPerMonthCost: Int
-    healBattleArmorCost: Int
-    trainFormationCommanderCost: Int
-    changeFormationTrainingCost: Int
-    learnFirstAbilityCost: Int
-    learnSecondAbilityCost: Int
-    learnThirdAbilityCost: Int
-    replaceAbilityCost: Int
-}
-
-input RepairRulesInput {
-    armorMultiplier: Float
-    internalMultiplier: Float
-    crippledMultiplier: Float
-    destroyedMultiplier: Float
-    nonMechModifier: Float
-    mixedTechModifier: Float
-    clanTechModifier: Float
-}
-
-input ActivityCostsInput {
-    omnimechReconfigureModifier: Float
-    purchaseUnitMultiplier: Int
-    sellUnitMultiplier: Int
-    rearmCostPerTon: Int
-    rearmCostPerTonAlphaStrike: Int
-    hireMechWarriorCost: Int
-    hireNamedPilotCost: Int
-    hireBattleArmorCost: Int
-    healMechWarriorPerWoundBoxCost: Int
-    healMechWarriorPerMonthCost: Int
-    healBattleArmorCost: Int
-    trainFormationCommanderCost: Int
-    changeFormationTrainingCost: Int
-    learnFirstAbilityCost: Int
-    learnSecondAbilityCost: Int
-    learnThirdAbilityCost: Int
-    replaceAbilityCost: Int
 }
 
 type Subscription {
@@ -313,8 +275,30 @@ input CampaignCreateInput {
     monthlyMaintenance: Int
     transportationCost: Int
     combatPay: Int
-    repairRules: RepairRulesInput
-    activityCosts: ActivityCostsInput
+    armorMultiplier: Float
+    internalMultiplier: Float
+    crippledMultiplier: Float
+    destroyedMultiplier: Float
+    nonMechModifier: Float
+    mixedTechModifier: Float
+    clanTechModifier: Float
+    omnimechReconfigureModifier: Float
+    pvPurchaseUnitMultiplier: Int
+    pvSellUnitMultiplier: Int
+    rearmCostPerTon: Int
+    rearmCostPerTonAlphaStrike: Int
+    hireMechWarriorCost: Int
+    hireNamedPilotCost: Int
+    hireBattleArmorCost: Int
+    healMechWarriorPerWoundBoxCost: Int
+    healMechWarriorPerMonthLimit: Int
+    healBattleArmorCost: Int
+    trainFormationCommanderCost: Int
+    changeFormationTrainingCost: Int
+    learnCommandAbility1Cost: Int
+    learnCommandAbility2Cost: Int
+    learnCommandAbility3Cost: Int
+    replaceCommandAbilityCost: Int
     tracks: [ProposedTrackInput]
 }
 
@@ -341,8 +325,30 @@ input CampaignUpdateInput {
     monthlyMaintenance: Int
     transportationCost: Int
     combatPay: Int
-    repairRules: RepairRulesInput
-    activityCosts: ActivityCostsInput
+    armorMultiplier: Float
+    internalMultiplier: Float
+    crippledMultiplier: Float
+    destroyedMultiplier: Float
+    nonMechModifier: Float
+    mixedTechModifier: Float
+    clanTechModifier: Float
+    omnimechReconfigureModifier: Float
+    pvPurchaseUnitMultiplier: Int
+    pvSellUnitMultiplier: Int
+    rearmCostPerTon: Int
+    rearmCostPerTonAlphaStrike: Int
+    hireMechWarriorCost: Int
+    hireNamedPilotCost: Int
+    hireBattleArmorCost: Int
+    healMechWarriorPerWoundBoxCost: Int
+    healMechWarriorPerMonthLimit: Int
+    healBattleArmorCost: Int
+    trainFormationCommanderCost: Int
+    changeFormationTrainingCost: Int
+    learnCommandAbility1Cost: Int
+    learnCommandAbility2Cost: Int
+    learnCommandAbility3Cost: Int
+    replaceCommandAbilityCost: Int
     lengthInMonths: Int
     trackCount: Int
     payRate: Float
@@ -448,8 +454,30 @@ type CampaignProposal {
     campaign: Campaign
     contracts: [Contract]
     tracks: [ProposedTrack]
-    repairRules: RepairRules
-    activityCosts: ActivityCosts
+    armorMultiplier: Float
+    internalMultiplier: Float
+    crippledMultiplier: Float
+    destroyedMultiplier: Float
+    nonMechModifier: Float
+    mixedTechModifier: Float
+    clanTechModifier: Float
+    omnimechReconfigureModifier: Float
+    pvPurchaseUnitMultiplier: Int
+    pvSellUnitMultiplier: Int
+    rearmCostPerTon: Int
+    rearmCostPerTonAlphaStrike: Int
+    hireMechWarriorCost: Int
+    hireNamedPilotCost: Int
+    hireBattleArmorCost: Int
+    healMechWarriorPerWoundBoxCost: Int
+    healMechWarriorPerMonthLimit: Int
+    healBattleArmorCost: Int
+    trainFormationCommanderCost: Int
+    changeFormationTrainingCost: Int
+    learnCommandAbility1Cost: Int
+    learnCommandAbility2Cost: Int
+    learnCommandAbility3Cost: Int
+    replaceCommandAbilityCost: Int
 }
 
 type Contract {
@@ -501,6 +529,28 @@ type Campaign {
     monthlyMaintenance: Int
     transportationCost: Int
     combatPay: Int
-    repairRules: RepairRules
-    activityCosts: ActivityCosts
+    armorMultiplier: Float
+    internalMultiplier: Float
+    crippledMultiplier: Float
+    destroyedMultiplier: Float
+    nonMechModifier: Float
+    mixedTechModifier: Float
+    clanTechModifier: Float
+    omnimechReconfigureModifier: Float
+    pvPurchaseUnitMultiplier: Int
+    pvSellUnitMultiplier: Int
+    rearmCostPerTon: Int
+    rearmCostPerTonAlphaStrike: Int
+    hireMechWarriorCost: Int
+    hireNamedPilotCost: Int
+    hireBattleArmorCost: Int
+    healMechWarriorPerWoundBoxCost: Int
+    healMechWarriorPerMonthLimit: Int
+    healBattleArmorCost: Int
+    trainFormationCommanderCost: Int
+    changeFormationTrainingCost: Int
+    learnCommandAbility1Cost: Int
+    learnCommandAbility2Cost: Int
+    learnCommandAbility3Cost: Int
+    replaceCommandAbilityCost: Int
 }

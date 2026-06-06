@@ -17,7 +17,6 @@ import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignMetadata;
 import com.hotspotscamp.dto.CampaignProposal;
 import com.hotspotscamp.dto.GeneratedTrack;
-import com.hotspotscamp.dto.RepairRules;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignInvite;
@@ -56,19 +55,31 @@ public class CampaignService {
 
     // --- Metadata and Summaries ---
     public CampaignMetadata getCampaignMetadata() {
-        RepairRules rules = new RepairRules(
-                RulesConstants.REPAIR_MULT_ARMOR, RulesConstants.REPAIR_MULT_INTERNAL,
-                RulesConstants.REPAIR_MULT_CRIPPLED, RulesConstants.REPAIR_MULT_DESTROYED,
-                RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER, RulesConstants.REPAIR_MULT_MIXED_TECH,
-                RulesConstants.REPAIR_MULT_CLAN_TECH
-        );
-
         return new CampaignMetadata(
                 new RuleConfigurationService.MissionMetadata(configService.getAvailablePrimaryMissions(), configService.getAvailableOpponentMissions()),
                 configService.getAvailableTrackTypes(), configService.getAvailableFactions(),
                 configService.getEmployerTableConfig().entries().stream().map(RuleConfigurationService.EmployerEntry::type).distinct().sorted().toList(),
                 configService.getResolvedStepsTable().entrySet().stream().map(e -> new RuleConfigurationService.ResolvedStepEntry(e.getKey(), e.getValue())).toList(),
-                rules, RulesConstants.UNIT_TYPES, RulesConstants.TECH_BASES, RulesConstants.UNIT_STATUS_OPTIONS
+                RulesConstants.UNIT_TYPES, RulesConstants.TECH_BASES, RulesConstants.UNIT_STATUS_OPTIONS,
+                configService.getRepairMultiplier("armor"), configService.getRepairMultiplier("internal"), configService.getRepairMultiplier("crippled"), configService.getRepairMultiplier("destroyed"),
+                configService.getRepairMultiplier("nonMech"), configService.getRepairMultiplier("mixedTech"), configService.getRepairMultiplier("clanTech"),
+                configService.getActivityCost("omnimechReconfigure"),
+                configService.getActivityCostInt("purchaseUnit"),
+                configService.getActivityCostInt("sellUnit"),
+                configService.getActivityCostInt("rearmTon"),
+                configService.getActivityCostInt("rearmAS"),
+                configService.getActivityCostInt("hireMechWarrior"),
+                configService.getActivityCostInt("hireNamedPilot"),
+                configService.getActivityCostInt("hireBattleArmor"),
+                configService.getActivityCostInt("healWound"),
+                configService.getActivityCostInt("healMonth"),
+                configService.getActivityCostInt("healBattleArmor"),
+                configService.getActivityCostInt("trainCommander"),
+                configService.getActivityCostInt("changeFormation"),
+                configService.getActivityCostInt("learnAbility1"),
+                configService.getActivityCostInt("learnAbility2"),
+                configService.getActivityCostInt("learnAbility3"),
+                configService.getActivityCostInt("replaceAbility")
         );
     }
 

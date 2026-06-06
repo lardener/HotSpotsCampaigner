@@ -46,16 +46,16 @@ export type UserProfileData = GQLResponse<'userProfile', UserAccount | null>;
 
 export type UnitDossierData = GQLResponse<'getCommand', Command> &
     GQLResponse<'managedCampaigns', Pick<CampaignDetail, 'id' | 'name'>[]> &
-    GQLResponse<'publicCampaignMetadata', Omit<PublicCampaignMetadataMinimal, 'repairRules'>>;
+    GQLResponse<'publicCampaignMetadata', PublicCampaignMetadataMinimal>;
 export type GetMyCommandsData = GQLResponse<'myCommands', Command[]>;
-export type ManagedCampaignsData = GQLResponse<'managedCampaigns', (Omit<CampaignDetail, 'tracks' | 'monthlyPay' | 'monthlyMaintenance' | 'transportationCost' | 'combatPay' | 'repairRules' | 'lengthInMonths'> & {
+export type ManagedCampaignsData = GQLResponse<'managedCampaigns', (Omit<CampaignDetail, 'tracks' | 'monthlyPay' | 'monthlyMaintenance' | 'transportationCost' | 'combatPay' | 'lengthInMonths'> & {
     tracks: Omit<TrackDetail, 'complications' | 'afterActionNarrative' | 'oppositionComplications'>[];
 })[]>;
 
 export type ForceData = GQLResponse<'getCommand', Command> &
     GQLResponse<'managedCampaigns', any[]> &
     GQLResponse<'participatingCampaigns', any[]> &
-    GQLResponse<'publicCampaignMetadata', Omit<PublicCampaignMetadataMinimal, 'repairRules'>>;
+    GQLResponse<'publicCampaignMetadata', PublicCampaignMetadataMinimal>;
 
 export type LedgerData = GQLResponse<'getCommand', Pick<Command, 'id' | 'name' | 'totalSupportPoints'> & {
     detachments: Pick<Detachment, 'id' | 'name' | 'campaignId' | 'campaignName'>[];
@@ -69,7 +69,7 @@ export type UpdateUserProfileData = GQLResponse<'updateUserProfile', Pick<UserAc
 // ==================== Mutation Response Types ====================
 
 export type CreateCampaignData = GQLResponse<'createCampaign', UpdateCampaignData['updateCampaign']>;
-export type UpdateCampaignData = GQLResponse<'updateCampaign', Pick<CampaignDetail, 'id' | 'name' | 'systemName' | 'description' | 'lengthInMonths' | 'trackCount' | 'monthlyPay' | 'monthlyMaintenance' | 'transportationCost' | 'combatPay' | 'status' | 'payRate' | 'payStep' | 'salvageTerms' | 'salvageStep' | 'supportTerms' | 'supportStep' | 'transportTerms' | 'transportStep' | 'commandRights' | 'commandStep'>>;
+export type UpdateCampaignData = GQLResponse<'updateCampaign', Pick<CampaignDetail, 'id' | 'name' | 'systemName' | 'description' | 'lengthInMonths' | 'trackCount' | 'monthlyPay' | 'monthlyMaintenance' | 'transportationCost' | 'combatPay' | 'status' | 'payRate' | 'payStep' | 'salvageTerms' | 'salvageStep' | 'supportTerms' | 'supportStep' | 'transportTerms' | 'transportStep' | 'commandRights' | 'commandStep' | 'armorMultiplier' | 'internalMultiplier' | 'crippledMultiplier' | 'destroyedMultiplier' | 'nonMechModifier' | 'mixedTechModifier' | 'clanTechModifier' | 'omnimechReconfigureModifier' | 'purchaseUnitMultiplier' | 'sellUnitMultiplier' | 'rearmCostPerTon' | 'rearmCostPerTonAlphaStrike' | 'hireMechWarriorCost' | 'hireNamedPilotCost' | 'hireBattleArmorCost' | 'healMechWarriorPerWoundBoxCost' | 'healMechWarriorPerMonthCost' | 'healBattleArmorCost' | 'trainFormationCommanderCost' | 'changeFormationTrainingCost' | 'learnFirstAbilityCost' | 'learnSecondAbilityCost' | 'learnThirdAbilityCost' | 'replaceAbilityCost'>>;
 
 export type CreateInviteData = GQLResponse<'createInvite', { token: string; recipientName: string }>;
 export type DeleteInviteData = GQLResponse<'deleteInvite', boolean>;

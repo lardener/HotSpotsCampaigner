@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateAwardFinancials, calculateUnitFinancials, aarReducer, AarDataState, AarAction } from './AfterActionReportEditor';
-import { CampaignDetail, CombatUnit, RepairRulesInput, TrackDetail } from '../types/global.d';
+import { CampaignDetail, CombatUnit, TrackDetail } from '../types/global.d';
 
 describe('AfterActionReportEditor Financial Helpers', () => {
     const mockCampaign = {
@@ -91,7 +91,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
         } as CombatUnit;
 
         const statuses = ['OPERATIONAL', 'ARMOR DAMAGE', 'INTERNAL DAMAGE', 'CRIPPLED', 'DESTROYED', 'TRULY DESTROYED'];
-        const rules = {} as RepairRulesInput; // Will use defaults
+        const rules = {} as CampaignDetail; // Will use defaults
 
         it('should return 0 cost for operational status', () => {
             const result = calculateUnitFinancials(mockUnit, 'OPERATIONAL', rules, statuses);

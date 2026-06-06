@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
-import { CampaignCreateInput, RepairRulesInput, ContractPreview, ProposedTrack, Proposal, ResolvedStepValues } from '../types/global.d';
+import { CampaignCreateInput, ContractPreview, ProposedTrack, Proposal, ResolvedStepValues } from '../types/global.d';
 import { MetadataDataFull, PreviewData, GenerateTracksData, CreateCampaignData, UpdateCampaignData } from '../types/graphql.d';
 import {
     GET_METADATA,
@@ -80,9 +80,15 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                 c.transportTerms = resolveStepValueWithGravity(c.transportStep, 'transportation');
                 c.commandRights = resolveStepValueWithGravity(c.commandStep, 'commandRights');
             });
-            // Ensure repair rules are synchronized from metadata if not present in preview
-            if (!prop.repairRules && metadataData?.publicCampaignMetadata.repairRules) {
-                prop.repairRules = metadataData.publicCampaignMetadata.repairRules;
+
+            // Ensure flattened repair rules are synchronized from metadata if missing in preview
+            const meta = metadataData?.publicCampaignMetadata;
+            if (meta) {
+                Object.keys(meta).forEach(key => {
+                    if ((prop as any)[key] === undefined && !['missions', 'trackTypes', 'factions', 'employerTypes', 'resolvedSteps', 'unitTypes', 'techBases', 'unitStatuses'].includes(key)) {
+                        (prop as any)[key] = (meta as any)[key];
+                    }
+                });
             }
             setProposal(prop);
         }
@@ -140,13 +146,8 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         const primary = proposal.contracts[0];
         const opponent = proposal.contracts[1];
 
-        // Strip metadata added by Apollo Client (__typename) which is invalid for GraphQL Input types
-        let cleanRepairRules: RepairRulesInput | undefined;
-        if (proposal.repairRules) {
-            // Cast to any to safely destructure __typename, then cast the rest to RepairRulesInput
-            const { __typename, ...rest } = proposal.repairRules as any;
-            cleanRepairRules = rest as RepairRulesInput;
-        }
+        // Strip non-input fields and metadata added by Apollo Client
+        const { __typename, campaign: _, contracts: __, tracks: ___, ...rules } = proposal as any;
 
         // Parse the combined string to extract faction and category for backend compatibility
         const primaryParts = primary.employerCategory.split(': ');
@@ -192,7 +193,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
             monthlyMaintenance: proposal.campaign.monthlyMaintenance,
             transportationCost: proposal.campaign.transportationCost,
             combatPay: proposal.campaign.combatPay,
-            repairRules: cleanRepairRules,
+            ...rules,
             tracks: proposal.tracks.map(t => ({
                 name: t.name,
                 complication: t.complication,

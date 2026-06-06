@@ -5,6 +5,9 @@ import java.util.List;
 /**
  * Centralized constants for Battletech Campaign rulesets. Defaults aligned with
  * Chaos Campaign: Hinterlands and Hot Spots: Draconis Reach.
+ * 
+ * NOTE: Multipliers and Costs are being migrated to RuleConfigurationService
+ * to support dynamic rulesets and external configuration.
  */
 public class RulesConstants {
 

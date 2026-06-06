@@ -10,40 +10,6 @@ import { gql } from '@apollo/client';
 
 // ==================== Fragments ====================
 
-export const FRAGMENT_REPAIR_RULES = gql`
-  fragment RepairRulesFields on RepairRules {
-    armorMultiplier
-    internalMultiplier
-    crippledMultiplier
-    destroyedMultiplier
-    nonMechModifier
-    mixedTechModifier
-    clanTechModifier
-  }
-`;
-
-export const FRAGMENT_ACTIVITY_COSTS = gql`
-  fragment ActivityCostsFields on ActivityCosts {
-    omnimechReconfigureModifier
-    purchaseUnitMultiplier
-    sellUnitMultiplier
-    rearmCostPerTon
-    rearmCostPerTonAlphaStrike
-    hireMechWarriorCost
-    hireNamedPilotCost
-    hireBattleArmorCost
-    healMechWarriorPerWoundBoxCost
-    healMechWarriorPerMonthCost
-    healBattleArmorCost
-    trainFormationCommanderCost
-    changeFormationTrainingCost
-    learnFirstAbilityCost
-    learnSecondAbilityCost
-    learnThirdAbilityCost
-    replaceAbilityCost
-  }
-`;
-
 export const FRAGMENT_COMBAT_UNIT = gql`
   fragment CombatUnitFields on CombatUnit {
     id
@@ -225,16 +191,32 @@ export const GET_METADATA = gql`
           commandRights
         }
       }
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
     }
   }
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const PREVIEW_CAMPAIGN_RAW = `
@@ -250,34 +232,30 @@ export const PREVIEW_CAMPAIGN_RAW = `
         transportationCost
         combatPay
       }
-      repairRules {
-        armorMultiplier
-        internalMultiplier
-        crippledMultiplier
-        destroyedMultiplier
-        nonMechModifier
-        mixedTechModifier
-        clanTechModifier
-      }
-      activityCosts {
-        omnimechReconfigureModifier
-        purchaseUnitMultiplier
-        sellUnitMultiplier
-        rearmCostPerTon
-        rearmCostPerTonAlphaStrike
-        hireMechWarriorCost
-        hireNamedPilotCost
-        hireBattleArmorCost
-        healMechWarriorPerWoundBoxCost
-        healMechWarriorPerMonthCost
-        healBattleArmorCost
-        trainFormationCommanderCost
-        changeFormationTrainingCost
-        learnFirstAbilityCost
-        learnSecondAbilityCost
-        learnThirdAbilityCost
-        replaceAbilityCost
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
       contracts {
         employerCategory
         missionType
@@ -339,16 +317,32 @@ export const CREATE_CAMPAIGN = gql`
       transportStep
       commandRights
       commandStep
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
     }
   }
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const UPDATE_CAMPAIGN = gql`
@@ -375,16 +369,32 @@ export const UPDATE_CAMPAIGN = gql`
       transportStep
       commandRights
       commandStep
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
     }
   }
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const GET_MANAGED_CAMPAIGNS = gql`
@@ -408,12 +418,30 @@ export const GET_MANAGED_CAMPAIGNS = gql`
       supportStep
       transportStep
       commandStep
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
       contracts {
         ...ContractFields
       }
@@ -429,8 +457,6 @@ export const GET_MANAGED_CAMPAIGNS = gql`
       }
     }
   }
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
   ${FRAGMENT_CONTRACT}
   ${FRAGMENT_TRACK}
   ${FRAGMENT_DETACHMENT}
@@ -489,12 +515,30 @@ export const GET_CAMPAIGN_DETAILS = gql`
       transportStep
       commandRights
       commandStep
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
       factions {
         id
         factionName
@@ -520,8 +564,6 @@ export const GET_CAMPAIGN_DETAILS = gql`
       }
     }
   }
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
   ${FRAGMENT_TRACK}
   ${FRAGMENT_COMBAT_UNIT}
   ${FRAGMENT_PILOT}
@@ -627,12 +669,30 @@ export const GET_UNIT_DOSSIER = gql`
       unitStatuses
       unitTypes
       techBases
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      purchaseUnitMultiplier
+      sellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthCost
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnFirstAbilityCost
+      learnSecondAbilityCost
+      learnThirdAbilityCost
+      replaceAbilityCost
     }
   }
   ${FRAGMENT_COMMAND}
@@ -640,8 +700,6 @@ export const GET_UNIT_DOSSIER = gql`
   ${FRAGMENT_PILOT}
   ${FRAGMENT_LEDGER_ENTRY}
   ${FRAGMENT_DETACHMENT}
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 export const ESTABLISH_COMMAND = gql`
@@ -713,19 +771,35 @@ export const GET_FORCE_DATA = gql`
       unitStatuses
       unitTypes
       techBases
-      repairRules {
-        ...RepairRulesFields
-      }
-      activityCosts {
-        ...ActivityCostsFields
-      }
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthLimit
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
     }
   }
   ${FRAGMENT_COMMAND}
   ${FRAGMENT_PILOT}
   ${FRAGMENT_DETACHMENT}
-  ${FRAGMENT_REPAIR_RULES}
-  ${FRAGMENT_ACTIVITY_COSTS}
 `;
 
 // ==================== Ledger Operations ====================

@@ -8,8 +8,30 @@ export interface CampaignMetadata {
     factions: string[];
     employerTypes: string[];
     resolvedSteps: ResolvedStepEntry[];
-    repairRules: RepairRules;
-    activityCosts: ActivityCosts;
+    armorMultiplier: number;
+    internalMultiplier: number;
+    crippledMultiplier: number;
+    destroyedMultiplier: number;
+    nonMechModifier: number;
+    mixedTechModifier: number;
+    clanTechModifier: number;
+    omnimechReconfigureModifier: number;
+    pvPurchaseUnitMultiplier: number;
+    pvSellUnitMultiplier: number;
+    rearmCostPerTon: number;
+    rearmCostPerTonAlphaStrike: number;
+    hireMechWarriorCost: number;
+    hireNamedPilotCost: number;
+    hireBattleArmorCost: number;
+    healMechWarriorPerWoundBoxCost: number;
+    healMechWarriorPerMonthLimit: number;
+    healBattleArmorCost: number;
+    trainFormationCommanderCost: number;
+    changeFormationTrainingCost: number;
+    learnCommandAbility1Cost: number;
+    learnCommandAbility2Cost: number;
+    learnCommandAbility3Cost: number;
+    replaceCommandAbilityCost: number;
     unitTypes: string[];
     techBases: string[];
     unitStatuses: string[];
@@ -63,40 +85,6 @@ export interface Pilot {
 
 export type PilotUpdateInput = Partial<Omit<Pilot, 'id'>>;
 
-export interface RepairRulesInput {
-    armorMultiplier?: number;
-    internalMultiplier?: number;
-    crippledMultiplier?: number;
-    destroyedMultiplier?: number;
-    nonMechModifier?: number;
-    mixedTechModifier?: number;
-    clanTechModifier?: number;
-}
-
-export type RepairRules = RepairRulesInput;
-
-export interface ActivityCosts {
-    omnimechReconfigureModifier?: number;
-    purchaseUnitMultiplier?: number;
-    sellUnitMultiplier?: number;
-    rearmCostPerTon?: number;
-    rearmCostPerTonAlphaStrike?: number;
-    hireMechWarriorCost?: number;
-    hireNamedPilotCost?: number;
-    hireBattleArmorCost?: number;
-    healMechWarriorPerWoundBoxCost?: number;
-    healMechWarriorPerMonthCost?: number;
-    healBattleArmorCost?: number;
-    trainFormationCommanderCost?: number;
-    changeFormationTrainingCost?: number;
-    learnFirstAbilityCost?: number;
-    learnSecondAbilityCost?: number;
-    learnThirdAbilityCost?: number;
-    replaceAbilityCost?: number;
-}
-
-export type ActivityCostsInput = ActivityCosts;
-
 export interface TrackUpdateInput {
     trackName?: string;
     location?: string;
@@ -144,8 +132,30 @@ export interface CampaignCreateInput {
     monthlyMaintenance?: number;
     transportationCost?: number;
     combatPay?: number;
-    repairRules?: RepairRulesInput;
-    activityCosts?: ActivityCostsInput;
+    armorMultiplier?: number;
+    internalMultiplier?: number;
+    crippledMultiplier?: number;
+    destroyedMultiplier?: number;
+    nonMechModifier?: number;
+    mixedTechModifier?: number;
+    clanTechModifier?: number;
+    omnimechReconfigureModifier?: number;
+    purchaseUnitMultiplier?: number;
+    sellUnitMultiplier?: number;
+    rearmCostPerTon?: number;
+    rearmCostPerTonAlphaStrike?: number;
+    hireMechWarriorCost?: number;
+    hireNamedPilotCost?: number;
+    hireBattleArmorCost?: number;
+    healMechWarriorPerWoundBoxCost?: number;
+    healMechWarriorPerMonthCost?: number;
+    healBattleArmorCost?: number;
+    trainFormationCommanderCost?: number;
+    changeFormationTrainingCost?: number;
+    learnFirstAbilityCost?: number;
+    learnSecondAbilityCost?: number;
+    learnThirdAbilityCost?: number;
+    replaceAbilityCost?: number;
     tracks?: ProposedTrackInput[];
 }
 
@@ -231,11 +241,16 @@ export type PublicCampaignMetadata = Pick<
 >;
 
 export type PublicCampaignMetadataWithRules = PublicCampaignMetadata &
-    Pick<CampaignMetadata, 'repairRules' | 'activityCosts'>;
+    Pick<CampaignMetadata,
+        'armorMultiplier' | 'internalMultiplier' | 'crippledMultiplier' | 'destroyedMultiplier' | 'nonMechModifier' | 'mixedTechModifier' | 'clanTechModifier' |
+        'omnimechReconfigureModifier' | 'purchaseUnitMultiplier' | 'sellUnitMultiplier' | 'rearmCostPerTon' | 'rearmCostPerTonAlphaStrike' |
+        'hireMechWarriorCost' | 'hireNamedPilotCost' | 'hireBattleArmorCost' | 'healMechWarriorPerWoundBoxCost' | 'healMechWarriorPerMonthCost' | 'healBattleArmorCost' |
+        'trainFormationCommanderCost' | 'changeFormationTrainingCost' | 'learnFirstAbilityCost' | 'learnSecondAbilityCost' | 'learnThirdAbilityCost' | 'replaceAbilityCost'
+    >;
 
 export type PublicCampaignMetadataMinimal = Pick<
     CampaignMetadata,
-    'unitStatuses' | 'unitTypes' | 'techBases' | 'repairRules'
+    'unitStatuses' | 'unitTypes' | 'techBases' | 'armorMultiplier' | 'internalMultiplier' | 'crippledMultiplier' | 'destroyedMultiplier' | 'nonMechModifier' | 'mixedTechModifier' | 'clanTechModifier'
 >;
 
 export interface ContractPreview {
@@ -276,7 +291,30 @@ export interface Proposal {
         transportationCost?: number;
         combatPay?: number;
     };
-    repairRules?: RepairRulesInput;
+    armorMultiplier?: number;
+    internalMultiplier?: number;
+    crippledMultiplier?: number;
+    destroyedMultiplier?: number;
+    nonMechModifier?: number;
+    mixedTechModifier?: number;
+    clanTechModifier?: number;
+    omnimechReconfigureModifier?: number;
+    purchaseUnitMultiplier?: number;
+    sellUnitMultiplier?: number;
+    rearmCostPerTon?: number;
+    rearmCostPerTonAlphaStrike?: number;
+    hireMechWarriorCost?: number;
+    hireNamedPilotCost?: number;
+    hireBattleArmorCost?: number;
+    healMechWarriorPerWoundBoxCost?: number;
+    healMechWarriorPerMonthCost?: number;
+    healBattleArmorCost?: number;
+    trainFormationCommanderCost?: number;
+    changeFormationTrainingCost?: number;
+    learnFirstAbilityCost?: number;
+    learnSecondAbilityCost?: number;
+    learnThirdAbilityCost?: number;
+    replaceAbilityCost?: number;
     contracts: ContractPreview[];
     tracks: ProposedTrack[];
 }
@@ -350,8 +388,30 @@ export interface CampaignDetail {
     monthlyMaintenance?: number;
     transportationCost?: number;
     combatPay?: number;
-    repairRules?: RepairRulesInput;
-    activityCosts?: ActivityCosts;
+    armorMultiplier?: number;
+    internalMultiplier?: number;
+    crippledMultiplier?: number;
+    destroyedMultiplier?: number;
+    nonMechModifier?: number;
+    mixedTechModifier?: number;
+    clanTechModifier?: number;
+    omnimechReconfigureModifier?: number;
+    purchaseUnitMultiplier?: number;
+    sellUnitMultiplier?: number;
+    rearmCostPerTon?: number;
+    rearmCostPerTonAlphaStrike?: number;
+    hireMechWarriorCost?: number;
+    hireNamedPilotCost?: number;
+    hireBattleArmorCost?: number;
+    healMechWarriorPerWoundBoxCost?: number;
+    healMechWarriorPerMonthCost?: number;
+    healBattleArmorCost?: number;
+    trainFormationCommanderCost?: number;
+    changeFormationTrainingCost?: number;
+    learnFirstAbilityCost?: number;
+    learnSecondAbilityCost?: number;
+    learnThirdAbilityCost?: number;
+    replaceAbilityCost?: number;
     contracts?: Contract[];
     factions?: CampaignFaction[];
     tracks?: TrackDetail[];

@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { CombatUnit, Pilot, RepairRulesInput, DetachmentAarState, CampaignDetail, TrackDetail } from '../types/global.d';
+import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
 import { MetadataDataMinimal } from '../types/graphql.d';
@@ -177,7 +177,7 @@ const AMMO_COST_PER_TON = 10;
 const INJURY_HEAL_COST = 30;
 
 // New helper function to calculate financial implications of a unit's status
-export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: RepairRulesInput | undefined, statuses: string[]) => {
+export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Partial<CampaignDetail> | undefined, statuses: string[]) => {
     const [operational, armor, internal, crippled, destroyed, trulyDestroyed] = statuses;
 
     const isTrulyDestroyed = status === trulyDestroyed;
@@ -285,7 +285,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         );
     }
 
-    const repairRules = campaign?.repairRules || metaData?.publicCampaignMetadata?.repairRules;
+    const repairRules = campaign || metaData?.publicCampaignMetadata;
 
     const getDetachmentTerms = (detId: string) => {
         const detAar = state.detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1.0, salvageValue: 0, customAward: 0 };

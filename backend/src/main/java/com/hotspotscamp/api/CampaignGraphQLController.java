@@ -32,7 +32,6 @@ import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.UserService;
-import com.hotspotscamp.util.RulesConstants;
 
 @Controller
 @RequiredArgsConstructor
@@ -181,72 +180,6 @@ public class CampaignGraphQLController {
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getContracts"));
     }
 
-    @SchemaMapping(typeName = "Campaign", field = "repairRules")
-    public RepairRules getRepairRules(Campaign campaign) {
-        log.trace("[TRACE] Entering getRepairRules for campaign: {}", campaign.getId());
-        RepairRules rules = new RepairRules(
-                Objects.requireNonNullElse(campaign.getArmorMultiplier(), RulesConstants.REPAIR_MULT_ARMOR),
-                Objects.requireNonNullElse(campaign.getInternalMultiplier(), RulesConstants.REPAIR_MULT_INTERNAL),
-                Objects.requireNonNullElse(campaign.getCrippledMultiplier(), RulesConstants.REPAIR_MULT_CRIPPLED),
-                Objects.requireNonNullElse(campaign.getDestroyedMultiplier(), RulesConstants.REPAIR_MULT_DESTROYED),
-                Objects.requireNonNullElse(campaign.getNonMechModifier(), RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER),
-                Objects.requireNonNullElse(campaign.getMixedTechModifier(), RulesConstants.REPAIR_MULT_MIXED_TECH),
-                Objects.requireNonNullElse(campaign.getClanTechModifier(), RulesConstants.REPAIR_MULT_CLAN_TECH)
-        );
-        log.trace("[TRACE] Exiting getRepairRules");
-        return rules;
-    }
-
-    @SchemaMapping(typeName = "Campaign", field = "activityCosts")
-    public ActivityCosts getActivityCosts(Campaign campaign) {
-        log.trace("[TRACE] Entering getActivityCosts for campaign: {}", campaign.getId());
-        ActivityCosts costs = new ActivityCosts(
-                Objects.requireNonNullElse(campaign.getOmnimechReconfigureModifier(), RulesConstants.OMNIMECH_RECONFIGURE_MODIFIER),
-                Objects.requireNonNullElse(campaign.getPurchaseUnitMultiplier(), RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER),
-                Objects.requireNonNullElse(campaign.getSellUnitMultiplier(), RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER),
-                Objects.requireNonNullElse(campaign.getRearmCostPerTon(), RulesConstants.REARM_COST_PER_TON),
-                Objects.requireNonNullElse(campaign.getRearmCostPerTonAlphaStrike(), RulesConstants.REARM_COST_ALPHA_STRIKE),
-                Objects.requireNonNullElse(campaign.getHireMechWarriorCost(), RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW),
-                Objects.requireNonNullElse(campaign.getHireNamedPilotCost(), RulesConstants.HIRE_NAMED_PILOT),
-                Objects.requireNonNullElse(campaign.getHireBattleArmorCost(), RulesConstants.HIRE_BATTLE_ARMOR_TROOPER),
-                Objects.requireNonNullElse(campaign.getHealMechWarriorPerWoundBoxCost(), RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX),
-                Objects.requireNonNullElse(campaign.getHealMechWarriorPerMonthCost(), RulesConstants.HEAL_MECHWARRIOR_PER_MONTH),
-                Objects.requireNonNullElse(campaign.getHealBattleArmorCost(), RulesConstants.HEAL_BATTLE_ARMOR_TROOPER),
-                Objects.requireNonNullElse(campaign.getTrainFormationCommanderCost(), RulesConstants.TRAIN_FORMATION_COMMANDER),
-                Objects.requireNonNullElse(campaign.getChangeFormationTrainingCost(), RulesConstants.CHANGE_FORMATION_TRAINING),
-                Objects.requireNonNullElse(campaign.getLearnFirstAbilityCost(), RulesConstants.LEARN_FIRST_COMMAND_ABILITY),
-                Objects.requireNonNullElse(campaign.getLearnSecondAbilityCost(), RulesConstants.LEARN_SECOND_COMMAND_ABILITY),
-                Objects.requireNonNullElse(campaign.getLearnThirdAbilityCost(), RulesConstants.LEARN_THIRD_COMMAND_ABILITY),
-                Objects.requireNonNullElse(campaign.getReplaceAbilityCost(), RulesConstants.REPLACE_COMMAND_ABILITY)
-        );
-        log.trace("[TRACE] Exiting getActivityCosts");
-        return costs;
-    }
-
-    @SchemaMapping(typeName = "CampaignMetadata", field = "activityCosts")
-    public ActivityCosts getMetadataActivityCosts(CampaignMetadata metadata) {
-        log.trace("[TRACE] Entering getMetadataActivityCosts");
-        return new ActivityCosts(
-                RulesConstants.OMNIMECH_RECONFIGURE_MODIFIER,
-                RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER,
-                RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER,
-                RulesConstants.REARM_COST_PER_TON,
-                RulesConstants.REARM_COST_ALPHA_STRIKE,
-                RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW,
-                RulesConstants.HIRE_NAMED_PILOT,
-                RulesConstants.HIRE_BATTLE_ARMOR_TROOPER,
-                RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX,
-                RulesConstants.HEAL_MECHWARRIOR_PER_MONTH,
-                RulesConstants.HEAL_BATTLE_ARMOR_TROOPER,
-                RulesConstants.TRAIN_FORMATION_COMMANDER,
-                RulesConstants.CHANGE_FORMATION_TRAINING,
-                RulesConstants.LEARN_FIRST_COMMAND_ABILITY,
-                RulesConstants.LEARN_SECOND_COMMAND_ABILITY,
-                RulesConstants.LEARN_THIRD_COMMAND_ABILITY,
-                RulesConstants.REPLACE_COMMAND_ABILITY
-        );
-    }
-
     @SchemaMapping(typeName = "Campaign", field = "campaignInvites")
     public Flux<CampaignInvite> getCampaignInvites(Campaign campaign) {
         log.trace("[TRACE] Entering getCampaignInvites for campaign: {}", campaign.getId());
@@ -257,18 +190,6 @@ public class CampaignGraphQLController {
         }
         return campaignService.getCampaignInvites(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getCampaignInvites"));
-    }
-
-    @SchemaMapping(typeName = "CampaignProposal", field = "repairRules")
-    public RepairRules getProposalRepairRules(CampaignProposal proposal) {
-        log.trace("[TRACE] Entering getProposalRepairRules");
-        return getRepairRules(proposal.campaign());
-    }
-
-    @SchemaMapping(typeName = "CampaignProposal", field = "activityCosts")
-    public ActivityCosts getProposalActivityCosts(CampaignProposal proposal) {
-        log.trace("[TRACE] Entering getProposalActivityCosts");
-        return getActivityCosts(proposal.campaign());
     }
 
     @QueryMapping

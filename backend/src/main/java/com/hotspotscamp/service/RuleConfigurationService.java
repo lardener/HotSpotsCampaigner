@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import com.hotspotscamp.util.RulesConstants;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -235,6 +236,76 @@ public class RuleConfigurationService {
             resolvedSteps.put(entry.step(), values);
         }
         return resolvedSteps;
+    }
+
+    /**
+     * Look up default repair multipliers. In the future, these will be sourced
+     * from configuration files to support different rulesets.
+     */
+    public Double getRepairMultiplier(String key) {
+        return switch (key) {
+            case "armor" -> RulesConstants.REPAIR_MULT_ARMOR;
+            case "internal" -> RulesConstants.REPAIR_MULT_INTERNAL;
+            case "crippled" -> RulesConstants.REPAIR_MULT_CRIPPLED;
+            case "destroyed" -> RulesConstants.REPAIR_MULT_DESTROYED;
+            case "nonMech" -> RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER;
+            case "mixedTech" -> RulesConstants.REPAIR_MULT_MIXED_TECH;
+            case "clanTech" -> RulesConstants.REPAIR_MULT_CLAN_TECH;
+            default -> 1.0;
+        };
+    }
+
+    /**
+     * Look up default activity costs (Double values).
+     */
+    public Double getActivityCost(String key) {
+        if ("omnimechReconfigure".equals(key)) {
+            return RulesConstants.OMNIMECH_RECONFIGURE_MODIFIER;
+        }
+        return (double) getActivityCostInt(key);
+    }
+
+    /**
+     * Look up default activity costs (Integer values).
+     */
+    public Integer getActivityCostInt(String key) {
+        return switch (key) {
+            case "purchaseUnit" -> RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER;
+            case "sellUnit" -> RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER;
+            case "rearmTon" -> RulesConstants.REARM_COST_PER_TON;
+            case "rearmAS" -> RulesConstants.REARM_COST_ALPHA_STRIKE;
+            case "hireMechWarrior" -> RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW;
+            case "hireNamedPilot" -> RulesConstants.HIRE_NAMED_PILOT;
+            case "hireBattleArmor" -> RulesConstants.HIRE_BATTLE_ARMOR_TROOPER;
+            case "healWound" -> RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX;
+            case "healMonth" -> RulesConstants.HEAL_MECHWARRIOR_PER_MONTH;
+            case "healBattleArmor" -> RulesConstants.HEAL_BATTLE_ARMOR_TROOPER;
+            case "trainCommander" -> RulesConstants.TRAIN_FORMATION_COMMANDER;
+            case "changeFormation" -> RulesConstants.CHANGE_FORMATION_TRAINING;
+            case "learnAbility1" -> RulesConstants.LEARN_FIRST_COMMAND_ABILITY;
+            case "learnAbility2" -> RulesConstants.LEARN_SECOND_COMMAND_ABILITY;
+            case "learnAbility3" -> RulesConstants.LEARN_THIRD_COMMAND_ABILITY;
+            case "replaceAbility" -> RulesConstants.REPLACE_COMMAND_ABILITY;
+            default -> 0;
+        };
+    }
+
+    public Integer getCampaignDefault(String key) {
+        return switch (key) {
+            case "monthlyPay" -> RulesConstants.DEFAULT_MONTHLY_PAY;
+            case "monthlyMaintenance" -> RulesConstants.DEFAULT_MONTHLY_MAINTENANCE;
+            case "transportationCost" -> RulesConstants.DEFAULT_TRANSPORTATION_COST;
+            case "combatPay" -> RulesConstants.DEFAULT_COMBAT_PAY;
+            default -> 0;
+        };
+    }
+
+    public Integer getCommandDefault(String key) {
+        return switch (key) {
+            case "startingSP" -> RulesConstants.STARTING_SUPPORT_POINTS;
+            case "startingRep" -> RulesConstants.STARTING_REPUTATION;
+            default -> 0;
+        };
     }
 
     // Getters

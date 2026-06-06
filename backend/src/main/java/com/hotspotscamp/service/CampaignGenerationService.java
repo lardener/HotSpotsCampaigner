@@ -9,11 +9,9 @@ import java.util.Random;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
-import com.hotspotscamp.dto.ActivityCosts;
 import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignProposal;
 import com.hotspotscamp.dto.GeneratedTrack;
-import com.hotspotscamp.dto.RepairRules;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.service.RuleConfigurationService.ComplicationRule;
@@ -29,7 +27,6 @@ import com.hotspotscamp.service.RuleConfigurationService.SystemEntry;
 import com.hotspotscamp.service.RuleConfigurationService.SystemTableConfig;
 import com.hotspotscamp.service.RuleConfigurationService.TrackCountTableConfig;
 import com.hotspotscamp.service.RuleConfigurationService.TrackTableConfig;
-import com.hotspotscamp.util.RulesConstants;
 import com.hotspotscamp.util.TypeUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -82,33 +79,6 @@ public class CampaignGenerationService {
             }
         }
 
-        RepairRules rules = Objects.requireNonNullElse(input.repairRules(), new RepairRules(
-                RulesConstants.REPAIR_MULT_ARMOR, RulesConstants.REPAIR_MULT_INTERNAL,
-                RulesConstants.REPAIR_MULT_CRIPPLED, RulesConstants.REPAIR_MULT_DESTROYED,
-                RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER, RulesConstants.REPAIR_MULT_MIXED_TECH,
-                RulesConstants.REPAIR_MULT_CLAN_TECH
-        ));
-
-        ActivityCosts activityCosts = Objects.requireNonNullElse(input.activityCosts(), new ActivityCosts(
-                RulesConstants.OMNIMECH_RECONFIGURE_MODIFIER,
-                RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER,
-                RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER,
-                RulesConstants.REARM_COST_PER_TON,
-                RulesConstants.REARM_COST_ALPHA_STRIKE,
-                RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW,
-                RulesConstants.HIRE_NAMED_PILOT,
-                RulesConstants.HIRE_BATTLE_ARMOR_TROOPER,
-                RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX,
-                RulesConstants.HEAL_MECHWARRIOR_PER_MONTH,
-                RulesConstants.HEAL_BATTLE_ARMOR_TROOPER,
-                RulesConstants.TRAIN_FORMATION_COMMANDER,
-                RulesConstants.CHANGE_FORMATION_TRAINING,
-                RulesConstants.LEARN_FIRST_COMMAND_ABILITY,
-                RulesConstants.LEARN_SECOND_COMMAND_ABILITY,
-                RulesConstants.LEARN_THIRD_COMMAND_ABILITY,
-                RulesConstants.REPLACE_COMMAND_ABILITY
-        ));
-
         Contract primaryContract = generateContract(finalEmp, empMission, input.employerCategory(),
                 input.payRate(), input.salvageTerms(), input.supportTerms(), input.transportTerms(), input.commandRights(),
                 input.payStep(), input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand, employerProvided);
@@ -124,36 +94,34 @@ public class CampaignGenerationService {
                 .supportTerms(primaryContract.getSupportTerms()).supportStep(primaryContract.getSupportStep())
                 .transportTerms(primaryContract.getTransportTerms()).transportStep(primaryContract.getTransportStep())
                 .commandRights(primaryContract.getCommandRights()).commandStep(primaryContract.getCommandStep())
-                .armorMultiplier(rules.armorMultiplier())
-                .internalMultiplier(rules.internalMultiplier())
-                .crippledMultiplier(rules.crippledMultiplier())
-                .destroyedMultiplier(rules.destroyedMultiplier())
-                .nonMechModifier(rules.nonMechModifier())
-                .mixedTechModifier(rules.mixedTechModifier())
-                .clanTechModifier(rules.clanTechModifier())
-                .omnimechReconfigureModifier(activityCosts.omnimechReconfigureModifier())
-                .purchaseUnitMultiplier(activityCosts.purchaseUnitMultiplier())
-                .sellUnitMultiplier(activityCosts.sellUnitMultiplier())
-                .rearmCostPerTon(activityCosts.rearmCostPerTon())
-                .rearmCostPerTonAlphaStrike(activityCosts.rearmCostPerTonAlphaStrike())
-                .hireMechWarriorCost(activityCosts.hireMechWarriorCost())
-                .hireNamedPilotCost(activityCosts.hireNamedPilotCost())
-                .hireBattleArmorCost(activityCosts.hireBattleArmorCost())
-                .healMechWarriorPerWoundBoxCost(activityCosts.healMechWarriorPerWoundBoxCost())
-                .healMechWarriorPerMonthCost(activityCosts.healMechWarriorPerMonthCost())
-                .healBattleArmorCost(activityCosts.healBattleArmorCost())
-                .trainFormationCommanderCost(activityCosts.trainFormationCommanderCost())
-                .changeFormationTrainingCost(activityCosts.changeFormationTrainingCost())
-                .learnFirstAbilityCost(activityCosts.learnFirstAbilityCost())
-                .learnSecondAbilityCost(activityCosts.learnSecondAbilityCost())
-                .learnThirdAbilityCost(activityCosts.learnThirdAbilityCost())
-                .replaceAbilityCost(activityCosts.replaceAbilityCost())
-                .activityCosts(activityCosts)
-                .monthlyPay(TypeUtils.asInt(input.monthlyPay(), RulesConstants.DEFAULT_MONTHLY_PAY))
-                .monthlyMaintenance(TypeUtils.asInt(input.monthlyMaintenance(), RulesConstants.DEFAULT_MONTHLY_MAINTENANCE))
-                .transportationCost(TypeUtils.asInt(input.transportationCost(), RulesConstants.DEFAULT_TRANSPORTATION_COST))
-                .combatPay(TypeUtils.asInt(input.combatPay(), RulesConstants.DEFAULT_COMBAT_PAY))
-                .repairRules(rules)
+                .armorMultiplier(Objects.requireNonNullElse(input.armorMultiplier(), configService.getRepairMultiplier("armor")))
+                .internalMultiplier(Objects.requireNonNullElse(input.internalMultiplier(), configService.getRepairMultiplier("internal")))
+                .crippledMultiplier(Objects.requireNonNullElse(input.crippledMultiplier(), configService.getRepairMultiplier("crippled")))
+                .destroyedMultiplier(Objects.requireNonNullElse(input.destroyedMultiplier(), configService.getRepairMultiplier("destroyed")))
+                .nonMechModifier(Objects.requireNonNullElse(input.nonMechModifier(), configService.getRepairMultiplier("nonMech")))
+                .mixedTechModifier(Objects.requireNonNullElse(input.mixedTechModifier(), configService.getRepairMultiplier("mixedTech")))
+                .clanTechModifier(Objects.requireNonNullElse(input.clanTechModifier(), configService.getRepairMultiplier("clanTech")))
+                .omnimechReconfigureModifier(Objects.requireNonNullElse(input.omnimechReconfigureModifier(), configService.getActivityCost("omnimechReconfigure")))
+                .pvPurchaseUnitMultiplier(Objects.requireNonNullElse(input.pvPurchaseUnitMultiplier(), configService.getActivityCostInt("purchaseUnit")))
+                .pvSellUnitMultiplier(Objects.requireNonNullElse(input.pvSellUnitMultiplier(), configService.getActivityCostInt("sellUnit")))
+                .rearmCostPerTon(Objects.requireNonNullElse(input.rearmCostPerTon(), configService.getActivityCostInt("rearmTon")))
+                .rearmCostPerTonAlphaStrike(Objects.requireNonNullElse(input.rearmCostPerTonAlphaStrike(), configService.getActivityCostInt("rearmAS")))
+                .hireMechWarriorCost(Objects.requireNonNullElse(input.hireMechWarriorCost(), configService.getActivityCostInt("hireMechWarrior")))
+                .hireNamedPilotCost(Objects.requireNonNullElse(input.hireNamedPilotCost(), configService.getActivityCostInt("hireNamedPilot")))
+                .hireBattleArmorCost(Objects.requireNonNullElse(input.hireBattleArmorCost(), configService.getActivityCostInt("hireBattleArmor")))
+                .healMechWarriorPerWoundBoxCost(Objects.requireNonNullElse(input.healMechWarriorPerWoundBoxCost(), configService.getActivityCostInt("healWound")))
+                .healMechWarriorPerMonthLimit(Objects.requireNonNullElse(input.healMechWarriorPerMonthLimit(), configService.getActivityCostInt("healMonth")))
+                .healBattleArmorCost(Objects.requireNonNullElse(input.healBattleArmorCost(), configService.getActivityCostInt("healBattleArmor")))
+                .trainFormationCommanderCost(Objects.requireNonNullElse(input.trainFormationCommanderCost(), configService.getActivityCostInt("trainCommander")))
+                .changeFormationTrainingCost(Objects.requireNonNullElse(input.changeFormationTrainingCost(), configService.getActivityCostInt("changeFormation")))
+                .learnCommandAbility1Cost(Objects.requireNonNullElse(input.learnCommandAbility1Cost(), configService.getActivityCostInt("learnAbility1")))
+                .learnCommandAbility2Cost(Objects.requireNonNullElse(input.learnCommandAbility2Cost(), configService.getActivityCostInt("learnAbility2")))
+                .learnCommandAbility3Cost(Objects.requireNonNullElse(input.learnCommandAbility3Cost(), configService.getActivityCostInt("learnAbility3")))
+                .replaceCommandAbilityCost(Objects.requireNonNullElse(input.replaceCommandAbilityCost(), configService.getActivityCostInt("replaceAbility")))
+                .monthlyPay(TypeUtils.asInt(input.monthlyPay(), configService.getCampaignDefault("monthlyPay")))
+                .monthlyMaintenance(TypeUtils.asInt(input.monthlyMaintenance(), configService.getCampaignDefault("monthlyMaintenance")))
+                .transportationCost(TypeUtils.asInt(input.transportationCost(), configService.getCampaignDefault("transportationCost")))
+                .combatPay(TypeUtils.asInt(input.combatPay(), configService.getCampaignDefault("combatPay")))
                 .status(input.status() != null && !input.status().isBlank() ? input.status() : "PREVIEW")
                 .build();
 
@@ -165,7 +133,36 @@ public class CampaignGenerationService {
         List<GeneratedTrack> tracksList = (input.tracks() != null && !input.tracks().isEmpty()) ? input.tracks()
                 : generateTracks(empMission, primaryContract.getCommandRights(), oppositionContract.getCommandRights(), finalTracksCount, null);
 
-        return new CampaignProposal(campaign, List.of(primaryContract, oppositionContract), tracksList, finalEmp, finalOpp);
+        return new CampaignProposal(
+                campaign,
+                List.of(primaryContract, oppositionContract),
+                tracksList,
+                finalEmp,
+                finalOpp,
+                campaign.getArmorMultiplier(),
+                campaign.getInternalMultiplier(),
+                campaign.getCrippledMultiplier(),
+                campaign.getDestroyedMultiplier(),
+                campaign.getNonMechModifier(),
+                campaign.getMixedTechModifier(),
+                campaign.getClanTechModifier(),
+                campaign.getOmnimechReconfigureModifier(),
+                campaign.getPvPurchaseUnitMultiplier(),
+                campaign.getPvSellUnitMultiplier(),
+                campaign.getRearmCostPerTon(),
+                campaign.getRearmCostPerTonAlphaStrike(),
+                campaign.getHireMechWarriorCost(),
+                campaign.getHireNamedPilotCost(),
+                campaign.getHireBattleArmorCost(),
+                campaign.getHealMechWarriorPerWoundBoxCost(),
+                campaign.getHealMechWarriorPerMonthLimit(),
+                campaign.getHealBattleArmorCost(),
+                campaign.getTrainFormationCommanderCost(),
+                campaign.getChangeFormationTrainingCost(),
+                campaign.getLearnCommandAbility1Cost(),
+                campaign.getLearnCommandAbility2Cost(),
+                campaign.getLearnCommandAbility3Cost(),
+                campaign.getReplaceCommandAbilityCost());
     }
 
     private Contract generateContract(String faction, String type, String category,
