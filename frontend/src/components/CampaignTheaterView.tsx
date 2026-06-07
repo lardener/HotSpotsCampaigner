@@ -26,6 +26,7 @@ import {
     REORDER_TRACKS
 } from '../types/operations';
 import { CreateInviteData, MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
+import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
 /**
  * Custom Terminal-themed overlay to replace native browser popups.
@@ -585,7 +586,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     };
 
     return (
-        <div className="container">
+        <div className="container" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: '100%' }}>
+            <CampaignTheaterBackground />
             {!selectedCampaignId ? (
                 <>
                     <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1721,6 +1723,23 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 />
             )}
 
+            <style>{`
+                .container {
+                    background: transparent !important;
+                }
+                .tactical-panel, .dashboard-section, .asset-card {
+                    background-color: rgba(5, 7, 5, 0.3) !important;
+                    backdrop-filter: blur(1px);
+                }
+                .markdown-preview :is(h1, h2, h3, h4, h5, h6) {
+                    color: var(--terminal-amber);
+                    margin-top: 1em;
+                    margin-bottom: 0.5em;
+                    border-bottom: 1px dashed rgba(255, 176, 0, 0.3);
+                    padding-bottom: 0.2em;
+                    text-transform: uppercase;
+                }
+            `}</style>
         </div >
     );
 };

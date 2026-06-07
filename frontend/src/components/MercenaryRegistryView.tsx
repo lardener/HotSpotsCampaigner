@@ -1,5 +1,6 @@
 import React from 'react';
 import { MercenaryCommand } from '../types/global.d';
+import { MercenaryRegistryBackground } from './MercenaryRegistryBackground';
 
 interface MercenaryRegistryViewProps {
     commands: MercenaryCommand[];
@@ -19,7 +20,8 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
     onViewUnitProfile
 }) => {
     return (
-        <div className="container">
+        <div className="container" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: '100%' }}>
+            <MercenaryRegistryBackground />
             <header className="dashboard-header">
                 <h1 className="terminal-text">MERCENARY REGISTRY</h1>
             </header>
@@ -33,7 +35,7 @@ export const MercenaryRegistryView: React.FC<MercenaryRegistryViewProps> = ({
                             cursor: 'pointer',
                             border: selectedCommandId === cmd.id ? '2px solid var(--accent-primary)' : '1px solid var(--terminal-border)',
                             transition: 'all 0.2s ease-in-out',
-                            backgroundColor: selectedCommandId === cmd.id ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                            backgroundColor: selectedCommandId === cmd.id ? 'rgba(255, 255, 255, 0.05)' : 'rgba(5, 7, 5, 0.3)',
                             position: 'relative'
                         }}
                     >

@@ -4,6 +4,7 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { Pilot, PilotUpdateInput, HirePilotVars, UpdatePilotVars } from '../types/global.d';
 import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
 import { HirePilotData, UpdatePilotData } from '../types/graphql.d';
+import { PilotBackground } from './PilotBackground';
 
 interface PilotEditorProps {
     pilot?: Pilot | null;
@@ -289,7 +290,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                 style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.97)', zIndex: 9998 }}
             />
 
-            <div className="pilot-card-form terminal-overlay-panel" style={{ zIndex: 9999, maxWidth: '850px', width: '95%' }}>
+            <div className="pilot-card-form terminal-overlay-panel" style={{ zIndex: 9999, maxWidth: '850px', width: '95%', position: 'relative', overflow: 'hidden' }}>
+                <PilotBackground />
                 <header className="pilot-card-header overlay-header">
                     <h2 className="terminal-text" style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
                         <span className="blink-fast" style={{ marginRight: '10px' }}>▶</span>

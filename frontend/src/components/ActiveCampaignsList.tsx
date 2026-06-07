@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@apollo/client/react';
 import { GET_ACTIVE_CAMPAIGNS } from '../types/operations';
 import { ActiveCampaignsData } from '../types/graphql.d';
+import { ActiveCampaignsBackground } from './ActiveCampaignsBackground';
 
 interface ActiveCampaignsListProps {
     onSelectCampaign?: (id: string) => void;
@@ -21,9 +22,10 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
     const campaigns = data?.publicActiveCampaigns || [];
 
     return (
-        <section className="active-campaigns-container">
+        <section className="active-campaigns-container" style={{ position: 'relative' }}>
+            <ActiveCampaignsBackground />
             <h2 className="section-title">ACTIVE THEATER DEPLOYMENTS</h2>
-            <p className="restricted-text">SITUATION REPORT: HINTERLANDS REGION</p>
+            <p className="restricted-text">SITUATION REPORT: INNER SPHERE</p>
 
             <div className="search-placeholder mb-20 mt-20 recruitment-box border-dashed-gray">
                 <span title="Search filters for recruitment status, region, or faction">[ SEARCH FILTERS: RECRUITMENT STATUS / REGION / FACTION ]</span>
@@ -34,8 +36,8 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
                     <p>No active deployments reported in this sector.</p>
                 ) : (
                     campaigns.map(c => (
-                        <div 
-                            key={c.id} 
+                        <div
+                            key={c.id}
                             className={`campaign-card tactical-panel mb-15 bg-dark-card ${onSelectCampaign ? 'cursor-pointer' : ''}`}
                             onClick={() => onSelectCampaign?.(c.id)}
                             title={onSelectCampaign ? "Click to view theater intel" : undefined}
@@ -65,6 +67,21 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
                     ))
                 )}
             </div>
+            <style>{`
+                .active-campaigns-container {
+                    background: transparent !important;
+                }
+                .campaign-list {
+                    background: transparent !important;
+                }
+                .campaign-card.bg-dark-card {
+                    background-color: rgba(5, 7, 5, 0.4) !important;
+                    backdrop-filter: blur(1px);
+                }
+                .recruitment-box {
+                    background-color: rgba(0, 0, 0, 0.3) !important;
+                }
+            `}</style>
         </section>
     );
 };

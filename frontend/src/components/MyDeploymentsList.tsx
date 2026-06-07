@@ -1,6 +1,7 @@
 import React from 'react';
 import { NodeType } from './NavigationTree';
 import { MercenaryCommand } from '../types/global.d';
+import { MyDeploymentsBackground } from './MyDeploymentsBackground';
 
 interface MyDeploymentsListProps {
     commands: MercenaryCommand[];
@@ -18,7 +19,8 @@ export const MyDeploymentsList: React.FC<MyDeploymentsListProps> = ({ commands, 
     );
 
     return (
-        <div className="container">
+        <div className="container my-deployments-container" style={{ position: 'relative', background: 'transparent', minHeight: '100%' }}>
+            <MyDeploymentsBackground />
             <header className="dashboard-header">
                 <h1 className="terminal-text">CURRENT DEPLOYMENTS</h1>
                 <p className="restricted-text">ACTIVE DETACHMENTS ON CAMPAIGN</p>
@@ -51,6 +53,15 @@ export const MyDeploymentsList: React.FC<MyDeploymentsListProps> = ({ commands, 
                     ))
                 )}
             </div>
+            <style>{`
+                .my-deployments-container {
+                    background: transparent !important;
+                }
+                .my-deployments-container .dashboard-section {
+                    background-color: rgba(5, 7, 5, 0.3) !important;
+                    backdrop-filter: blur(1px);
+                }
+            `}</style>
         </div>
     );
 };

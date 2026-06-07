@@ -9,6 +9,7 @@ import { CombatUnitEditor } from './CombatUnitEditor';
 import { CombatUnit, Pilot, Detachment, CommandUpdateInput, LedgerEntry, UpdateCommandVars, DeleteUnitVars, DeletePilotVars, DeleteDetachmentVars, CreateDetachmentVars } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 import { UnitDossierData } from '../types/graphql.d';
+import { CommandDashboardBackground } from './CommandDashboardBackground';
 import {
     GET_UNIT_DOSSIER,
     UPDATE_COMMAND,
@@ -408,7 +409,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const detachments: Detachment[] = command.detachments || [];
 
     return (
-        <div key={commandId} className="container unit-profile theme-amber">
+        <div key={commandId} className="container unit-profile theme-amber" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: '100%' }}>
+            <CommandDashboardBackground detachmentId={selectedDetachmentId} />
             <header className="dashboard-header dossier-header" style={{ borderBottom: '2px solid var(--accent-primary)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
                     {isEditingName ? (
@@ -809,6 +811,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
                 .status-bar select.table-input { background: transparent; color: inherit; }
                 .status-bar input.table-input { background: transparent; color: inherit; }
+                .tactical-panel, .dashboard-section {
+                    background-color: rgba(5, 7, 5, 0.3) !important;
+                    backdrop-filter: blur(1px);
+                }
             `}</style>
         </div>
     );

@@ -3,6 +3,7 @@ import { LedgerEntryForm } from './LedgerEntryForm';
 import { useQuery } from '@apollo/client/react';
 import { GET_LEDGER_DATA } from '../types/operations';
 import { LedgerData } from '../types/graphql.d';
+import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerDashboardProps {
     commandId: string;
@@ -32,7 +33,8 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
     if (loading) return <div>ACCESSING SECURE LEDGER...</div>;
 
     return (
-        <div className="ledger-dashboard">
+        <div className="ledger-dashboard" style={{ position: 'relative', overflow: 'hidden' }}>
+            <LedgerBackground />
             <header className="dashboard-header">
                 <h1 className="terminal-text">WARCHEST LEDGER</h1>
                 <p className="restricted-text">MERCENARY CONTRACT RECORD SHEET</p>

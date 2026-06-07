@@ -15,6 +15,7 @@ import {
     DELETE_UNIT,
     ADD_LEDGER_ENTRY
 } from '../types/operations';
+import { AarBackground } from './AarBackground';
 
 export interface AarDataState {
     detachmentAars: Record<string, DetachmentAarState>;
@@ -549,7 +550,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             themeClass="theme-red"
             loading={isFinalizing}
         >
-            <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px' }}>
+            <AarBackground />
+            <div className="aar-bg-overlay" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px', position: 'relative', overflowX: 'hidden' }}>
+
                 <div className="tactical-panel narrative-editor mb-20 theme-red" data-id="AAR-NARRATIVE">
                     <h3 className="zone-header mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>OPERATIONAL DEBRIEFING</h3>
                     {isEditingNarrative ? (

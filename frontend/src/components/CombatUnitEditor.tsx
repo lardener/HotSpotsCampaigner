@@ -13,6 +13,7 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { CombatUnit, CombatUnitUpdateInput, AddUnitVars, UpdateUnitVars, ImportAssetsVars } from '../types/global.d'; // This was already correct
 import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS } from '../types/operations';
 import { AddUnitData, UpdateUnitData } from '../types/graphql.d';
+import { CombatUnitBackground } from './CombatUnitBackground';
 
 interface CombatUnitEditorProps {
     unit?: CombatUnit | null;
@@ -214,8 +215,9 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         className="mech-card-form terminal-overlay-panel"
                         ref={refs.setFloating}
                         {...getFloatingProps()}
-                        style={{ zIndex: 9999, maxWidth: '900px', width: '95%', position: 'relative' }}
+                        style={{ zIndex: 9999, maxWidth: '900px', width: '95%', position: 'relative', overflow: 'hidden' }}
                     >
+                        <CombatUnitBackground />
                         <header className="mech-card-header overlay-header">
                             <h2 className="terminal-text" style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
                                 <span className="blink-fast" style={{ marginRight: '10px' }}>▶</span>

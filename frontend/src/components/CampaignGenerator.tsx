@@ -8,6 +8,7 @@ import {
     GENERATE_TRACKS,
     CREATE_CAMPAIGN
 } from '../types/operations';
+import { GeneratorBackground } from './GeneratorBackground';
 
 interface Props {
     user?: { name: string };
@@ -314,7 +315,8 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     };
 
     return (
-        <section className="dashboard-section generator-panel">
+        <section className="dashboard-section generator-panel" style={{ position: 'relative', overflow: 'hidden' }}>
+            <GeneratorBackground />
             <h2 className="section-title">DOBLESS INFORMATION SERVICE</h2>
             <p className="restricted-text">MERCENARY INTEL UPDATED</p>
 
@@ -323,6 +325,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                     onClick={handlePreview}
                     disabled={previewLoading || metadataLoading}
                     className="mode-btn theme-red"
+                    style={{ backgroundColor: 'var(--terminal-red)', color: 'black', opacity: 1 }}
                 >
                     {previewLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
                 </button>

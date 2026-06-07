@@ -44,6 +44,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+    volumes:
+      # Mounts your local public folder to the container for live-reloading during development
+      - ./frontend/public:/app/public
     container_name: battletech-frontend
     ports:
       - "3000:3000"
