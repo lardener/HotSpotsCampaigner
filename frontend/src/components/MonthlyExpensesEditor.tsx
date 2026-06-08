@@ -164,6 +164,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
             message="RECORD FINANCIAL TRANSACTIONS FOR DEPLOYED DETACHMENTS."
             confirmLabel="CLOSE"
             onConfirm={onClose}
+            onCancel={onClose}
             themeClass="theme-blue"
         >
             <div className="ledger-entry-table" style={{ marginTop: '20px', maxHeight: '60vh', overflowY: 'auto' }}>
@@ -283,6 +284,22 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                 }
             </div>
             <style>{`
+                /* Custom Scrollbar Styles for Monthly Expenses (Blue Theme) */
+                .ledger-entry-table::-webkit-scrollbar { width: 8px; }
+                .ledger-entry-table::-webkit-scrollbar-track { 
+                    background: var(--terminal-bg, #050705);
+                    border-radius: 10px;
+                }
+                .ledger-entry-table::-webkit-scrollbar-thumb {
+                    background-color: var(--terminal-blue);
+                    border-radius: 10px;
+                    border: 2px solid var(--terminal-bg, #050705);
+                }
+                .ledger-entry-table {
+                    scrollbar-width: thin;
+                    scrollbar-color: var(--terminal-blue) var(--terminal-bg, #050705);
+                }
+
                 .xs-text { font-size: 0.65rem; }
                 .theme-green { color: var(--terminal-green); }
             `}</style>

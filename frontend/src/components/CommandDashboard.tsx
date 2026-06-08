@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ApolloCache } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { LedgerEntryForm } from './LedgerEntryForm';
@@ -33,6 +33,8 @@ interface CommandDashboardProps {
 
 export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, detachmentId, isManagerView, onViewCampaign, onRefreshTree, onSyncChange }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null); // null means Pool
+    const [ledgerPage, setLedgerPage] = useState(1);
+    const entriesPerPage = 10;
 
     // Pilot Editor State
     const [showPilotEditor, setShowPilotEditor] = useState(false);
@@ -62,7 +64,12 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     // Synchronize selection with prop changes (e.g. from Navigation Tree)
     useEffect(() => {
         setSelectedDetachmentId(detachmentId || null);
+        setLedgerPage(1);
     }, [detachmentId]);
+
+    useEffect(() => {
+        setLedgerPage(1);
+    }, [selectedDetachmentId]);
 
     const { loading, error, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId },
@@ -301,6 +308,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     setOverlay(null);
                     setInviteToken('');
                     onRefreshTree?.();
+                    refetch(); // Refetch command dossier to update ledger and detachments
                 }
             });
         } catch (err) {
@@ -381,6 +389,37 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         });
     };
 
+    const command = data?.getCommand;
+
+    // Filter rosters for the focused detachment
+    const filteredUnits = useMemo(() => {
+        if (!command) return [];
+        return selectedDetachmentId
+            ? (command.units || []).filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
+            : (command.units || []);
+    }, [command, selectedDetachmentId]);
+
+    const filteredPilots = useMemo(() => {
+        if (!command) return [];
+        return selectedDetachmentId
+            ? (command.pilots || []).filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
+            : (command.pilots || []);
+    }, [command, selectedDetachmentId]);
+
+    const filteredLedger = useMemo(() => {
+        if (!command) return [];
+        return selectedDetachmentId
+            ? (command.allLedgerEntries || []).filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
+            : (command.allLedgerEntries || []);
+    }, [command, selectedDetachmentId]);
+
+    const sortedLedger = useMemo(() => {
+        return [...filteredLedger].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }, [filteredLedger]);
+
+    const totalPages = Math.max(1, Math.ceil(sortedLedger.length / entriesPerPage));
+    const paginatedLedger = sortedLedger.slice((ledgerPage - 1) * entriesPerPage, ledgerPage * entriesPerPage);
+
     if (loading && !data) return <div className="loading-intel pulse"> RETRIEVING UNIT DOSSIER...</div>;
 
     if (error) return (
@@ -390,21 +429,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         </div>
     );
 
-    const command = data?.getCommand;
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
-
-    // Filter rosters for the focused detachment
-    const filteredUnits = selectedDetachmentId
-        ? (command.units || []).filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
-        : (command.units || []);
-
-    const filteredPilots = selectedDetachmentId
-        ? (command.pilots || []).filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
-        : (command.pilots || []);
-
-    const filteredLedger = selectedDetachmentId
-        ? (command.allLedgerEntries || []).filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
-        : (command.allLedgerEntries || []);
 
     const detachments: Detachment[] = command.detachments || [];
 
@@ -744,8 +769,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredLedger.length > 0 ? (
-                                [...filteredLedger].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map(entry => (
+                            {paginatedLedger.length > 0 ? (
+                                paginatedLedger.map(entry => (
                                     <tr key={entry.id}>
                                         <td>{new Date(entry.timestamp).toLocaleDateString()}</td>
                                         <td>{entry.description}</td>
@@ -768,6 +793,26 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             )}
                         </tbody>
                     </table>
+
+                    {sortedLedger.length > entriesPerPage && (
+                        <div className="flex-between items-center mt-15 pt-10" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
+                            <div className="restricted-text sm-text subdued">
+                                ENTRIES: {sortedLedger.length} | PAGE {ledgerPage} OF {totalPages}
+                            </div>
+                            <div className="flex flex-gap-10">
+                                <button
+                                    className="mode-btn sm-text"
+                                    disabled={ledgerPage <= 1}
+                                    onClick={() => setLedgerPage(prev => Math.max(1, prev - 1))}
+                                >PREV</button>
+                                <button
+                                    className="mode-btn sm-text"
+                                    disabled={ledgerPage >= totalPages}
+                                    onClick={() => setLedgerPage(prev => Math.min(totalPages, prev + 1))}
+                                >NEXT</button>
+                            </div>
+                        </div>
+                    )}
                 </section>
             </div>
 

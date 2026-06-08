@@ -12,7 +12,7 @@ interface LedgerDashboardProps {
 
 export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, detachmentId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string>('');
-    const { loading, data } = useQuery<LedgerData>(GET_LEDGER_DATA, {
+    const { loading, data, refetch } = useQuery<LedgerData>(GET_LEDGER_DATA, {
         variables: { commandId }
     });
 
@@ -60,7 +60,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
                     commandId={commandId}
                     detachmentId={selectedDetachmentId}
                     initialCampaignName={selectedDet?.campaignName || ''}
-                    onEntryAdded={() => alert("Transaction synchronized with Warchest.")}
+                    onEntryAdded={() => refetch()} // Refetch ledger data after new entry
                 />
             ) : (
                 <div className="empty-notice">No active detachments found for this command.</div>

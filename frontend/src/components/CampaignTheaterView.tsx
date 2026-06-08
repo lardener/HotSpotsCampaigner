@@ -1373,8 +1373,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     onClose={() => {
                         setShowMonthlyExpensesEditor(null);
                         refetchCampaign();
+                        if (onRefresh) onRefresh(); // Trigger global refresh for ledger
+
                     }}
-                    onLedgerEntryAdded={() => refetchCampaign()}
+                    onLedgerEntryAdded={() => {
+                        refetchCampaign();
+                        if (onRefresh) onRefresh(); // Trigger global refresh for ledger
+                    }}
                 />
             )}
 

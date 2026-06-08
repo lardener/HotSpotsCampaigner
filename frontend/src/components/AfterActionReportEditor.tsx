@@ -546,6 +546,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             title={`AFTER ACTION REPORT: ${track.trackName.toUpperCase()}`}
             message="OPERATIONAL DEBRIEFING & LOGISTICS RECONCILIATION"
             onConfirm={handleFinalize}
+            onCancel={onClose}
             confirmLabel={isFinalizing ? "SYNCHRONIZING..." : "CLOSE DEBRIEFING"}
             themeClass="theme-red"
             loading={isFinalizing}

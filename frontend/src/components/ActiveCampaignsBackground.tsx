@@ -86,7 +86,7 @@ export const ActiveCampaignsBackground: React.FC = () => {
                     position: absolute;
                     top: 0; left: 0;
                     width: 100%; height: 100%;
-                    background-image: url('/map_of_inner_sphere.png');
+                    background-image: url('/mercenary_hall.png');
                     background-size: contain;
                     background-repeat: no-repeat;
                     background-position: center;
