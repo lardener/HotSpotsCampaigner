@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useApolloClient } from '@apollo/client/react';
 import { TreeItem, NodeType } from './NavigationTree';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
+import { ActiveCampaignsBackground } from './ActiveCampaignsBackground';
 import { CampaignGenerator } from './CampaignGenerator';
 import { CreateCommandForm } from './CreateCommandForm';
 import { Welcome } from './Welcome';
@@ -12,6 +13,7 @@ import { MercenaryRegistryView } from './MercenaryRegistryView';
 import { PublicCampaignTheaterView } from './PublicCampaignTheaterView';
 import { Sidebar } from './Sidebar';
 import { Detachment, UserAccount } from '../types/global.d';
+import { MercenaryRegistryBackground } from './MercenaryRegistryBackground';
 import { MyDeploymentsList } from './MyDeploymentsList';
 import { TerminalOverlay } from './TerminalOverlay';
 import {
@@ -417,11 +419,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                             <div className="status-bar theme-red" style={{ height: '36px', padding: 0, display: 'flex', alignItems: 'center', boxSizing: 'border-box', margin: 0 }}>
                                 <input
                                     type="text"
-                                    className="terminal-input-reset"
+                                    className="table-input"
                                     placeholder="ENTER INVITE KEY"
                                     value={inviteToken}
                                     onChange={(e) => setInviteToken(e.target.value.toUpperCase())}
-                                    style={{ width: '200px', textTransform: 'uppercase', border: 'none', background: 'transparent', color: 'inherit', height: '100%', padding: '0 15px', margin: 0, outline: 'none', display: 'block', boxSizing: 'border-box', lineHeight: '36px' }}
+                                    style={{ width: '200px', textTransform: 'uppercase', height: '100%', padding: '0 15px', margin: 0, display: 'block', boxSizing: 'border-box', lineHeight: '36px' }}
                                 />
                             </div>
                             <button
@@ -488,7 +490,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
         if (!selectedCommandId && commandContextRequired) {
             return (
-                <div className="placeholder-content">
+                <div className="placeholder-content" style={{ position: 'relative', overflow: 'hidden', minHeight: '100%', background: 'transparent' }}>
+                    <MercenaryRegistryBackground />
                     <h2>NO MERCENARY COMMAND DETECTED</h2>
                     <p>Register your unit with the Mercenary Review and Bonding Commission.</p>
                     <button className="login-button" onClick={() => setIsCreatingCommand(true)}>CREATE COMMAND</button>
@@ -604,7 +607,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 );
             case 'intel-hub':
                 return (
-                    <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                    <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', overflow: 'hidden', minHeight: '100%', background: 'transparent' }}>
+                        <ActiveCampaignsBackground />
                         <header className="dashboard-header">
                             <h1 className="terminal-text">HINTERLANDS INTELLIGENCE HUB</h1>
                             <p className="restricted-text">GLOBAL SIGNAL INTERCEPT ACTIVE</p>
@@ -630,7 +634,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     </div>
                 );
             default:
-                return <Welcome userName={user.name} />;
+                return (
+                    <div className="container" style={{ position: 'relative', overflow: 'hidden', minHeight: '100%', background: 'transparent' }}>
+                        <ActiveCampaignsBackground />
+                        <Welcome userName={user.name} />
+                    </div>
+                );
         }
     };
 

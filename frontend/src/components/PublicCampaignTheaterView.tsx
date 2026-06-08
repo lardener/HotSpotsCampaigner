@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { GET_CAMPAIGN_DETAILS } from '../types/operations';
 import { CampaignDetailsData } from '../types/graphql.d';
+import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 import { TrackDetail, Detachment } from '../types/global.d';
 
 interface PublicCampaignTheaterViewProps {
@@ -28,7 +29,8 @@ export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps>
     const displayMonthCount = Math.max(campaign.lengthInMonths || 1, trackMax, 1);
 
     return (
-        <div className="container theme-blue">
+        <div className="container theme-blue" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: '100%' }}>
+            <CampaignTheaterBackground />
             <header className="dashboard-header">
                 <div className="flex-between">
                     <div>
@@ -127,8 +129,15 @@ export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps>
             </div>
 
             <style>{`
+                .container {
+                    background: transparent !important;
+                }
                 .sm-text { font-size: 0.75rem; }
                 .xs-text { font-size: 0.65rem; }
+                .tactical-panel, .dashboard-section, .asset-card {
+                    background-color: rgba(5, 7, 5, 0.3) !important;
+                    backdrop-filter: blur(1px);
+                }
                 .block-label { display: block; margin-bottom: 2px; }
                 .py-10 { padding-top: 10px; padding-bottom: 10px; }
                 .markdown-preview :is(h1, h2, h3, h4, h5, h6) {

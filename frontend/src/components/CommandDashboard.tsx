@@ -415,17 +415,19 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 <div>
                     {isEditingName ? (
                         <div className="flex flex-gap-10 items-center">
-                            <input
-                                className="inline-edit terminal-text"
-                                style={{ fontSize: '2rem', height: 'auto', padding: '0 5px', width: 'auto' }}
-                                defaultValue={command.name}
-                                autoFocus
-                                onBlur={(e) => { handleHeaderUpdate('NAME', e.target.value); setIsEditingName(false); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                                placeholder="COMMAND NAME..."
-                                title="Enter command name"
-                                aria-label="Command name"
-                            />
+                            <div className="status-bar theme-amber" style={{ padding: '0 10px', display: 'flex', alignItems: 'center' }}>
+                                <input
+                                    className="table-input terminal-text"
+                                    style={{ fontSize: '2rem', height: 'auto', width: 'auto' }}
+                                    defaultValue={command.name}
+                                    autoFocus
+                                    onBlur={(e) => { handleHeaderUpdate('NAME', e.target.value); setIsEditingName(false); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                    placeholder="COMMAND NAME..."
+                                    title="Enter command name"
+                                    aria-label="Command name"
+                                />
+                            </div>
                             <h1 className="terminal-text" style={{ margin: 0 }}> - COMMAND DASHBOARD</h1>
                         </div>
                     ) : (
@@ -448,17 +450,20 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     <div className="input-group">
                         <label htmlFor="header-co" className="restricted-text">CO:</label>
                         {isEditingCO ? (
-                            <input
-                                id="header-co"
-                                className="inline-edit"
-                                defaultValue={command.commandingOfficer}
-                                autoFocus
-                                onBlur={(e) => { handleHeaderUpdate('CO', e.target.value); setIsEditingCO(false); }}
-                                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                                placeholder="COMMANDING OFFICER..."
-                                title="Enter commanding officer name"
-                                aria-label="Commanding officer"
-                            />
+                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'inline-flex', alignItems: 'center' }}>
+                                <input
+                                    id="header-co"
+                                    className="table-input"
+                                    style={{ border: 'none' }}
+                                    defaultValue={command.commandingOfficer}
+                                    autoFocus
+                                    onBlur={(e) => { handleHeaderUpdate('CO', e.target.value); setIsEditingCO(false); }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                    placeholder="COMMANDING OFFICER..."
+                                    title="Enter commanding officer name"
+                                    aria-label="Commanding officer"
+                                />
+                            </div>
                         ) : (
                             <div
                                 className="inline-edit"
@@ -811,6 +816,22 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
                 .status-bar select.table-input { background: transparent; color: inherit; }
                 .status-bar input.table-input { background: transparent; color: inherit; }
+                .status-bar:focus-within { 
+                    background-color: rgba(255, 255, 255, 0.05); 
+                    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1); 
+                }
+                .theme-amber .status-bar:focus-within { border-color: var(--terminal-amber); box-shadow: 0 0 8px rgba(255, 176, 0, 0.3); }
+                .theme-blue .status-bar:focus-within { border-color: var(--terminal-blue); box-shadow: 0 0 8px rgba(0, 191, 255, 0.3); }
+                .theme-green .status-bar:focus-within { border-color: var(--terminal-green); box-shadow: 0 0 8px rgba(51, 255, 51, 0.3); }
+                .theme-red .status-bar:focus-within { border-color: var(--terminal-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.3); }
+
+                .status-bar input.table-input, .status-bar select.table-input, .status-bar textarea.table-input {
+                    background: transparent !important;
+                    color: inherit !important;
+                    outline: none !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
                 .tactical-panel, .dashboard-section {
                     background-color: rgba(5, 7, 5, 0.3) !important;
                     backdrop-filter: blur(1px);

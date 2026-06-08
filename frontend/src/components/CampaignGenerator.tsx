@@ -479,6 +479,21 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                     )}
                 </div>
             )}
+            <style>{`
+                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+                .status-bar:focus-within { background-color: rgba(255, 51, 51, 0.25); box-shadow: 0 0 8px rgba(255, 51, 51, 0.2); }
+                .generator-panel, .dashboard-section, .summary-item, .campaign-tracks, .campaign-summary-header {
+                    background-color: rgba(5, 7, 5, 0.3) !important;
+                    backdrop-filter: blur(1px);
+                }
+                .status-bar input.table-input, .status-bar select.table-input { 
+                    background: transparent !important; 
+                    color: inherit !important; 
+                    border: none !important; 
+                    outline: none !important;
+                    box-shadow: none !important;
+                }
+            `}</style>
         </section>
     );
 };

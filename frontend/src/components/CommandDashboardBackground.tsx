@@ -180,7 +180,7 @@ export const CommandDashboardBackground: React.FC<CommandDashboardBackgroundProp
                 .bridge-overlay {
                     position: absolute;
                     top: 0; left: 0; width: 100%; height: 100%;
-                    background-image: url('dropship_schematic.svg');
+                    background-image: url('/dropship_schematic.svg');
                     background-size: contain;
                     background-repeat: no-repeat;
                     background-position: center;

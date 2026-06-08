@@ -48,18 +48,21 @@ const TerminalOverlay: React.FC<{
                 <h3 className="zone-header">{title}</h3>
                 <p className="restricted-text mt-10">{message}</p>
                 {showInput && (
-                    <input
-                        id="terminal-overlay-input"
-                        type="text"
-                        className="table-input mt-10 w-100"
-                        autoFocus
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && onConfirm(input)}
-                        aria-label="Response input"
-                        placeholder="Enter value..."
-                        title="Enter text and press Enter or CONFIRM"
-                    />
+                    <div className="status-bar theme-amber mt-10">
+                        <input
+                            id="terminal-overlay-input"
+                            type="text"
+                            className="table-input w-100"
+                            style={{ border: 'none', padding: '0 5px' }}
+                            autoFocus
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && onConfirm(input)}
+                            aria-label="Response input"
+                            placeholder="Enter value..."
+                            title="Enter text and press Enter or CONFIRM"
+                        />
+                    </div>
                 )}
                 <div className="flex flex-gap-10 mt-20 justify-end">
                     <button className="mode-btn" onClick={onCancel}>CANCEL</button>
@@ -394,8 +397,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         onCancel?: () => void;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
-    const [editingField, setEditingField] = useState<string | null>(null);
-    const [activeTrackField, setActiveTrackField] = useState<string | null>(null);
     const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
 
     const {
@@ -684,18 +685,20 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
                             <div className="mt-10" style={{ width: '100%' }}>
                                 {isEditingDescription ? (
-                                    <textarea
-                                        id="theater-description"
-                                        className="table-input"
-                                        style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
-                                        defaultValue={campaign?.description}
-                                        autoFocus
-                                        onBlur={() => setIsEditingDescription(false)}
-                                        onChange={(e) => handleUpdate('description', e.target.value)}
-                                        placeholder="Enter operational briefing (Markdown supported)..."
-                                        title="Exit field to save mission description"
-                                        aria-label="Theater command briefing"
-                                    />
+                                    <div className="status-bar theme-amber" style={{ padding: '5px' }}>
+                                        <textarea
+                                            id="theater-description"
+                                            className="table-input"
+                                            style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
+                                            defaultValue={campaign?.description}
+                                            autoFocus
+                                            onBlur={() => setIsEditingDescription(false)}
+                                            onChange={(e) => handleUpdate('description', e.target.value)}
+                                            placeholder="Enter operational briefing (Markdown supported)..."
+                                            title="Exit field to save mission description"
+                                            aria-label="Theater command briefing"
+                                        />
+                                    </div>
                                 ) : (
                                     <div
                                         className="markdown-preview cursor-pointer"
@@ -724,41 +727,23 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <div className="grid-6-col" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
                                     <div>
                                         <label htmlFor="campaign-length-in-months" className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
-                                        {editingField === 'lengthInMonths' ? (
-                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                <input id="campaign-length-in-months" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={campaignLengthInMonths} autoFocus
-                                                    onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
-                                                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                    onBlur={(e) => { handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }}
-                                                    placeholder="1"
-                                                    title="Number of months for the campaign" />
-                                            </div>
-                                        ) : (
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                onClick={() => setEditingField('lengthInMonths')} onFocus={() => setEditingField('lengthInMonths')} tabIndex={0}>
-                                                {campaignLengthInMonths}
-                                            </div>
-                                        )}
+                                        <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                            <input id="campaign-length-in-months" type="number" min="1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                value={campaignLengthInMonths}
+                                                onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                                                onBlur={(e) => handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1))}
+                                                title="Number of months for the campaign" />
+                                        </div>
                                     </div>
                                     <div>
                                         <label htmlFor="campaign-track-count" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
-                                        {editingField === 'trackCount' ? (
-                                            <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                <input id="campaign-track-count" type="number" min="1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={campaignTrackCount} autoFocus
-                                                    onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
-                                                    onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                    onBlur={(e) => { handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1)); setEditingField(null); }}
-                                                    placeholder="1"
-                                                    title="Number of tracks in the campaign" />
-                                            </div>
-                                        ) : (
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                onClick={() => setEditingField('trackCount')} onFocus={() => setEditingField('trackCount')} tabIndex={0}>
-                                                {campaignTrackCount}
-                                            </div>
-                                        )}
+                                        <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                            <input id="campaign-track-count" type="number" min="1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                value={campaignTrackCount}
+                                                onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                                onBlur={(e) => handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1))}
+                                                title="Number of tracks in the campaign" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -770,79 +755,47 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     <div className="grid-4-col mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                                         <div>
                                             <label htmlFor="campaign-monthly-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>BASE PAY</label>
-                                            {editingField === 'monthlyPay' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-monthly-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={monthlyPay} autoFocus
-                                                        onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleUpdate('monthlyPay', e.target.value); setEditingField(null); }}
-                                                        placeholder="0"
-                                                        title="Base monthly pay" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('monthlyPay')} onFocus={() => setEditingField('monthlyPay')} tabIndex={0}>
-                                                    {monthlyPay}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input id="campaign-monthly-pay" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={monthlyPay}
+                                                    onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                    onBlur={(e) => handleUpdate('monthlyPay', e.target.value)}
+                                                    placeholder="0"
+                                                    title="Base monthly pay" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label htmlFor="campaign-monthly-maintenance" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>MAINTENANCE</label>
-                                            {editingField === 'monthlyMaintenance' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-monthly-maintenance" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={monthlyMaintenance} autoFocus
-                                                        onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleUpdate('monthlyMaintenance', e.target.value); setEditingField(null); }}
-                                                        placeholder="0"
-                                                        title="Monthly maintenance cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('monthlyMaintenance')} onFocus={() => setEditingField('monthlyMaintenance')} tabIndex={0}>
-                                                    {monthlyMaintenance}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input id="campaign-monthly-maintenance" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={monthlyMaintenance}
+                                                    onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
+                                                    onBlur={(e) => handleUpdate('monthlyMaintenance', e.target.value)}
+                                                    placeholder="0"
+                                                    title="Monthly maintenance cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label htmlFor="campaign-transportation-cost" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>TRANS COST</label>
-                                            {editingField === 'transportationCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-transportation-cost" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={transportationCost} autoFocus
-                                                        onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleUpdate('transportationCost', e.target.value); setEditingField(null); }}
-                                                        placeholder="0"
-                                                        title="Transportation cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('transportationCost')} onFocus={() => setEditingField('transportationCost')} tabIndex={0}>
-                                                    {transportationCost}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input id="campaign-transportation-cost" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={transportationCost}
+                                                    onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
+                                                    onBlur={(e) => handleUpdate('transportationCost', e.target.value)}
+                                                    placeholder="0"
+                                                    title="Transportation cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label htmlFor="campaign-combat-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>COMBAT PAY</label>
-                                            {editingField === 'combatPay' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input id="campaign-combat-pay" type="number" min="0" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={combatPay} autoFocus
-                                                        onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleUpdate('combatPay', e.target.value); setEditingField(null); }}
-                                                        placeholder="0"
-                                                        title="Combat pay bonus" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('combatPay')} onFocus={() => setEditingField('combatPay')} tabIndex={0}>
-                                                    {combatPay}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input id="campaign-combat-pay" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={combatPay}
+                                                    onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                    onBlur={(e) => handleUpdate('combatPay', e.target.value)}
+                                                    placeholder="0"
+                                                    title="Combat pay bonus" />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -850,255 +803,143 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     <div className="grid-7-col flex-gap-10 mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM TON</label>
-                                            {editingField === 'rearmCostPerTon' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={rearmTon} autoFocus
-                                                        onChange={(e) => setRearmTon(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('rearmCostPerTon', e.target.value); setEditingField(null); }}
-                                                        title="Rearm cost per ton" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('rearmCostPerTon')} tabIndex={0}>
-                                                    {rearmTon}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={rearmTon}
+                                                    onChange={(e) => setRearmTon(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('rearmCostPerTon', e.target.value)}
+                                                    title="Rearm cost per ton" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM AS</label>
-                                            {editingField === 'rearmCostPerTonAlphaStrike' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={rearmAS} autoFocus
-                                                        onChange={(e) => setRearmAS(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('rearmCostPerTonAlphaStrike', e.target.value); setEditingField(null); }}
-                                                        title="Rearm cost per ton (Alpha Strike)" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('rearmCostPerTonAlphaStrike')} tabIndex={0}>
-                                                    {rearmAS}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={rearmAS}
+                                                    onChange={(e) => setRearmAS(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('rearmCostPerTonAlphaStrike', e.target.value)}
+                                                    title="Rearm cost per ton (Alpha Strike)" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE MW</label>
-                                            {editingField === 'hireMechWarriorCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={hireMW} autoFocus
-                                                        onChange={(e) => setHireMW(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('hireMechWarriorCost', e.target.value); setEditingField(null); }}
-                                                        title="Hire MechWarrior cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('hireMechWarriorCost')} tabIndex={0}>
-                                                    {hireMW}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={hireMW}
+                                                    onChange={(e) => setHireMW(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('hireMechWarriorCost', e.target.value)}
+                                                    title="Hire MechWarrior cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE PILOT</label>
-                                            {editingField === 'hireNamedPilotCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={hirePilot} autoFocus
-                                                        onChange={(e) => setHirePilot(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('hireNamedPilotCost', e.target.value); setEditingField(null); }}
-                                                        title="Hire named pilot cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('hireNamedPilotCost')} tabIndex={0}>
-                                                    {hirePilot}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={hirePilot}
+                                                    onChange={(e) => setHirePilot(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('hireNamedPilotCost', e.target.value)}
+                                                    title="Hire named pilot cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE BA</label>
-                                            {editingField === 'hireBattleArmorCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={hireBA} autoFocus
-                                                        onChange={(e) => setHireBA(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('hireBattleArmorCost', e.target.value); setEditingField(null); }}
-                                                        title="Hire Battle Armor cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('hireBattleArmorCost')} tabIndex={0}>
-                                                    {hireBA}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={hireBA}
+                                                    onChange={(e) => setHireBA(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('hireBattleArmorCost', e.target.value)}
+                                                    title="Hire Battle Armor cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL WOUND</label>
-                                            {editingField === 'healMechWarriorPerWoundBoxCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={healWound} autoFocus
-                                                        onChange={(e) => setHealWound(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('healMechWarriorPerWoundBoxCost', e.target.value); setEditingField(null); }}
-                                                        title="Heal MechWarrior per wound box cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('healMechWarriorPerWoundBoxCost')} tabIndex={0}>
-                                                    {healWound}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={healWound}
+                                                    onChange={(e) => setHealWound(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('healMechWarriorPerWoundBoxCost', e.target.value)}
+                                                    title="Heal MechWarrior per wound box cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL MONTH</label>
-                                            {editingField === 'healMechWarriorPerMonthCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={healMonth} autoFocus
-                                                        onChange={(e) => setHealMonth(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('healMechWarriorPerMonthLimit', e.target.value); setEditingField(null); }}
-                                                        title="Heal MechWarrior per month cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('healMechWarriorPerMonthCost')} tabIndex={0}>
-                                                    {healMonth}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={healMonth}
+                                                    onChange={(e) => setHealMonth(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('healMechWarriorPerMonthLimit', e.target.value)}
+                                                    title="Heal MechWarrior per month limit" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL BA</label>
-                                            {editingField === 'healBattleArmorCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={healBA} autoFocus
-                                                        onChange={(e) => setHealBA(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('healBattleArmorCost', e.target.value); setEditingField(null); }}
-                                                        title="Heal Battle Armor cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('healBattleArmorCost')} tabIndex={0}>
-                                                    {healBA}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={healBA}
+                                                    onChange={(e) => setHealBA(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('healBattleArmorCost', e.target.value)}
+                                                    title="Heal Battle Armor cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN CMD</label>
-                                            {editingField === 'trainFormationCommanderCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={trainCmd} autoFocus
-                                                        onChange={(e) => setTrainCmd(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('trainFormationCommanderCost', e.target.value); setEditingField(null); }}
-                                                        title="Train formation commander cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('trainFormationCommanderCost')} tabIndex={0}>
-                                                    {trainCmd}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={trainCmd}
+                                                    onChange={(e) => setTrainCmd(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('trainFormationCommanderCost', e.target.value)}
+                                                    title="Train formation commander cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN FORM</label>
-                                            {editingField === 'changeFormationTrainingCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={trainForm} autoFocus
-                                                        onChange={(e) => setTrainForm(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('changeFormationTrainingCost', e.target.value); setEditingField(null); }}
-                                                        title="Change formation training cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('changeFormationTrainingCost')} tabIndex={0}>
-                                                    {trainForm}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={trainForm}
+                                                    onChange={(e) => setTrainForm(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('changeFormationTrainingCost', e.target.value)}
+                                                    title="Change formation training cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 1</label>
-                                            {editingField === 'learnFirstAbilityCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={ability1} autoFocus
-                                                        onChange={(e) => setAbility1(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('learnCommandAbility1Cost', e.target.value); setEditingField(null); }}
-                                                        title="Learn first ability cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('learnFirstAbilityCost')} tabIndex={0}>
-                                                    {ability1}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={ability1}
+                                                    onChange={(e) => setAbility1(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('learnCommandAbility1Cost', e.target.value)}
+                                                    title="Learn first ability cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 2</label>
-                                            {editingField === 'learnSecondAbilityCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={ability2} autoFocus
-                                                        onChange={(e) => setAbility2(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('learnCommandAbility2Cost', e.target.value); setEditingField(null); }}
-                                                        title="Learn second ability cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('learnSecondAbilityCost')} tabIndex={0}>
-                                                    {ability2}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={ability2}
+                                                    onChange={(e) => setAbility2(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('learnCommandAbility2Cost', e.target.value)}
+                                                    title="Learn second ability cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 3</label>
-                                            {editingField === 'learnThirdAbilityCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={ability3} autoFocus
-                                                        onChange={(e) => setAbility3(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('learnCommandAbility3Cost', e.target.value); setEditingField(null); }}
-                                                        title="Learn third ability cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('learnThirdAbilityCost')} tabIndex={0}>
-                                                    {ability3}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={ability3}
+                                                    onChange={(e) => setAbility3(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('learnCommandAbility3Cost', e.target.value)}
+                                                    title="Learn third ability cost" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REPLACE ABIL</label>
-                                            {editingField === 'replaceAbilityCost' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={replaceAbility} autoFocus
-                                                        onChange={(e) => setReplaceAbility(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('replaceCommandAbilityCost', e.target.value); setEditingField(null); }}
-                                                        title="Replace ability cost" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('replaceAbilityCost')} tabIndex={0}>
-                                                    {replaceAbility}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={replaceAbility}
+                                                    onChange={(e) => setReplaceAbility(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('replaceCommandAbilityCost', e.target.value)}
+                                                    title="Replace ability cost" />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -1106,183 +947,103 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     <div className="grid-5-col flex-gap-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>OMNI MOD</label>
-                                            {editingField === 'omnimechReconfigureModifier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={omnimechMod} autoFocus
-                                                        onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value); setEditingField(null); }}
-                                                        title="OmniMech reconfiguration cost modifier" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('omnimechReconfigureModifier')} tabIndex={0}>
-                                                    {omnimechMod}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={omnimechMod}
+                                                    onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value)}
+                                                    title="OmniMech reconfiguration cost modifier" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>BUY MULT</label>
-                                            {editingField === 'purchaseUnitMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={purchaseMult} autoFocus
-                                                        onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('pvPurchaseUnitMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Purchase unit multiplier" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('purchaseUnitMultiplier')} tabIndex={0}>
-                                                    {purchaseMult}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={purchaseMult}
+                                                    onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('pvPurchaseUnitMultiplier', e.target.value)}
+                                                    title="Purchase unit multiplier" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>SELL MULT</label>
-                                            {editingField === 'sellUnitMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={sellMult} autoFocus
-                                                        onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleActivityCostUpdate('pvSellUnitMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Sell unit multiplier" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('sellUnitMultiplier')} tabIndex={0}>
-                                                    {sellMult}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={sellMult}
+                                                    onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
+                                                    onBlur={(e) => handleActivityCostUpdate('pvSellUnitMultiplier', e.target.value)}
+                                                    title="Sell unit multiplier" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ARMOR MULT</label>
-                                            {editingField === 'armorMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={armorMult} autoFocus
-                                                        onChange={(e) => setArmorMult(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('armorMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Repair cost multiplier for armor damage" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('armorMultiplier')} tabIndex={0}>
-                                                    {armorMult}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={armorMult}
+                                                    onChange={(e) => setArmorMult(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('armorMultiplier', e.target.value)}
+                                                    title="Repair cost multiplier for armor damage" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>INTERNAL MULT</label>
-                                            {editingField === 'internalMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={internalMult} autoFocus
-                                                        onChange={(e) => setInternalMult(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('internalMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Repair cost multiplier for internal damage" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('internalMultiplier')} tabIndex={0}>
-                                                    {internalMult}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={internalMult}
+                                                    onChange={(e) => setInternalMult(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('internalMultiplier', e.target.value)}
+                                                    title="Repair cost multiplier for internal damage" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CRIPPLED MULT</label>
-                                            {editingField === 'crippledMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={crippledMult} autoFocus
-                                                        onChange={(e) => setCrippledMult(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('crippledMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Repair cost multiplier for crippled units" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('crippledMultiplier')} tabIndex={0}>
-                                                    {crippledMult}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={crippledMult}
+                                                    onChange={(e) => setCrippledMult(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('crippledMultiplier', e.target.value)}
+                                                    title="Repair cost multiplier for crippled units" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>DESTROYED MULT</label>
-                                            {editingField === 'destroyedMultiplier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={destroyedMult} autoFocus
-                                                        onChange={(e) => setDestroyedMult(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('destroyedMultiplier', e.target.value); setEditingField(null); }}
-                                                        title="Repair cost multiplier for destroyed units" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('destroyedMultiplier')} tabIndex={0}>
-                                                    {destroyedMult}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={destroyedMult}
+                                                    onChange={(e) => setDestroyedMult(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('destroyedMultiplier', e.target.value)}
+                                                    title="Repair cost multiplier for destroyed units" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>NON-MECH MOD</label>
-                                            {editingField === 'nonMechModifier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={nonMechMod} autoFocus
-                                                        onChange={(e) => setNonMechMod(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('nonMechModifier', e.target.value); setEditingField(null); }}
-                                                        title="Adjustment for Vehicles, Battle Armor, and Infantry" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('nonMechModifier')} tabIndex={0}>
-                                                    {nonMechMod}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={nonMechMod}
+                                                    onChange={(e) => setNonMechMod(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('nonMechModifier', e.target.value)}
+                                                    title="Adjustment for Vehicles, Battle Armor, and Infantry" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>MIXED TECH TAX</label>
-                                            {editingField === 'mixedTechModifier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={mixedTechTax} autoFocus
-                                                        onChange={(e) => setMixedTechTax(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('mixedTechModifier', e.target.value); setEditingField(null); }}
-                                                        title="Repair cost tax for Mixed technology assets" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('mixedTechModifier')} tabIndex={0}>
-                                                    {mixedTechTax}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={mixedTechTax}
+                                                    onChange={(e) => setMixedTechTax(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('mixedTechModifier', e.target.value)}
+                                                    title="Repair cost tax for Mixed technology assets" />
+                                            </div>
                                         </div>
                                         <div>
                                             <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CLAN TECH TAX</label>
-                                            {editingField === 'clanTechModifier' ? (
-                                                <div className="status-bar theme-amber" style={{ display: 'flex', margin: 0, padding: '2px 5px', height: '24px', alignItems: 'center' }}>
-                                                    <input type="number" step="0.1" className="inline-edit" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                        value={clanTechTax} autoFocus
-                                                        onChange={(e) => setClanTechTax(parseFloat(e.target.value) || 0)}
-                                                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                                                        onBlur={(e) => { handleRepairRuleUpdate('clanTechModifier', e.target.value); setEditingField(null); }}
-                                                        title="Repair cost tax for pure Clan technology assets" />
-                                                </div>
-                                            ) : (
-                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}
-                                                    onClick={() => setEditingField('clanTechModifier')} tabIndex={0}>
-                                                    {clanTechTax}
-                                                </div>
-                                            )}
+                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                    value={clanTechTax}
+                                                    onChange={(e) => setClanTechTax(parseFloat(e.target.value) || 0)}
+                                                    onBlur={(e) => handleRepairRuleUpdate('clanTechModifier', e.target.value)}
+                                                    title="Repair cost tax for pure Clan technology assets" />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1435,36 +1196,20 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                 >
                                                     <div className="flex-between mb-5" style={{ alignItems: 'flex-start' }}>
                                                         <div className="status-bar theme-amber" style={{ flex: 1, marginRight: '10px', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
-                                                            {activeTrackField === `${track.id}-name` ? (
-                                                                <>
-                                                                    <input
-                                                                        className="inline-edit"
-                                                                        key={`${track.id}-name-${track.trackName}`}
-                                                                        list={`track-types-${track.id}`}
-                                                                        style={{ fontWeight: 'bold', width: '100%', border: 'none', background: 'transparent', color: 'inherit' }}
-                                                                        defaultValue={track.trackName}
-                                                                        autoFocus
-                                                                        onBlur={() => setActiveTrackField(null)}
-                                                                        onChange={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
-                                                                        title="Track type"
-                                                                        placeholder="TRACK TYPE?"
-                                                                        aria-label="Track type"
-                                                                    />
-                                                                    <datalist id={`track-types-${track.id}`}>
-                                                                        {metaData?.publicCampaignMetadata?.trackTypes.map(t => (
-                                                                            <option key={t} value={t} />
-                                                                        ))}
-                                                                    </datalist>
-                                                                </>
-                                                            ) : (
-                                                                <div
-                                                                    className="inline-edit cursor-pointer theme-amber"
-                                                                    style={{ fontWeight: 'bold', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
-                                                                    onClick={() => setActiveTrackField(`${track.id}-name`)}
-                                                                >
-                                                                    {track.trackName || 'DESIGNATION'}
-                                                                </div>
-                                                            )}
+                                                            <input
+                                                                className="table-input"
+                                                                list={`track-types-${track.id}`}
+                                                                style={{ fontWeight: 'bold', width: '100%', border: 'none', background: 'transparent', color: 'inherit' }}
+                                                                defaultValue={track.trackName}
+                                                                onBlur={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
+                                                                title="Track type"
+                                                                placeholder="TRACK TYPE?"
+                                                            />
+                                                            <datalist id={`track-types-${track.id}`}>
+                                                                {metaData?.publicCampaignMetadata?.trackTypes.map(t => (
+                                                                    <option key={t} value={t} />
+                                                                ))}
+                                                            </datalist>
                                                         </div>
                                                         <button
                                                             className="mode-btn theme-amber sm-text mr-10"
@@ -1478,29 +1223,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                             {campaign.primaryEmployer?.toUpperCase() || 'UNKNOWN'} COMPLICATIONS
                                                         </div>
                                                         <div className="status-bar theme-green" style={{ width: '100%', padding: '5px', display: 'flex' }}>
-                                                            {activeTrackField === `${track.id}-comp` ? (
-                                                                <textarea
-                                                                    className="inline-edit"
-                                                                    key={`${track.id}-comp-${track.complications}`}
-                                                                    style={{ fontSize: '0.7rem', width: '100%', resize: 'vertical', border: 'none' }}
-                                                                    rows={3}
-                                                                    autoFocus
-                                                                    onBlur={() => setActiveTrackField(null)}
-                                                                    defaultValue={track.complications}
-                                                                    onChange={(e) => handleTrackUpdate(track.id, 'complications', e.target.value)}
-                                                                    placeholder="COMPLICATIONS"
-                                                                    title="Mission complications or modifiers"
-                                                                    aria-label="Track complications"
-                                                                />
-                                                            ) : (
-                                                                <div
-                                                                    className="inline-edit cursor-pointer theme-amber"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '3.6em', whiteSpace: 'pre-wrap', padding: '2px' }}
-                                                                    onClick={() => setActiveTrackField(`${track.id}-comp`)}
-                                                                >
-                                                                    {track.complications || 'COMPLICATIONS'}
-                                                                </div>
-                                                            )}
+                                                            <textarea
+                                                                className="table-input"
+                                                                style={{ fontSize: '0.7rem', width: '100%', resize: 'vertical', border: 'none' }}
+                                                                rows={3}
+                                                                onBlur={(e) => handleTrackUpdate(track.id, 'complications', e.target.value)}
+                                                                defaultValue={track.complications}
+                                                                placeholder="COMPLICATIONS"
+                                                                title="Mission complications or modifiers"
+                                                            />
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-gap-5 mb-5">
@@ -1509,55 +1240,28 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                                 {campaign.secondaryEmployer?.toUpperCase() || 'UNKNOWN'} COMPLICATIONS
                                                             </div>
                                                             <div className="status-bar theme-red" style={{ width: '100%', padding: '5px', display: 'flex', borderColor: 'var(--terminal-red-dim)' }}>
-                                                                {activeTrackField === `${track.id}-opp-comp` ? (
-                                                                    <textarea
-                                                                        className="inline-edit"
-                                                                        key={`${track.id}-opp-comp-${track.oppositionComplications}`}
-                                                                        style={{ fontSize: '0.7rem', width: '100%', resize: 'vertical', border: 'none', color: 'var(--terminal-red)' }}
-                                                                        rows={3}
-                                                                        autoFocus
-                                                                        onBlur={() => setActiveTrackField(null)}
-                                                                        defaultValue={track.oppositionComplications}
-                                                                        onChange={(e) => handleTrackUpdate(track.id, 'oppositionComplications', e.target.value)}
-                                                                        placeholder="OPPOSITION COMPLICATIONS"
-                                                                        title="Opposition mission complications"
-                                                                        aria-label="Opposition track complications"
-                                                                    />
-                                                                ) : (
-                                                                    <div
-                                                                        className="inline-edit cursor-pointer theme-red"
-                                                                        style={{ fontSize: '0.7rem', width: '100%', minHeight: '3.6em', whiteSpace: 'pre-wrap', padding: '2px', color: 'var(--terminal-red)' }}
-                                                                        onClick={() => setActiveTrackField(`${track.id}-opp-comp`)}
-                                                                    >
-                                                                        {track.oppositionComplications || 'OPPOSITION COMPLICATIONS'}
-                                                                    </div>
-                                                                )}
+                                                                <textarea
+                                                                    className="table-input"
+                                                                    style={{ fontSize: '0.7rem', width: '100%', resize: 'vertical', border: 'none', color: 'var(--terminal-red)' }}
+                                                                    rows={3}
+                                                                    onBlur={(e) => handleTrackUpdate(track.id, 'oppositionComplications', e.target.value)}
+                                                                    defaultValue={track.oppositionComplications}
+                                                                    placeholder="OPPOSITION COMPLICATIONS"
+                                                                    title="Opposition mission complications"
+                                                                />
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-gap-5 mb-5">
                                                         <div className="status-bar theme-amber" style={{ flex: 1, padding: '0 5px', display: 'flex', alignItems: 'center' }}>
-                                                            {activeTrackField === `${track.id}-loc` ? (
-                                                                <input
-                                                                    className="inline-edit"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
-                                                                    autoFocus
-                                                                    onBlur={() => setActiveTrackField(null)}
-                                                                    defaultValue={track.location}
-                                                                    onChange={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
-                                                                    placeholder="GAME LOCATION"
-                                                                    title="Physical location"
-                                                                    aria-label="Game location"
-                                                                />
-                                                            ) : (
-                                                                <div
-                                                                    className="inline-edit cursor-pointer theme-amber"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
-                                                                    onClick={() => setActiveTrackField(`${track.id}-loc`)}
-                                                                >
-                                                                    {track.location || 'LOCATION?'}
-                                                                </div>
-                                                            )}
+                                                            <input
+                                                                className="table-input"
+                                                                style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
+                                                                defaultValue={track.location}
+                                                                onBlur={(e) => handleTrackUpdate(track.id, 'location', (e.target as HTMLInputElement).value)}
+                                                                placeholder="GAME LOCATION"
+                                                                title="Physical location"
+                                                            />
                                                         </div>
                                                         {track.location && (
                                                             <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(track.location)}`} target="_blank" rel="noopener noreferrer" className="mode-btn sm-text" style={{ padding: '0 4px', height: '16px' }}>MAP</a>
@@ -1565,63 +1269,31 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     </div >
                                                     <div className="flex-between">
                                                         <div className="status-bar theme-amber" style={{ width: '60%', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
-                                                            {activeTrackField === `${track.id}-time` ? (
-                                                                <input
-                                                                    type="datetime-local"
-                                                                    className="inline-edit"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
-                                                                    autoFocus
-                                                                    onBlur={() => setActiveTrackField(null)}
-                                                                    defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
-                                                                    onChange={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
-                                                                    aria-label="Next session time"
-                                                                    title="Session date and time"
-                                                                />
-                                                            ) : (
-                                                                <div
-                                                                    className="inline-edit cursor-pointer theme-amber"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
-                                                                    onClick={() => setActiveTrackField(`${track.id}-time`)}
-                                                                >
-                                                                    {track.nextSession ? new Date(track.nextSession).toLocaleString() : 'SESSION DATE & TIME'}
-                                                                </div>
-                                                            )}
+                                                            <input
+                                                                type="datetime-local"
+                                                                className="table-input"
+                                                                style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
+                                                                defaultValue={track.nextSession ? track.nextSession.substring(0, 16) : ''}
+                                                                onBlur={(e) => handleTrackUpdate(track.id, 'nextSession', (e.target as HTMLInputElement).value)}
+                                                                title="Session date and time"
+                                                            />
                                                         </div>
                                                         <div className="status-bar theme-amber" style={{ width: '35%', padding: '0 5px', display: 'flex', alignItems: 'center' }}>
-                                                            {activeTrackField === `${track.id}-atk` ? (
-                                                                <select
-                                                                    className="inline-edit"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
-                                                                    autoFocus
-                                                                    onBlur={() => setActiveTrackField(null)}
-                                                                    defaultValue={track.attackerFactionId || ""}
-                                                                    onChange={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
-                                                                    aria-label="Attacker faction"
-                                                                    title="Attacker"
-                                                                >
-                                                                    <option value="">[ ATK ]</option>
-                                                                    {campaign?.factions?.map((f: { id: string, factionName: string }) => {
-                                                                        const isPri = campaign?.contracts?.find(c => c.primaryContract)?.employerCategory.startsWith(f.factionName);
-                                                                        return (
-                                                                            <option key={f.id} value={f.id}>{isPri ? 'Pri: ' : 'Opp: '}{f.factionName.substring(0, 3).toUpperCase()}</option>
-                                                                        );
-                                                                    })}
-                                                                </select>
-                                                            ) : (
-                                                                <div
-                                                                    className="inline-edit cursor-pointer theme-amber"
-                                                                    style={{ fontSize: '0.7rem', width: '100%', minHeight: '1.2em', padding: '0 2px' }}
-                                                                    onClick={() => setActiveTrackField(`${track.id}-atk`)}
-                                                                >
-                                                                    {(() => {
-                                                                        if (!track.attackerFactionId) return '[ ATK ]';
-                                                                        const f = campaign?.factions?.find((fac: any) => fac.id === track.attackerFactionId);
-                                                                        if (!f) return '[ ATK ]';
-                                                                        const isPri = campaign?.contracts?.find(c => c.primaryContract)?.employerCategory.startsWith(f.factionName);
-                                                                        return `${isPri ? 'Pri: ' : 'Opp: '}${f.factionName.substring(0, 3).toUpperCase()}`;
-                                                                    })()}
-                                                                </div>
-                                                            )}
+                                                            <select
+                                                                className="table-input"
+                                                                style={{ fontSize: '0.7rem', width: '100%', border: 'none' }}
+                                                                defaultValue={track.attackerFactionId || ""}
+                                                                onBlur={(e) => handleTrackUpdate(track.id, 'attackerFactionId', (e.target as HTMLSelectElement).value)}
+                                                                title="Attacker"
+                                                            >
+                                                                <option value="">[ ATK ]</option>
+                                                                {campaign?.factions?.map((f: { id: string, factionName: string }) => {
+                                                                    const isPri = campaign?.contracts?.find(c => c.primaryContract)?.employerCategory.startsWith(f.factionName);
+                                                                    return (
+                                                                        <option key={f.id} value={f.id}>{isPri ? 'Pri: ' : 'Opp: '}{f.factionName.substring(0, 3).toUpperCase()}</option>
+                                                                    );
+                                                                })}
+                                                            </select>
                                                         </div>
                                                     </div>
                                                     <div className="mt-10 pt-5" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
@@ -1730,6 +1402,27 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 .tactical-panel, .dashboard-section, .asset-card {
                     background-color: rgba(5, 7, 5, 0.3) !important;
                     backdrop-filter: blur(1px);
+                }
+                .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
+                .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
+                .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
+                .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+
+                .status-bar:focus-within { 
+                    background-color: rgba(255, 255, 255, 0.05); 
+                    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1); 
+                }
+                .theme-amber .status-bar:focus-within { border-color: var(--terminal-amber); box-shadow: 0 0 8px rgba(255, 176, 0, 0.3); }
+                .theme-blue .status-bar:focus-within { border-color: var(--terminal-blue); box-shadow: 0 0 8px rgba(0, 191, 255, 0.3); }
+                .theme-green .status-bar:focus-within { border-color: var(--terminal-green); box-shadow: 0 0 8px rgba(51, 255, 51, 0.3); }
+                .theme-red .status-bar:focus-within { border-color: var(--terminal-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.3); }
+
+                .status-bar input.table-input, .status-bar select.table-input, .status-bar textarea.table-input {
+                    background: transparent !important;
+                    color: inherit !important;
+                    outline: none !important;
+                    border: none !important;
+                    box-shadow: none !important;
                 }
                 .markdown-preview :is(h1, h2, h3, h4, h5, h6) {
                     color: var(--terminal-amber);

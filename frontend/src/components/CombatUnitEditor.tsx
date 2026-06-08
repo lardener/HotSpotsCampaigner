@@ -495,6 +495,23 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                 .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
                 .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
                 .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+
+                .status-bar:focus-within { 
+                    background-color: rgba(255, 255, 255, 0.05); 
+                    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1); 
+                }
+                .theme-amber .status-bar:focus-within { border-color: var(--terminal-amber); box-shadow: 0 0 8px rgba(255, 176, 0, 0.3); }
+                .theme-blue .status-bar:focus-within { border-color: var(--terminal-blue); box-shadow: 0 0 8px rgba(0, 191, 255, 0.3); }
+                .theme-green .status-bar:focus-within { border-color: var(--terminal-green); box-shadow: 0 0 8px rgba(51, 255, 51, 0.3); }
+                .theme-red .status-bar:focus-within { border-color: var(--terminal-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.3); }
+
+                .status-bar input.table-input, .status-bar select.table-input, .status-bar textarea.table-input {
+                    background: transparent !important;
+                    color: inherit !important;
+                    outline: none !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
             `}</style>
         </FloatingPortal >
     );

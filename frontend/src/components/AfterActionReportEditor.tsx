@@ -551,20 +551,22 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             loading={isFinalizing}
         >
             <AarBackground />
-            <div className="aar-bg-overlay" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px', position: 'relative', overflowX: 'hidden' }}>
+            <div className="aar-bg-overlay" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px', position: 'relative', overflowX: 'hidden', background: 'transparent' }}>
 
                 <div className="tactical-panel narrative-editor mb-20 theme-red" data-id="AAR-NARRATIVE">
                     <h3 className="zone-header mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>OPERATIONAL DEBRIEFING</h3>
                     {isEditingNarrative ? (
-                        <textarea
-                            className="table-input w-100"
-                            style={{ height: '180px', background: 'rgba(0,0,0,0.3)', color: 'var(--terminal-amber)', border: '1px solid var(--terminal-amber)', padding: '10px', fontSize: '0.9rem' }}
-                            value={state.afterActionNarrative}
-                            onChange={(e) => dispatch({ type: 'SET_NARRATIVE', narrative: e.target.value })}
-                            onBlur={handleNarrativeBlur}
-                            autoFocus
-                            placeholder="Document the engagement history..."
-                        />
+                        <div className="status-bar theme-red" style={{ padding: '5px' }}>
+                            <textarea
+                                className="table-input w-100"
+                                style={{ height: '180px', fontSize: '0.9rem' }}
+                                value={state.afterActionNarrative}
+                                onChange={(e) => dispatch({ type: 'SET_NARRATIVE', narrative: e.target.value })}
+                                onBlur={handleNarrativeBlur}
+                                autoFocus
+                                placeholder="Document the engagement history..."
+                            />
+                        </div>
                     ) : (
                         <div
                             className="markdown-preview restricted-text sm-text"
@@ -581,7 +583,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 </div>
 
                 {campaign.participatingDetachments?.map((det: any) => (
-                    <div key={det.id} className="dashboard-section mb-20" style={{ border: '1px solid var(--accent-dim)', padding: '15px', backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
+                    <div key={det.id} className="dashboard-section mb-20" style={{ border: '1px solid var(--accent-dim)', padding: '15px', backgroundColor: 'transparent' }}>
                         <div className="flex-between mb-15" style={{ borderBottom: '1px solid var(--accent-dim)', paddingBottom: '8px' }}>
                             <h4 className="terminal-text" style={{ margin: 0 }}>{det.name.toUpperCase()}</h4>
                             <span className="restricted-text sm-text">{det.mercenaryCommandName}</span>
@@ -753,33 +755,39 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 <tr key={u.id}>
                                                     <td>{u.model} {u.variant}</td>
                                                     <td>
-                                                        <select
-                                                            className="inline-edit"
-                                                            value={uState.status}
-                                                            onChange={(e) => {
-                                                                const newStatus = e.target.value;
-                                                                dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { status: newStatus } });
-                                                                updateUnit({ variables: { id: u.id, input: { status: newStatus } } });
-                                                            }}
-                                                            title="Select unit status"
-                                                        >
-                                                            {unitStatuses.map((s: string) => <option key={s} value={s}>{s}</option>)}
-                                                        </select>
+                                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                                            <select
+                                                                className="table-input w-100"
+                                                                style={{ border: 'none' }}
+                                                                value={uState.status}
+                                                                onChange={(e) => {
+                                                                    const newStatus = e.target.value;
+                                                                    dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { status: newStatus } });
+                                                                    updateUnit({ variables: { id: u.id, input: { status: newStatus } } });
+                                                                }}
+                                                                title="Select unit status"
+                                                            >
+                                                                {unitStatuses.map((s: string) => <option key={s} value={s}>{s}</option>)}
+                                                            </select>
+                                                        </div>
                                                     </td>
                                                     <td className="text-center">
                                                         {isTrulyDestroyed ? (
                                                             <span className="restricted-text">N/A</span>
                                                         ) : (
-                                                            <input
-                                                                type="number"
-                                                                className="inline-edit w-40px"
-                                                                value={uState.ammo}
-                                                                onChange={(e) => {
-                                                                    dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: parseInt(e.target.value) || 0 } });
-                                                                }}
-                                                                title="Enter tons of ammunition to rearm"
-                                                                disabled={ammoInputDisabled}
-                                                            />
+                                                            <div className="status-bar theme-red" style={{ padding: '0 5px', width: '50px', margin: '0 auto' }}>
+                                                                <input
+                                                                    type="number"
+                                                                    className="table-input w-100 text-center"
+                                                                    style={{ border: 'none' }}
+                                                                    value={uState.ammo}
+                                                                    onChange={(e) => {
+                                                                        dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: parseInt(e.target.value) || 0 } });
+                                                                    }}
+                                                                    title="Enter tons of ammunition to rearm"
+                                                                    disabled={ammoInputDisabled}
+                                                                />
+                                                            </div>
                                                         )}
                                                     </td>
                                                     <td className="text-right" title={tooltip}>{displayAmount > 0 ? `+${displayAmount}` : displayAmount}</td>
@@ -839,30 +847,36 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 <tr key={p.id}>
                                                     <td>{p.name}</td>
                                                     <td>
-                                                        <select
-                                                            className="inline-edit"
-                                                            value={pState.injuries}
-                                                            onChange={(e) => {
-                                                                const val = parseInt(e.target.value);
-                                                                dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { injuries: val } });
-                                                                updatePilot({ variables: { id: p.id, input: { wounds: val } } });
-                                                            }}
-                                                            title="Select total pilot injuries"
-                                                        >
-                                                            {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v}</option>)}
-                                                        </select>
+                                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                                            <select
+                                                                className="table-input w-100"
+                                                                style={{ border: 'none' }}
+                                                                value={pState.injuries}
+                                                                onChange={(e) => {
+                                                                    const val = parseInt(e.target.value);
+                                                                    dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { injuries: val } });
+                                                                    updatePilot({ variables: { id: p.id, input: { wounds: val } } });
+                                                                }}
+                                                                title="Select total pilot injuries"
+                                                            >
+                                                                {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v}</option>)}
+                                                            </select>
+                                                        </div>
                                                     </td>
                                                     <td>
-                                                        <select
-                                                            className="inline-edit"
-                                                            value={pState.healed}
-                                                            onChange={(e) => {
-                                                                dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { healed: parseInt(e.target.value) } });
-                                                            }}
-                                                            title="Select number of injuries healed"
-                                                        >
-                                                            {[...Array(healMonthLimit + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
-                                                        </select>
+                                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                                            <select
+                                                                className="table-input w-100"
+                                                                style={{ border: 'none' }}
+                                                                value={pState.healed}
+                                                                onChange={(e) => {
+                                                                    dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { healed: parseInt(e.target.value) } });
+                                                                }}
+                                                                title="Select number of injuries healed"
+                                                            >
+                                                                {[...Array(healMonthLimit + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
+                                                            </select>
+                                                        </div>
                                                     </td>
                                                     <td className="text-right" title={tooltip}>{pilotDisplayCost > 0 ? `+${pilotDisplayCost}` : pilotDisplayCost}</td>
                                                     <td className="text-right">
@@ -908,14 +922,48 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             )}
 
             <style>{`
+                /* Custom Scrollbar Styles for After Action Report (Red Theme) */
+                .aar-bg-overlay::-webkit-scrollbar { width: 8px; }
+                .aar-bg-overlay::-webkit-scrollbar-track { 
+                    background: var(--terminal-bg, #050705);
+                    border-radius: 10px;
+                }
+                .aar-bg-overlay::-webkit-scrollbar-thumb {
+                    background-color: var(--terminal-red);
+                    border-radius: 10px;
+                    border: 2px solid var(--terminal-bg, #050705);
+                }
+                .aar-bg-overlay {
+                    scrollbar-width: thin;
+                    scrollbar-color: var(--terminal-red) var(--terminal-bg, #050705);
+                }
+
                 .w-40px { width: 40px; }
                 .sm-text { font-size: 0.75rem; }
                 .xs-text { font-size: 0.65rem; }
                 .theme-red { --accent-dim: rgba(255, 51, 51, 0.2); }
+                .tactical-panel, .dashboard-section {
+                    background-color: rgba(5, 7, 5, 0.3) !important;
+                    backdrop-filter: blur(1px);
+                }
                 .theme-amber .cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
                 .theme-blue .cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
                 .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
                 .theme-red .cursor-pointer:hover { background-color: rgba(255, 51, 51, 0.15); box-shadow: 0 0 5px rgba(255, 51, 51, 0.1); }
+
+                .status-bar:focus-within { 
+                    background-color: rgba(255, 255, 255, 0.05); 
+                    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1); 
+                }
+                .theme-red .status-bar:focus-within { border-color: var(--terminal-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.3); }
+
+                .status-bar input.table-input, .status-bar select.table-input, .status-bar textarea.table-input {
+                    background: transparent !important;
+                    color: inherit !important;
+                    outline: none !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
 
                 /* Markdown Header Styling for Terminal Aesthetic */
                 .markdown-preview :is(h1, h2, h3, h4, h5, h6) {
