@@ -592,9 +592,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
                         <section className="mb-20">
                             <h5 className="restricted-text mb-10">MISSION AWARDS</h5>
-                            <div className="grid-5-col flex-gap-10">
-                                <div>
-                                    <label className="xs-text opacity-70">CONTRACT</label>
+                            <div className="grid-5-col flex-gap-10" style={{ alignItems: 'center' }}>
+                                <div className="flex-col items-center">
+                                    <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>CONTRACT</label>
                                     <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input w-100"
@@ -609,8 +609,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         </select>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="xs-text opacity-70">LEVEL</label>
+                                <div className="flex-col items-center">
+                                    <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>LEVEL</label>
                                     <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input w-100"
@@ -623,8 +623,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         </select>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="xs-text opacity-70">OUTCOME</label>
+                                <div className="flex-col items-center">
+                                    <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>OUTCOME</label>
                                     <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
                                         <select
                                             className="table-input w-100"
@@ -633,14 +633,15 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { outcomeMultiplier: parseFloat(e.target.value) } })}
                                             title="Select track outcome multiplier"
                                         >
+                                            <option value="0">NO COMBAT PAY (0%)</option>
                                             <option value="0.5">UNSUCCESSFUL (50%)</option>
                                             <option value="1">SUCCESSFUL (100%)</option>
                                             <option value="1.5">SUCCESSFUL W/ BONUS (150%)</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="xs-text opacity-70">SALVAGE (SP)</label>
+                                <div className="flex-col items-center">
+                                    <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>SALVAGE (SP)</label>
                                     <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
                                         <input
                                             type="number"
@@ -652,8 +653,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="xs-text opacity-70">MISC (SP)</label>
+                                <div className="flex-col items-center">
+                                    <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>MISC (SP)</label>
                                     <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
                                         <input
                                             type="number"

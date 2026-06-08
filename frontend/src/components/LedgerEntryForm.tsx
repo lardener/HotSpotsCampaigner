@@ -3,6 +3,7 @@ import { useMutation } from '@apollo/client/react'; // Keep this import style
 import { LedgerEntryInput } from '../types/global.d';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
 import { AddLedgerEntryData } from '../types/graphql.d';
+import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerEntryFormProps {
     commandId: string;
@@ -61,6 +62,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
 
     return (
         <div className="ledger-form-container">
+            <LedgerBackground />
             <h3 className="zone-header" style={{ margin: '0 0 10px 0' }}>RECORD SP TRANSACTION</h3>
             <form onSubmit={handleSubmit} className="flex-col flex-gap-10">
                 <div className="flex-col flex-gap-5">
@@ -170,6 +172,12 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     </div>
                 )}
             </form>
+
+            <style>{`
+                .ledger-form-container {
+                    backdrop-filter: blur(1px);
+                }
+            `}</style>
         </div>
     );
 };

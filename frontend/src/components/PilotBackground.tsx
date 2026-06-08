@@ -58,7 +58,7 @@ export const PilotBackground: React.FC = () => {
             <div className="helmet-overlay" style={{
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                 backgroundImage: "url('/commander_desk_personnel.png')",
-                backgroundSize: '40%', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom left', opacity: 0.12
+                backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom left', opacity: 0.15
             }} />
             <div className="intercept-scroll" ref={scrollRef} style={{
                 position: 'absolute', top: '20px', left: '20px', width: '400px',

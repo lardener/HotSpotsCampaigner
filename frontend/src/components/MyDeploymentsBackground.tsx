@@ -61,11 +61,11 @@ export const MyDeploymentsBackground: React.FC = () => {
                     position: absolute;
                     top: 0; left: 0;
                     width: 100%; height: 100%;
-                    background-image: url('/dropship_schematic.svg');
-                    background-size: contain;
+                    background-image: url('/cargo_loading.png');
+                    background-size: cover;
                     background-repeat: no-repeat;
                     background-position: center;
-                    opacity: 0.4;
+                    opacity: 0.15;
                 }
                 .intercept-scroll {
                     position: absolute;

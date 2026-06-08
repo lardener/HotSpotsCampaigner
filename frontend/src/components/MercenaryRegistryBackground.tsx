@@ -50,7 +50,7 @@ export const MercenaryRegistryBackground: React.FC = () => {
             <div className="dossier-overlay" style={{
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                 backgroundImage: "url('/commander_desk_personnel.png')",
-                backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', opacity: 0.5
+                backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', opacity: 0.15
             }} />
             <div className="intercept-scroll" ref={scrollRef} style={{
                 position: 'absolute', top: '20px', left: '20px', width: '500px',

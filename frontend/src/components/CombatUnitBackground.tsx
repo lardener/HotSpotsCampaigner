@@ -63,7 +63,7 @@ export const CombatUnitBackground: React.FC = () => {
             <div className="mech-overlay" style={{
                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                 backgroundImage: "url('/mech_repair_bay.png')",
-                backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom right', opacity: 0.12
+                backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'bottom right', opacity: 0.15
             }} />
             <div className="intercept-scroll" ref={scrollRef} style={{
                 position: 'absolute', top: '20px', left: '20px', width: '400px',

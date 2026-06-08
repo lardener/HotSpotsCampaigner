@@ -472,43 +472,43 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
             </header>
             <div className="header-metadata-row mb-20">
                 <div className="tactical-header-grid flex flex-gap-40 mt-10">
-                    <div className="input-group">
-                        <label htmlFor="header-co" className="restricted-text">CO:</label>
+                    <div className="input-group flex-col items-center">
+                        <span className="restricted-text">CO:</span>
                         {isEditingCO ? (
-                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'inline-flex', alignItems: 'center' }}>
+                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     id="header-co"
                                     className="table-input"
                                     style={{ border: 'none' }}
-                                    defaultValue={command.commandingOfficer}
+                                    value={command.commandingOfficer} // Use value for controlled input
                                     autoFocus
-                                    onBlur={(e) => { handleHeaderUpdate('CO', e.target.value); setIsEditingCO(false); }}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                    onChange={(e) => handleHeaderUpdate('CO', e.target.value, false)} // Debounce update
+                                    onBlur={() => setIsEditingCO(false)} // Save on blur
+                                    onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} // Blur on Enter
                                     placeholder="COMMANDING OFFICER..."
                                     title="Enter commanding officer name"
                                     aria-label="Commanding officer"
                                 />
                             </div>
                         ) : (
-                            <div
-                                className="inline-edit"
-                                style={{ cursor: isManagerView ? 'default' : 'pointer', minWidth: '100px' }}
-                                onClick={() => !isManagerView && setIsEditingCO(true)}
-                                onFocus={() => !isManagerView && setIsEditingCO(true)}
-                                tabIndex={isManagerView ? -1 : 0}
-                                title={!isManagerView ? "Click or Tab to edit CO name" : ""}
+                            <div className="inline-edit"
+                                style={{ cursor: isManagerView ? 'default' : 'pointer' }} // Cursor changes if editable
+                                onClick={() => !isManagerView && setIsEditingCO(true)} // Click to edit if not manager view
+                                onFocus={() => !isManagerView && setIsEditingCO(true)} // Focus to edit if not manager view
+                                tabIndex={isManagerView ? -1 : 0} // Only focusable if not manager view
+                                title={!isManagerView ? "Click to edit commanding officer" : ""} // Tooltip
                             >
-                                {command.commandingOfficer || '---'}
+                                {command.commandingOfficer || '---'} {/* Display CO name or placeholder */}
                             </div>
                         )}
                     </div>
-                    <div className="input-group">
+                    <div className="input-group flex-col items-center">
                         <span className="restricted-text">WARCHEST (SP):</span>
-                        <div className="inline-edit" style={{ cursor: 'default' }}>{command.totalSupportPoints}</div>
+                        <div className="inline-edit">{command.totalSupportPoints}</div>
                     </div>
-                    <div className="input-group">
+                    <div className="input-group flex-col items-center">
                         <span className="restricted-text">REPUTATION:</span>
-                        <div className="inline-edit" style={{ cursor: 'default' }}>{command.reputation}</div>
+                        <div className="inline-edit">{command.reputation}</div>
                     </div>
                 </div>
             </div>

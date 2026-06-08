@@ -32,42 +32,42 @@ export const GeneratorBackground: React.FC = () => {
             "[DATA] - DIERON DISTRICT :: MASSIVE ENERGY SPIKE DETECTED... [ERR]... NEAR THE PLANETARY HUB. UNKNOWN ORIGIN.",
             "[INTERCEPT] - UNIDENTIFIED ::... [STATIC] ...COORDINATES 44.2/99.1... ALL UNITS... [SIGNAL LOSS]... REPORT."
         ];
-return [...baseList].sort(() => Math.random() - 0.5);
+        return [...baseList].sort(() => Math.random() - 0.5);
     }, []);
 
-const scrollRef = useRef<HTMLDivElement>(null);
-const [scrollDuration, setScrollDuration] = useState(80);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [scrollDuration, setScrollDuration] = useState(80);
 
-useEffect(() => {
-    if (scrollRef.current) {
-        const distanceToTravel = scrollRef.current.scrollHeight / 2;
-        setScrollDuration(distanceToTravel / 20);
-    }
-}, [intercepts]);
+    useEffect(() => {
+        if (scrollRef.current) {
+            const distanceToTravel = scrollRef.current.scrollHeight / 2;
+            setScrollDuration(distanceToTravel / 20);
+        }
+    }, [intercepts]);
 
-return (
-    <div className="generator-background" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: -1, opacity: 1.0, overflow: 'hidden' }} aria-hidden="true">
-        <div className="server-overlay" style={{
-            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundImage: "url('/map_of_inner_sphere.png')",
-            backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', opacity: 0.4
-        }} />
-        <div className="intercept-scroll" ref={scrollRef} style={{
-            position: 'absolute', top: '20px', left: '20px', width: '500px',
-            fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--terminal-amber)',
-            display: 'flex', flexDirection: 'column', gap: '15px', animation: `scroll-intel ${scrollDuration}s linear infinite`,
-            whiteSpace: 'normal', textTransform: 'uppercase', opacity: 0.15, maskImage: 'linear-gradient(to bottom, black, transparent)'
-        }}>
-            {[...intercepts, ...intercepts].map((text, i) => (
-                <div key={i} className="intercept-line" style={{ paddingLeft: '1.5rem', textIndent: '-1.5rem' }}>{text}</div>
-            ))}
-        </div>
-        <style>{`
+    return (
+        <div className="generator-background" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: -1, opacity: 1.0, overflow: 'hidden' }} aria-hidden="true">
+            <div className="server-overlay" style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                backgroundImage: "url('/map_of_inner_sphere.png')",
+                backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', opacity: 0.4
+            }} />
+            <div className="intercept-scroll" ref={scrollRef} style={{
+                position: 'absolute', top: '20px', left: '20px', width: '500px',
+                fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--terminal-amber)',
+                display: 'flex', flexDirection: 'column', gap: '15px', animation: `scroll-intel ${scrollDuration}s linear infinite`,
+                whiteSpace: 'normal', textTransform: 'uppercase', opacity: 0.15, maskImage: 'linear-gradient(to bottom, black, transparent)'
+            }}>
+                {[...intercepts, ...intercepts].map((text, i) => (
+                    <div key={i} className="intercept-line" style={{ paddingLeft: '1.5rem', textIndent: '-1.5rem' }}>{text}</div>
+                ))}
+            </div>
+            <style>{`
                 @keyframes scroll-intel {
                     0% { transform: translateY(0); }
                     100% { transform: translateY(-50%); }
                 }
             `}</style>
-    </div>
-);
+        </div>
+    );
 };
