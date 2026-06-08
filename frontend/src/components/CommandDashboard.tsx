@@ -851,6 +851,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     unitTypes={unitTypes}
                     unitStatuses={unitStatuses}
                     techBases={techBases}
+                    availableSP={command.totalSupportPoints}
                 />
             )}
 

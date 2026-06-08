@@ -314,6 +314,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                     unitTypes={unitTypes}
                     unitStatuses={unitStatuses}
                     techBases={techBases}
+                    availableSP={data?.getCommand?.totalSupportPoints}
                     onSave={() => { setShowCombatUnitEditor(false); refetch(); }}
                     onCancel={() => setShowCombatUnitEditor(false)}
                 />

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useMutation } from '@apollo/client/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import {
     useFloating,
     useInteractions,
@@ -11,8 +11,8 @@ import {
 } from '@floating-ui/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { CombatUnit, CombatUnitUpdateInput, AddUnitVars, UpdateUnitVars, ImportAssetsVars } from '../types/global.d'; // This was already correct
-import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS } from '../types/operations';
-import { AddUnitData, UpdateUnitData } from '../types/graphql.d';
+import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS, GET_METADATA, ADD_LEDGER_ENTRY } from '../types/operations';
+import { AddUnitData, UpdateUnitData, MetadataDataFull } from '../types/graphql.d';
 import { CombatUnitBackground } from './CombatUnitBackground';
 
 interface CombatUnitEditorProps {
@@ -25,6 +25,7 @@ interface CombatUnitEditorProps {
     unitTypes: string[];
     unitStatuses: string[];
     techBases: string[];
+    availableSP?: number;
 }
 
 export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
@@ -36,6 +37,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     unitTypes,
     unitStatuses,
     techBases,
+    availableSP,
     detachmentId
 }) => {
     const createDefaultUnit = () => ({
@@ -81,6 +83,18 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     const [addUnit] = useMutation<AddUnitData, AddUnitVars>(ADD_UNIT);
     const [updateUnit] = useMutation<UpdateUnitData, UpdateUnitVars>(UPDATE_UNIT);
     const [importAssets] = useMutation<any, ImportAssetsVars>(IMPORT_ASSETS);
+    const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
+    const { data: metadataData } = useQuery<MetadataDataFull>(GET_METADATA);
+
+    const purchasePrice = useMemo(() => {
+        const getTechTax = () => {
+            const meta = metadataData?.publicCampaignMetadata;
+            if (formData.techBase === 'Clan') return meta?.clanTechModifier ?? 2.0;
+            if (formData.techBase === 'Mixed') return meta?.mixedTechModifier ?? 1.5;
+            return 1.0;
+        };
+        return Math.round((formData.bv || 0) * getTechTax());
+    }, [formData.bv, formData.techBase, metadataData]);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
         const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);
@@ -90,11 +104,21 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
         }));
     };
 
-    const handleSave = async () => {
+    const handleSave = async (isPurchase: boolean = false) => {
         if (!formData.model.trim()) {
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: "UNIT MODEL DESIGNATION REQUIRED.",
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+            return;
+        }
+
+        if (isPurchase && availableSP !== undefined && availableSP < purchasePrice) {
+            setOverlay({
+                title: "INSUFFICIENT FUNDS",
+                message: `COMMAND WARCHEST (${availableSP} SP) IS INSUFFICIENT FOR THIS PROCUREMENT (${purchasePrice} SP).`,
                 variant: 'alert',
                 onConfirm: () => setOverlay(null)
             });
@@ -116,6 +140,8 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                 detachmentId: detachmentId || null // Use the prop detachmentId for new units
             };
 
+            let savedUnit: CombatUnit | undefined;
+
             if (mode === 'create') {
                 const result = await addUnit({
                     variables: {
@@ -123,10 +149,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         input
                     }
                 });
-
-                if (result.data?.addCombatUnit) {
-                    onSave(result.data.addCombatUnit);
-                }
+                savedUnit = result.data?.addCombatUnit;
             } else if (mode === 'edit' && unit?.id) {
                 const result = await updateUnit({
                     variables: {
@@ -134,10 +157,27 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         input
                     }
                 });
+                savedUnit = result.data?.updateCombatUnit;
+            }
 
-                if (result.data?.updateCombatUnit) {
-                    onSave(result.data.updateCombatUnit);
+            if (savedUnit) {
+                if (isPurchase && detachmentId) {
+                    try {
+                        await addLedgerEntry({
+                            variables: {
+                                commandId,
+                                detachmentId,
+                                input: {
+                                    amount: -purchasePrice,
+                                    description: `UNIT PURCHASE: ${formData.model} ${formData.variant}`.trim()
+                                }
+                            }
+                        });
+                    } catch (ledgerErr) {
+                        console.error("Ledger entry failed for unit purchase:", ledgerErr);
+                    }
                 }
+                onSave(savedUnit);
             }
         } catch (err) {
             console.error(err);
@@ -224,9 +264,24 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                 {mode === 'create' ? 'UNIT PROCUREMENT' : 'UNIT RECORD'}
                             </h2>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                {mode === 'create' && detachmentId && (
+                                    <button
+                                        className={`mode-btn ${availableSP !== undefined && availableSP < purchasePrice ? 'theme-amber' : 'theme-blue'}`}
+                                        onClick={() => handleSave(true)}
+                                        disabled={isSaving}
+                                        style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                                        title={
+                                            availableSP !== undefined && availableSP < purchasePrice
+                                                ? `INSUFFICIENT FUNDS: ${availableSP} SP AVAILABLE`
+                                                : `Purchase unit for ${purchasePrice} SP and record transaction`
+                                        }
+                                    >
+                                        {isSaving ? '>> PROCESSING...' : `$ PURCHASE: ${purchasePrice}`}
+                                    </button>
+                                )}
                                 <button
                                     className="mode-btn theme-green"
-                                    onClick={handleSave}
+                                    onClick={() => handleSave(false)}
                                     disabled={isSaving}
                                     style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                                     title="Confirm and save"
