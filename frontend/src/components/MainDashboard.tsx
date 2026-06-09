@@ -412,7 +412,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 <div className="landing-header" style={{ textAlign: 'center' }}>
                     <h1 className="main-title">HOTSPOTS: CAMPAIGNER</h1>
                     <div className="login-options" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', justifyContent: 'center', marginTop: '30px' }}>
-                        <button type="button" className="mode-btn theme-red" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login to your account" style={{ height: '36px', padding: '0 25px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', margin: 0, backgroundColor: 'var(--terminal-red)', color: 'black', opacity: 1 }}>
+                        <button type="button" className="mode-btn theme-red" onClick={() => window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`} title="Login with your Google account" style={{ height: '36px', padding: '0 25px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', margin: 0, backgroundColor: 'var(--terminal-red)', color: 'black', opacity: 1 }}>
                             FEDERATED LOGIN
                         </button>
                         <div className="token-login-box" style={{ borderLeft: '2px solid var(--terminal-border)', paddingLeft: '20px', display: 'flex', gap: '10px', alignItems: 'flex-start', height: '36px' }}>
@@ -523,6 +523,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         onSelectDetachment={handleTreeSelect}
                         onRefresh={handleManualRefresh}
                         onSyncChange={setIsChildSyncing}
+                        userCommands={commands}
                     />
                 );
             case 'create-campaign':

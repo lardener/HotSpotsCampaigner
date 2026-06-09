@@ -837,6 +837,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     mode={pilotEditorMode}
                     onSave={handlePilotEditorSave}
                     onCancel={handlePilotEditorCancel}
+                    availableSP={command.totalSupportPoints}
                 />
             )}
 

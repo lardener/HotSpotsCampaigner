@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { Pilot, PilotUpdateInput, HirePilotVars, UpdatePilotVars } from '../types/global.d';
 import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
+import { ADD_LEDGER_ENTRY } from '../types/operations';
 import { HirePilotData, UpdatePilotData } from '../types/graphql.d';
 import { PilotBackground } from './PilotBackground';
 
@@ -13,6 +14,9 @@ interface PilotEditorProps {
     mode: 'create' | 'edit';
     onSave: (pilot: Pilot) => void;
     onCancel: () => void;
+    availableSP?: number;
+    overridePrice?: number;
+    campaignHireCost?: number;
 }
 
 export const PilotEditor: React.FC<PilotEditorProps> = ({
@@ -21,7 +25,10 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
     detachmentId,
     mode,
     onSave,
-    onCancel
+    onCancel,
+    availableSP,
+    overridePrice,
+    campaignHireCost
 }) => {
     const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'];
 
@@ -63,6 +70,19 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 
     const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT);
     const [updatePilot] = useMutation<UpdatePilotData, UpdatePilotVars>(UPDATE_PILOT);
+    const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
+
+    const hiringPrice = useMemo(() => {
+        if (overridePrice !== undefined) {
+            return overridePrice;
+        }
+        if (campaignHireCost !== undefined) {
+            return campaignHireCost;
+        }
+        // Fallback to a default from Rules.ts if needed, or a hardcoded value
+        // For now, let's assume a default if no campaign cost or override is present.
+        return 150; // Example default, should ideally come from global metadata or Rules.ts
+    }, [overridePrice, campaignHireCost]);
 
     // Canonical thresholds per skill (ascending by SP). Each entry: { sp, skill, handicap }
     const gunneryThresholds = [
@@ -222,6 +242,16 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             return;
         }
 
+        if (mode === 'create' && availableSP !== undefined && availableSP < hiringPrice) {
+            setOverlay({
+                title: "INSUFFICIENT FUNDS",
+                message: `COMMAND WARCHEST (${availableSP} SP) IS INSUFFICIENT FOR THIS RECRUITMENT (${hiringPrice} SP).`,
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+            return;
+        }
+
         setIsSaving(true);
 
         try {
@@ -252,6 +282,20 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     }
                 });
 
+                if (result.data?.hirePilot && detachmentId) {
+                    try {
+                        await addLedgerEntry({
+                            variables: {
+                                commandId,
+                                detachmentId,
+                                input: {
+                                    amount: -hiringPrice,
+                                    description: `PILOT HIRE: ${formData.name}`.trim()
+                                }
+                            }
+                        });
+                    } catch (ledgerErr) { console.error("Ledger entry failed for pilot hire:", ledgerErr); }
+                }
                 if (result.data?.hirePilot) {
                     onSave(result.data.hirePilot);
                 }
@@ -297,6 +341,19 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         <span className="blink-fast" style={{ marginRight: '10px' }}>▶</span>
                         {mode === 'create' ? 'PILOT RECRUITMENT' : 'PILOT RECORD'}
                     </h2>
+                    {mode === 'create' && detachmentId && (
+                        <button
+                            className={`mode-btn ${availableSP !== undefined && availableSP < hiringPrice ? 'theme-amber' : 'theme-blue'}`}
+                            onClick={handleSave}
+                            disabled={isSaving}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                            title={
+                                availableSP !== undefined && availableSP < hiringPrice ? `INSUFFICIENT FUNDS: ${availableSP} SP AVAILABLE` : `Hire pilot for ${hiringPrice} SP and record transaction`
+                            }
+                        >
+                            {isSaving ? '>> PROCESSING...' : `$ HIRE: ${hiringPrice}`}
+                        </button>
+                    )}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <button
                             className="mode-btn theme-green"
@@ -319,7 +376,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     </div>
                 </header>
 
-                <div style={{ border: '1px solid var(--terminal-border)', margin: '0 10px 8px 10px', padding: '10px 15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
+                <div className="pilot-editor-scroll-area" style={{ border: '1px solid var(--terminal-border)', margin: '0 10px 8px 10px', padding: '10px 15px', backgroundColor: 'rgba(0, 0, 0, 0.4)', maxHeight: 'calc(100vh - 150px)', overflowY: 'auto' }}>
                     <div className="pilot-card-body">
                         <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>PERSONNEL DATA</h3>
                         <div className="flex-col flex-gap-5 mb-10">
@@ -370,8 +427,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                         onChange={(e) => handleInputChange('wounds', e.target.value)}
                                         title="Select pilot wounds (0-6)"
                                     >
-                                        {[0, 1, 2, 3, 4, 5, 6].map(v => (
-                                            <option key={v} value={v}>{v}</option>
+                                        {[0, 1, 2, 3, 4, 5, 6].map(v => ( // Changed to display 'FATAL' for 6 wounds
+                                            <option key={v} value={v}>{v === 6 ? 'FATAL' : v}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -541,6 +598,22 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             )}
 
             <style>{`
+    /* Custom Scrollbar Styles for Pilot Editor (Amber Theme) */
+    .pilot-editor-scroll-area::-webkit-scrollbar { width: 8px; }
+    .pilot-editor-scroll-area::-webkit-scrollbar-track { 
+        background: var(--terminal-bg, #050705);
+        border-radius: 10px;
+    }
+    .pilot-editor-scroll-area::-webkit-scrollbar-thumb {
+        background-color: var(--terminal-amber);
+        border-radius: 10px;
+        border: 2px solid var(--terminal-bg, #050705);
+    }
+    .pilot-editor-scroll-area {
+        scrollbar-width: thin;
+        scrollbar-color: var(--terminal-amber) var(--terminal-bg, #050705);
+    }
+
     .theme-amber.cursor-pointer:hover { background-color: rgba(255, 176, 0, 0.15); box-shadow: 0 0 5px rgba(255, 176, 0, 0.1); }
     .theme-blue.cursor-pointer:hover { background-color: rgba(0, 191, 255, 0.15); box-shadow: 0 0 5px rgba(0, 191, 255, 0.1); }
     .theme-green.cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }

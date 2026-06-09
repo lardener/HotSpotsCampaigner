@@ -26,6 +26,7 @@ interface CombatUnitEditorProps {
     unitStatuses: string[];
     techBases: string[];
     availableSP?: number;
+    overridePrice?: number;
 }
 
 export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
@@ -38,7 +39,8 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     unitStatuses,
     techBases,
     availableSP,
-    detachmentId
+    detachmentId,
+    overridePrice
 }) => {
     const createDefaultUnit = () => ({
         id: '',
@@ -87,6 +89,10 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     const { data: metadataData } = useQuery<MetadataDataFull>(GET_METADATA);
 
     const purchasePrice = useMemo(() => {
+        if (overridePrice !== undefined) {
+            return overridePrice;
+        }
+
         const getTechTax = () => {
             const meta = metadataData?.publicCampaignMetadata;
             if (formData.techBase === 'Clan') return meta?.clanTechModifier ?? 2.0;
@@ -94,7 +100,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             return 1.0;
         };
         return Math.round((formData.bv || 0) * getTechTax());
-    }, [formData.bv, formData.techBase, metadataData]);
+    }, [formData.bv, formData.techBase, metadataData, overridePrice]);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
         const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);

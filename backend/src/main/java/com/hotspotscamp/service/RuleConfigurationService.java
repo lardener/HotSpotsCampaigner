@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import com.hotspotscamp.util.RulesConstants;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hotspotscamp.util.RulesConstants;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;

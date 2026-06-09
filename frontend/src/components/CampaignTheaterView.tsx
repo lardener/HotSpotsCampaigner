@@ -1,11 +1,18 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { EditableTrackCard } from './EditableTrackCard';
+import { CombatUnitEditor } from './CombatUnitEditor';
 import { NodeType } from './NavigationTree';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { PilotEditor } from './PilotEditor';
+import { TacticalMarkdown } from './TacticalMarkdown';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
+import { TerminalOverlay } from './TerminalOverlay'; // Import the shared TerminalOverlay
+import {
+    UNIT_STATUS_OPTIONS as FALLBACK_STATUSES,
+    UNIT_TYPES as FALLBACK_TYPES,
+    TECH_BASES as FALLBACK_TECH
+} from './Rules';
 import {
     Detachment,
     CampaignDetail,
@@ -29,51 +36,6 @@ import {
 import { CreateInviteData, MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
-/**
- * Custom Terminal-themed overlay to replace native browser popups.
- */
-const TerminalOverlay: React.FC<{
-    title: string;
-    message: string;
-    showInput?: boolean;
-    onConfirm: (val?: string) => void;
-    onCancel: () => void;
-}> = ({ title, message, showInput, onConfirm, onCancel }) => {
-    const [input, setInput] = React.useState('');
-    return (
-        <div className="terminal-overlay-backdrop" style={{
-            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-            <div className="tactical-panel theme-amber" style={{ width: '400px', border: '1px solid var(--terminal-amber)' }}>
-                <h3 className="zone-header">{title}</h3>
-                <p className="restricted-text mt-10">{message}</p>
-                {showInput && (
-                    <div className="status-bar theme-amber mt-10">
-                        <input
-                            id="terminal-overlay-input"
-                            type="text"
-                            className="table-input w-100"
-                            style={{ border: 'none', padding: '0 5px' }}
-                            autoFocus
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && onConfirm(input)}
-                            aria-label="Response input"
-                            placeholder="Enter value..."
-                            title="Enter text and press Enter or CONFIRM"
-                        />
-                    </div>
-                )}
-                <div className="flex flex-gap-10 mt-20 justify-end">
-                    <button className="mode-btn" onClick={onCancel}>CANCEL</button>
-                    <button className="mode-btn theme-amber" onClick={() => onConfirm(input)}>CONFIRM</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 interface CampaignTheaterViewProps {
     managedData: { managedCampaigns: CampaignDetail[] } | undefined;
     loadingManaged: boolean;
@@ -86,6 +48,7 @@ interface CampaignTheaterViewProps {
     onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
     onRefresh?: () => Promise<void>;
     onSyncChange?: (syncing: boolean) => void;
+    userCommands?: any[];
 }
 
 interface TheaterCampaign extends CampaignDetail {
@@ -365,8 +328,16 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onCreateNew,
     onSelectDetachment,
     onRefresh,
-    onSyncChange
+    onSyncChange,
+    userCommands
 }) => {
+    const [procureAssetData, setProcureAssetData] = useState<any>(null);
+    const [procureTargetDetachment, setProcureTargetDetachment] = useState<any>(null);
+    const [showProcureEditor, setShowProcureEditor] = useState(false);
+    const [hirePilotData, setHirePilotData] = useState<any>(null);
+    const [hireTargetDetachment, setHireTargetDetachment] = useState<any>(null);
+    const [showHireEditor, setShowHireEditor] = useState(false);
+
     // --- Queries & Mutations ---
     const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId: selectedCampaignId || '' },
@@ -390,11 +361,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
+    const [inviteRecipientName, setInviteRecipientName] = useState(''); // State for the invite input
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
         title: string;
         message: string;
-        showInput?: boolean;
+        children?: React.ReactNode;
+        variant?: 'alert' | 'info';
         onConfirm: (val?: string) => void;
         onCancel?: () => void;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
@@ -466,15 +439,33 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             isOpen: true,
             title: "RECRUITMENT PROTOCOL",
             message: "ENTER RECIPIENT NAME (OR IDENTIFIER):",
-            showInput: true,
-            onConfirm: async (recipientName) => {
-                const { data } = await createInvite({ variables: { campaignId: selectedCampaignId, recipientName } });
+            children: (
+                <div className="status-bar theme-amber mt-10">
+                    <input
+                        id="terminal-overlay-input"
+                        type="text"
+                        className="table-input w-100"
+                        style={{ border: 'none', padding: '0 5px' }}
+                        autoFocus
+                        value={inviteRecipientName}
+                        onChange={(e) => setInviteRecipientName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && overlay.onConfirm()}
+                        aria-label="Response input"
+                        placeholder="Enter value..."
+                        title="Enter text and press Enter or CONFIRM"
+                    />
+                </div>
+            ),
+            onConfirm: async () => {
+                if (!inviteRecipientName.trim()) return; // Prevent empty invite
+                const { data } = await createInvite({ variables: { campaignId: selectedCampaignId, recipientName: inviteRecipientName } });
                 if (data?.createInvite) {
                     setActiveToken(data.createInvite.token);
                     refetchCampaign();
                 }
                 setOverlay(prev => ({ ...prev, isOpen: false }));
-            }
+            },
+            onCancel: () => setOverlay(prev => ({ ...prev, isOpen: false }))
         });
     };
 
@@ -508,6 +499,143 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 setOverlay(prev => ({ ...prev, isOpen: false }));
             }
         });
+    };
+
+    const handleHscAction = (url: string) => {
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.protocol === 'hsc:' && urlObj.host === 'procure') {
+                const params = urlObj.searchParams;
+                const asset = {
+                    model: params.get('model') || 'NEW UNIT',
+                    variant: params.get('variant') || '',
+                    bv: parseInt(params.get('bv') || '0'),
+                    pv: parseInt(params.get('pv') || '0'),
+                    asSize: parseInt(params.get('sz') || '0'),
+                    type: params.get('type') || 'BM',
+                    techBase: params.get('tech') || 'Inner Sphere',
+                    tonnage: parseInt(params.get('tons') || '0'),
+                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
+                };
+
+                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
+                    .filter(det => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
+                    .map(det => {
+                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
+                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
+                    });
+
+                if (myDetachmentsInCampaign.length === 0) {
+                    setOverlay({
+                        isOpen: true,
+                        title: "ACCESS DENIED",
+                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
+                        onConfirm: () => setOverlay(prev => ({ ...prev, isOpen: false }))
+                    });
+                    return;
+                }
+
+                if (myDetachmentsInCampaign.length === 1) {
+                    setProcureTargetDetachment(myDetachmentsInCampaign[0]);
+                    setProcureAssetData(asset);
+                    setShowProcureEditor(true);
+                } else {
+                    setOverlay({
+                        isOpen: true,
+                        title: "SELECT OPERATIONAL ELEMENT",
+                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT PROCUREMENT RECIPIENT:",
+                        onConfirm: () => { },
+                        children: (
+                            <div className="flex-col flex-gap-10 mt-15">
+                                {myDetachmentsInCampaign.map(det => (
+                                    <button
+                                        key={det.id}
+                                        className="mode-btn theme-amber text-left"
+                                        onClick={() => {
+                                            setProcureTargetDetachment(det);
+                                            setProcureAssetData(asset);
+                                            setOverlay(prev => ({ ...prev, isOpen: false }));
+                                            setTimeout(() => setShowProcureEditor(true), 100);
+                                        }}
+                                    >
+                                        {det.name} ({det.totalSupportPoints} SP)
+                                    </button>
+                                ))}
+                            </div>
+                        )
+                    });
+                }
+            } else if (urlObj.protocol === 'hsc:' && urlObj.host === 'hire') {
+                const params = urlObj.searchParams;
+                const pilot = {
+                    name: params.get('name') || 'NEW PILOT',
+                    unitType: params.get('unitType') || 'BM',
+                    wounds: parseInt(params.get('wounds') || '0'),
+                    gunnerySpEarned: parseInt(params.get('gunnerySpEarned') || '0'),
+                    pilotingSpEarned: parseInt(params.get('pilotingSpEarned') || '0'),
+                    edgeTokensSpEarned: parseInt(params.get('edgeTokensSpEarned') || '0'),
+                    edgeAbilitySpEarned: parseInt(params.get('edgeAbilitySpEarned') || '0'),
+                    edgeAbilities: params.get('edgeAbilities') || '',
+                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
+                };
+
+                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
+                    .filter(det => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
+                    .map(det => {
+                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
+                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
+                    });
+
+                if (myDetachmentsInCampaign.length === 0) {
+                    setOverlay({
+                        isOpen: true,
+                        title: "ACCESS DENIED",
+                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
+                        onConfirm: () => setOverlay(prev => ({ ...prev, isOpen: false }))
+                    });
+                    return;
+                }
+
+                if (myDetachmentsInCampaign.length === 1) {
+                    setHireTargetDetachment(myDetachmentsInCampaign[0]);
+                    setHirePilotData(pilot);
+                    setShowHireEditor(true);
+                } else {
+                    setOverlay({
+                        isOpen: true,
+                        title: "SELECT OPERATIONAL ELEMENT",
+                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT RECRUITMENT RECIPIENT:",
+                        onConfirm: () => { },
+                        children: (
+                            <div className="flex-col flex-gap-10 mt-15">
+                                {myDetachmentsInCampaign.map(det => (
+                                    <button
+                                        key={det.id}
+                                        className="mode-btn theme-amber text-left"
+                                        onClick={() => {
+                                            setHireTargetDetachment(det);
+                                            setHirePilotData(pilot);
+                                            setOverlay(prev => ({ ...prev, isOpen: false }));
+                                            setTimeout(() => setShowHireEditor(true), 100);
+                                        }}
+                                    >
+                                        {det.name} ({det.totalSupportPoints} SP)
+                                    </button>
+                                ))}
+                            </div>
+                        )
+                    });
+                }
+            } else {
+                setOverlay({
+                    isOpen: true,
+                    title: "UNKNOWN ACTION",
+                    message: `UNRECOGNIZED HSC PROTOCOL: ${urlObj.host}.`,
+                    variant: 'alert',
+                    onConfirm: () => setOverlay(prev => ({ ...prev, isOpen: false }))
+                });
+            }
+        } catch (e) { console.error("Invalid HSC action link", e); }
     };
 
     const handleTrackUpdate = (trackId: string, field: string, value: string) => {
@@ -686,6 +814,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         <div className="tactical-panel" style={{ gridColumn: 'span 2' }}>
                             <div className="flex-between mb-10">
                                 <h3 className="zone-header">THEATER COMMAND DATA</h3>
+                                <button
+                                    className="mode-btn theme-amber"
+                                    style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                                    onClick={() => setIsEditingDescription(!isEditingDescription)}
+                                >
+                                    {isEditingDescription ? '[ CLOSE ]' : '[ EDIT ]'}
+                                </button>
                             </div>
 
                             <div className="mt-10" style={{ width: '100%' }}>
@@ -697,7 +832,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                             style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
                                             defaultValue={campaign?.description}
                                             autoFocus
-                                            onBlur={() => setIsEditingDescription(false)}
                                             onChange={(e) => handleUpdate('description', e.target.value)}
                                             placeholder="Enter operational briefing (Markdown supported)..."
                                             title="Exit field to save mission description"
@@ -706,23 +840,24 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     </div>
                                 ) : (
                                     <div
-                                        className="markdown-preview cursor-pointer"
+                                        className="markdown-preview"
                                         style={{
                                             minHeight: '80px',
                                             width: '100%',
                                             fontSize: '0.9rem',
                                             lineHeight: '1.4'
                                         }}
-                                        onClick={() => setIsEditingDescription(true)}
-                                        onFocus={() => setIsEditingDescription(true)}
-                                        tabIndex={0}
-                                        title="Click to edit theater command briefing"
                                     >
-                                        {campaign?.description ? (
-                                            <Markdown remarkPlugins={[remarkGfm]}>{campaign.description}</Markdown>
-                                        ) : (
-                                            <span className="restricted-text">NO OPERATIONAL BRIEFING FILED. CLICK TO INITIALIZE THEATER LORE.</span>
-                                        )}
+                                        <div style={{ flex: 1 }}>
+                                            {campaign?.description ? (
+                                                <TacticalMarkdown
+                                                    content={campaign.description}
+                                                    onAction={handleHscAction}
+                                                />
+                                            ) : (
+                                                <span className="restricted-text subdued">NO OPERATIONAL BRIEFING FILED. CLICK EDIT TO INITIALIZE THEATER LORE.</span>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1253,9 +1388,41 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 <TerminalOverlay
                     title={overlay.title}
                     message={overlay.message}
-                    showInput={overlay.showInput}
+                    variant={overlay.variant}
                     onConfirm={overlay.onConfirm}
                     onCancel={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
+                >
+                    {overlay.children}
+                </TerminalOverlay>
+            )}
+
+            {showProcureEditor && procureAssetData && procureTargetDetachment && (
+                <CombatUnitEditor
+                    mode="create"
+                    commandId={procureTargetDetachment.mercenaryCommandId}
+                    detachmentId={procureTargetDetachment.id}
+                    availableSP={procureTargetDetachment.totalSupportPoints}
+                    unit={{ ...procureAssetData, id: '', status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL' }}
+                    unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || FALLBACK_TYPES}
+                    unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
+                    techBases={(metaData?.publicCampaignMetadata as any)?.techBases || FALLBACK_TECH}
+                    onSave={() => { setShowProcureEditor(false); refetchCampaign(); if (onRefresh) onRefresh(); }}
+                    onCancel={() => setShowProcureEditor(false)}
+                    overridePrice={procureAssetData.overridePrice}
+                />
+            )}
+
+            {showHireEditor && hirePilotData && hireTargetDetachment && (
+                <PilotEditor
+                    mode="create"
+                    commandId={hireTargetDetachment.mercenaryCommandId}
+                    detachmentId={hireTargetDetachment.id}
+                    availableSP={hireTargetDetachment.totalSupportPoints}
+                    pilot={{ ...hirePilotData, id: '' }}
+                    onSave={() => { setShowHireEditor(false); refetchCampaign(); if (onRefresh) onRefresh(); }}
+                    onCancel={() => setShowHireEditor(false)}
+                    overridePrice={hirePilotData.overridePrice}
+                    campaignHireCost={campaign.hireNamedPilotCost}
                 />
             )}
 
@@ -1291,6 +1458,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         await refetchCampaign();
                         if (onRefresh) await onRefresh();
                     }}
+                    userCommands={userCommands}
                 />
             )}
 

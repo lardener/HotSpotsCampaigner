@@ -60,6 +60,10 @@ Thank you for contributing to the tactical management of mercenary commands! Thi
 - Use `useQuery` and `useMutation` hooks.
 - Set `notifyOnNetworkStatusChange: true` on major queries to support global loading/sync indicators.
 - Implement `optimisticResponse` for frequent UI updates (like renaming a command) to maintain the "Neural Link: Stable" feel.
+- For forms, prefer **controlled components** (`value` and `onChange`) over `defaultValue` when the input's state can be updated programmatically (e.g., after a reroll or import).
+- Use `useMemo` for caching expensive calculations (e.g., `purchasePrice` based on BV and tech tax) to prevent unnecessary re-renders.
+- Utilize the `@floating-ui/react` library for accessible and well-positioned overlays, modals, and tooltips.
+- When rendering Markdown, use the `react-markdown` library's `components` prop to intercept and handle custom URL schemes (e.g., `hsc://`) for interactive in-app actions.
 
 ### 4. Terminal Aesthetic
 - Follow the "Amber/Green/Blue" theme conventions in `theme.css`.

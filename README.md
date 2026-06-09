@@ -14,6 +14,9 @@ A multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using
  ✅ **Global Data Synchronization**: Manual and automatic real-time synchronization of tactical data across all command interfaces.
  ✅ **Temporal Logistics**: Manage campaign tracks and schedules across operational months with drag-and-drop scheduling.
  ✅ **Ledger-First Financials**: All Support Points and Reputation are derived from a verifiable transaction ledger, ensuring an immutable audit trail for every command.
+ ✅ **Interactive Briefings**: Campaign managers can embed special `hsc://` links within markdown briefings. These links can trigger in-app actions for participants, such as opening a pre-filled unit procurement form for a specific asset.
+
+
 
 ## Invitation & Login System
 
@@ -37,6 +40,48 @@ The application uses an **"Invite-as-Identity"** model. Users exist in the `app_
 5.  **Persistence**: Your session is maintained via a long-lived token in your browser. If you switch devices, simply re-enter the original Invite Key.
 
 ---
+
+### Interactive Briefing Example
+
+Campaign managers can embed interactive links in their markdown operational briefings. For example, to list a 'Mech for sale:
+
+```markdown
+### BLACK MARKET ASSET AVAILABLE
+Intelligence reports a pristine chassis is available for immediate acquisition:
+
+* [PURCHASE SHADOW HAWK SHD-2K (1000 SP)](hsc://procure?model=Shadow%20Hawk&variant=SHD-2K&bv=1064&pv=38&sz=2&type=BM&tech=Inner%20Sphere&tons=55&price=1000)
+```
+
+Clicking this link will open a pre-filled procurement form for the user, allowing them to purchase the unit if they have sufficient Support Points.
+
+Campaign managers can also embed links for pilot recruitment. For example, to hire a veteran pilot at a special rate:
+```markdown
+### RECRUITMENT OPPORTUNITY 
+A seasoned pilot, "Viper," is available for immediate hire:
+
+* [HIRE PILOT "VIPER" (200 SP)](hsc://hire?name=Viper&unitType=BM&gunnerySpEarned=300&pilotingSpEarned=100&price=200)
+
+
+hsc://procure Link Parameters:
+
+model: Chassis name (e.g., Shadow%20Hawk).
+variant: Specific variant code (e.g., SHD-2K).
+bv: Battle Value. Used for default price calculation. 
+tech: Technology base (e.g., Inner%20Sphere, Clan).
+tons: Unit tonnage.
+price: (Optional) Manual Support Point cost override. If omitted, cost is calculated from BV and Tech Base.
+
+hsc://hire Link Parameters: 
+* name: Pilot's callsign/name (e.g., Viper). 
+* unitType: Preferred unit type (e.g., BM, CV). 
+* wounds: Initial wounds (e.g., 0). 
+* gunnerySpEarned: SP allocated to Gunnery. 
+* pilotingSpEarned: SP allocated to Piloting. 
+* edgeTokensSpEarned: SP allocated to Edge Tokens. 
+* edgeAbilitySpEarned: SP allocated to Edge Abilities. 
+* edgeAbilities: Description of Edge Abilities (e.g., Hot%20Shot). 
+* price: (Optional) Manual Support Point hiring cost override. If omitted, cost is calculated from campaign rules or default.
+```
 
 ## Quick Start
 

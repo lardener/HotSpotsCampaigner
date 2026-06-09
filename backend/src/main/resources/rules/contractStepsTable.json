@@ -37,7 +37,7 @@
         {
             "step": 5,
             "payRate": "80%",
-            "supportRights": "Straight/80%",
+            "supportRights": "Straight/70%",
             "transportation": "0%",
             "salvageRights": "20%",
             "commandRights": "-"
@@ -45,7 +45,7 @@
         {
             "step": 6,
             "payRate": "90%",
-            "supportRights": "Straight/100%",
+            "supportRights": "Straight/80%",
             "transportation": "25%",
             "salvageRights": "30%",
             "commandRights": "-"
@@ -53,7 +53,7 @@
         {
             "step": 7,
             "payRate": "100%",
-            "supportRights": "Battle/10%",
+            "supportRights": "Straight/90%",
             "transportation": "50%",
             "salvageRights": "40%",
             "commandRights": "House"
@@ -61,7 +61,7 @@
         {
             "step": 8,
             "payRate": "110%",
-            "supportRights": "Battle/20%",
+            "supportRights": "Straight/100%",
             "transportation": "75%",
             "salvageRights": "50%",
             "commandRights": "Liaison"
@@ -69,7 +69,7 @@
         {
             "step": 9,
             "payRate": "120%",
-            "supportRights": "Battle/30%",
+            "supportRights": "Battle/10%",
             "transportation": "100%",
             "salvageRights": "60%",
             "commandRights": "-"
@@ -77,33 +77,65 @@
         {
             "step": 10,
             "payRate": "130%",
-            "supportRights": "Battle/40%",
+            "supportRights": "Battle/20%",
             "transportation": "-",
             "salvageRights": "70%",
             "commandRights": "-"
         },
         {
             "step": 11,
-            "payRate": "150%",
-            "supportRights": "Battle/50%",
+            "payRate": "140%",
+            "supportRights": "Battle/30%",
             "transportation": "-",
             "salvageRights": "80%",
             "commandRights": "Independent"
         },
         {
             "step": 12,
-            "payRate": "175%",
-            "supportRights": "Battle/75%",
+            "payRate": "150%",
+            "supportRights": "Battle/40%",
             "transportation": "-",
             "salvageRights": "90%",
             "commandRights": "-"
         },
         {
             "step": 13,
-            "payRate": "200%",
-            "supportRights": "Battle/100%",
+            "payRate": "160%",
+            "supportRights": "Battle/50%",
             "transportation": "-",
             "salvageRights": "100%",
+            "commandRights": "-"
+        },
+        {
+            "step": 14,
+            "payRate": "170%",
+            "supportRights": "Battle/75%",
+            "transportation": "-",
+            "salvageRights": "-",
+            "commandRights": "-"
+        },
+        {
+            "step": 15,
+            "payRate": "180%",
+            "supportRights": "Battle/100%",
+            "transportation": "-",
+            "salvageRights": "-",
+            "commandRights": "-"
+        },
+        {
+            "step": 16,
+            "payRate": "190%",
+            "supportRights": "-",
+            "transportation": "-",
+            "salvageRights": "-",
+            "commandRights": "-"
+        },
+        {
+            "step": 17,
+            "payRate": "200%",
+            "supportRights": "-",
+            "transportation": "-",
+            "salvageRights": "-",
             "commandRights": "-"
         }
     ]

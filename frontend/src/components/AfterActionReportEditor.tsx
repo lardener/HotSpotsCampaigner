@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useReducer } from 'react';
+import { ApolloCache } from '@apollo/client';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { TacticalMarkdown } from './TacticalMarkdown';
+import { CombatUnitEditor } from './CombatUnitEditor';
+import { PilotEditor } from './PilotEditor';
 import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
@@ -11,6 +13,7 @@ import {
     GET_METADATA,
     UPDATE_UNIT,
     UPDATE_PILOT,
+    DELETE_PILOT,
     UPDATE_TRACK,
     DELETE_UNIT,
     ADD_LEDGER_ENTRY
@@ -172,6 +175,7 @@ interface AfterActionReportEditorProps {
     metaData?: MetadataDataMinimal;
     onClose: () => void | Promise<void>;
     onLedgerEntryAdded?: () => void | Promise<void>;
+    userCommands?: any[];
 }
 
 // New helper function to calculate financial implications of a unit's status
@@ -231,32 +235,188 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
     };
 };
 
-export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded }) => {
+export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded, userCommands }) => {
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
     const [updateUnit] = useMutation(UPDATE_UNIT);
     const [updatePilot] = useMutation(UPDATE_PILOT);
+    const [deletePilot] = useMutation(DELETE_PILOT, { // Removed <any> from ApolloCache
+        update(cache: ApolloCache, { data }: any, { variables }: any) {
+            if (data?.deletePilot && variables?.pilotId) {
+                cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
+                cache.gc();
+            }
+        }
+    });
     const [updateTrack] = useMutation(UPDATE_TRACK);
-    const [deleteUnit] = useMutation(DELETE_UNIT);
+    const [deleteUnit] = useMutation(DELETE_UNIT, { // Removed <any> from ApolloCache
+        update(cache: ApolloCache, { data }: any, { variables }: any) {
+            if (data?.deleteUnit && variables?.unitId) {
+                cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
+                cache.gc();
+            }
+        }
+    });
     const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataDataMinimal>(GET_METADATA, {
         skip: !!propMetaData
     });
 
     const metaData = propMetaData || queryMetaData;
 
-    const unitStatuses = metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
+    const unitStatuses = (metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES;
     const [state, dispatch] = useAarState(campaign, track, unitStatuses);
     const [isEditingNarrative, setIsEditingNarrative] = useState(false);
     const [notices, setNotices] = useState<Record<string, string>>({});
     const [errorStates, setErrorStates] = useState<Record<string, string>>({});
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
     const [isFinalizing, setIsFinalizing] = useState(false);
+
+    const [procureAssetData, setProcureAssetData] = useState<any>(null);
+    const [procureTargetDetachment, setProcureTargetDetachment] = useState<any>(null);
+    const [showProcureEditor, setShowProcureEditor] = useState(false);
+    const [hirePilotData, setHirePilotData] = useState<any>(null);
+    const [hireTargetDetachment, setHireTargetDetachment] = useState<any>(null);
+    const [showHireEditor, setShowHireEditor] = useState(false);
+
     const [overlay, setOverlay] = useState<{
         title: string;
         message: string;
         onConfirm: () => void;
         onCancel?: () => void;
         variant?: 'alert' | 'info';
+        children?: React.ReactNode;
     } | null>(null);
+
+    const handleHscAction = (url: string) => {
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.protocol === 'hsc:' && urlObj.host === 'procure') {
+                const params = urlObj.searchParams;
+                const asset = {
+                    model: params.get('model') || 'NEW UNIT',
+                    variant: params.get('variant') || '',
+                    bv: parseInt(params.get('bv') || '0'),
+                    pv: parseInt(params.get('pv') || '0'),
+                    asSize: parseInt(params.get('sz') || '0'),
+                    type: params.get('type') || 'BM',
+                    techBase: params.get('tech') || 'Inner Sphere',
+                    tonnage: parseInt(params.get('tons') || '0'),
+                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
+                };
+
+                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
+                    .filter((det: any) => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
+                    .map((det: any) => {
+                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
+                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
+                    });
+
+                if (myDetachmentsInCampaign.length === 0) {
+                    setOverlay({
+                        title: "ACCESS DENIED",
+                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
+                        onConfirm: () => setOverlay(null)
+                    });
+                    return;
+                }
+
+                if (myDetachmentsInCampaign.length === 1) {
+                    setProcureTargetDetachment(myDetachmentsInCampaign[0]);
+                    setProcureAssetData(asset);
+                    setShowProcureEditor(true);
+                } else {
+                    setOverlay({
+                        title: "SELECT OPERATIONAL ELEMENT",
+                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT PROCUREMENT RECIPIENT:",
+                        onConfirm: () => { },
+                        children: (
+                            <div className="flex-col flex-gap-10 mt-15">
+                                {myDetachmentsInCampaign.map((det: any) => (
+                                    <button
+                                        key={det.id}
+                                        className="mode-btn theme-amber text-left"
+                                        onClick={() => {
+                                            setProcureTargetDetachment(det);
+                                            setProcureAssetData(asset);
+                                            setOverlay(null);
+                                            setTimeout(() => setShowProcureEditor(true), 100);
+                                        }}
+                                    >
+                                        {det.name} ({det.totalSupportPoints} SP)
+                                    </button>
+                                ))}
+                            </div>
+                        )
+                    });
+                }
+            } else if (urlObj.protocol === 'hsc:' && urlObj.host === 'hire') {
+                const params = urlObj.searchParams;
+                const pilot = {
+                    name: params.get('name') || 'NEW PILOT',
+                    unitType: params.get('unitType') || 'BM',
+                    wounds: parseInt(params.get('wounds') || '0'),
+                    gunnerySpEarned: parseInt(params.get('gunnerySpEarned') || '0'),
+                    pilotingSpEarned: parseInt(params.get('pilotingSpEarned') || '0'),
+                    edgeTokensSpEarned: parseInt(params.get('edgeTokensSpEarned') || '0'),
+                    edgeAbilitySpEarned: parseInt(params.get('edgeAbilitySpEarned') || '0'),
+                    edgeAbilities: params.get('edgeAbilities') || '',
+                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
+                };
+
+                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
+                    .filter((det: any) => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
+                    .map((det: any) => {
+                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
+                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
+                    });
+
+                if (myDetachmentsInCampaign.length === 0) {
+                    setOverlay({
+                        title: "ACCESS DENIED",
+                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
+                        onConfirm: () => setOverlay(null)
+                    });
+                    return;
+                }
+
+                if (myDetachmentsInCampaign.length === 1) {
+                    setHireTargetDetachment(myDetachmentsInCampaign[0]);
+                    setHirePilotData(pilot);
+                    setShowHireEditor(true);
+                } else {
+                    setOverlay({
+                        title: "SELECT OPERATIONAL ELEMENT",
+                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT RECRUITMENT RECIPIENT:",
+                        onConfirm: () => { },
+                        children: (
+                            <div className="flex-col flex-gap-10 mt-15">
+                                {myDetachmentsInCampaign.map((det: any) => (
+                                    <button
+                                        key={det.id}
+                                        className="mode-btn theme-amber text-left"
+                                        onClick={() => {
+                                            setHireTargetDetachment(det);
+                                            setHirePilotData(pilot);
+                                            setOverlay(null);
+                                            setTimeout(() => setShowHireEditor(true), 100);
+                                        }}
+                                    >
+                                        {det.name} ({det.totalSupportPoints} SP)
+                                    </button>
+                                ))}
+                            </div>
+                        )
+                    });
+                }
+            } else {
+                setOverlay({
+                    title: "UNKNOWN ACTION",
+                    message: `UNRECOGNIZED HSC PROTOCOL: ${urlObj.host}.`,
+                    variant: 'alert',
+                    onConfirm: () => setOverlay(null)
+                });
+            }
+        } catch (e) { console.error("Invalid HSC action link", e); }
+    };
 
     const addNotice = (key: string, msg: string) => {
         setNotices(prev => ({ ...prev, [key]: msg }));
@@ -472,6 +632,26 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         };
         const pState = state.pilotStates[pilot.id] || { injuries: 0, healed: 0 };
 
+        // Check for pilot death (6 injuries)
+        const isPilotDead = pState.injuries === 6;
+
+        if (isPilotDead) {
+            setOverlay({
+                title: "CONFIRM PERSONNEL FATALITY",
+                message: `PILOT ${pilot.name} HAS SUSTAINED 6 INJURIES. COMMITTING THIS ROW WILL PERMANENTLY REMOVE THE PILOT FROM THE REGISTRY. NO COMPENSATION IS DUE. PROCEED?`,
+                variant: 'alert',
+                onConfirm: () => {
+                    setOverlay(null);
+                    commitPilotLogistics(detId, cmdId, pilot, pState, terms, noticeKey, true);
+                },
+                onCancel: () => setOverlay(null)
+            });
+        } else {
+            commitPilotLogistics(detId, cmdId, pilot, pState, terms, noticeKey, false);
+        }
+    };
+
+    const commitPilotLogistics = async (detId: string, cmdId: string, pilot: Pilot, pState: { injuries: number; healed: number; }, terms: any, noticeKey: string, isPilotDead: boolean) => {
         const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
         const finalCost = financials.mercenaryCostSigned;
 
@@ -482,26 +662,32 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         });
         setLoadingStates(prev => ({ ...prev, [noticeKey]: true }));
 
-        try {
-            if (finalCost !== 0) {
-                await addLedgerEntry({
-                    variables: {
-                        commandId: cmdId,
-                        detachmentId: detId,
-                        input: {
-                            amount: finalCost,
-                            description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${financials.supportType} ${financials.supportPct * 100}%)`,
-                            monthIndex: track.monthIndex || 1,
-                            campaignName: campaign.name
+        try { // If pilot is dead, no compensation is due, so skip ledger entry
+            if (!isPilotDead && finalCost !== 0) {
+                if (finalCost !== 0) {
+                    await addLedgerEntry({
+                        variables: {
+                            commandId: cmdId,
+                            detachmentId: detId,
+                            input: {
+                                amount: finalCost,
+                                description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${financials.supportType} ${financials.supportPct * 100}%)`,
+                                monthIndex: track.monthIndex || 1,
+                                campaignName: campaign.name
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
 
-            // Calculate final wounds (Injuried minus Healed) and update database
-            const newWounds = Math.max(0, pState.injuries - pState.healed);
-            await updatePilot({ variables: { id: pilot.id, input: { wounds: newWounds } } });
-            dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: pilot.id, patch: { injuries: newWounds, healed: 0 } });
+            if (isPilotDead) {
+                await deletePilot({ variables: { pilotId: pilot.id } });
+            } else {
+                // Calculate final wounds (Injuried minus Healed) and update database
+                const newWounds = Math.max(0, pState.injuries - pState.healed);
+                await updatePilot({ variables: { id: pilot.id, input: { wounds: newWounds } } });
+                dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: pilot.id, patch: { injuries: newWounds, healed: 0 } });
+            }
 
             await onLedgerEntryAdded?.();
             addNotice(noticeKey, `✓ MEDICAL COMMITTED: ${Math.abs(finalCost)} SP`);
@@ -555,7 +741,16 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             <div className="aar-bg-overlay" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px', position: 'relative', overflowX: 'hidden', background: 'transparent' }}>
 
                 <div className="tactical-panel narrative-editor mb-20 theme-red" data-id="AAR-NARRATIVE">
-                    <h3 className="zone-header mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>OPERATIONAL DEBRIEFING</h3>
+                    <div className="flex-between mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>
+                        <h3 className="zone-header" style={{ margin: 0 }}>OPERATIONAL DEBRIEFING</h3>
+                        <button
+                            className="mode-btn"
+                            style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                            onClick={() => setIsEditingNarrative(!isEditingNarrative)}
+                        >
+                            {isEditingNarrative ? '[ CLOSE ]' : '[ EDIT ]'}
+                        </button>
+                    </div>
                     {isEditingNarrative ? (
                         <div className="status-bar theme-red" style={{ padding: '5px' }}>
                             <textarea
@@ -570,15 +765,19 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                         </div>
                     ) : (
                         <div
-                            className="markdown-preview restricted-text sm-text"
-                            style={{ minHeight: '60px', cursor: 'pointer' }}
-                            onClick={() => setIsEditingNarrative(true)}
+                            className="markdown-preview"
+                            style={{ minHeight: '60px', fontSize: '0.9rem', lineHeight: '1.4' }}
                         >
-                            {state.afterActionNarrative ? (
-                                <Markdown remarkPlugins={[remarkGfm]}>{state.afterActionNarrative}</Markdown>
-                            ) : (
-                                <span className="opacity-50">NO NARRATIVE RECORDED. CLICK TO INITIALIZE DEBRIEFING.</span>
-                            )}
+                            <div style={{ flex: 1 }}>
+                                {state.afterActionNarrative ? (
+                                    <TacticalMarkdown
+                                        content={state.afterActionNarrative}
+                                        onAction={handleHscAction}
+                                    />
+                                ) : (
+                                    <span className="restricted-text subdued">NO NARRATIVE RECORDED. CLICK EDIT TO INITIALIZE DEBRIEFING.</span>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -676,10 +875,11 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         const tooltip = `Combat Pay: ${financials.baseCombatPay} SP * ${financials.outcomeMultiplier} (Outcome) * ${financials.selectedLevel} (Level) = ${financials.payAward} SP\n` +
                                             `Salvage: ${financials.salvageValue} SP * ${financials.salvageCoverage} (Coverage) = ${financials.salvageAward} SP\n` +
                                             `Misc: ${financials.customAward} SP`;
+                                        const terms = getDetachmentTerms(det.id);
                                         return (
                                             <div title={tooltip}>
                                                 TOTAL AWARD: {financials.total} SP
-                                                <span className="opacity-70 ml-10">(Pay: {financials.payAward} | Salvage: {financials.salvageAward} @ {financials.salvageCoverage * 100}%)</span>
+                                                <span className="opacity-70 ml-10">(Pay: {financials.payAward} | Support: {terms.support.type}/{terms.support.pct * 100}% | Salvage: {financials.salvageAward} @ {financials.salvageCoverage * 100}%)</span>
                                             </div>
                                         );
                                     })()}
@@ -861,7 +1061,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                                 }}
                                                                 title="Select total pilot injuries"
                                                             >
-                                                                {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v}</option>)}
+                                                                {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v === 6 ? 'FATAL' : v}</option>)}
                                                             </select>
                                                         </div>
                                                     </td>
@@ -920,6 +1120,38 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     onConfirm={overlay.onConfirm}
                     onCancel={overlay.onCancel}
                     themeClass="theme-red"
+                >
+                    {overlay.children}
+                </TerminalOverlay>
+            )}
+
+            {showProcureEditor && procureAssetData && procureTargetDetachment && (
+                <CombatUnitEditor
+                    mode="create"
+                    commandId={procureTargetDetachment.mercenaryCommandId}
+                    detachmentId={procureTargetDetachment.id}
+                    availableSP={procureTargetDetachment.totalSupportPoints}
+                    unit={{ ...procureAssetData, id: '', status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL' }}
+                    unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
+                    unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
+                    techBases={(metaData?.publicCampaignMetadata as any)?.techBases || ['Inner Sphere', 'Clan', 'Mixed']}
+                    onSave={() => { setShowProcureEditor(false); onLedgerEntryAdded?.(); }}
+                    onCancel={() => setShowProcureEditor(false)}
+                    overridePrice={procureAssetData.overridePrice}
+                />
+            )}
+
+            {showHireEditor && hirePilotData && hireTargetDetachment && (
+                <PilotEditor
+                    mode="create"
+                    commandId={hireTargetDetachment.mercenaryCommandId}
+                    detachmentId={hireTargetDetachment.id}
+                    availableSP={hireTargetDetachment.totalSupportPoints}
+                    pilot={{ ...hirePilotData, id: '' }}
+                    onSave={() => { setShowHireEditor(false); onLedgerEntryAdded?.(); }}
+                    onCancel={() => setShowHireEditor(false)}
+                    overridePrice={hirePilotData.overridePrice}
+                    campaignHireCost={campaign.hireNamedPilotCost}
                 />
             )}
 
