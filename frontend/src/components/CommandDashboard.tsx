@@ -56,9 +56,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [overlay, setOverlay] = useState<{
         title: string;
         message: string;
-        onConfirm: () => void;
+        onConfirm: (val?: string) => void | Promise<void>;
         variant?: 'alert' | 'info';
         children?: React.ReactNode;
+        showInputField?: boolean;
+        inputPlaceholder?: string;
+        inputInitialValue?: string;
+        inputType?: string;
+        inputLabel?: string;
     } | null>(null);
 
     // Synchronize selection with prop changes (e.g. from Navigation Tree)
@@ -343,33 +348,20 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     };
 
     const handleCreateDetachment = () => {
-        let newName = '';
-        const confirmAction = async () => {
-            if (!newName.trim()) return;
+        const confirmAction = async (detachmentName?: string) => {
+            if (!detachmentName?.trim()) return;
             try {
                 await createDetachment({
-                    variables: { commandId, campaignId: null, name: newName }
+                    variables: { commandId, campaignId: null, name: detachmentName.toUpperCase() }
                 });
                 setOverlay(null);
                 onRefreshTree?.();
             } catch (err) { console.error(err); }
         };
-
         setOverlay({
             title: "NEW DETACHMENT AUTHORIZATION",
-            message: "ENTER CALLSIGN FOR NEW OPERATIONAL ELEMENT:",
-            onConfirm: confirmAction,
-            children: (
-                <input
-                    className="table-input mt-15"
-                    autoFocus
-                    onChange={(e) => { newName = e.target.value.toUpperCase(); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') confirmAction(); }}
-                    placeholder="DESIGNATION..."
-                    title="Enter detachment designation"
-                    aria-label="New detachment callsign"
-                />
-            )
+            message: "ENTER CALLSIGN FOR NEW OPERATIONAL ELEMENT",
+            onConfirm: confirmAction, showInputField: true, inputPlaceholder: "DESIGNATION...", inputLabel: "CALLSIGN"
         });
     };
 
@@ -824,6 +816,11 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     onConfirm={overlay.onConfirm}
                     onCancel={() => setOverlay(null)}
                     themeClass="theme-amber"
+                    showInputField={overlay.showInputField}
+                    inputPlaceholder={overlay.inputPlaceholder}
+                    inputInitialValue={overlay.inputInitialValue}
+                    inputType={overlay.inputType}
+                    inputLabel={overlay.inputLabel}
                 >
                     {overlay.children}
                 </TerminalOverlay>

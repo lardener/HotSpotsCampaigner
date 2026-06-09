@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     useFloating,
     useInteractions,
@@ -19,6 +19,11 @@ interface TerminalOverlayProps {
     variant?: 'alert' | 'info';
     themeClass?: string;
     loading?: boolean;
+    showInputField?: boolean;
+    inputPlaceholder?: string;
+    inputInitialValue?: string;
+    inputType?: string;
+    inputLabel?: string;
     children?: React.ReactNode;
 }
 
@@ -31,7 +36,12 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
     onCancel,
     variant = 'info',
     themeClass = '',
-    loading = false,
+    loading = false, // Added loading prop
+    showInputField = false,
+    inputPlaceholder = '',
+    inputInitialValue = '',
+    inputType = 'text',
+    inputLabel = 'INPUT',
     children
 }) => {
     const { refs, context } = useFloating({
@@ -44,6 +54,7 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
     const dismiss = useDismiss(context);
     const role = useRole(context, { role: 'dialog' });
     const { getFloatingProps } = useInteractions([dismiss, role]);
+    const [inputValue, setInputValue] = useState(inputInitialValue);
 
     return (
         <FloatingPortal>
@@ -63,19 +74,37 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                         </div>
                         <div style={{ border: `1px solid var(${variant === 'alert' ? '--terminal-alert' : '--terminal-border'})`, margin: '0 10px 10px 10px', padding: '15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
                             <div className="overlay-body">
-                                <p>{message}</p>
+                                <p className="mb-10">{message}</p>
+                                {showInputField && (
+                                    <div className="status-bar theme-amber mt-10">
+                                        <label htmlFor="terminal-overlay-input" className="restricted-text sm-text" style={{ minWidth: '100px', marginRight: '10px' }}>{inputLabel}</label>
+                                        <input
+                                            id="terminal-overlay-input"
+                                            type={inputType}
+                                            className="table-input w-100"
+                                            style={{ border: 'none', padding: '0 5px' }}
+                                            autoFocus
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && !loading && onConfirm(inputValue)}
+                                            aria-label="Response input"
+                                            placeholder={inputPlaceholder}
+                                            title="Enter text and press Enter or CONFIRM"
+                                        />
+                                    </div>
+                                )}
                                 {children}
                             </div>
                             <div className="overlay-footer">
                                 {onCancel && (
-                                    <button type="button" className="mode-btn" onClick={onCancel}>
+                                    <button type="button" className="mode-btn" onClick={onCancel} disabled={loading}>
                                         {cancelLabel}
                                     </button>
                                 )}
-                                <button 
-                                    type="button" 
-                                    className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`} 
-                                    onClick={() => !loading && onConfirm()}
+                                <button
+                                    type="button"
+                                    className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`}
+                                    onClick={() => !loading && onConfirm(showInputField ? inputValue : undefined)}
                                     disabled={loading}
                                 >
                                     {confirmLabel}

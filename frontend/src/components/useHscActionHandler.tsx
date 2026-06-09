@@ -1,0 +1,161 @@
+import { useState, useCallback } from 'react';
+import { CampaignDetail } from '../types/global.d';
+import { MetadataDataFull } from '../types/graphql.d';
+
+interface UseHscActionHandlerProps {
+    campaign: CampaignDetail;
+    userCommands?: any[];
+    setOverlay: (overlay: any) => void; // Simplified type for now, matches TerminalOverlayProps
+    onActionComplete?: () => void; // Callback for when an editor saves
+    metaData?: MetadataDataFull;
+}
+
+export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActionComplete }: UseHscActionHandlerProps) => {
+    const [procureAssetData, setProcureAssetData] = useState<any>(null);
+    const [procureTargetDetachment, setProcureTargetDetachment] = useState<any>(null);
+    const [showProcureEditor, setShowProcureEditor] = useState(false);
+
+    const [hirePilotData, setHirePilotData] = useState<any>(null);
+    const [hireTargetDetachment, setHireTargetDetachment] = useState<any>(null);
+    const [showHireEditor, setShowHireEditor] = useState(false);
+
+    const handleHscAction = useCallback((url: string) => {
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.protocol !== 'hsc:') {
+                console.warn("Tactical link protocol mismatch:", urlObj.protocol);
+                return;
+            }
+
+            const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
+                .filter((det: any) => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
+                .map((det: any) => {
+                    const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
+                    return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
+                });
+
+            if (myDetachmentsInCampaign.length === 0) {
+                setOverlay({
+                    title: "ACCESS DENIED",
+                    message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
+                    onConfirm: () => setOverlay(null),
+                    variant: 'alert'
+                });
+                return;
+            }
+
+            const selectDetachmentAndOpenEditor = (assetData: any, editorType: 'procure' | 'hire') => {
+                if (myDetachmentsInCampaign.length === 1) {
+                    if (editorType === 'procure') {
+                        setProcureTargetDetachment(myDetachmentsInCampaign[0]);
+                        setProcureAssetData(assetData);
+                        setShowProcureEditor(true);
+                    } else {
+                        setHireTargetDetachment(myDetachmentsInCampaign[0]);
+                        setHirePilotData(assetData);
+                        setShowHireEditor(true);
+                    }
+                } else {
+                    setOverlay({
+                        title: "SELECT OPERATIONAL ELEMENT",
+                        message: `MULTIPLE DETACHMENTS DETECTED. SELECT ${editorType === 'procure' ? 'PROCUREMENT' : 'RECRUITMENT'} RECIPIENT:`,
+                        onConfirm: () => { }, // No-op, handled by button clicks
+                        children: (
+                            <div className="flex-col flex-gap-10 mt-15">
+                                {myDetachmentsInCampaign.map((det: any) => (
+                                    <button
+                                        key={det.id}
+                                        className="mode-btn theme-amber text-left"
+                                        onClick={() => {
+                                            if (editorType === 'procure') {
+                                                setProcureTargetDetachment(det);
+                                                setProcureAssetData(assetData);
+                                                setShowProcureEditor(true);
+                                            } else {
+                                                setHireTargetDetachment(det);
+                                                setHirePilotData(assetData);
+                                                setShowHireEditor(true);
+                                            }
+                                            setOverlay(null); // Close selection overlay
+                                        }}
+                                    >
+                                        {det.name} ({det.totalSupportPoints} SP)
+                                    </button>
+                                ))}
+                            </div>
+                        )
+                    });
+                }
+            };
+
+            if (urlObj.host === 'procure') {
+                const params = urlObj.searchParams;
+                const asset = {
+                    model: params.get('model') || 'NEW UNIT',
+                    variant: params.get('variant') || '',
+                    bv: parseInt(params.get('bv') || '0'),
+                    pv: parseInt(params.get('pv') || '0'),
+                    asSize: parseInt(params.get('sz') || '0'),
+                    type: params.get('type') || 'BM',
+                    techBase: params.get('tech') || 'Inner Sphere',
+                    tonnage: parseInt(params.get('tons') || '0'),
+                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
+                };
+                selectDetachmentAndOpenEditor(asset, 'procure');
+            } else if (urlObj.host === 'hire') {
+                const params = urlObj.searchParams;
+                const pilot = {
+                    name: params.get('name') || 'NEW PILOT',
+                    unitType: params.get('unitType') || 'BM',
+                    wounds: parseInt(params.get('wounds') || '0'),
+                    gunnerySpEarned: parseInt(params.get('gunnerySpEarned') || '0'),
+                    pilotingSpEarned: parseInt(params.get('pilotingSpEarned') || '0'),
+                    edgeTokensSpEarned: parseInt(params.get('edgeTokensSpEarned') || '0'),
+                    edgeAbilitySpEarned: parseInt(params.get('edgeAbilitySpEarned') || '0'),
+                    edgeAbilities: params.get('edgeAbilities') || '',
+                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
+                };
+                selectDetachmentAndOpenEditor(pilot, 'hire');
+            } else {
+                setOverlay({
+                    title: "UNKNOWN ACTION",
+                    message: `UNRECOGNIZED HSC PROTOCOL: ${urlObj.host}.`,
+                    variant: 'alert',
+                    onConfirm: () => setOverlay(null)
+                });
+            }
+        } catch (e) { console.error("Invalid HSC action link", e); }
+    }, [campaign, userCommands, setOverlay]);
+
+    const handleProcureSave = useCallback(() => {
+        setShowProcureEditor(false);
+        setProcureAssetData(null);
+        setProcureTargetDetachment(null);
+        onActionComplete?.();
+    }, [onActionComplete]);
+
+    const handleProcureCancel = useCallback(() => {
+        setShowProcureEditor(false);
+        setProcureAssetData(null);
+        setProcureTargetDetachment(null);
+    }, []);
+
+    const handleHireSave = useCallback(() => {
+        setShowHireEditor(false);
+        setHirePilotData(null);
+        setHireTargetDetachment(null);
+        onActionComplete?.();
+    }, [onActionComplete]);
+
+    const handleHireCancel = useCallback(() => {
+        setShowHireEditor(false);
+        setHirePilotData(null);
+        setHireTargetDetachment(null);
+    }, []);
+
+    return {
+        handleHscAction,
+        showProcureEditor, procureAssetData, procureTargetDetachment, handleProcureSave, handleProcureCancel,
+        showHireEditor, hirePilotData, hireTargetDetachment, handleHireSave, handleHireCancel,
+    };
+};

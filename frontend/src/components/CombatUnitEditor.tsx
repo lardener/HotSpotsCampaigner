@@ -68,9 +68,14 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     const [overlay, setOverlay] = useState<{
         title: string;
         message: string;
-        onConfirm: () => void;
+        onConfirm: (val?: string) => void | Promise<void>;
         variant?: 'alert' | 'info';
         children?: React.ReactNode;
+        showInputField?: boolean;
+        inputPlaceholder?: string;
+        inputInitialValue?: string;
+        inputType?: string;
+        inputLabel?: string;
     } | null>(null);
 
     const { refs, context } = useFloating({
@@ -545,6 +550,11 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         onConfirm={overlay.onConfirm}
                         onCancel={() => setOverlay(null)}
                         themeClass="theme-amber"
+                        showInputField={overlay.showInputField}
+                        inputPlaceholder={overlay.inputPlaceholder}
+                        inputInitialValue={overlay.inputInitialValue}
+                        inputType={overlay.inputType}
+                        inputLabel={overlay.inputLabel}
                     >
                         {overlay.children}
                     </TerminalOverlay>

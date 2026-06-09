@@ -32,9 +32,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
         try {
             const input: CommandUpdateInput = {
                 name: commandName,
-                commandingOfficer: commandingOfficer || user.displayName || user.name, // Fallback to user's name if CO is empty
-                totalSupportPoints: 3000, // Default value from RulesConstants
-                reputation: 1 // Default value from RulesConstants
+                commandingOfficer: commandingOfficer || user.displayName || user.name // Fallback to user's name if CO is empty
             };
 
             const { data } = await establishCommand({ variables: { input } });

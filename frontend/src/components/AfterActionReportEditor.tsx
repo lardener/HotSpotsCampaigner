@@ -6,6 +6,7 @@ import { TacticalMarkdown } from './TacticalMarkdown';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail } from '../types/global.d';
+import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
 import { MetadataDataMinimal } from '../types/graphql.d';
@@ -270,153 +271,27 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
     const [isFinalizing, setIsFinalizing] = useState(false);
 
-    const [procureAssetData, setProcureAssetData] = useState<any>(null);
-    const [procureTargetDetachment, setProcureTargetDetachment] = useState<any>(null);
-    const [showProcureEditor, setShowProcureEditor] = useState(false);
-    const [hirePilotData, setHirePilotData] = useState<any>(null);
-    const [hireTargetDetachment, setHireTargetDetachment] = useState<any>(null);
-    const [showHireEditor, setShowHireEditor] = useState(false);
-
     const [overlay, setOverlay] = useState<{
         title: string;
         message: string;
-        onConfirm: () => void;
+        onConfirm: (val?: string) => void | Promise<void>;
         onCancel?: () => void;
         variant?: 'alert' | 'info';
         children?: React.ReactNode;
+        showInputField?: boolean;
+        inputPlaceholder?: string;
+        inputInitialValue?: string;
+        inputType?: string;
+        inputLabel?: string;
     } | null>(null);
 
-    const handleHscAction = (url: string) => {
-        try {
-            const urlObj = new URL(url);
-            if (urlObj.protocol === 'hsc:' && urlObj.host === 'procure') {
-                const params = urlObj.searchParams;
-                const asset = {
-                    model: params.get('model') || 'NEW UNIT',
-                    variant: params.get('variant') || '',
-                    bv: parseInt(params.get('bv') || '0'),
-                    pv: parseInt(params.get('pv') || '0'),
-                    asSize: parseInt(params.get('sz') || '0'),
-                    type: params.get('type') || 'BM',
-                    techBase: params.get('tech') || 'Inner Sphere',
-                    tonnage: parseInt(params.get('tons') || '0'),
-                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
-                };
-
-                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
-                    .filter((det: any) => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
-                    .map((det: any) => {
-                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
-                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
-                    });
-
-                if (myDetachmentsInCampaign.length === 0) {
-                    setOverlay({
-                        title: "ACCESS DENIED",
-                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
-                        onConfirm: () => setOverlay(null)
-                    });
-                    return;
-                }
-
-                if (myDetachmentsInCampaign.length === 1) {
-                    setProcureTargetDetachment(myDetachmentsInCampaign[0]);
-                    setProcureAssetData(asset);
-                    setShowProcureEditor(true);
-                } else {
-                    setOverlay({
-                        title: "SELECT OPERATIONAL ELEMENT",
-                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT PROCUREMENT RECIPIENT:",
-                        onConfirm: () => { },
-                        children: (
-                            <div className="flex-col flex-gap-10 mt-15">
-                                {myDetachmentsInCampaign.map((det: any) => (
-                                    <button
-                                        key={det.id}
-                                        className="mode-btn theme-amber text-left"
-                                        onClick={() => {
-                                            setProcureTargetDetachment(det);
-                                            setProcureAssetData(asset);
-                                            setOverlay(null);
-                                            setTimeout(() => setShowProcureEditor(true), 100);
-                                        }}
-                                    >
-                                        {det.name} ({det.totalSupportPoints} SP)
-                                    </button>
-                                ))}
-                            </div>
-                        )
-                    });
-                }
-            } else if (urlObj.protocol === 'hsc:' && urlObj.host === 'hire') {
-                const params = urlObj.searchParams;
-                const pilot = {
-                    name: params.get('name') || 'NEW PILOT',
-                    unitType: params.get('unitType') || 'BM',
-                    wounds: parseInt(params.get('wounds') || '0'),
-                    gunnerySpEarned: parseInt(params.get('gunnerySpEarned') || '0'),
-                    pilotingSpEarned: parseInt(params.get('pilotingSpEarned') || '0'),
-                    edgeTokensSpEarned: parseInt(params.get('edgeTokensSpEarned') || '0'),
-                    edgeAbilitySpEarned: parseInt(params.get('edgeAbilitySpEarned') || '0'),
-                    edgeAbilities: params.get('edgeAbilities') || '',
-                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
-                };
-
-                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
-                    .filter((det: any) => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
-                    .map((det: any) => {
-                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
-                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
-                    });
-
-                if (myDetachmentsInCampaign.length === 0) {
-                    setOverlay({
-                        title: "ACCESS DENIED",
-                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
-                        onConfirm: () => setOverlay(null)
-                    });
-                    return;
-                }
-
-                if (myDetachmentsInCampaign.length === 1) {
-                    setHireTargetDetachment(myDetachmentsInCampaign[0]);
-                    setHirePilotData(pilot);
-                    setShowHireEditor(true);
-                } else {
-                    setOverlay({
-                        title: "SELECT OPERATIONAL ELEMENT",
-                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT RECRUITMENT RECIPIENT:",
-                        onConfirm: () => { },
-                        children: (
-                            <div className="flex-col flex-gap-10 mt-15">
-                                {myDetachmentsInCampaign.map((det: any) => (
-                                    <button
-                                        key={det.id}
-                                        className="mode-btn theme-amber text-left"
-                                        onClick={() => {
-                                            setHireTargetDetachment(det);
-                                            setHirePilotData(pilot);
-                                            setOverlay(null);
-                                            setTimeout(() => setShowHireEditor(true), 100);
-                                        }}
-                                    >
-                                        {det.name} ({det.totalSupportPoints} SP)
-                                    </button>
-                                ))}
-                            </div>
-                        )
-                    });
-                }
-            } else {
-                setOverlay({
-                    title: "UNKNOWN ACTION",
-                    message: `UNRECOGNIZED HSC PROTOCOL: ${urlObj.host}.`,
-                    variant: 'alert',
-                    onConfirm: () => setOverlay(null)
-                });
-            }
-        } catch (e) { console.error("Invalid HSC action link", e); }
-    };
+    const {
+        handleHscAction,
+        showProcureEditor, procureAssetData, procureTargetDetachment, handleProcureSave, handleProcureCancel,
+        showHireEditor, hirePilotData, hireTargetDetachment, handleHireSave, handleHireCancel,
+    } = useHscActionHandler({
+        campaign, userCommands, setOverlay, onActionComplete: onLedgerEntryAdded
+    });
 
     const addNotice = (key: string, msg: string) => {
         setNotices(prev => ({ ...prev, [key]: msg }));
@@ -1120,6 +995,11 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     onConfirm={overlay.onConfirm}
                     onCancel={overlay.onCancel}
                     themeClass="theme-red"
+                    showInputField={overlay.showInputField}
+                    inputPlaceholder={overlay.inputPlaceholder}
+                    inputInitialValue={overlay.inputInitialValue}
+                    inputType={overlay.inputType}
+                    inputLabel={overlay.inputLabel}
                 >
                     {overlay.children}
                 </TerminalOverlay>
@@ -1135,8 +1015,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
                     unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
                     techBases={(metaData?.publicCampaignMetadata as any)?.techBases || ['Inner Sphere', 'Clan', 'Mixed']}
-                    onSave={() => { setShowProcureEditor(false); onLedgerEntryAdded?.(); }}
-                    onCancel={() => setShowProcureEditor(false)}
+                    onSave={handleProcureSave}
+                    onCancel={handleProcureCancel}
                     overridePrice={procureAssetData.overridePrice}
                 />
             )}
@@ -1148,8 +1028,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     detachmentId={hireTargetDetachment.id}
                     availableSP={hireTargetDetachment.totalSupportPoints}
                     pilot={{ ...hirePilotData, id: '' }}
-                    onSave={() => { setShowHireEditor(false); onLedgerEntryAdded?.(); }}
-                    onCancel={() => setShowHireEditor(false)}
+                    onSave={handleHireSave}
+                    onCancel={handleHireCancel}
                     overridePrice={hirePilotData.overridePrice}
                     campaignHireCost={campaign.hireNamedPilotCost}
                 />

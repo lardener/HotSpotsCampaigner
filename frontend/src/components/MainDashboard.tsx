@@ -53,9 +53,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [overlay, setOverlay] = useState<{
         title: string;
         message: string;
-        onConfirm: () => void;
+        onConfirm: (val?: string) => void | Promise<void>;
         onCancel?: () => void;
         variant?: 'alert' | 'info';
+        showInputField?: boolean;
+        inputPlaceholder?: string;
+        inputInitialValue?: string;
+        inputType?: string;
+        inputLabel?: string;
     } | null>(null);
 
     const client = useApolloClient();
@@ -670,6 +675,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         onConfirm={overlay.onConfirm}
                         onCancel={overlay.onCancel}
                         themeClass={getThemeClass()}
+                        showInputField={overlay.showInputField}
+                        inputPlaceholder={overlay.inputPlaceholder}
+                        inputInitialValue={overlay.inputInitialValue}
+                        inputType={overlay.inputType}
+                        inputLabel={overlay.inputLabel}
                     />
                 )}
             </main>

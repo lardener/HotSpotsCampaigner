@@ -54,7 +54,7 @@ JSON Rules Files → CampaignService (loads on @PostConstruct) → GraphQL Resol
 ### 2. LedgerEntryForm Component
 
 - **Endpoint**: `POST /api/ledger/{detachmentId}`
-- **Process**: Submitting a transaction triggers `MercenaryCommandService.syncTotalSupportPoints()`, which aggregates all ledger entries for the parent command to update the force-wide SP total.
+- **Process**: Submitting a transaction triggers `MercenaryCommandService.syncTotalSupportPoints()` and `syncReputation()`. These aggregate all ledger entries for the parent command. Consequently, `totalSupportPoints` and `reputation` are derived fields and should not be passed directly in Command creation or update mutations.
 
 ### 3. ActiveCampaigns Dashboard (App.tsx)
 

@@ -59,17 +59,19 @@ Campaign managers can also embed links for pilot recruitment. For example, to hi
 ### RECRUITMENT OPPORTUNITY 
 A seasoned pilot, "Viper," is available for immediate hire:
 
-* [HIRE PILOT "VIPER" (200 SP)](hsc://hire?name=Viper&unitType=BM&gunnerySpEarned=300&pilotingSpEarned=100&price=200)
+* [HIRE PILOT "VIPER" (200 SP)](hsc://hire?name=Viper&unitType=BM&gunnerySpEarned=300&pilotingSpEarned=100&price=200&edgeTokensSpEarned=150&edgeAbilities=Hot%20Shot%2C%20Part%20Deux)
 
 
 hsc://procure Link Parameters:
-
-model: Chassis name (e.g., Shadow%20Hawk).
-variant: Specific variant code (e.g., SHD-2K).
-bv: Battle Value. Used for default price calculation. 
-tech: Technology base (e.g., Inner%20Sphere, Clan).
-tons: Unit tonnage.
-price: (Optional) Manual Support Point cost override. If omitted, cost is calculated from BV and Tech Base.
+* model: Chassis name (e.g., Shadow%20Hawk).
+* variant: Specific variant code (e.g., SHD-2K).
+* bv: Battle Value. Used for default price calculation.
+* pv: Point Value (Alpha Strike).
+* sz: Unit Size (Alpha Strike, 1-4).
+* type: Unit classification code (BM, CV, BA, etc.).
+* tech: Technology base (e.g., Inner%20Sphere, Clan).
+* tons: Unit tonnage.
+* price: (Optional) Manual Support Point cost override. If omitted, cost is calculated from BV and Tech Base.
 
 hsc://hire Link Parameters: 
 * name: Pilot's callsign/name (e.g., Viper). 

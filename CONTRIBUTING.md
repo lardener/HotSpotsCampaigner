@@ -56,12 +56,14 @@ Thank you for contributing to the tactical management of mercenary commands! Thi
 - All tactical data structures (Pilot, CombatUnit, Detachment) are defined in `src/types/global.d.ts`.
 - Ensure numeric fields like `handicap`, `bv`, and `pv` are treated as `number` on the frontend, even if the underlying DB column is currently a string (perform conversion in the service layer).
 
-### 3. Apollo Client Usage
+### 3. Apollo Client & Component Patterns
 - Use `useQuery` and `useMutation` hooks.
 - Set `notifyOnNetworkStatusChange: true` on major queries to support global loading/sync indicators.
 - Implement `optimisticResponse` for frequent UI updates (like renaming a command) to maintain the "Neural Link: Stable" feel.
 - For forms, prefer **controlled components** (`value` and `onChange`) over `defaultValue` when the input's state can be updated programmatically (e.g., after a reroll or import).
 - Use `useMemo` for caching expensive calculations (e.g., `purchasePrice` based on BV and tech tax) to prevent unnecessary re-renders.
+- **Overlay Management**: When utilizing `TerminalOverlay` with local state, ensure the state type definition includes `showInputField` and its related configuration props. Use the built-in input field for simple, single-value prompts (like naming a detachment) to ensure a consistent UX.
+- **Shared Tactical Logic**: Logic for processing tactical actions (such as `hsc://` markdown links) should be centralized in shared hooks like `useHscActionHandler`. This guarantees that actions like asset procurement behave identically in both the Campaign Theater and After-Action Report views.
 - Utilize the `@floating-ui/react` library for accessible and well-positioned overlays, modals, and tooltips.
 - When rendering Markdown, use the `react-markdown` library's `components` prop to intercept and handle custom URL schemes (e.g., `hsc://`) for interactive in-app actions.
 

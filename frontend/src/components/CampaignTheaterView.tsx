@@ -33,6 +33,7 @@ import {
     REROLL_TRACK,
     REORDER_TRACKS
 } from '../types/operations';
+import { useHscActionHandler } from './useHscActionHandler';
 import { CreateInviteData, MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
@@ -331,13 +332,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onSyncChange,
     userCommands
 }) => {
-    const [procureAssetData, setProcureAssetData] = useState<any>(null);
-    const [procureTargetDetachment, setProcureTargetDetachment] = useState<any>(null);
-    const [showProcureEditor, setShowProcureEditor] = useState(false);
-    const [hirePilotData, setHirePilotData] = useState<any>(null);
-    const [hireTargetDetachment, setHireTargetDetachment] = useState<any>(null);
-    const [showHireEditor, setShowHireEditor] = useState(false);
-
     // --- Queries & Mutations ---
     const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId: selectedCampaignId || '' },
@@ -361,15 +355,20 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
-    const [inviteRecipientName, setInviteRecipientName] = useState(''); // State for the invite input
+    const [showInviteOverlay, setShowInviteOverlay] = useState(false);
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
         title: string;
         message: string;
         children?: React.ReactNode;
         variant?: 'alert' | 'info';
-        onConfirm: (val?: string) => void;
+        onConfirm: (val?: string) => void | Promise<void>;
         onCancel?: () => void;
+        showInputField?: boolean;
+        inputPlaceholder?: string;
+        inputInitialValue?: string;
+        inputType?: string;
+        inputLabel?: string;
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     const [dragOverMonth, setDragOverMonth] = useState<number | null>(null);
@@ -435,38 +434,17 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
     const handleGenerateInvite = () => {
         if (!selectedCampaignId) return;
-        setOverlay({
-            isOpen: true,
-            title: "RECRUITMENT PROTOCOL",
-            message: "ENTER RECIPIENT NAME (OR IDENTIFIER):",
-            children: (
-                <div className="status-bar theme-amber mt-10">
-                    <input
-                        id="terminal-overlay-input"
-                        type="text"
-                        className="table-input w-100"
-                        style={{ border: 'none', padding: '0 5px' }}
-                        autoFocus
-                        value={inviteRecipientName}
-                        onChange={(e) => setInviteRecipientName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && overlay.onConfirm()}
-                        aria-label="Response input"
-                        placeholder="Enter value..."
-                        title="Enter text and press Enter or CONFIRM"
-                    />
-                </div>
-            ),
-            onConfirm: async () => {
-                if (!inviteRecipientName.trim()) return; // Prevent empty invite
-                const { data } = await createInvite({ variables: { campaignId: selectedCampaignId, recipientName: inviteRecipientName } });
-                if (data?.createInvite) {
-                    setActiveToken(data.createInvite.token);
-                    refetchCampaign();
-                }
-                setOverlay(prev => ({ ...prev, isOpen: false }));
-            },
-            onCancel: () => setOverlay(prev => ({ ...prev, isOpen: false }))
-        });
+        setShowInviteOverlay(true);
+    };
+
+    const confirmGenerateInvite = async (recipientName?: string) => {
+        if (!recipientName?.trim() || !selectedCampaignId) return;
+        const { data } = await createInvite({ variables: { campaignId: selectedCampaignId, recipientName } });
+        if (data?.createInvite) {
+            setActiveToken(data.createInvite.token);
+            refetchCampaign();
+        }
+        setShowInviteOverlay(false);
     };
 
     const handleDeleteInvite = (inviteId: string) => {
@@ -501,142 +479,23 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         });
     };
 
-    const handleHscAction = (url: string) => {
-        try {
-            const urlObj = new URL(url);
-            if (urlObj.protocol === 'hsc:' && urlObj.host === 'procure') {
-                const params = urlObj.searchParams;
-                const asset = {
-                    model: params.get('model') || 'NEW UNIT',
-                    variant: params.get('variant') || '',
-                    bv: parseInt(params.get('bv') || '0'),
-                    pv: parseInt(params.get('pv') || '0'),
-                    asSize: parseInt(params.get('sz') || '0'),
-                    type: params.get('type') || 'BM',
-                    techBase: params.get('tech') || 'Inner Sphere',
-                    tonnage: parseInt(params.get('tons') || '0'),
-                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
-                };
-
-                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
-                    .filter(det => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
-                    .map(det => {
-                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
-                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
-                    });
-
-                if (myDetachmentsInCampaign.length === 0) {
-                    setOverlay({
-                        isOpen: true,
-                        title: "ACCESS DENIED",
-                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
-                        onConfirm: () => setOverlay(prev => ({ ...prev, isOpen: false }))
-                    });
-                    return;
-                }
-
-                if (myDetachmentsInCampaign.length === 1) {
-                    setProcureTargetDetachment(myDetachmentsInCampaign[0]);
-                    setProcureAssetData(asset);
-                    setShowProcureEditor(true);
-                } else {
-                    setOverlay({
-                        isOpen: true,
-                        title: "SELECT OPERATIONAL ELEMENT",
-                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT PROCUREMENT RECIPIENT:",
-                        onConfirm: () => { },
-                        children: (
-                            <div className="flex-col flex-gap-10 mt-15">
-                                {myDetachmentsInCampaign.map(det => (
-                                    <button
-                                        key={det.id}
-                                        className="mode-btn theme-amber text-left"
-                                        onClick={() => {
-                                            setProcureTargetDetachment(det);
-                                            setProcureAssetData(asset);
-                                            setOverlay(prev => ({ ...prev, isOpen: false }));
-                                            setTimeout(() => setShowProcureEditor(true), 100);
-                                        }}
-                                    >
-                                        {det.name} ({det.totalSupportPoints} SP)
-                                    </button>
-                                ))}
-                            </div>
-                        )
-                    });
-                }
-            } else if (urlObj.protocol === 'hsc:' && urlObj.host === 'hire') {
-                const params = urlObj.searchParams;
-                const pilot = {
-                    name: params.get('name') || 'NEW PILOT',
-                    unitType: params.get('unitType') || 'BM',
-                    wounds: parseInt(params.get('wounds') || '0'),
-                    gunnerySpEarned: parseInt(params.get('gunnerySpEarned') || '0'),
-                    pilotingSpEarned: parseInt(params.get('pilotingSpEarned') || '0'),
-                    edgeTokensSpEarned: parseInt(params.get('edgeTokensSpEarned') || '0'),
-                    edgeAbilitySpEarned: parseInt(params.get('edgeAbilitySpEarned') || '0'),
-                    edgeAbilities: params.get('edgeAbilities') || '',
-                    overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
-                };
-
-                const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
-                    .filter(det => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
-                    .map(det => {
-                        const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
-                        return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
-                    });
-
-                if (myDetachmentsInCampaign.length === 0) {
-                    setOverlay({
-                        isOpen: true,
-                        title: "ACCESS DENIED",
-                        message: "NO ACTIVE DETACHMENTS OWNED BY YOUR COMMAND ARE DEPLOYED IN THIS THEATER.",
-                        onConfirm: () => setOverlay(prev => ({ ...prev, isOpen: false }))
-                    });
-                    return;
-                }
-
-                if (myDetachmentsInCampaign.length === 1) {
-                    setHireTargetDetachment(myDetachmentsInCampaign[0]);
-                    setHirePilotData(pilot);
-                    setShowHireEditor(true);
-                } else {
-                    setOverlay({
-                        isOpen: true,
-                        title: "SELECT OPERATIONAL ELEMENT",
-                        message: "MULTIPLE DETACHMENTS DETECTED. SELECT RECRUITMENT RECIPIENT:",
-                        onConfirm: () => { },
-                        children: (
-                            <div className="flex-col flex-gap-10 mt-15">
-                                {myDetachmentsInCampaign.map(det => (
-                                    <button
-                                        key={det.id}
-                                        className="mode-btn theme-amber text-left"
-                                        onClick={() => {
-                                            setHireTargetDetachment(det);
-                                            setHirePilotData(pilot);
-                                            setOverlay(prev => ({ ...prev, isOpen: false }));
-                                            setTimeout(() => setShowHireEditor(true), 100);
-                                        }}
-                                    >
-                                        {det.name} ({det.totalSupportPoints} SP)
-                                    </button>
-                                ))}
-                            </div>
-                        )
-                    });
-                }
-            } else {
-                setOverlay({
-                    isOpen: true,
-                    title: "UNKNOWN ACTION",
-                    message: `UNRECOGNIZED HSC PROTOCOL: ${urlObj.host}.`,
-                    variant: 'alert',
-                    onConfirm: () => setOverlay(prev => ({ ...prev, isOpen: false }))
-                });
-            }
-        } catch (e) { console.error("Invalid HSC action link", e); }
-    };
+    const {
+        handleHscAction,
+        showProcureEditor, procureAssetData, procureTargetDetachment, handleProcureSave, handleProcureCancel,
+        showHireEditor, hirePilotData, hireTargetDetachment, handleHireSave, handleHireCancel,
+    } = useHscActionHandler({
+        campaign,
+        userCommands,
+        setOverlay: (o) => {
+            if (o === null) setOverlay(prev => ({ ...prev, isOpen: false }));
+            else setOverlay({ ...o, isOpen: true });
+        },
+        onActionComplete: async () => {
+            await refetchCampaign();
+            if (onRefresh) await onRefresh();
+        },
+        metaData
+    });
 
     const handleTrackUpdate = (trackId: string, field: string, value: string) => {
         const key = `track-${trackId}-${field}`;
@@ -1391,8 +1250,26 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     variant={overlay.variant}
                     onConfirm={overlay.onConfirm}
                     onCancel={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
+                    showInputField={overlay.showInputField}
+                    inputPlaceholder={overlay.inputPlaceholder}
+                    inputInitialValue={overlay.inputInitialValue}
+                    inputType={overlay.inputType}
+                    inputLabel={overlay.inputLabel}
                 >
                     {overlay.children}
+                </TerminalOverlay>
+            )}
+
+            {showInviteOverlay && (
+                <TerminalOverlay
+                    title="RECRUITMENT PROTOCOL"
+                    message="ENTER RECIPIENT NAME (OR IDENTIFIER)"
+                    onConfirm={confirmGenerateInvite}
+                    onCancel={() => setShowInviteOverlay(false)}
+                    showInputField
+                    inputPlaceholder="Enter value..."
+                    inputLabel="RECIPIENT NAME"
+                >
                 </TerminalOverlay>
             )}
 
@@ -1406,8 +1283,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || FALLBACK_TYPES}
                     unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
                     techBases={(metaData?.publicCampaignMetadata as any)?.techBases || FALLBACK_TECH}
-                    onSave={() => { setShowProcureEditor(false); refetchCampaign(); if (onRefresh) onRefresh(); }}
-                    onCancel={() => setShowProcureEditor(false)}
+                    onSave={handleProcureSave}
+                    onCancel={handleProcureCancel}
                     overridePrice={procureAssetData.overridePrice}
                 />
             )}
@@ -1419,8 +1296,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     detachmentId={hireTargetDetachment.id}
                     availableSP={hireTargetDetachment.totalSupportPoints}
                     pilot={{ ...hirePilotData, id: '' }}
-                    onSave={() => { setShowHireEditor(false); refetchCampaign(); if (onRefresh) onRefresh(); }}
-                    onCancel={() => setShowHireEditor(false)}
+                    onSave={handleHireSave}
+                    onCancel={handleHireCancel}
                     overridePrice={hirePilotData.overridePrice}
                     campaignHireCost={campaign.hireNamedPilotCost}
                 />
