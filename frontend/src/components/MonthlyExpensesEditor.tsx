@@ -138,6 +138,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                     input: {
                         amount: form.amount,
                         description: form.description,
+                        campaignId: campaignDetails.id,
                         campaignName: campaignDetails.name,
                         monthIndex: currentMonthIndex,
                     }

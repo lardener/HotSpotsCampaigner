@@ -173,6 +173,7 @@ export interface LedgerEntryInput {
     amount: number;
     description: string;
     reputationChange?: number;
+    campaignId?: string;
     campaignName?: string;
     monthIndex?: number;
 }

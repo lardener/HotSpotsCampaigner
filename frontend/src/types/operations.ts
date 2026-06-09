@@ -113,6 +113,7 @@ export const FRAGMENT_LEDGER_ENTRY = gql`
     description
     amount
     reputationChange
+    campaignId
     campaignName
     monthIndex
   }
@@ -807,9 +808,10 @@ export const GET_FORCE_DATA = gql`
 export const ADD_LEDGER_ENTRY = gql`
   mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $input: LedgerEntryInput!) {
     addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, input: $input) {
-      id
+      ...LedgerEntryFields
     }
   }
+  ${FRAGMENT_LEDGER_ENTRY}
 `;
 
 export const GET_LEDGER_DATA = gql`

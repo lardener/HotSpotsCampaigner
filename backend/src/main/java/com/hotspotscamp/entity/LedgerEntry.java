@@ -33,6 +33,8 @@ public class LedgerEntry implements Persistable<UUID> {
     private UUID commandId;
     @Column("detachment_id")
     private UUID detachmentId; // Links to the specific contract deployment
+    @Column("campaign_id")
+    private UUID campaignId;
     @Column("timestamp")
     private LocalDateTime timestamp;
     @Column("short_description")

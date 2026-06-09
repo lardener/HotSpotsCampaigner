@@ -190,6 +190,7 @@ public class SchemaGenerator {
         sql.append("CREATE TABLE ledger_entries (\n");
         sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");
         sql.append("    `command_id` VARCHAR(36) NOT NULL,\n");
+        sql.append("    `campaign_id` VARCHAR(36),\n");
         sql.append("    `detachment_id` VARCHAR(36),\n");
         sql.append("    `amount` INT,\n");
         sql.append("    `short_description` VARCHAR(1000),\n");

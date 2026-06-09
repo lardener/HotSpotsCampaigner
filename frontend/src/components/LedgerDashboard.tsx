@@ -59,6 +59,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
                 <LedgerEntryForm
                     commandId={commandId}
                     detachmentId={selectedDetachmentId}
+                    campaignId={selectedDet?.campaignId}
                     initialCampaignName={selectedDet?.campaignName || ''}
                     onEntryAdded={() => refetch()} // Refetch ledger data after new entry
                 />

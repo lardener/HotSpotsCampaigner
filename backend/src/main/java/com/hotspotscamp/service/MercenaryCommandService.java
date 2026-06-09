@@ -217,6 +217,7 @@ public class MercenaryCommandService {
             Integer amount,
             String description,
             Integer reputationChange,
+            UUID campaignId,
             String campaignName,
             Integer monthIndex
             ) {
@@ -319,6 +320,7 @@ public class MercenaryCommandService {
                         startingSp,
                         "INITIAL COMMAND ESTABLISHMENT",
                         startingRep,
+                        null,
                         null,
                         null
                 );
@@ -433,16 +435,16 @@ public class MercenaryCommandService {
      * Calculates the campaign rating for a detachment by summing its ledger
      * entries.
      */
-    public Mono<Integer> getDetachmentRating(@NonNull UUID detachmentId, String campaignName) {
-        log.trace("[TRACE] Starting getDetachmentRating: id={}, campaignName={}", detachmentId, campaignName);
-        if (campaignName == null || campaignName.isBlank()) {
-            return Mono.empty();
+    public Mono<Integer> getDetachmentRating(@NonNull UUID detachmentId, UUID campaignId) {
+        log.trace("[TRACE] Starting getDetachmentRating: id={}, campaignId={}", detachmentId, campaignId);
+        if (campaignId == null) {
+            return Mono.just(0); // Return 0 rating if no campaign is associated
         }
 
         String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
-                + "WHERE detachment_id = :id AND campaign_name = :campaignName";
+                + "WHERE detachment_id = :id AND campaign_id = :campaignId";
         var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "id", detachmentId);
-        spec = SqlUtils.bindString(spec, "campaignName", campaignName);
+        spec = SqlUtils.bindUuid(spec, "campaignId", campaignId);
         return spec.map((row, metadata) -> row.get("total", Number.class))
                 .one()
                 .map(total -> total != null ? total.intValue() : 0);
@@ -790,15 +792,47 @@ public class MercenaryCommandService {
                     if (!isAuthorized) {
                         return Mono.<LedgerEntry>error(new RuntimeException("Access Denied: You are not the owner or the campaign manager.")); // Explicitly type Mono.error
                     }
-                    LedgerEntry entry = LedgerEntry.builder()
-                            .id(UUID.randomUUID()).commandId(commandId).detachmentId(detachmentId)
-                            .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
-                            .campaignName(input.campaignName()).monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
-                            .isNew(true).build();
-                    return ledgerEntryRepository.save(Objects.requireNonNull(entry))
-                            .flatMap(saved -> syncTotalSupportPoints(commandId)
-                            .then(syncReputation(commandId))
-                            .thenReturn(saved));
+
+                    // Resolve campaign ID and name if missing but detachment is provided to ensure rating attribution
+                    Mono<UUID> campaignIdMono = Mono.justOrEmpty(input.campaignId());
+                    if (input.campaignId() == null && detachmentId != null) {
+                        campaignIdMono = detachmentRepository.findById(detachmentId)
+                                .map(det -> det.getCampaignId())
+                                .filter(Objects::nonNull);
+                    }
+
+                    return campaignIdMono.flatMap(resolvedCampaignId -> {
+                        Mono<String> campaignNameMono = Mono.justOrEmpty(input.campaignName());
+                        if (input.campaignName() == null || input.campaignName().isBlank()) {
+                            campaignNameMono = getCampaignName(resolvedCampaignId);
+                        }
+
+                        return campaignNameMono.defaultIfEmpty("").flatMap(resolvedCampaignName -> {
+                            LedgerEntry entry = LedgerEntry.builder()
+                                    .id(UUID.randomUUID()).commandId(commandId).detachmentId(detachmentId)
+                                    .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
+                                    .campaignId(resolvedCampaignId)
+                                    .campaignName(resolvedCampaignName.isBlank() ? null : resolvedCampaignName)
+                                    .monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
+                                    .isNew(true).build();
+                            return ledgerEntryRepository.save(Objects.requireNonNull(entry))
+                                    .flatMap(saved -> syncTotalSupportPoints(commandId)
+                                    .then(syncReputation(commandId))
+                                    .thenReturn(saved));
+                        });
+                    }).switchIfEmpty(Mono.defer(() -> {
+                        // Fallback if no campaign ID can be resolved (e.g. general command entry)
+                        LedgerEntry entry = LedgerEntry.builder()
+                                .id(UUID.randomUUID()).commandId(commandId).detachmentId(detachmentId)
+                                .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
+                                .campaignName(input.campaignName())
+                                .monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
+                                .isNew(true).build();
+                        return ledgerEntryRepository.save(Objects.requireNonNull(entry))
+                                .flatMap(saved -> syncTotalSupportPoints(commandId)
+                                .then(syncReputation(commandId))
+                                .thenReturn(saved));
+                    }));
                 })
         )
                 .doOnTerminate(() -> log.trace("[TRACE] Finished addLedgerEntry"));

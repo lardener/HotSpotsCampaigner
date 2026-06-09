@@ -52,43 +52,6 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         detachmentId: detachmentId || null
     });
 
-    const [formData, setFormData] = useState<Pilot>(pilot || createDefaultPilot());
-
-    // Ensure form updates if the pilot prop changes or when initializing for a new detachment
-    useEffect(() => {
-        setFormData(pilot || createDefaultPilot());
-    }, [pilot, detachmentId]);
-
-    const [isSaving, setIsSaving] = useState(false);
-    const [overlay, setOverlay] = useState<{
-        title: string;
-        message: string;
-        onConfirm: (val?: string) => void | Promise<void>;
-        variant?: 'alert' | 'info';
-        children?: React.ReactNode;
-        showInputField?: boolean;
-        inputPlaceholder?: string;
-        inputInitialValue?: string;
-        inputType?: string;
-        inputLabel?: string;
-    } | null>(null);
-
-    const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT);
-    const [updatePilot] = useMutation<UpdatePilotData, UpdatePilotVars>(UPDATE_PILOT);
-    const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
-
-    const hiringPrice = useMemo(() => {
-        if (overridePrice !== undefined) {
-            return overridePrice;
-        }
-        if (campaignHireCost !== undefined) {
-            return campaignHireCost;
-        }
-        // Fallback to a default from Rules.ts if needed, or a hardcoded value
-        // For now, let's assume a default if no campaign cost or override is present.
-        return 150; // Example default, should ideally come from global metadata or Rules.ts
-    }, [overridePrice, campaignHireCost]);
-
     // Canonical thresholds per skill (ascending by SP). Each entry: { sp, skill, handicap }
     const gunneryThresholds = [
         { sp: 0, skill: 4, handicap: 0 },
@@ -135,58 +98,92 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return thresholds[0];
     };
 
-    const recalcDerived = (next: Pilot, changedField?: keyof Pilot) => {
-        // If SP allocations changed, update corresponding skill levels from thresholds
-        if (changedField === 'gunnerySpEarned' || changedField === 'totalSpEarned') {
-            next.gunnery = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).skill;
-        }
-        if (changedField === 'pilotingSpEarned' || changedField === 'totalSpEarned') {
-            next.piloting = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).skill;
-        }
-        if (changedField === 'edgeTokensSpEarned' || changedField === 'totalSpEarned') {
-            next.edgeTokensSkill = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).skill;
-        }
-        if (changedField === 'edgeAbilitySpEarned' || changedField === 'totalSpEarned') {
-            next.edgeAbilitySkill = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).skill;
-        }
+    const recalcDerived = (next: Pilot) => {
+        // Calculate Total SP as sum of component allocations
+        next.totalSpEarned = (next.gunnerySpEarned || 0) +
+            (next.pilotingSpEarned || 0) +
+            (next.edgeTokensSpEarned || 0) +
+            (next.edgeAbilitySpEarned || 0);
 
-        // AS skill must be floor((gunnery + piloting) / 2)
-        const as = Math.floor((next.gunnery + next.piloting) / 2);
-        next.asSkill = as;
+        // Map component SP to Skill levels
+        next.gunnery = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).skill;
+        next.piloting = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).skill;
+        next.edgeTokensSkill = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).skill;
+        next.edgeAbilitySkill = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).skill;
 
-        // handicap is the sum of the single active H values for gunnery, piloting, edge tokens and edge abilities
-        const gHandicap = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).handicap;
-        const pHandicap = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).handicap;
-        const etHandicap = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).handicap;
-        const eaHandicap = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).handicap;
-        next.handicap = gHandicap + pHandicap + etHandicap + eaHandicap;
+        // AS skill = floor((gunnery + piloting) / 2)
+        next.asSkill = Math.floor((next.gunnery + next.piloting) / 2);
+
+        // Handicap is the sum of component handicaps
+        next.handicap = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).handicap +
+            getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).handicap +
+            getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).handicap +
+            getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).handicap;
 
         return next;
     };
+
+    const [formData, setFormData] = useState<Pilot>(pilot || createDefaultPilot());
+
+    // Ensure form updates if the pilot prop changes or when initializing for a new detachment
+    useEffect(() => {
+        const base = pilot || createDefaultPilot();
+        // If we are hiring via a pre-filled record (like hsc:// hire links), recompute derived stats
+        if (mode === 'create' && pilot) {
+            setFormData(recalcDerived({ ...base }));
+        } else {
+            setFormData(base);
+        }
+    }, [pilot, detachmentId, mode]);
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [overlay, setOverlay] = useState<{
+        title: string;
+        message: string;
+        onConfirm: (val?: string) => void | Promise<void>;
+        variant?: 'alert' | 'info';
+        children?: React.ReactNode;
+        showInputField?: boolean;
+        inputPlaceholder?: string;
+        inputInitialValue?: string;
+        inputType?: string;
+        inputLabel?: string;
+    } | null>(null);
+
+    const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT);
+    const [updatePilot] = useMutation<UpdatePilotData, UpdatePilotVars>(UPDATE_PILOT);
+    const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
+
+    const hiringPrice = useMemo(() => {
+        if (overridePrice !== undefined) {
+            return overridePrice;
+        }
+        if (campaignHireCost !== undefined) {
+            return campaignHireCost;
+        }
+        // Fallback to a default from Rules.ts if needed, or a hardcoded value
+        // For now, let's assume a default if no campaign cost or override is present.
+        return 150; // Example default, should ideally come from global metadata or Rules.ts
+    }, [overridePrice, campaignHireCost]);
 
     const handleInputChange = (field: keyof Pilot, value: any) => {
         const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'handicap', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
         setFormData(prev => {
             const next = { ...prev, [field]: isNumeric ? parseInt(value) || 0 : value } as Pilot;
+            const updated = recalcDerived(next);
 
-            // Enforce gunnery/piloting distance constraint
-            if (field === 'gunnery' || field === 'piloting') {
-                const g = field === 'gunnery' ? (isNumeric ? parseInt(value) || 0 : prev.gunnery) : next.gunnery;
-                const p = field === 'piloting' ? (isNumeric ? parseInt(value) || 0 : prev.piloting) : next.piloting;
-                if (Math.abs(g - p) > 2) {
-                    setOverlay({
-                        title: 'VALIDATION ERROR',
-                        message: 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.',
-                        variant: 'alert',
-                        onConfirm: () => setOverlay(null)
-                    });
-                    return prev;
-                }
+            // Enforce gunnery/piloting distance constraint after recomputation
+            if (Math.abs(updated.gunnery - updated.piloting) > 2) {
+                setOverlay({
+                    title: 'VALIDATION ERROR',
+                    message: 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.',
+                    variant: 'alert',
+                    onConfirm: () => setOverlay(null)
+                });
+                return prev;
             }
 
-            // Recalculate AS and handicap when relevant fields changed
-            // Recalculate derived values. Pass changed field so we update skills when SP fields change.
-            return recalcDerived(next, field);
+            return updated;
         });
     };
 

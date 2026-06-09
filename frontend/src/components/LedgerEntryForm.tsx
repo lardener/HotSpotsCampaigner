@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react'; // Keep this import style
 import { LedgerEntryInput } from '../types/global.d';
-import { ADD_LEDGER_ENTRY } from '../types/operations';
+import { ADD_LEDGER_ENTRY, GET_UNIT_DOSSIER, GET_LEDGER_DATA } from '../types/operations';
 import { AddLedgerEntryData } from '../types/graphql.d';
 import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerEntryFormProps {
     commandId: string;
     detachmentId: string | null;
+    campaignId?: string | null;
     initialCampaignName?: string;
     initialMonthIndex?: number;
     onEntryAdded: () => void;
 }
 
-export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, detachmentId, initialCampaignName = '', initialMonthIndex, onEntryAdded }) => {
+export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, detachmentId, campaignId, initialCampaignName = '', initialMonthIndex, onEntryAdded }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState<number>(0);
     const [reputationChange, setReputationChange] = useState<number | undefined>(undefined);
@@ -30,7 +31,6 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmissionError(null);
-        const finalReputationChange = reputationChange === undefined ? null : reputationChange;
 
         try {
             await addLedgerEntry({
@@ -40,11 +40,16 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     input: {
                         amount,
                         description,
-                        reputationChange: finalReputationChange ?? undefined,
+                        reputationChange,
+                        campaignId: campaignId ?? undefined,
                         campaignName: campaignName || undefined,
-                        monthIndex: monthIndex === undefined ? undefined : monthIndex
+                        monthIndex: monthIndex ?? undefined
                     }
-                }
+                },
+                refetchQueries: [
+                    { query: GET_UNIT_DOSSIER, variables: { commandId } },
+                    { query: GET_LEDGER_DATA, variables: { commandId } }
+                ]
             });
             setDescription('');
             setAmount(0);
@@ -93,7 +98,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                                     className="table-input text-right"
                                     style={{ border: 'none', width: '8em' }}
                                     value={amount === undefined ? '' : amount}
-                                    onChange={(e) => setAmount(parseInt(e.target.value))}
+                                    onChange={(e) => setAmount(e.target.value === '' ? 0 : parseInt(e.target.value))}
                                     title="Support Points Amount (negative for costs)"
                                     placeholder="±0"
                                     required

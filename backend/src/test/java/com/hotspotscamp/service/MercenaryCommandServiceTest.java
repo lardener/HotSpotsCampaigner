@@ -82,17 +82,17 @@ class MercenaryCommandServiceTest {
     @Test
     void getDetachmentRating_ShouldReturnSumOfLedgerEntriesForCampaign() {
         UUID detId = UUID.randomUUID();
-        String campaignName = "Test Campaign";
+        UUID campaignId = UUID.randomUUID();
 
         DatabaseClient.GenericExecuteSpec spec = mock(DatabaseClient.GenericExecuteSpec.class);
         when(databaseClient.sql(ArgumentMatchers.<String>any())).thenReturn(spec);
         org.mockito.Mockito.lenient().when(spec.bind(ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(spec);
         org.mockito.Mockito.lenient().when(spec.bindNull(ArgumentMatchers.anyString(), ArgumentMatchers.<Class<?>>any())).thenReturn(spec);
-        
+
         org.mockito.Mockito.lenient().when(spec.map(ArgumentMatchers.<BiFunction<Row, RowMetadata, Number>>any())).thenReturn(rowsFetchSpec);
         org.mockito.Mockito.lenient().when(rowsFetchSpec.one()).thenReturn(Mono.just(750L));
 
-        StepVerifier.create(commandService.getDetachmentRating(detId, campaignName))
+        StepVerifier.create(commandService.getDetachmentRating(detId, campaignId))
                 .expectNext(750)
                 .verifyComplete();
     }

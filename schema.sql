@@ -177,6 +177,7 @@ CREATE TABLE detachment_contract_assignments (
 CREATE TABLE ledger_entries (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
+    `campaign_id` VARCHAR(36),
     `detachment_id` VARCHAR(36),
     `amount` INT,
     `short_description` VARCHAR(1000),

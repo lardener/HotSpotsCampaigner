@@ -161,8 +161,7 @@ public class CommandGraphQLController {
         if (campaignId == null) {
             return Mono.just(0);
         }
-        return commandService.getCampaignName(campaignId)
-                .flatMap(name -> commandService.getDetachmentRating(detachment.getId(), name))
+        return commandService.getDetachmentRating(detachment.getId(), campaignId)
                 .defaultIfEmpty(0);
     }
 
@@ -302,16 +301,35 @@ public class CommandGraphQLController {
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting deleteDetachment"));
     }
 
+    /**
+     * GraphQL-specific input for ledger entries.
+     * Uses String for campaignId to match GraphQL ID type mapping.
+     */
+    public record LedgerEntryInput(
+            Integer amount,
+            String description,
+            Integer reputationChange,
+            String campaignId,
+            String campaignName,
+            Integer monthIndex
+    ) {}
+
     @MutationMapping
     public Mono<LedgerEntry> addLedgerEntry(@Argument UUID commandId,
             @Argument UUID detachmentId,
-            @Argument MercenaryCommandService.LedgerEntryInput input,
+            @Argument LedgerEntryInput input,
             Principal principal) {
         log.trace("[TRACE] Entering addLedgerEntry: cmdId={}, detId={}", commandId, detachmentId);
         if (commandId == null || principal == null || input == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.addLedgerEntry(commandId, detachmentId, input, principal.getName())
+
+        MercenaryCommandService.LedgerEntryInput serviceInput = new MercenaryCommandService.LedgerEntryInput(
+                input.amount(), input.description(), input.reputationChange(),
+                input.campaignId() != null ? UUID.fromString(input.campaignId()) : null,
+                input.campaignName(), input.monthIndex());
+
+        return commandService.addLedgerEntry(commandId, detachmentId, serviceInput, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting addLedgerEntry"));
     }
 

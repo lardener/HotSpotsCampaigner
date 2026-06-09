@@ -186,6 +186,7 @@ type LedgerEntry {
     description: String
     timestamp: String
     reputationChange: Int
+    campaignId: ID
     campaignName: String
     monthIndex: Int
 }
@@ -306,6 +307,7 @@ input LedgerEntryInput {
     amount: Int!
     description: String!
     reputationChange: Int
+    campaignId: ID
     campaignName: String
     monthIndex: Int
 }

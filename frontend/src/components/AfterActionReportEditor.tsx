@@ -373,6 +373,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                         amount: total,
                         description: description,
                         monthIndex: track.monthIndex || 1,
+                        campaignId: campaign.id,
                         campaignName: campaign.name
                     }
                 }
@@ -471,6 +472,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                             amount: finalAmount,
                             description: description,
                             monthIndex: track.monthIndex || 1,
+                            campaignId: campaign.id,
                             campaignName: campaign.name
                         }
                     }
@@ -548,6 +550,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 amount: finalCost,
                                 description: `AAR MEDICAL: ${pilot.name} - ${track.trackName} (${financials.supportType} ${financials.supportPct * 100}%)`,
                                 monthIndex: track.monthIndex || 1,
+                                campaignId: campaign.id,
                                 campaignName: campaign.name
                             }
                         }

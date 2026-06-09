@@ -744,6 +744,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         <LedgerEntryForm
                             commandId={commandId}
                             detachmentId={selectedDetachmentId}
+                            campaignId={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignId}
                             initialCampaignName={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignName || ''}
                             onEntryAdded={() => refetch()}
                         />
