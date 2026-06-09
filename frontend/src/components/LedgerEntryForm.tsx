@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react'; // Keep this import style
-import { LedgerEntryInput } from '../types/global.d';
+import { LedgerEntryInput, NumericInput } from '../types/global.d';
+import { parseNumericInput, isInputInvalid } from '../util/contractUtils';
 import { ADD_LEDGER_ENTRY, GET_UNIT_DOSSIER, GET_LEDGER_DATA } from '../types/operations';
 import { AddLedgerEntryData } from '../types/graphql.d';
 import { LedgerBackground } from './LedgerBackground';
@@ -16,8 +17,8 @@ interface LedgerEntryFormProps {
 
 export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, detachmentId, campaignId, initialCampaignName = '', initialMonthIndex, onEntryAdded }) => {
     const [description, setDescription] = useState('');
-    const [amount, setAmount] = useState<number>(0);
-    const [reputationChange, setReputationChange] = useState<number | undefined>(undefined);
+    const [amount, setAmount] = useState<NumericInput>(0);
+    const [reputationChange, setReputationChange] = useState<NumericInput>('');
     const [campaignName, setCampaignName] = useState(initialCampaignName);
     const [monthIndex, setMonthIndex] = useState<number | undefined>(initialMonthIndex);
     const [addLedgerEntry, { loading }] = useMutation<AddLedgerEntryData, { commandId: string; detachmentId: string | null; input: LedgerEntryInput }>(ADD_LEDGER_ENTRY);
@@ -38,9 +39,9 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     commandId,
                     detachmentId,
                     input: {
-                        amount,
+                        amount: parseNumericInput(amount),
                         description,
-                        reputationChange,
+                        reputationChange: reputationChange === '' ? undefined : parseNumericInput(reputationChange),
                         campaignId: campaignId ?? undefined,
                         campaignName: campaignName || undefined,
                         monthIndex: monthIndex ?? undefined
@@ -52,8 +53,8 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                 ]
             });
             setDescription('');
-            setAmount(0);
-            setReputationChange(undefined);
+            setAmount('0');
+            setReputationChange('');
             setCampaignName(initialCampaignName);
             setMonthIndex(initialMonthIndex);
             onEntryAdded();
@@ -91,14 +92,14 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     <div className="grid-2-col flex-gap-20">
                         <div className="input-group flex items-center">
                             <label htmlFor="amount" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>SUPPORT POINTS</label>
-                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                            <div className={`status-bar theme-green ${isInputInvalid(amount) ? 'invalid' : ''}`} style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     id="amount"
                                     type="number"
                                     className="table-input text-right"
                                     style={{ border: 'none', width: '8em' }}
-                                    value={amount === undefined ? '' : amount}
-                                    onChange={(e) => setAmount(e.target.value === '' ? 0 : parseInt(e.target.value))}
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
                                     title="Support Points Amount (negative for costs)"
                                     placeholder="±0"
                                     required
@@ -107,14 +108,14 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                         </div>
                         <div className="input-group flex items-center">
                             <label htmlFor="reputationChange" className="restricted-text sm-text" style={{ minWidth: '120px' }}>REPUTATION Δ</label>
-                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                            <div className={`status-bar theme-green ${isInputInvalid(reputationChange) ? 'invalid' : ''}`} style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     id="reputationChange"
                                     type="number"
                                     className="table-input text-right"
                                     style={{ border: 'none', width: '6em' }}
-                                    value={reputationChange === undefined ? '' : reputationChange}
-                                    onChange={(e) => setReputationChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                    value={reputationChange}
+                                    onChange={(e) => setReputationChange(e.target.value)}
                                     title="Reputation change (optional)"
                                     placeholder="±0"
                                 />
@@ -163,7 +164,11 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     </div>
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={
+                            loading ||
+                            isInputInvalid(amount) || amount === '' || amount === '-' ||
+                            isInputInvalid(reputationChange) || reputationChange === '-'
+                        }
                         className="mode-btn theme-green"
                         style={{ padding: '4px 20px', fontSize: '0.8rem' }}
                     >

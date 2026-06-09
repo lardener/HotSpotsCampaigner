@@ -83,6 +83,11 @@ body {
     display: inline-block;
 }
 
+.status-bar.invalid {
+    border-color: var(--terminal-alert) !important;
+    box-shadow: 0 0 8px rgba(255, 51, 51, 0.4);
+}
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: 320px 1fr;

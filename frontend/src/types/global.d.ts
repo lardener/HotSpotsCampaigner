@@ -2,6 +2,13 @@
  * Global Tactical Data Models
  */
 
+/**
+ * Represents a numeric value during UI entry.
+ * Allows strings to handle intermediate states like empty fields or 
+ * a lone negative sign ("-") before the number is fully typed.
+ */
+export type NumericInput = string | number;
+
 export interface CampaignMetadata {
     missions: MissionMetadata;
     trackTypes: string[];
@@ -429,8 +436,8 @@ export interface DetachmentAarState {
     selectedContractId: string;
     selectedLevel: number;
     outcomeMultiplier: number;
-    salvageValue: number;
-    customAward: number;
+    salvageValue: NumericInput;
+    customAward: NumericInput;
 }
 
 // ==================== Mutation Input Variables ====================

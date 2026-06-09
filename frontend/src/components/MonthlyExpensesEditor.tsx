@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { Detachment, CampaignDetailSummary } from '../types/global.d';
+import { Detachment, CampaignDetailSummary, NumericInput } from '../types/global.d';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
-import { parseMultiplier } from '../util/contractUtils'; // This was already correct
+import { parseMultiplier, parseNumericInput, isInputInvalid } from '../util/contractUtils'; // This was already correct
 
 interface MonthlyExpensesEditorProps {
     campaignDetails: CampaignDetailSummary; // Use CampaignDetailSummary
@@ -20,7 +20,7 @@ interface DetachmentFormState {
     selectedContractId: string;
     selectedLevel: number; // For future use, currently fixed at 1
     chargeType: 'Monthly Pay & Expenses' | 'Transport' | 'Freeform Entry';
-    amount: number;
+    amount: NumericInput;
     description: string;
     isSubmitting: boolean;
     error: string | null;
@@ -136,7 +136,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                     commandId: form.mercenaryCommandId, // Use detachment's commandId
                     detachmentId: form.detachmentId,
                     input: {
-                        amount: form.amount,
+                        amount: parseNumericInput(form.amount),
                         description: form.description,
                         campaignId: campaignDetails.id,
                         campaignName: campaignDetails.name,
@@ -234,13 +234,13 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                                     </div>
                                 </td>
                                 <td>
-                                    <div className="status-bar theme-blue" style={{ padding: '0 5px' }}>
+                                    <div className={`status-bar theme-blue ${isInputInvalid(form.amount) ? 'invalid' : ''}`} style={{ padding: '0 5px' }}>
                                         <input
                                             type="number"
                                             className="table-input text-right"
                                             style={{ border: 'none' }}
                                             value={form.amount}
-                                            onChange={(e) => handleFormChange(form.detachmentId, 'amount', parseInt(e.target.value) || 0)}
+                                            onChange={(e) => handleFormChange(form.detachmentId, 'amount', e.target.value)}
                                             title="Amount in Support Points"
                                         />
                                     </div>
@@ -266,7 +266,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                                     <button
                                         className="mode-btn"
                                         onClick={() => handleCommit(form.detachmentId)}
-                                        disabled={form.isSubmitting || !form.amount || !form.description.trim()}
+                                        disabled={form.isSubmitting || !form.description.trim() || isInputInvalid(form.amount) || form.amount === '' || form.amount === '-'}
                                         title="Commit transaction"
                                     >
                                         {form.isSubmitting ? '...' : 'COMMIT'}

@@ -5,10 +5,10 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { PilotEditor } from './PilotEditor';
-import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail } from '../types/global.d';
+import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput } from '../types/global.d';
 import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
-import { parseMultiplier, parseSupportTerms } from '../util/contractUtils';
+import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
 import { MetadataDataMinimal } from '../types/graphql.d';
 import {
     GET_METADATA,
@@ -23,7 +23,7 @@ import { AarBackground } from './AarBackground';
 
 export interface AarDataState {
     detachmentAars: Record<string, DetachmentAarState>;
-    unitStates: Record<string, { status: string; ammo: number }>;
+    unitStates: Record<string, { status: string; ammo: NumericInput }>;
     pilotStates: Record<string, { injuries: number; healed: number }>;
     afterActionNarrative: string;
     isNarrativeDirty: boolean;
@@ -32,7 +32,7 @@ export interface AarDataState {
 export type AarAction =
     | { type: 'SYNC_PROPS'; campaign: CampaignDetail; track: TrackDetail; unitStatuses: string[] }
     | { type: 'UPDATE_DETACHMENT_AAR'; detId: string; patch: Partial<DetachmentAarState> }
-    | { type: 'UPDATE_UNIT_STATE'; unitId: string; patch: Partial<{ status: string; ammo: number }> }
+    | { type: 'UPDATE_UNIT_STATE'; unitId: string; patch: Partial<{ status: string; ammo: NumericInput }> }
     | { type: 'UPDATE_PILOT_STATE'; pilotId: string; patch: Partial<{ injuries: number; healed: number }> }
     | { type: 'SET_NARRATIVE'; narrative: string }
     | { type: 'MARK_NARRATIVE_CLEAN' };
@@ -42,7 +42,7 @@ export const aarReducer = (state: AarDataState, action: AarAction): AarDataState
         case 'SYNC_PROPS': {
             const { campaign, track, unitStatuses } = action;
             const nextAars: Record<string, DetachmentAarState> = {};
-            const nextUnits: Record<string, { status: string; ammo: number }> = {};
+            const nextUnits: Record<string, { status: string; ammo: NumericInput }> = {};
             const nextPilots: Record<string, { injuries: number; healed: number }> = {};
 
             campaign.participatingDetachments?.forEach((det) => {
@@ -152,9 +152,14 @@ export const calculatePilotFinancials = (pState: { healed: number }, terms: any,
 
 export const calculateAwardFinancials = (campaign: CampaignDetail, terms: any) => {
     const baseCombatPay = campaign.combatPay || 0;
+
+    // Convert potential string inputs to numbers for calculation
+    const sValue = parseNumericInput(terms.salvageValue);
+    const cAward = parseNumericInput(terms.customAward);
+
     const payAward = Math.round(baseCombatPay * terms.outcomeMultiplier * terms.selectedLevel);
-    const salvageAward = Math.round(terms.salvageValue * terms.salvageCoverage);
-    const total = payAward + salvageAward + terms.customAward;
+    const salvageAward = Math.round(sValue * terms.salvageCoverage);
+    const total = payAward + salvageAward + cAward;
 
     return {
         baseCombatPay,
@@ -420,6 +425,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         };
         const uState = state.unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
 
+        // Ensure ammo is parsed correctly from potentially string state
+        const ammoTons = parseNumericInput(uState.ammo);
+
         const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses);
 
         let finalAmount = 0;
@@ -437,7 +445,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         } else {
             const repairCost = Math.ceil(baseRepairCost);
-            const ammoCost = uState.ammo * ammoCostPerTon;
+            const ammoCost = ammoTons * ammoCostPerTon;
             const totalRawCost = repairCost + ammoCost;
 
             if (terms.support.type === 'BATTLE') {
@@ -719,26 +727,26 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 </div>
                                 <div className="flex-col items-center">
                                     <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>SALVAGE (SP)</label>
-                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                    <div className={`status-bar theme-red ${isInputInvalid(state.detachmentAars[det.id]?.salvageValue) ? 'invalid' : ''}`} style={{ padding: '0 5px' }}>
                                         <input
                                             type="number"
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
                                             value={state.detachmentAars[det.id]?.salvageValue}
-                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { salvageValue: parseInt(e.target.value) || 0 } })}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { salvageValue: e.target.value } })}
                                             title="Enter raw salvage value"
                                         />
                                     </div>
                                 </div>
                                 <div className="flex-col items-center">
                                     <label className="xs-text opacity-70" style={{ marginBottom: '4px' }}>MISC (SP)</label>
-                                    <div className="status-bar theme-red" style={{ padding: '0 5px' }}>
+                                    <div className={`status-bar theme-red ${isInputInvalid(state.detachmentAars[det.id]?.customAward) ? 'invalid' : ''}`} style={{ padding: '0 5px' }}>
                                         <input
                                             type="number"
                                             className="table-input w-100"
                                             style={{ border: 'none' }}
                                             value={state.detachmentAars[det.id]?.customAward}
-                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { customAward: parseInt(e.target.value) || 0 } })}
+                                            onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { customAward: e.target.value } })}
                                             title="Enter misc adjustment"
                                         />
                                     </div>
@@ -772,7 +780,13 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     className="mode-btn theme-green sm-text"
                                     style={{ padding: '4px 15px' }}
                                     onClick={() => handleAwardToDetachment(det.id, det.mercenaryCommandId)}
-                                    disabled={loadingStates[`${det.id}-award`]}
+                                    disabled={
+                                        loadingStates[`${det.id}-award`] ||
+                                        isInputInvalid(state.detachmentAars[det.id]?.salvageValue) || 
+                                        state.detachmentAars[det.id]?.salvageValue === '-' ||
+                                        isInputInvalid(state.detachmentAars[det.id]?.customAward) || 
+                                        state.detachmentAars[det.id]?.customAward === '-'
+                                    }
                                 >
                                     {loadingStates[`${det.id}-award`] ? '[ COMMITTING... ]' : '[ COMMIT AWARD ]'}
                                 </button>
@@ -795,6 +809,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     <tbody>
                                         {det.units?.map((u: any) => {
                                             const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
+                                            const ammoTons = parseNumericInput(uState.ammo);
                                             const terms = getDetachmentTerms(det.id);
                                             const financials = calculateUnitFinancials(u, uState.status, repairRules, unitStatuses);
                                             const { baseRepairCost, baseReplacementValue, isTrulyDestroyed, techTax } = financials;
@@ -816,7 +831,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 ammoInputDisabled = true;
                                             } else {
                                                 const repairCost = Math.ceil(baseRepairCost);
-                                                const ammoCost = uState.ammo * ammoCostPerTon;
+                                                const ammoCost = ammoTons * ammoCostPerTon;
                                                 const totalRawCost = repairCost + ammoCost;
 
                                                 if (terms.support.type === 'BATTLE') {
@@ -826,7 +841,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 }
 
                                                 tooltip = `Base Repair: ${financials.tonnage}T * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
-                                                    `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${uState.ammo * ammoCostPerTon} SP\n` +
+                                                    `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${ammoTons * ammoCostPerTon} SP\n` +
                                                     `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
                                             }
 
@@ -855,14 +870,14 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         {isTrulyDestroyed ? (
                                                             <span className="restricted-text">N/A</span>
                                                         ) : (
-                                                            <div className="status-bar theme-red" style={{ padding: '0 5px', width: '50px', margin: '0 auto' }}>
+                                                            <div className={`status-bar theme-red ${isInputInvalid(uState.ammo) ? 'invalid' : ''}`} style={{ padding: '0 5px', width: '50px', margin: '0 auto' }}>
                                                                 <input
                                                                     type="number"
                                                                     className="table-input w-100 text-center"
                                                                     style={{ border: 'none' }}
                                                                     value={uState.ammo}
                                                                     onChange={(e) => {
-                                                                        dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: parseInt(e.target.value) || 0 } });
+                                                                        dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: e.target.value } });
                                                                     }}
                                                                     title="Enter tons of ammunition to rearm"
                                                                     disabled={ammoInputDisabled}
@@ -875,7 +890,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         <button
                                                             className="mode-btn sm-text"
                                                             onClick={() => handleProcessUnit(det.id, det.mercenaryCommandId, u)}
-                                                            disabled={loadingStates[unitNoticeKey]}
+                                                            disabled={loadingStates[unitNoticeKey] || isInputInvalid(uState.ammo) || uState.ammo === '-'}
                                                             title="Commit unit logistics"
                                                         >
                                                             {loadingStates[unitNoticeKey] ? '...' : 'COMMIT'}

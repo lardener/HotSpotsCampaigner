@@ -1,3 +1,4 @@
+import { NumericInput } from '../types/global.d';
 export type SupportType = 'BATTLE' | 'STRAIGHT' | 'NONE';
 
 export interface SupportTerms {
@@ -38,4 +39,26 @@ export const parseSupportTerms = (term: string | undefined | null): SupportTerms
     if (t.includes('STRAIGHT')) return { type: 'STRAIGHT', pct };
     if (pct > 0) return { type: 'STRAIGHT', pct }; // Fallback for simple percentage strings
     return { type: 'NONE', pct: 0 };
+};
+
+/**
+ * Safely parses a NumericInput (string | number) into an actual number.
+ * Returns the fallback if the input is not a valid number (e.g., "", "-", or junk).
+ */
+export const parseNumericInput = (val: NumericInput | undefined | null, fallback: number = 0): number => {
+    if (val === undefined || val === null || val === '') return fallback;
+    if (typeof val === 'number') return val;
+    
+    const parsed = parseInt(val);
+    return isNaN(parsed) ? fallback : parsed;
+};
+
+/**
+ * Checks if a NumericInput contains invalid non-numeric content.
+ * Ignores intermediate states like empty strings or a single minus sign.
+ */
+export const isInputInvalid = (val: NumericInput | undefined | null): boolean => {
+    if (val === undefined || val === null) return false;
+    const s = val.toString();
+    return s !== '' && s !== '-' && isNaN(Number(s));
 };
