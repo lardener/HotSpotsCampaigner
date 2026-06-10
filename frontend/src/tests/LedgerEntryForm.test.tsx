@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing'; // This was already correct
-import { LedgerEntryForm } from './LedgerEntryForm';
+import { LedgerEntryForm } from '../components/LedgerEntryForm';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
 
 describe('LedgerEntryForm', () => {
