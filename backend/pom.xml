@@ -7,7 +7,7 @@
 
     <groupId>com.hotspotscamp</groupId>
     <artifactId>battletech-campaign-backend</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>Battletech Campaign Manager Backend</name>
@@ -17,7 +17,6 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.14</version>
-        <version>3.4.1</version>
         <relativePath/>
     </parent>
 
