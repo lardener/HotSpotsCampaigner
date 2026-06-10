@@ -55,7 +55,7 @@ class CampaignE2ETest {
     // configures Spring Data R2DBC to use this container.
     @Container
     @ServiceConnection
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.40")
             .withDatabaseName("BT_Campaigner")
             .withUsername("test")
             .withPassword("test");
