@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useApolloClient } from '@apollo/client/react';
 import { TreeItem, NodeType } from './NavigationTree';
 import { ActiveCampaignsList } from './ActiveCampaignsList';
@@ -29,6 +29,11 @@ export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const INACTIVITY_TIMEOUT_MS = Number(import.meta.env.VITE_INACTIVITY_TIMEOUT_MS) || 30 * 60 * 1000;
+const WARNING_THRESHOLD_MS = 2 * 60 * 1000; // Show warning 2 minutes before logout
+const LONG_INACTIVITY_PERIOD_MS = 20 * 60 * 1000; // After 20 minutes of inactivity, check every minute
+const SHORT_WARNING_PERIOD_MS = 30 * 1000; // Last 30 seconds before logout, check every second
+
+const LAST_ACTIVITY_KEY = 'hsc_last_activity';
 
 interface MainDashboardProps {
     user: UserAccount | null;
@@ -45,6 +50,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [isCreatingCommand, setIsCreatingCommand] = useState(false);
     const [campaignFilter, setCampaignFilter] = useState<string>('ACTIVE');
+    const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+    const [remainingSeconds, setRemainingSeconds] = useState(0);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
     const [isChildSyncing, setIsChildSyncing] = useState(false);
@@ -76,7 +83,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         }
     };
 
-    const lastActivityTimeRef = useRef(Date.now());
+    const lastActivityTimeRef = useRef<number>(Date.now());
+    const lastSyncTimeRef = useRef<number>(0);
+    const inactivityTimerRef = useRef<number | null>(null); // To store setTimeout ID
     const [inviteToken, setInviteToken] = useState('');
     const [loginWithToken] = useMutation(LOGIN_WITH_TOKEN);
 
@@ -100,33 +109,108 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         }
     };
 
-    const resetActivityTimer = () => {
-        lastActivityTimeRef.current = Date.now();
-    };
+    const scheduleNextInactivityCheck = useCallback(() => {
+        if (inactivityTimerRef.current) {
+            clearTimeout(inactivityTimerRef.current);
+            inactivityTimerRef.current = null;
+        }
+
+        if (!user) {
+            setShowInactivityWarning(false);
+            setRemainingSeconds(0);
+            return;
+        }
+
+        const now = Date.now();
+        const timeSinceLastActivity = now - lastActivityTimeRef.current;
+        const remainingTime = INACTIVITY_TIMEOUT_MS - timeSinceLastActivity;
+
+        if (remainingTime <= 0) {
+            console.log(`User inactive for over ${INACTIVITY_TIMEOUT_MS / 60000} minutes. Logging out.`);
+            localStorage.removeItem(LAST_ACTIVITY_KEY);
+            onLogout();
+            setShowInactivityWarning(false);
+            setRemainingSeconds(0);
+            return;
+        }
+
+        let nextCheckDelay: number;
+        if (remainingTime <= SHORT_WARNING_PERIOD_MS) { // Final 30 seconds
+            nextCheckDelay = 1000; // Every second
+            setShowInactivityWarning(true);
+            setRemainingSeconds(Math.ceil(remainingTime / 1000));
+        } else if (remainingTime <= WARNING_THRESHOLD_MS) { // 2 minutes to 30 seconds before logout
+            nextCheckDelay = 15 * 1000; // Every 15 seconds
+            setShowInactivityWarning(true);
+            setRemainingSeconds(Math.ceil(remainingTime / 1000));
+        } else if (timeSinceLastActivity >= LONG_INACTIVITY_PERIOD_MS) { // 20 minutes to 28 minutes of inactivity
+            nextCheckDelay = 60 * 1000; // Every minute
+            setShowInactivityWarning(false);
+            setRemainingSeconds(0);
+        } else { // Initial 20 minutes of inactivity
+            nextCheckDelay = LONG_INACTIVITY_PERIOD_MS - timeSinceLastActivity; // Wait until 20m mark
+            setShowInactivityWarning(false);
+            setRemainingSeconds(0);
+        }
+
+        inactivityTimerRef.current = window.setTimeout(scheduleNextInactivityCheck, Math.max(nextCheckDelay, 1000));
+    }, [user, onLogout]);
+
+    const resetActivityTimer = useCallback(() => {
+        const now = Date.now();
+        lastActivityTimeRef.current = now;
+        setShowInactivityWarning(false);
+        setRemainingSeconds(0);
+
+        // Sync with other tabs periodically (throttled to every 30 seconds to avoid localStorage overhead)
+        if (now - lastSyncTimeRef.current > 30000) {
+            lastSyncTimeRef.current = now;
+            localStorage.setItem(LAST_ACTIVITY_KEY, now.toString());
+        }
+        scheduleNextInactivityCheck();
+    }, [scheduleNextInactivityCheck]);
 
     useEffect(() => {
+        // Initialize from storage to stay in sync with other active tabs upon mount/refresh
+        const storedLastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
+        if (storedLastActivity) {
+            lastActivityTimeRef.current = parseInt(storedLastActivity, 10);
+        }
+
+        if (user) {
+            // Reset activity timer locally and globally whenever the user state changes (e.g., successful login)
+            const now = Date.now();
+            lastActivityTimeRef.current = now;
+            lastSyncTimeRef.current = now;
+            localStorage.setItem(LAST_ACTIVITY_KEY, now.toString());
+            scheduleNextInactivityCheck();
+        }
+
+        // Listen for activity synchronization from other browser tabs
+        const handleSync = (e: StorageEvent) => {
+            if (e.key === LAST_ACTIVITY_KEY && e.newValue) {
+                lastActivityTimeRef.current = parseInt(e.newValue, 10);
+                scheduleNextInactivityCheck();
+            }
+        };
+        window.addEventListener('storage', handleSync);
+
         // Set up event listeners for user activity
-        const activityEvents = ['mousemove', 'keydown', 'click'];
+        const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart', 'wheel'];
         activityEvents.forEach(event => {
             document.addEventListener(event, resetActivityTimer);
         });
 
-        // Set up interval to check for inactivity
-        const inactivityInterval = setInterval(() => {
-            if (user && Date.now() - lastActivityTimeRef.current > INACTIVITY_TIMEOUT_MS) {
-                console.log("User inactive for over 30 minutes. Logging out.");
-                onLogout(); // Trigger logout
-            }
-        }, 15 * 1000); // Check every 15 seconds
-
-        // Clean up event listeners and interval on component unmount
         return () => {
+            window.removeEventListener('storage', handleSync);
             activityEvents.forEach(event => {
                 document.removeEventListener(event, resetActivityTimer);
             });
-            clearInterval(inactivityInterval);
+            if (inactivityTimerRef.current) {
+                clearTimeout(inactivityTimerRef.current);
+            }
         };
-    }, [user, onLogout]); // Re-run effect if user or onLogout changes
+    }, [user, onLogout, resetActivityTimer, scheduleNextInactivityCheck]); // Re-run effect if user or onLogout changes
 
     // Sync editName when user prop changes
     useEffect(() => {
@@ -667,6 +751,16 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             />
             <main className={`main-content-wrapper ${getThemeClass()} h-100`} style={{ position: 'relative', background: 'transparent' }}>
                 {renderTabContent()}
+                {showInactivityWarning && (
+                    <TerminalOverlay
+                        title="INACTIVITY WARNING"
+                        message={`YOUR SESSION IS ABOUT TO EXPIRE DUE TO INACTIVITY. AUTOMATIC LOGOUT IN ${Math.floor(remainingSeconds / 60)}:${(remainingSeconds % 60).toString().padStart(2, '0')}.`}
+                        confirmLabel="STAY LOGGED IN"
+                        onConfirm={resetActivityTimer}
+                        themeClass="theme-red"
+                        variant="alert"
+                    />
+                )}
                 {overlay && (
                     <TerminalOverlay
                         title={overlay.title}

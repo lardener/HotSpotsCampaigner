@@ -7,6 +7,7 @@ import { PilotEditor } from './PilotEditor';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
+import { RecruitmentOverlay } from './RecruitmentOverlay';
 import { TerminalOverlay } from './TerminalOverlay'; // Import the shared TerminalOverlay
 import {
     UNIT_STATUS_OPTIONS as FALLBACK_STATUSES,
@@ -17,9 +18,7 @@ import {
     Detachment,
     CampaignDetail,
     TrackDetail,
-    CampaignInvite,
-    Contract,
-    CreateInviteVars
+    Contract
 } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
@@ -27,14 +26,12 @@ import {
     GET_CAMPAIGN_DETAILS,
     UPDATE_CAMPAIGN,
     UPDATE_TRACK,
-    CREATE_INVITE,
-    DELETE_INVITE,
     ASSIGN_DETACHMENT,
     REROLL_TRACK,
     REORDER_TRACKS
 } from '../types/operations';
 import { useHscActionHandler } from './useHscActionHandler';
-import { CreateInviteData, MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
+import { MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
 interface CampaignTheaterViewProps {
@@ -341,21 +338,18 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     });
     const { data: metaData } = useQuery<MetadataDataFull>(GET_METADATA);
 
-    const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
     const [updateTrack] = useMutation(UPDATE_TRACK);
-    const [deleteInvite] = useMutation(DELETE_INVITE);
     const [rerollTrack] = useMutation(REROLL_TRACK);
     const [reorderTracks] = useMutation(REORDER_TRACKS);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
 
     // --- State ---
     const saveTimeoutRef = useRef<Record<string, number>>({});
-    const [activeToken, setActiveToken] = useState<string | null>(null);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
-    const [showInviteOverlay, setShowInviteOverlay] = useState(false);
+    const [showRecruitment, setShowRecruitment] = useState(false);
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
         title: string;
@@ -431,36 +425,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         campaignLengthInMonths, setCampaignLengthInMonths,
         campaignTrackCount, setCampaignTrackCount
     } = params;
-
-    const handleGenerateInvite = () => {
-        if (!selectedCampaignId) return;
-        setShowInviteOverlay(true);
-    };
-
-    const confirmGenerateInvite = async (recipientName?: string) => {
-        if (!recipientName?.trim() || !selectedCampaignId) return;
-        const { data } = await createInvite({ variables: { campaignId: selectedCampaignId, recipientName } });
-        if (data?.createInvite) {
-            setActiveToken(data.createInvite.token);
-            refetchCampaign();
-        }
-        setShowInviteOverlay(false);
-    };
-
-    const handleDeleteInvite = (inviteId: string) => {
-        setOverlay({
-            isOpen: true,
-            title: "SECURITY REVOCATION",
-            message: "DELETE THIS INVITATION KEY? IT WILL NO LONGER BE VALID.",
-            onConfirm: async () => {
-                try {
-                    await deleteInvite({ variables: { id: inviteId } });
-                    await refetchCampaign();
-                } catch (err) { console.error(err); }
-                setOverlay(prev => ({ ...prev, isOpen: false }));
-            }
-        });
-    };
 
     const handleStatusToggle = () => {
         const isCurrentlyActive = campaign.status === 'ACTIVE';
@@ -669,8 +633,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         </div>
                     </header>
 
-                    <div className="grid-3-col mb-30">
-                        <div className="tactical-panel" style={{ gridColumn: 'span 2' }}>
+                    <div className="mb-30">
+                        <div className="tactical-panel">
                             <div className="flex-between mb-10">
                                 <h3 className="zone-header">THEATER COMMAND DATA</h3>
                                 <button
@@ -743,6 +707,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                 onBlur={(e) => handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1))}
                                                 title="Number of tracks in the campaign" />
                                         </div>
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'flex-end' }}>
+                                        <button
+                                            type="button"
+                                            className="mode-btn theme-amber w-100"
+                                            style={{ height: '24px', fontSize: '0.65rem' }}
+                                            onClick={() => setShowRecruitment(true)}
+                                            title="Open recruitment management"
+                                        >[ RECRUITMENT ]</button>
                                     </div>
                                 </div>
                             </div>
@@ -1111,39 +1084,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 </div>
                             )}
                         </div>
-
-                        <div className="tactical-panel">
-                            <h3 className="zone-header">RECRUITMENT</h3>
-                            <p className="restricted-text" style={{ fontSize: '0.7rem' }}>ISSUE AN INVITATION KEY TO ALLOW MERCENARY COMMANDS TO JOIN THIS THEATER.</p>
-                            {activeToken ? (
-                                <div className="status-bar theme-amber mt-15 w-100" style={{ textAlign: 'center', fontSize: '1.2rem', margin: '15px 0 0 0' }}>
-                                    {activeToken}
-                                </div>
-                            ) : (
-                                <button type="button" className="mode-btn theme-blue text-left" style={{ marginTop: '15px', width: '100%' }} onClick={handleGenerateInvite} title="Generate a new invitation key">GENERATE INVITE KEY</button>
-                            )}
-
-                            {campaignInvites.length > 0 && (
-                                <div style={{ marginTop: '20px', borderTop: '1px dashed var(--accent-dim)', paddingTop: '15px' }}>
-                                    <h4 className="restricted-text" style={{ fontSize: '0.7rem', marginBottom: '10px' }}>ACTIVE INVITES</h4>
-                                    {campaignInvites.map((invite: CampaignInvite) => (
-                                        <div key={invite.id} className="status-bar" style={{
-                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '5px 0', fontSize: '0.8rem', width: '100%',
-                                            // Subdued opacity and line-through for used or expired tokens
-                                            opacity: (invite.used || new Date(invite.expiresAt) < new Date()) ? 0.5 : 1,
-                                            textDecoration: (invite.used || new Date(invite.expiresAt) < new Date()) ? 'line-through' : 'none'
-                                        }}>
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '10px' }}>
-                                                {invite.recipientName || 'ANONYMOUS'}: {invite.token.length > 12 ? invite.token.substring(0, 8) + '...' : invite.token} {invite.used && '(USED)'} {new Date(invite.expiresAt) < new Date() && '(EXPIRED)'}
-                                            </span>
-                                            <div className="flex flex-gap-5">
-                                                <button className="mode-btn sm-text" style={{ padding: '0 4px', height: '18px', color: 'var(--terminal-alert)', borderColor: 'var(--terminal-alert)' }} onClick={() => handleDeleteInvite(invite.id)}>X</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
                     </div>
 
                     <div className="dashboard-section tactical-panel mb-30">
@@ -1260,17 +1200,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 </TerminalOverlay>
             )}
 
-            {showInviteOverlay && (
-                <TerminalOverlay
-                    title="RECRUITMENT PROTOCOL"
-                    message="ENTER RECIPIENT NAME (OR IDENTIFIER)"
-                    onConfirm={confirmGenerateInvite}
-                    onCancel={() => setShowInviteOverlay(false)}
-                    showInputField
-                    inputPlaceholder="Enter value..."
-                    inputLabel="RECIPIENT NAME"
-                >
-                </TerminalOverlay>
+            {showRecruitment && campaign && (
+                <RecruitmentOverlay
+                    campaignId={campaign.id}
+                    invites={campaignInvites}
+                    onClose={() => setShowRecruitment(false)}
+                    onRefresh={() => refetchCampaign()}
+                />
             )}
 
             {showProcureEditor && procureAssetData && procureTargetDetachment && (
