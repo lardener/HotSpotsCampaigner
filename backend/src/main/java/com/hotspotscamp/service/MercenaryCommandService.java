@@ -1333,4 +1333,41 @@ public class MercenaryCommandService {
                 .doOnTerminate(() -> log.trace("[TRACE] Finished importAssetsFromLink"));
     }
 
+    /**
+     * Calculates and applies rearm costs for a specific unit based on its tonnage
+     * and the campaign's logistical rules.
+     */
+    @Transactional
+    public Mono<Void> automatedRearmUnit(@NonNull UUID unitId, String userId) {
+        log.trace("[TRACE] Starting automatedRearmUnit: unitId={}", unitId);
+        return combatUnitRepository.findById(unitId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Unit not found: " + unitId)))
+                .flatMap(unit -> {
+                    // Case 1: Handle missing tonnage
+                    if (unit.getTonnage() == null || unit.getTonnage() <= 0) {
+                        return Mono.error(new RuntimeException("Rearm failed: Unit '" + unit.getModel() + "' has no recorded tonnage."));
+                    }
+
+                    if (unit.getDetachmentId() == null) {
+                        return Mono.error(new RuntimeException("Rearm failed: Unit is not assigned to a detachment."));
+                    }
+
+                    return detachmentRepository.findById(unit.getDetachmentId())
+                            .flatMap(det -> campaignRepository.findById(Objects.requireNonNull(det.getCampaignId())))
+                            .flatMap(camp -> {
+                                int rate = Objects.requireNonNullElse(camp.getRearmCostPerTon(), 0);
+
+                                // Case 2: Handle zero rearm cost (Theater Perk or Free Logistics)
+                                if (rate <= 0) {
+                                    log.debug("Skipping rearm ledger entry for unit {}: Theater rearm cost is zero.", unitId);
+                                    return Mono.empty();
+                                }
+
+                                int totalCost = unit.getTonnage() * rate;
+                                LedgerEntryInput input = new LedgerEntryInput(-totalCost, "Automated Rearm: " + unit.getModel() + " (" + unit.getTonnage() + "T)", 0, camp.getId(), camp.getName(), null);
+                                return addLedgerEntry(unit.getCommandId(), unit.getDetachmentId(), input, userId).then();
+                            });
+                });
+    }
+
 }
