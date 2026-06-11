@@ -212,13 +212,11 @@ npm test
 ## Architecture
 
 ### Production Deployment (OVHcloud)
-
 The platform is designed to run on **Managed Kubernetes (MKS)**.
-
 1.  **Secrets**: Managed via K8s Secrets (not `.env` files).
 2.  **Ingress**: NGINX Ingress with TLS termination via `cert-manager`.
 3.  **Database**: OVHcloud Managed MySQL (Business Plan) for HA.
-4.  **Snapshots**: S3-compatible Object Storage for immutable campaign backups.
+4.  **Snapshots**: S3-compatible Object Storage for immutable campaign backups. 
 
 ### Security Roadmap
 
@@ -234,7 +232,7 @@ The platform is designed to run on **Managed Kubernetes (MKS)**.
 ### Backend (Spring Boot 3)
 - **Reactive Stack**: Spring WebFlux and Project Reactor for non-blocking I/O.
 - **Persistence**: Direct relational persistence using **Spring Data R2DBC** for reactive SQL connectivity to MySQL. (Event Sourcing has been deprecated in favor of this model).
-- **Security**: Spring Security with dual OAuth2 (Google) and Token-based (Invite Key) identity providers.
+- **Security**: Spring Security with dual OAuth2 (Google) and Token-based (Invite Key) identity providers. 
 - **Persistence**: Spring Data R2DBC for reactive SQL connectivity to MySQL.
 - **API**: Spring GraphQL acting as the sole gateway, reducing over-fetching and supporting real-time subscriptions.
 
@@ -253,7 +251,7 @@ The platform is designed to run on **Managed Kubernetes (MKS)**.
 Upcoming development milestones:
 
 1. **Automated Upkeep Logic** — Intelligent generation of ledger entries for maintenance and payroll based on active rosters.
-2. **After-Action Workflow** — Streamlined interface for resolving combat pay, scrap values, and pilot medical recovery.
+2. **After-Action Workflow** — Streamlined interface for resolving combat pay, scrap values, and pilot medical recovery. 
 3. **S3 Integration** — Implement campaign snapshot storage.
 4. **JavaFX Desktop App** — Build local campaign viewer.
 
@@ -296,8 +294,7 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 - **Backend**: Spring Boot 3, Spring WebFlux, Spring Security, OAuth2
 - **Frontend**: React 18, TypeScript, Vite, Vitest
 - **Container**: Docker, Docker Compose
-- **Build**: Maven (backend), npm (frontend)
-
+**Build**: Maven (backend), npm (frontend)
 ## License
 
 (Add your license here)

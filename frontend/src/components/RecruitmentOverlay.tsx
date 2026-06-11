@@ -4,6 +4,7 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { CampaignInvite, CreateInviteVars } from '../types/global.d';
 import { CREATE_INVITE, DELETE_INVITE } from '../types/operations';
 import { CreateInviteData } from '../types/graphql.d';
+import { RecruitmentBackground } from './RecruitmentBackground';
 
 interface RecruitmentOverlayProps {
     campaignId: string;
@@ -73,7 +74,8 @@ export const RecruitmentOverlay: React.FC<RecruitmentOverlayProps> = ({ campaign
             confirmLabel="CLOSE"
             themeClass="theme-amber"
         >
-            <div className="mt-20" style={{ minWidth: '450px', padding: '0 10px' }}>
+            <RecruitmentBackground />
+            <div className="mt-20" style={{ zIndex: 9999, minWidth: '450px', padding: '0 10px' }}>
                 <p className="restricted-text mb-20" style={{ fontSize: '0.8rem', color: 'var(--terminal-amber)' }}>
                     ISSUE AN INVITATION KEY TO ALLOW MERCENARY COMMANDS TO JOIN THIS THEATER.
                 </p>

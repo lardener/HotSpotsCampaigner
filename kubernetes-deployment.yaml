@@ -1,0 +1,310 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hotspotscampaigner
+---
+# MySQL Secret for database credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-credentials
+  namespace: hotspotscampaigner
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: "your_mysql_root_password" # IMPORTANT: Change this to a strong password
+  MYSQL_DATABASE: "BT_Campaigner"
+  MYSQL_USER: "test" # As used in CampaignLifecycleIntegrationTest
+  MYSQL_PASSWORD: "test" # As used in CampaignLifecycleIntegrationTest
+---
+# Persistent Volume Claim for MySQL data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: hotspotscampaigner
+spec:
+  accessModes:
+    - ReadWriteOnce # Can be mounted as read-write by a single node
+  resources:
+    requests:
+      storage: 5Gi # Request 5GB of storage
+---
+# MySQL StatefulSet for persistent database
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: hotspotscampaigner
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  serviceName: "mysql"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0.36 # Matching the version in CampaignLifecycleIntegrationTest
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-credentials
+                  key: MYSQL_PASSWORD
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+---
+# MySQL Service to expose the database internally
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: hotspotscampaigner
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  clusterIP: None # Headless service for StatefulSet
+---
+# Backend Google OAuth Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-google-oauth-secrets
+  namespace: hotspotscampaigner
+type: Opaque
+stringData:
+  GOOGLE_CLIENT_ID: "your_google_client_id" # IMPORTANT: Replace with your actual Google Client ID
+  GOOGLE_CLIENT_SECRET: "your_google_client_secret" # IMPORTANT: Replace with your actual Google Client Secret
+---
+# Backend ConfigMap for general application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: hotspotscampaigner
+data:
+  SPRING_R2DBC_URL: "r2dbc:mysql://mysql:3306/BT_Campaigner?allowMultiQueries=true"
+  SPRING_R2DBC_USERNAME: "test"
+  SPRING_R2DBC_PASSWORD: "test"
+  # Add any other backend specific configurations here
+---
+# Backend Deployment (Spring Boot)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: hotspotscampaigner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: hotspotscampaigner/backend:latest # IMPORTANT: Replace with your actual image name and tag
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_R2DBC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SPRING_R2DBC_URL
+            - name: SPRING_R2DBC_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SPRING_R2DBC_USERNAME
+            - name: SPRING_R2DBC_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SPRING_R2DBC_PASSWORD
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backend-google-oauth-secrets
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-google-oauth-secrets
+                  key: GOOGLE_CLIENT_SECRET
+          livenessProbe: # Basic liveness probe
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe: # Basic readiness probe
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1024Mi"
+              cpu: "500m"
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: hotspotscampaigner
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+# Frontend ConfigMap for environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: hotspotscampaigner
+data:
+  VITE_GRAPHQL_API_URL: "/api/graphql" # Assumes Ingress routes /api/graphql to backend
+  # Add any other frontend specific configurations here
+---
+# Frontend Deployment (React, served by Nginx)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: hotspotscampaigner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: hotspotscampaigner/frontend:latest # IMPORTANT: Replace with your actual image name and tag
+          ports:
+            - containerPort: 80 # Nginx typically serves on port 80
+          env:
+            - name: VITE_GRAPHQL_API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: VITE_GRAPHQL_API_URL
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: hotspotscampaigner
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# Ingress to expose frontend and backend externally
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hotspotscampaigner-ingress
+  namespace: hotspotscampaigner
+  annotations:
+    # Example annotations for cert-manager and Nginx Ingress Controller
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2 # If you want to strip path prefix
+spec:
+  # tls: # Uncomment and configure for HTTPS
+  #   - hosts:
+  #       - your-domain.com
+  #     secretName: hotspotscampaigner-tls
+  rules:
+    - host: your-domain.com # IMPORTANT: Replace with your actual domain or remove for local IP access
+      http:
+        paths:
+          - path: /api/graphql # Route GraphQL API requests to the backend
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: / # Route all other requests to the frontend
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+    - http: # Fallback for local testing without a specific host
+        paths:
+          - path: /api/graphql
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

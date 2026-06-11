@@ -708,14 +708,14 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                 title="Number of tracks in the campaign" />
                                         </div>
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'flex-end' }}>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
                                         <button
                                             type="button"
-                                            className="mode-btn theme-amber w-100"
-                                            style={{ height: '24px', fontSize: '0.65rem' }}
+                                            className="mode-btn theme-amber"
+                                            style={{ height: '24px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                             onClick={() => setShowRecruitment(true)}
                                             title="Open recruitment management"
-                                        >[ RECRUITMENT ]</button>
+                                        >[ RECRUITING ]</button>
                                     </div>
                                 </div>
                             </div>
@@ -1182,98 +1182,111 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         </div>
                     </div>
                 </>
-            )}
-            {overlay.isOpen && (
-                <TerminalOverlay
-                    title={overlay.title}
-                    message={overlay.message}
-                    variant={overlay.variant}
-                    onConfirm={overlay.onConfirm}
-                    onCancel={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
-                    showInputField={overlay.showInputField}
-                    inputPlaceholder={overlay.inputPlaceholder}
-                    inputInitialValue={overlay.inputInitialValue}
-                    inputType={overlay.inputType}
-                    inputLabel={overlay.inputLabel}
-                >
-                    {overlay.children}
-                </TerminalOverlay>
-            )}
+            )
+            }
+            {
+                overlay.isOpen && (
+                    <TerminalOverlay
+                        title={overlay.title}
+                        message={overlay.message}
+                        variant={overlay.variant}
+                        onConfirm={overlay.onConfirm}
+                        onCancel={() => setOverlay(prev => ({ ...prev, isOpen: false }))}
+                        showInputField={overlay.showInputField}
+                        inputPlaceholder={overlay.inputPlaceholder}
+                        inputInitialValue={overlay.inputInitialValue}
+                        inputType={overlay.inputType}
+                        inputLabel={overlay.inputLabel}
+                    >
+                        {overlay.children}
+                    </TerminalOverlay>
+                )
+            }
 
-            {showRecruitment && campaign && (
-                <RecruitmentOverlay
-                    campaignId={campaign.id}
-                    invites={campaignInvites}
-                    onClose={() => setShowRecruitment(false)}
-                    onRefresh={() => refetchCampaign()}
-                />
-            )}
+            {
+                showRecruitment && campaign && (
+                    <RecruitmentOverlay
+                        campaignId={campaign.id}
+                        invites={campaignInvites}
+                        onClose={() => setShowRecruitment(false)}
+                        onRefresh={() => refetchCampaign()}
+                    />
+                )
+            }
 
-            {showProcureEditor && procureAssetData && procureTargetDetachment && (
-                <CombatUnitEditor
-                    mode="create"
-                    commandId={procureTargetDetachment.mercenaryCommandId}
-                    detachmentId={procureTargetDetachment.id}
-                    availableSP={procureTargetDetachment.totalSupportPoints}
-                    unit={{ ...procureAssetData, id: '', status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL' }}
-                    unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || FALLBACK_TYPES}
-                    unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
-                    techBases={(metaData?.publicCampaignMetadata as any)?.techBases || FALLBACK_TECH}
-                    onSave={handleProcureSave}
-                    onCancel={handleProcureCancel}
-                    overridePrice={procureAssetData.overridePrice}
-                />
-            )}
+            {
+                showProcureEditor && procureAssetData && procureTargetDetachment && (
+                    <CombatUnitEditor
+                        mode="create"
+                        commandId={procureTargetDetachment.mercenaryCommandId}
+                        detachmentId={procureTargetDetachment.id}
+                        availableSP={procureTargetDetachment.totalSupportPoints}
+                        unit={{ ...procureAssetData, id: '', status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL' }}
+                        unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || FALLBACK_TYPES}
+                        unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
+                        techBases={(metaData?.publicCampaignMetadata as any)?.techBases || FALLBACK_TECH}
+                        onSave={handleProcureSave}
+                        onCancel={handleProcureCancel}
+                        overridePrice={procureAssetData.overridePrice}
+                    />
+                )
+            }
 
-            {showHireEditor && hirePilotData && hireTargetDetachment && (
-                <PilotEditor
-                    mode="create"
-                    commandId={hireTargetDetachment.mercenaryCommandId}
-                    detachmentId={hireTargetDetachment.id}
-                    availableSP={hireTargetDetachment.totalSupportPoints}
-                    pilot={{ ...hirePilotData, id: '' }}
-                    onSave={handleHireSave}
-                    onCancel={handleHireCancel}
-                    overridePrice={hirePilotData.overridePrice}
-                    campaignHireCost={campaign.hireNamedPilotCost}
-                />
-            )}
+            {
+                showHireEditor && hirePilotData && hireTargetDetachment && (
+                    <PilotEditor
+                        mode="create"
+                        commandId={hireTargetDetachment.mercenaryCommandId}
+                        detachmentId={hireTargetDetachment.id}
+                        availableSP={hireTargetDetachment.totalSupportPoints}
+                        pilot={{ ...hirePilotData, id: '' }}
+                        onSave={handleHireSave}
+                        onCancel={handleHireCancel}
+                        overridePrice={hirePilotData.overridePrice}
+                        campaignHireCost={campaign.hireNamedPilotCost}
+                    />
+                )
+            }
 
-            {showMonthlyExpensesEditor !== null && campaign && campaign.participatingDetachments && (
-                <MonthlyExpensesEditor
-                    campaignDetails={campaign as any} // Cast to any for now, will refine CampaignDetailSummary
-                    detachments={campaign.participatingDetachments}
-                    currentMonthIndex={showMonthlyExpensesEditor}
-                    onClose={() => {
-                        setShowMonthlyExpensesEditor(null);
-                        refetchCampaign();
-                        if (onRefresh) onRefresh(); // Trigger global refresh for ledger
+            {
+                showMonthlyExpensesEditor !== null && campaign && campaign.participatingDetachments && (
+                    <MonthlyExpensesEditor
+                        campaignDetails={campaign as any} // Cast to any for now, will refine CampaignDetailSummary
+                        detachments={campaign.participatingDetachments}
+                        currentMonthIndex={showMonthlyExpensesEditor}
+                        onClose={() => {
+                            setShowMonthlyExpensesEditor(null);
+                            refetchCampaign();
+                            if (onRefresh) onRefresh(); // Trigger global refresh for ledger
 
-                    }}
-                    onLedgerEntryAdded={() => {
-                        refetchCampaign();
-                        if (onRefresh) onRefresh(); // Trigger global refresh for ledger
-                    }}
-                />
-            )}
+                        }}
+                        onLedgerEntryAdded={() => {
+                            refetchCampaign();
+                            if (onRefresh) onRefresh(); // Trigger global refresh for ledger
+                        }}
+                    />
+                )
+            }
 
-            {showAarForTrack && campaign && (
-                <AfterActionReportEditor
-                    campaign={campaign as any}
-                    track={showAarForTrack}
-                    metaData={metaData as any}
-                    onClose={async () => {
-                        await refetchCampaign();
-                        if (onRefresh) await onRefresh();
-                        setShowAarForTrack(null);
-                    }}
-                    onLedgerEntryAdded={async () => {
-                        await refetchCampaign();
-                        if (onRefresh) await onRefresh();
-                    }}
-                    userCommands={userCommands}
-                />
-            )}
+            {
+                showAarForTrack && campaign && (
+                    <AfterActionReportEditor
+                        campaign={campaign as any}
+                        track={showAarForTrack}
+                        metaData={metaData as any}
+                        onClose={async () => {
+                            await refetchCampaign();
+                            if (onRefresh) await onRefresh();
+                            setShowAarForTrack(null);
+                        }}
+                        onLedgerEntryAdded={async () => {
+                            await refetchCampaign();
+                            if (onRefresh) await onRefresh();
+                        }}
+                        userCommands={userCommands}
+                    />
+                )
+            }
 
             <style>{`
                 .container {
