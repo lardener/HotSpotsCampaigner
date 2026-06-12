@@ -11,14 +11,20 @@ import { UserAccount } from './types/global.d';
 import { UserProfileData } from './types/graphql.d';
 import './styles/index.css';
 
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || '';
+const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsHost = apiBaseUrl.startsWith('http') ? apiBaseUrl.replace(/^http/, 'ws') : `${wsProtocol}//${window.location.host}${apiBaseUrl || '/api'}`;
+
+console.log(`[AUTH] GraphQL Endpoint: ${apiBaseUrl ? `${apiBaseUrl}/graphql` : '/api/graphql'}`);
+
 const httpLink = new HttpLink({
-  uri: 'http://localhost:8080/graphql',
+  uri: apiBaseUrl ? `${apiBaseUrl}/graphql` : '/api/graphql',
   // Critical for OAuth2/Session cookie support
   credentials: 'include',
 });
 
 const wsLink = new GraphQLWsLink(createClient({
-  url: 'ws://localhost:8080/graphql',
+  url: `${wsHost}/graphql`,
 }));
 
 // 1. Initialize split link to handle both HTTP and WebSocket transports

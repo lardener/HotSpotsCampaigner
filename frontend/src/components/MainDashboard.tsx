@@ -27,7 +27,7 @@ import { GetMyCommandsData, ManagedCampaignsData } from '../types/graphql.d';
 
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard' | 'intel-hub' | 'my-deployments';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || '/api';
 const INACTIVITY_TIMEOUT_MS = Number(import.meta.env.VITE_INACTIVITY_TIMEOUT_MS) || 30 * 60 * 1000;
 const WARNING_THRESHOLD_MS = 2 * 60 * 1000; // Show warning 2 minutes before logout
 const LONG_INACTIVITY_PERIOD_MS = 20 * 60 * 1000; // After 20 minutes of inactivity, check every minute

@@ -1,9 +1,11 @@
 import '../styles/login.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || '/api';
+
 export function Login() {
   const handleGoogleLogin = () => {
     // Point to the backend server port to initiate the OAuth flow
-    window.location.href = 'http://localhost:8080/login/oauth2/authorization/google';
+    window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`;
   };
 
   return (

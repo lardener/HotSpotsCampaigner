@@ -1,0 +1,101 @@
+# Backend Deployment (Spring Boot)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: battletech-campaigner
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend-container
+          image: vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-backend:1.0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: google-secret
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: google-secret
+                  key: GOOGLE_CLIENT_SECRET
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: MYSQL_PASSWORD
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_HOST
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_PORT
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_DATABASE
+            - name: MYSQL_PARAMS
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: MYSQL_PARAMS
+            - name: CORS_ALLOWED_ORIGINS # The variable your code reads
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: FRONTEND_PUBLIC_URL
+            - name: SERVER_FORWARD_HEADERS_STRATEGY
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SERVER_FORWARD_HEADERS_STRATEGY
+            - name: SERVER_SERVLET_SESSION_COOKIE_SECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: SERVER_SERVLET_SESSION_COOKIE_SECURE
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1024Mi"
+              cpu: "500m"
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: battletech-campaigner
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

@@ -2,7 +2,7 @@ spring:
   application:
     name: battletech-campaign-backend
   r2dbc:
-    url: r2dbc:mysql://battletech-db:3306/${MYSQL_DATABASE}
+    url: r2dbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:BT_Campaigner}${MYSQL_PARAMS}
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
     pool:
@@ -33,4 +33,4 @@ server:
 logging:
   level:
     root: INFO
-    com.hotspotscamp: DEBUG
+    com.hotspotscamp: INFO

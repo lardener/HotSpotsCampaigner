@@ -1,0 +1,8 @@
+# Frontend ConfigMap for environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: battletech-campaigner
+data:
+  VITE_API_BASE_URL: "/api" # Ensures requests go through the Ingress /api route

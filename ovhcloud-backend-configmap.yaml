@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: battletech-campaigner
+data:
+  # property-like keys; each key maps to a simple value
+  MYSQL_HOST: "mysql-2a5dc0cc-oc875d50b.database.cloud.ovh.us"
+  MYSQL_PORT: "28323"
+  MYSQL_DATABASE: "BT_Campaigner"
+  MYSQL_PARAMS: "?allowMultiQueries=true"
+  FRONTEND_PUBLIC_URL: "https://hotspotscampaigner.app"
+  SERVER_FORWARD_HEADERS_STRATEGY: "native"
+  SERVER_SERVLET_SESSION_COOKIE_SECURE: "true"
