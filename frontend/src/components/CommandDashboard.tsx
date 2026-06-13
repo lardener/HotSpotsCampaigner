@@ -386,16 +386,20 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     // Filter rosters for the focused detachment
     const filteredUnits = useMemo(() => {
         if (!command) return [];
-        return selectedDetachmentId
+        const list = selectedDetachmentId
             ? (command.units || []).filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
             : (command.units || []);
+        return [...list].sort((a, b) =>
+            a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || '')
+        );
     }, [command, selectedDetachmentId]);
 
     const filteredPilots = useMemo(() => {
         if (!command) return [];
-        return selectedDetachmentId
+        const list = selectedDetachmentId
             ? (command.pilots || []).filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
             : (command.pilots || []);
+        return [...list].sort((a, b) => a.name.localeCompare(b.name));
     }, [command, selectedDetachmentId]);
 
     const filteredLedger = useMemo(() => {

@@ -77,10 +77,16 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
         fetchPolicy: 'network-only'
     });
 
+    const sortUnits = (list: CombatUnit[]) => [...list].sort((a, b) =>
+        a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || '')
+    );
+
+    const sortPilots = (list: Pilot[]) => [...list].sort((a, b) => a.name.localeCompare(b.name));
+
     useEffect(() => {
         if (data) {
-            setUnits(data.getCommand.units || []);
-            setPilots(data.getCommand.pilots || []);
+            setUnits(sortUnits(data.getCommand.units || []));
+            setPilots(sortPilots(data.getCommand.pilots || []));
             setDetachments(data.getCommand.detachments || []);
             setManagedCampaigns(data.managedCampaigns || []);
             setParticipatingCampaigns(data.participatingCampaigns || []);
@@ -111,9 +117,9 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
 
             // Optimistic UI Update
             if (type === 'UNIT') {
-                setUnits(prev => prev.map(u => u.id === assetId ? { ...u, detachmentId: targetDetachmentId } : u));
+                setUnits(prev => sortUnits(prev.map(u => u.id === assetId ? { ...u, detachmentId: targetDetachmentId } : u)));
             } else {
-                setPilots(prev => prev.map(p => p.id === assetId ? { ...p, detachmentId: targetDetachmentId } : p));
+                setPilots(prev => sortPilots(prev.map(p => p.id === assetId ? { ...p, detachmentId: targetDetachmentId } : p)));
             }
         } catch (err) {
             alert("Assignment failed: Asset may already be deployed.");

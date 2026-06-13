@@ -782,9 +782,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     onClick={() => handleAwardToDetachment(det.id, det.mercenaryCommandId)}
                                     disabled={
                                         loadingStates[`${det.id}-award`] ||
-                                        isInputInvalid(state.detachmentAars[det.id]?.salvageValue) || 
+                                        isInputInvalid(state.detachmentAars[det.id]?.salvageValue) ||
                                         state.detachmentAars[det.id]?.salvageValue === '-' ||
-                                        isInputInvalid(state.detachmentAars[det.id]?.customAward) || 
+                                        isInputInvalid(state.detachmentAars[det.id]?.customAward) ||
                                         state.detachmentAars[det.id]?.customAward === '-'
                                     }
                                 >
@@ -807,112 +807,118 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {det.units?.map((u: any) => {
-                                            const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
-                                            const ammoTons = parseNumericInput(uState.ammo);
-                                            const terms = getDetachmentTerms(det.id);
-                                            const financials = calculateUnitFinancials(u, uState.status, repairRules, unitStatuses);
-                                            const { baseRepairCost, baseReplacementValue, isTrulyDestroyed, techTax } = financials;
+                                        {[...(det.units || [])]
+                                            .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
+                                            .map((u: any) => {
+                                                const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
+                                                const ammoTons = parseNumericInput(uState.ammo);
+                                                const terms = getDetachmentTerms(det.id);
+                                                const financials = calculateUnitFinancials(u, uState.status, repairRules, unitStatuses);
+                                                const { baseRepairCost, baseReplacementValue, isTrulyDestroyed, techTax } = financials;
 
-                                            let displayAmount = 0;
-                                            let tooltip = '';
-                                            let ammoInputDisabled = false;
+                                                let displayAmount = 0;
+                                                let tooltip = '';
+                                                let ammoInputDisabled = false;
 
-                                            if (isTrulyDestroyed) {
-                                                if (terms.support.type === 'BATTLE') {
-                                                    displayAmount = -1 * Math.ceil(baseReplacementValue * terms.support.pct);
-                                                    tooltip = `Replacement Value: ${financials.bv} BV * 0.5${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${baseReplacementValue} SP\n` +
-                                                        `Battle Support: ${terms.support.pct * 100}% = +${displayAmount} SP`;
+                                                if (isTrulyDestroyed) {
+                                                    if (terms.support.type === 'BATTLE') {
+                                                        displayAmount = -1 * Math.ceil(baseReplacementValue * terms.support.pct);
+                                                        tooltip = `Replacement Value: ${financials.bv} BV * 0.5${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${baseReplacementValue} SP\n` +
+                                                            `Battle Support: ${terms.support.pct * 100}% = +${displayAmount} SP`;
+                                                    } else {
+                                                        displayAmount = 0;
+                                                        tooltip = `Replacement Value: ${baseReplacementValue} SP\n` +
+                                                            `${terms.support.type} terms do not provide unit replacement pay.`;
+                                                    }
+                                                    ammoInputDisabled = true;
                                                 } else {
-                                                    displayAmount = 0;
-                                                    tooltip = `Replacement Value: ${baseReplacementValue} SP\n` +
-                                                        `${terms.support.type} terms do not provide unit replacement pay.`;
+                                                    const repairCost = Math.ceil(baseRepairCost);
+                                                    const ammoCost = ammoTons * ammoCostPerTon;
+                                                    const totalRawCost = repairCost + ammoCost;
+
+                                                    if (terms.support.type === 'BATTLE') {
+                                                        displayAmount = 0;
+                                                    } else {
+                                                        displayAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
+                                                    }
+
+                                                    tooltip = `Base Repair: ${financials.tonnage}T * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
+                                                        `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${ammoTons * ammoCostPerTon} SP\n` +
+                                                        `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
                                                 }
-                                                ammoInputDisabled = true;
-                                            } else {
-                                                const repairCost = Math.ceil(baseRepairCost);
-                                                const ammoCost = ammoTons * ammoCostPerTon;
-                                                const totalRawCost = repairCost + ammoCost;
 
-                                                if (terms.support.type === 'BATTLE') {
-                                                    displayAmount = 0;
-                                                } else {
-                                                    displayAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
-                                                }
-
-                                                tooltip = `Base Repair: ${financials.tonnage}T * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
-                                                    `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${ammoTons * ammoCostPerTon} SP\n` +
-                                                    `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
-                                            }
-
-                                            const unitNoticeKey = `${u.id}-logistics`;
-                                            return (
-                                                <tr key={u.id}>
-                                                    <td>{u.model} {u.variant}</td>
-                                                    <td>
-                                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
-                                                            <select
-                                                                className="table-input w-100"
-                                                                style={{ border: 'none' }}
-                                                                value={uState.status}
-                                                                onChange={(e) => {
-                                                                    const newStatus = e.target.value;
-                                                                    dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { status: newStatus } });
-                                                                    updateUnit({ variables: { id: u.id, input: { status: newStatus } } });
-                                                                }}
-                                                                title="Select unit status"
-                                                            >
-                                                                {unitStatuses.map((s: string) => <option key={s} value={s}>{s}</option>)}
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                    <td className="text-center">
-                                                        {isTrulyDestroyed ? (
-                                                            <span className="restricted-text">N/A</span>
-                                                        ) : (
-                                                            <div className={`status-bar theme-red ${isInputInvalid(uState.ammo) ? 'invalid' : ''}`} style={{ padding: '0 5px', width: '50px', margin: '0 auto' }}>
-                                                                <input
-                                                                    type="number"
-                                                                    className="table-input w-100 text-center"
+                                                const unitNoticeKey = `${u.id}-logistics`;
+                                                return (
+                                                    <tr key={u.id}>
+                                                        <td>{u.model} {u.variant}</td>
+                                                        <td>
+                                                            <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                                                <select
+                                                                    className="table-input w-100"
                                                                     style={{ border: 'none' }}
-                                                                    value={uState.ammo}
+                                                                    value={uState.status}
                                                                     onChange={(e) => {
-                                                                        dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: e.target.value } });
+                                                                        const newStatus = e.target.value;
+                                                                        dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { status: newStatus } });
+                                                                        updateUnit({ variables: { id: u.id, input: { status: newStatus } } });
                                                                     }}
-                                                                    title="Enter tons of ammunition to rearm"
-                                                                    disabled={ammoInputDisabled}
-                                                                />
+                                                                    title="Select unit status"
+                                                                >
+                                                                    {unitStatuses.map((s: string) => <option key={s} value={s}>{s}</option>)}
+                                                                </select>
                                                             </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="text-right" title={tooltip}>{displayAmount > 0 ? `+${displayAmount}` : displayAmount}</td>
-                                                    <td className="text-right">
-                                                        <button
-                                                            className="mode-btn sm-text"
-                                                            onClick={() => handleProcessUnit(det.id, det.mercenaryCommandId, u)}
-                                                            disabled={loadingStates[unitNoticeKey] || isInputInvalid(uState.ammo) || uState.ammo === '-'}
-                                                            title="Commit unit logistics"
-                                                        >
-                                                            {loadingStates[unitNoticeKey] ? '...' : 'COMMIT'}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
+                                                        </td>
+                                                        <td className="text-center">
+                                                            {isTrulyDestroyed ? (
+                                                                <span className="restricted-text">N/A</span>
+                                                            ) : (
+                                                                <div className={`status-bar theme-red ${isInputInvalid(uState.ammo) ? 'invalid' : ''}`} style={{ padding: '0 5px', width: '50px', margin: '0 auto' }}>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="table-input w-100 text-center"
+                                                                        style={{ border: 'none' }}
+                                                                        value={uState.ammo}
+                                                                        onChange={(e) => {
+                                                                            dispatch({ type: 'UPDATE_UNIT_STATE', unitId: u.id, patch: { ammo: e.target.value } });
+                                                                        }}
+                                                                        title="Enter tons of ammunition to rearm"
+                                                                        disabled={ammoInputDisabled}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="text-right" title={tooltip}>{displayAmount > 0 ? `+${displayAmount}` : displayAmount}</td>
+                                                        <td className="text-right">
+                                                            <button
+                                                                className="mode-btn sm-text"
+                                                                onClick={() => handleProcessUnit(det.id, det.mercenaryCommandId, u)}
+                                                                disabled={loadingStates[unitNoticeKey] || isInputInvalid(uState.ammo) || uState.ammo === '-'}
+                                                                title="Commit unit logistics"
+                                                            >
+                                                                {loadingStates[unitNoticeKey] ? '...' : 'COMMIT'}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                     </tbody>
                                 </table>
-                                {det.units?.map((u: any) => {
-                                    const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
-                                    return notices[`${u.id}-logistics`] && !isTrulyDestroyed && (
-                                        <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
-                                    );
-                                })}
-                                {det.units?.map((u: any) => {
-                                    const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
-                                    return errorStates[`${u.id}-logistics`] && !isTrulyDestroyed && (
-                                        <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
-                                    );
-                                })}
+                                {[...(det.units || [])]
+                                    .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
+                                    .map((u: any) => {
+                                        const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
+                                        return notices[`${u.id}-logistics`] && !isTrulyDestroyed && (
+                                            <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
+                                        );
+                                    })}
+                                {[...(det.units || [])]
+                                    .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
+                                    .map((u: any) => {
+                                        const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
+                                        return errorStates[`${u.id}-logistics`] && !isTrulyDestroyed && (
+                                            <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
+                                        );
+                                    })}
                             </div>
 
                             <div>
@@ -928,77 +934,83 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                         </tr>
                                     </thead>
                                     <tbody> {/* Use pilot.id for key */}
-                                        {det.pilots?.map((p: any) => {
-                                            const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
-                                            const terms = getDetachmentTerms(det.id);
-                                            const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
-                                            const noticeKey = `${p.id}-medical`;
+                                        {[...(det.pilots || [])]
+                                            .sort((a, b) => a.name.localeCompare(b.name))
+                                            .map((p: any) => {
+                                                const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
+                                                const terms = getDetachmentTerms(det.id);
+                                                const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
+                                                const noticeKey = `${p.id}-medical`;
 
-                                            const tooltip = `Medical Cost: ${financials.healed} injuries x ${financials.injuryHealCost} SP = ${financials.rawMedicalCost} SP\n` +
-                                                `Support: ${financials.supportType === 'BATTLE' ? '100% (BATTLE)' : `${financials.supportPct * 100}% (${financials.supportType})`}`;
+                                                const tooltip = `Medical Cost: ${financials.healed} injuries x ${financials.injuryHealCost} SP = ${financials.rawMedicalCost} SP\n` +
+                                                    `Support: ${financials.supportType === 'BATTLE' ? '100% (BATTLE)' : `${financials.supportPct * 100}% (${financials.supportType})`}`;
 
-                                            const pilotDisplayCost = financials.mercenaryCostSigned;
-                                            return (
-                                                <tr key={p.id}>
-                                                    <td>{p.name}</td>
-                                                    <td>
-                                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
-                                                            <select
-                                                                className="table-input w-100"
-                                                                style={{ border: 'none' }}
-                                                                value={pState.injuries}
-                                                                onChange={(e) => {
-                                                                    const val = parseInt(e.target.value);
-                                                                    dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { injuries: val } });
-                                                                    updatePilot({ variables: { id: p.id, input: { wounds: val } } });
-                                                                }}
-                                                                title="Select total pilot injuries"
+                                                const pilotDisplayCost = financials.mercenaryCostSigned;
+                                                return (
+                                                    <tr key={p.id}>
+                                                        <td>{p.name}</td>
+                                                        <td>
+                                                            <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                                                <select
+                                                                    className="table-input w-100"
+                                                                    style={{ border: 'none' }}
+                                                                    value={pState.injuries}
+                                                                    onChange={(e) => {
+                                                                        const val = parseInt(e.target.value);
+                                                                        dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { injuries: val } });
+                                                                        updatePilot({ variables: { id: p.id, input: { wounds: val } } });
+                                                                    }}
+                                                                    title="Select total pilot injuries"
+                                                                >
+                                                                    {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v === 6 ? 'FATAL' : v}</option>)}
+                                                                </select>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
+                                                                <select
+                                                                    className="table-input w-100"
+                                                                    style={{ border: 'none' }}
+                                                                    value={pState.healed}
+                                                                    onChange={(e) => {
+                                                                        dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { healed: parseInt(e.target.value) } });
+                                                                    }}
+                                                                    title="Select number of injuries healed"
+                                                                >
+                                                                    {[...Array(healMonthLimit + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
+                                                                </select>
+                                                            </div>
+                                                        </td>
+                                                        <td className="text-right" title={tooltip}>{pilotDisplayCost > 0 ? `+${pilotDisplayCost}` : pilotDisplayCost}</td>
+                                                        <td className="text-right">
+                                                            <button
+                                                                className="mode-btn sm-text"
+                                                                onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId, p)} // The actual ledger entry amount is calculated inside handleProcessPilot
+                                                                disabled={loadingStates[noticeKey]}
+                                                                title="Commit pilot healing"
                                                             >
-                                                                {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v === 6 ? 'FATAL' : v}</option>)}
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                    <td>
-                                                        <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
-                                                            <select
-                                                                className="table-input w-100"
-                                                                style={{ border: 'none' }}
-                                                                value={pState.healed}
-                                                                onChange={(e) => {
-                                                                    dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { healed: parseInt(e.target.value) } });
-                                                                }}
-                                                                title="Select number of injuries healed"
-                                                            >
-                                                                {[...Array(healMonthLimit + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
-                                                            </select>
-                                                        </div>
-                                                    </td>
-                                                    <td className="text-right" title={tooltip}>{pilotDisplayCost > 0 ? `+${pilotDisplayCost}` : pilotDisplayCost}</td>
-                                                    <td className="text-right">
-                                                        <button
-                                                            className="mode-btn sm-text"
-                                                            onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId, p)} // The actual ledger entry amount is calculated inside handleProcessPilot
-                                                            disabled={loadingStates[noticeKey]}
-                                                            title="Commit pilot healing"
-                                                        >
-                                                            {loadingStates[noticeKey] ? '...' : 'COMMIT'}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
+                                                                {loadingStates[noticeKey] ? '...' : 'COMMIT'}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                     </tbody>
                                 </table>
-                                {det.pilots?.map((p: any) => notices[`${p.id}-medical`] && (
-                                    <div key={p.id} className="restricted-text theme-green xs-text mt-5 text-center">
-                                        {p.name}: {notices[`${p.id}-medical`]}
-                                    </div>
-                                ))}
-                                {det.pilots?.map((p: any) => errorStates[`${p.id}-medical`] && (
-                                    <div key={p.id} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>
-                                        {p.name}: {errorStates[`${p.id}-medical`]}
-                                    </div>
-                                ))}
+                                {[...(det.pilots || [])]
+                                    .sort((a, b) => a.name.localeCompare(b.name))
+                                    .map((p: any) => notices[`${p.id}-medical`] && (
+                                        <div key={p.id} className="restricted-text theme-green xs-text mt-5 text-center">
+                                            {p.name}: {notices[`${p.id}-medical`]}
+                                        </div>
+                                    ))}
+                                {[...(det.pilots || [])]
+                                    .sort((a, b) => a.name.localeCompare(b.name))
+                                    .map((p: any) => errorStates[`${p.id}-medical`] && (
+                                        <div key={p.id} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>
+                                            {p.name}: {errorStates[`${p.id}-medical`]}
+                                        </div>
+                                    ))}
                             </div>
                         </div>
                     </div>
