@@ -55,6 +55,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState(user?.displayName || user?.name || '');
     const [isChildSyncing, setIsChildSyncing] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [publicViewingCampaignId, setPublicViewingCampaignId] = useState<string | null>(null);
 
     const [overlay, setOverlay] = useState<{
@@ -748,6 +749,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 editName={editName}
                 setEditName={setEditName}
                 onNameUpdate={handleNameUpdate}
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             />
             <main className={`main-content-wrapper ${getThemeClass()} h-100`} style={{ position: 'relative', background: 'transparent' }}>
                 {renderTabContent()}
