@@ -198,7 +198,8 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             unitStates: {},
             pilotStates: {},
             afterActionNarrative: '',
-            isNarrativeDirty: false
+            isNarrativeDirty: false,
+            pricingRule: 'Core'
         });
 
         it('should initialize empty state with defaults from props', () => {
@@ -230,7 +231,8 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                     'pilot-1': { injuries: 3, healed: 2 }
                 },
                 afterActionNarrative: 'User Edited Narrative',
-                isNarrativeDirty: true
+                isNarrativeDirty: true,
+                pricingRule: 'Core'
             };
 
             const action: AarAction = { type: 'SYNC_PROPS', campaign: mockCampaign, track: mockTrack, unitStatuses };

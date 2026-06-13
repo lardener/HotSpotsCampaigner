@@ -25,6 +25,7 @@ interface TerminalOverlayProps {
     inputType?: string;
     inputLabel?: string;
     children?: React.ReactNode;
+    headerActions?: React.ReactNode;
 }
 
 export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
@@ -42,7 +43,8 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
     inputInitialValue = '',
     inputType = 'text',
     inputLabel = 'INPUT',
-    children
+    children,
+    headerActions
 }) => {
     const { refs, context } = useFloating({
         open: true,
@@ -70,7 +72,10 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                         {...getFloatingProps()}
                     >
                         <div className="overlay-header">
-                            <span className="blink-fast">▶</span> {title}
+                            <div className="flex-between w-100">
+                                <span><span className="blink-fast">▶</span> {title}</span>
+                                {headerActions && <div className="overlay-header-actions">{headerActions}</div>}
+                            </div>
                         </div>
                         <div style={{ border: `1px solid var(${variant === 'alert' ? '--terminal-alert' : '--terminal-border'})`, margin: '0 10px 10px 10px', padding: '15px', backgroundColor: 'rgba(0, 0, 0, 0.4)' }}>
                             <div className="overlay-body">

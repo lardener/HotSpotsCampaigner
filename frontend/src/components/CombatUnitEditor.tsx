@@ -57,6 +57,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     });
 
     const [formData, setFormData] = useState<CombatUnit>(unit || createDefaultUnit());
+    const [pricingRule, setPricingRule] = useState<'Core' | 'Alpha Strike'>('Core');
 
     // Ensure form updates if the unit prop changes (e.g. clicking edit on a different unit while editor is open)
     useEffect(() => {
@@ -104,8 +105,14 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             if (formData.techBase === 'Mixed') return meta?.mixedTechModifier ?? 1.5;
             return 1.0;
         };
-        return Math.round((formData.bv || 0) * getTechTax());
-    }, [formData.bv, formData.techBase, metadataData, overridePrice]);
+
+        if (pricingRule === 'Core') {
+            return Math.round((formData.bv || 0) * getTechTax());
+        } else { // Alpha Strike
+            const pvMultiplier = metadataData?.publicCampaignMetadata?.pvPurchaseUnitMultiplier ?? 40; // Default to 40 if not in metadata
+            return Math.round((formData.pv || 0) * pvMultiplier);
+        }
+    }, [formData.bv, formData.techBase, metadataData, overridePrice, pricingRule, formData.pv]);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
         const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);
@@ -275,6 +282,17 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                 {mode === 'create' ? 'UNIT PROCUREMENT' : 'UNIT RECORD'}
                             </h2>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                {mode === 'create' && overridePrice === undefined && (
+                                    <button
+                                        type="button"
+                                        className="mode-btn theme-amber"
+                                        style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                                        onClick={() => setPricingRule(prev => prev === 'Core' ? 'Alpha Strike' : 'Core')}
+                                        title="Switch between Core and Alpha Strike pricing rules"
+                                    >
+                                        {pricingRule === 'Core' ? 'RULESET: CORE' : 'RULESET: AS'}
+                                    </button>
+                                )}
                                 {mode === 'create' && detachmentId && (
                                     <button
                                         className={`mode-btn ${availableSP !== undefined && availableSP < purchasePrice ? 'theme-amber' : 'theme-blue'}`}

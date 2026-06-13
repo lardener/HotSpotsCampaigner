@@ -27,6 +27,7 @@ export interface AarDataState {
     pilotStates: Record<string, { injuries: number; healed: number }>;
     afterActionNarrative: string;
     isNarrativeDirty: boolean;
+    pricingRule: 'Core' | 'Alpha Strike';
 }
 
 export type AarAction =
@@ -35,7 +36,8 @@ export type AarAction =
     | { type: 'UPDATE_UNIT_STATE'; unitId: string; patch: Partial<{ status: string; ammo: NumericInput }> }
     | { type: 'UPDATE_PILOT_STATE'; pilotId: string; patch: Partial<{ injuries: number; healed: number }> }
     | { type: 'SET_NARRATIVE'; narrative: string }
-    | { type: 'MARK_NARRATIVE_CLEAN' };
+    | { type: 'MARK_NARRATIVE_CLEAN' }
+    | { type: 'TOGGLE_RULESET' };
 
 export const aarReducer = (state: AarDataState, action: AarAction): AarDataState => {
     switch (action.type) {
@@ -75,7 +77,8 @@ export const aarReducer = (state: AarDataState, action: AarAction): AarDataState
                 unitStates: nextUnits,
                 pilotStates: nextPilots,
                 afterActionNarrative: state.isNarrativeDirty ? state.afterActionNarrative : (track.afterActionNarrative || ''),
-                isNarrativeDirty: state.isNarrativeDirty
+                isNarrativeDirty: state.isNarrativeDirty,
+                pricingRule: state.pricingRule || 'Core'
             };
         }
         case 'UPDATE_DETACHMENT_AAR':
@@ -106,6 +109,8 @@ export const aarReducer = (state: AarDataState, action: AarAction): AarDataState
             return { ...state, isNarrativeDirty: false };
         case 'SET_NARRATIVE':
             return { ...state, afterActionNarrative: action.narrative, isNarrativeDirty: true };
+        case 'TOGGLE_RULESET':
+            return { ...state, pricingRule: state.pricingRule === 'Core' ? 'Alpha Strike' : 'Core' };
         default:
             return state;
     }
@@ -117,7 +122,8 @@ const useAarState = (campaign: CampaignDetail, track: TrackDetail, unitStatuses:
         unitStates: {},
         pilotStates: {},
         afterActionNarrative: '',
-        isNarrativeDirty: false
+        isNarrativeDirty: false,
+        pricingRule: 'Core'
     });
 
     useEffect(() => {
@@ -127,8 +133,11 @@ const useAarState = (campaign: CampaignDetail, track: TrackDetail, unitStatuses:
     return [state, dispatch] as const;
 };
 
-export const calculatePilotFinancials = (pState: { healed: number }, terms: any, healCost: number) => {
-    const rawMedicalCost = pState.healed * healCost;
+export const calculatePilotFinancials = (pState: { healed: number }, terms: any, healCost: number, pricingRule: 'Core' | 'Alpha Strike' = 'Core') => {
+    // Alpha Strike: only 1 wound max can be healed
+    const effectiveHealCount = pricingRule === 'Alpha Strike' ? Math.min(pState.healed, 1) : pState.healed;
+
+    const rawMedicalCost = effectiveHealCount * healCost;
     let mercenaryCost = 0;
 
     if (terms.support.type === 'BATTLE') {
@@ -185,7 +194,7 @@ interface AfterActionReportEditorProps {
 }
 
 // New helper function to calculate financial implications of a unit's status
-export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Partial<CampaignDetail> | undefined, statuses: string[]) => {
+export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Partial<CampaignDetail> | undefined, statuses: string[], pricingRule: 'Core' | 'Alpha Strike' = 'Core') => {
     const [operational, armor, internal, crippled, destroyed, trulyDestroyed] = statuses;
 
     const isTrulyDestroyed = status === trulyDestroyed;
@@ -194,6 +203,7 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
     let damageMultiplier = 0;
     let unitModifier = 1.0;
     let techTax = 1.0;
+    const costBasis = pricingRule === 'Core' ? (unit.tonnage || 0) : ((unit.asSize || 0) * 20);
 
     // Determine tech level multiplier based on specific tech base
     if (unit.techBase === 'Clan') {
@@ -216,7 +226,8 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
         };
 
         damageMultiplier = multipliers[status] || 0;
-        baseRepairCost = (unit.tonnage || 0) * damageMultiplier;
+
+        baseRepairCost = costBasis * damageMultiplier;
 
         if (['CV', 'BA', 'CI'].includes(unit.type)) {
             unitModifier = (rules?.nonMechModifier ?? 0.5);
@@ -234,6 +245,7 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
         techTax,
         damageMultiplier,
         unitModifier,
+        costBasis,
         tonnage: unit.tonnage || 0,
         bv: unit.bv || 0,
         techBase: unit.techBase,
@@ -395,7 +407,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     const handleProcessUnit = (detId: string, cmdId: string, unit: CombatUnit) => {
         const uState = state.unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
-        const { isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses);
+        const { isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses, state.pricingRule);
 
         if (isTrulyDestroyed) {
             setOverlay({
@@ -428,7 +440,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         // Ensure ammo is parsed correctly from potentially string state
         const ammoTons = parseNumericInput(uState.ammo);
 
-        const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses);
+        const { baseRepairCost, baseReplacementValue, isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses, state.pricingRule);
 
         let finalAmount = 0;
         let description = ''; // Determine financial outcome based on support term type
@@ -445,7 +457,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         } else {
             const repairCost = Math.ceil(baseRepairCost);
-            const ammoCost = ammoTons * ammoCostPerTon;
+            const ammoCost = state.pricingRule === 'Core'
+                ? ammoTons * ammoCostPerTon
+                : (ammoTons > 0 ? (campaign.rearmCostPerTonAlphaStrike ?? 20) : 0);
+
             const totalRawCost = repairCost + ammoCost;
 
             if (terms.support.type === 'BATTLE') {
@@ -517,13 +532,14 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         };
         const pState = state.pilotStates[pilot.id] || { injuries: 0, healed: 0 };
 
-        // Check for pilot death (6 injuries)
-        const isPilotDead = pState.injuries === 6;
+        // Check for pilot death (6 injuries in Core, 2 in Alpha Strike)
+        const isPilotDead = state.pricingRule === 'Alpha Strike' ? pState.injuries === 2 : pState.injuries === 6;
 
         if (isPilotDead) {
+            const fatalCount = state.pricingRule === 'Alpha Strike' ? 2 : 6;
             setOverlay({
                 title: "CONFIRM PERSONNEL FATALITY",
-                message: `PILOT ${pilot.name} HAS SUSTAINED 6 INJURIES. COMMITTING THIS ROW WILL PERMANENTLY REMOVE THE PILOT FROM THE REGISTRY. NO COMPENSATION IS DUE. PROCEED?`,
+                message: `PILOT ${pilot.name} HAS SUSTAINED ${fatalCount} INJURIES. COMMITTING THIS ROW WILL PERMANENTLY REMOVE THE PILOT FROM THE REGISTRY. NO COMPENSATION IS DUE. PROCEED?`,
                 variant: 'alert',
                 onConfirm: () => {
                     setOverlay(null);
@@ -537,7 +553,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     };
 
     const commitPilotLogistics = async (detId: string, cmdId: string, pilot: Pilot, pState: { injuries: number; healed: number; }, terms: any, noticeKey: string, isPilotDead: boolean) => {
-        const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
+        const financials = calculatePilotFinancials(pState, terms, injuryHealCost, state.pricingRule);
         const finalCost = financials.mercenaryCostSigned;
 
         setErrorStates(prev => {
@@ -622,6 +638,17 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             confirmLabel={isFinalizing ? "SYNCHRONIZING..." : "CLOSE DEBRIEFING"}
             themeClass="theme-red"
             loading={isFinalizing}
+            headerActions={
+                <button
+                    type="button"
+                    className="mode-btn theme-amber"
+                    style={{ padding: '2px 8px', fontSize: '0.8rem', marginRight: '15px' }}
+                    onClick={() => dispatch({ type: 'TOGGLE_RULESET' })}
+                    title="Switch between Core and Alpha Strike pricing rules"
+                >
+                    {state.pricingRule === 'Core' ? 'RULESET: CORE' : 'RULESET: AS'}
+                </button>
+            }
         >
             <AarBackground />
             <div className="aar-bg-overlay" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '10px', paddingTop: '15px', position: 'relative', overflowX: 'hidden', background: 'transparent' }}>
@@ -813,7 +840,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                 const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
                                                 const ammoTons = parseNumericInput(uState.ammo);
                                                 const terms = getDetachmentTerms(det.id);
-                                                const financials = calculateUnitFinancials(u, uState.status, repairRules, unitStatuses);
+                                                const financials = calculateUnitFinancials(u, uState.status, repairRules, unitStatuses, state.pricingRule);
                                                 const { baseRepairCost, baseReplacementValue, isTrulyDestroyed, techTax } = financials;
 
                                                 let displayAmount = 0;
@@ -833,7 +860,11 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                     ammoInputDisabled = true;
                                                 } else {
                                                     const repairCost = Math.ceil(baseRepairCost);
-                                                    const ammoCost = ammoTons * ammoCostPerTon;
+
+                                                    const ammoCost = state.pricingRule === 'Core'
+                                                        ? ammoTons * ammoCostPerTon
+                                                        : (ammoTons > 0 ? (campaign.rearmCostPerTonAlphaStrike ?? 20) : 0);
+
                                                     const totalRawCost = repairCost + ammoCost;
 
                                                     if (terms.support.type === 'BATTLE') {
@@ -842,8 +873,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         displayAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
                                                     }
 
-                                                    tooltip = `Base Repair: ${financials.tonnage}T * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
-                                                        `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${ammoTons * ammoCostPerTon} SP\n` +
+                                                    const rearmPart = state.pricingRule === 'Core'
+                                                        ? `Ammo: ${uState.ammo}T x ${ammoCostPerTon} SP/T = ${ammoTons * ammoCostPerTon} SP`
+                                                        : `Ammo: AS Flat Rate = ${ammoCost} SP`;
+
+                                                    tooltip = `Base Repair: ${financials.costBasis}${state.pricingRule === 'Core' ? 'T' : ' Basis'} * ${financials.damageMultiplier} (Status)${financials.unitModifier !== 1 ? ` * ${financials.unitModifier} (Type)` : ''}${techTax !== 1 ? ` * ${techTax} (Tech)` : ''} = ${repairCost} SP\n` +
+                                                        `${rearmPart}\n` +
                                                         `Coverage: ${terms.support.type === 'BATTLE' ? '100% (BATTLE)' : `${terms.support.pct * 100}% (STRAIGHT)`}`;
                                                 }
 
@@ -939,7 +974,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             .map((p: any) => {
                                                 const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
                                                 const terms = getDetachmentTerms(det.id);
-                                                const financials = calculatePilotFinancials(pState, terms, injuryHealCost);
+                                                const financials = calculatePilotFinancials(pState, terms, injuryHealCost, state.pricingRule);
                                                 const noticeKey = `${p.id}-medical`;
 
                                                 const tooltip = `Medical Cost: ${financials.healed} injuries x ${financials.injuryHealCost} SP = ${financials.rawMedicalCost} SP\n` +
@@ -960,9 +995,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                                         dispatch({ type: 'UPDATE_PILOT_STATE', pilotId: p.id, patch: { injuries: val } });
                                                                         updatePilot({ variables: { id: p.id, input: { wounds: val } } });
                                                                     }}
-                                                                    title="Select total pilot injuries"
+                                                                    title={state.pricingRule === 'Alpha Strike' ? "Select pilot status" : "Select total pilot injuries"}
                                                                 >
-                                                                    {[0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v === 6 ? 'FATAL' : v}</option>)}
+                                                                    {state.pricingRule === 'Alpha Strike' ?
+                                                                        [0, 1, 2].map(v => <option key={v} value={v}>{v === 2 ? 'FATAL' : (v === 1 ? 'WOUNDED' : 'ACTIVE')}</option>) :
+                                                                        [0, 1, 2, 3, 4, 5, 6].map(v => <option key={v} value={v}>{v === 6 ? 'FATAL' : v}</option>)
+                                                                    }
                                                                 </select>
                                                             </div>
                                                         </td>
@@ -977,7 +1015,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                                     }}
                                                                     title="Select number of injuries healed"
                                                                 >
-                                                                    {[...Array(healMonthLimit + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
+                                                                    {[...Array((state.pricingRule === 'Alpha Strike' ? 1 : healMonthLimit) + 1).keys()].map(v => <option key={v} value={v}>{v}</option>)}
                                                                 </select>
                                                             </div>
                                                         </td>
