@@ -509,92 +509,95 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                 </div>
             </div>
 
-            <div className="dashboard-grid" style={{ gridTemplateColumns: '250px 1fr' }}>
-                <aside className="tactical-panel" data-id="ORG-STRUCTURE">
-                    <h3 className="zone-header">ORGANIZATION</h3>
-                    {!isManagerView && (
-                        <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
-                            <button
-                                className={`mode-btn text-left ${selectedDetachmentId === null ? 'active' : ''}`}
-                                onClick={() => setSelectedDetachmentId(null)}
-                                style={{ flex: 1 }}
-                            >
-                                COMMAND
-                            </button>
-                            <button className="mode-btn" onClick={handleCreateDetachment}>+</button>
-                        </div>
-                    )}
-                    {detachments
-                        .filter(det => !isManagerView || det.id === selectedDetachmentId)
-                        .map(det => (
-                            <div key={det.id} style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
-                                <button
-                                    className={`mode-btn text-left ${selectedDetachmentId === det.id ? 'active' : ''}`}
-                                    onClick={() => setSelectedDetachmentId(det.id)}
-                                    style={{ flex: 1 }}
-                                >
-                                    {det.name}
-                                </button>
-                                {!isManagerView && <button className="mode-btn" style={{ color: 'var(--terminal-alert)' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>}
-                            </div>
-                        ))}
-
-                    {selectedDetachmentId && !isManagerView && (() => {
-                        const currentDet = command.detachments?.find((d: any) => d.id === selectedDetachmentId);
-
-                        if (currentDet?.campaignId) {
-                            return (
-                                <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
-                                    <h4 className="restricted-text" style={{ fontSize: '0.6rem', marginBottom: '10px' }}>ACTIVE DEPLOYMENT</h4>
-                                    <div className="flex flex-gap-5">
-                                        <button
-                                            className="mode-btn"
-                                            style={{ flex: 2, fontSize: '0.7rem' }}
-                                            onClick={() => onViewCampaign?.(currentDet.campaignId!)}
-                                        >
-                                            VIEW THEATER
-                                        </button>
-                                        <button
-                                            className="mode-btn"
-                                            style={{ flex: 1, fontSize: '0.7rem', color: 'var(--terminal-alert)' }}
-                                            onClick={handleLeaveCampaign}
-                                        >
-                                            LEAVE
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        }
-
-                        return (
-                            <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
-                                <label htmlFor="invite-token" className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
-                                <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
-                                    <input
-                                        id="invite-token"
-                                        className="table-input w-100"
-                                        style={{ border: 'none' }}
-                                        placeholder="INVITE TOKEN..."
-                                        value={inviteToken}
-                                        onChange={(e) => setInviteToken(e.target.value)}
-                                        title="Enter campaign invitation key"
-                                    />
-                                </div>
-                                <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
-                            </div>
-                        );
-                    })()}
-                </aside>
-
+            <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <main className="registry-main" style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                     <section className="dashboard-section tactical-panel" data-id="FORCE-SUMMARY">
-                        <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT READINESS' : 'COMMAND READINESS'}</h3>
-                        <DetachmentReadinessSummary
-                            units={filteredUnits}
-                            pilots={filteredPilots}
-                            compact
-                            campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
-                        />
+                        <div style={{ display: 'flex', gap: '25px' }}>
+                            <div style={{ width: '220px', borderRight: '1px dashed var(--accent-dim)', paddingRight: '25px' }} data-id="ORG-STRUCTURE">
+                                <h3 className="zone-header">ORGANIZATION</h3>
+                                {!isManagerView && (
+                                    <div style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                                        <button
+                                            className={`mode-btn text-left ${selectedDetachmentId === null ? 'active' : ''}`}
+                                            onClick={() => setSelectedDetachmentId(null)}
+                                            style={{ flex: 1 }}
+                                        >
+                                            COMMAND
+                                        </button>
+                                        <button className="mode-btn" onClick={handleCreateDetachment}>+</button>
+                                    </div>
+                                )}
+                                {detachments
+                                    .filter(det => !isManagerView || det.id === selectedDetachmentId)
+                                    .map(det => (
+                                        <div key={det.id} style={{ display: 'flex', gap: '5px', marginBottom: '10px' }}>
+                                            <button
+                                                className={`mode-btn text-left ${selectedDetachmentId === det.id ? 'active' : ''}`}
+                                                onClick={() => setSelectedDetachmentId(det.id)}
+                                                style={{ flex: 1 }}
+                                            >
+                                                {det.name}
+                                            </button>
+                                            {!isManagerView && <button className="mode-btn" style={{ color: 'var(--terminal-alert)' }} onClick={() => handleDeleteDetachment(det.id)}>X</button>}
+                                        </div>
+                                    ))}
+
+                                {selectedDetachmentId && !isManagerView && (() => {
+                                    const currentDet = command.detachments?.find((d: any) => d.id === selectedDetachmentId);
+
+                                    if (currentDet?.campaignId) {
+                                        return (
+                                            <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
+                                                <h4 className="restricted-text" style={{ fontSize: '0.6rem', marginBottom: '10px' }}>ACTIVE DEPLOYMENT</h4>
+                                                <div className="flex flex-gap-5">
+                                                    <button
+                                                        className="mode-btn"
+                                                        style={{ flex: 2, fontSize: '0.7rem' }}
+                                                        onClick={() => onViewCampaign?.(currentDet.campaignId!)}
+                                                    >
+                                                        VIEW THEATER
+                                                    </button>
+                                                    <button
+                                                        className="mode-btn"
+                                                        style={{ flex: 1, fontSize: '0.7rem', color: 'var(--terminal-alert)' }}
+                                                        onClick={handleLeaveCampaign}
+                                                    >
+                                                        LEAVE
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
+                                            <label htmlFor="invite-token" className="restricted-text" style={{ fontSize: '0.6rem' }}>CAMPAIGN RECRUITMENT</label>
+                                            <div className="status-bar theme-amber" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                                                <input
+                                                    id="invite-token"
+                                                    className="table-input w-100"
+                                                    style={{ border: 'none' }}
+                                                    placeholder="INVITE TOKEN..."
+                                                    value={inviteToken}
+                                                    onChange={(e) => setInviteToken(e.target.value)}
+                                                    title="Enter campaign invitation key"
+                                                />
+                                            </div>
+                                            <button className="mode-btn" style={{ width: '100%', marginTop: '5px', fontSize: '0.7rem' }} onClick={handleJoinCampaign}>JOIN THEATER</button>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT READINESS' : 'COMMAND READINESS'}</h3>
+                                <DetachmentReadinessSummary
+                                    units={filteredUnits}
+                                    pilots={filteredPilots}
+                                    compact
+                                    campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
+                                />
+                            </div>
+                        </div>
                     </section>
 
                     <section className="dashboard-section tactical-panel" data-id="ASSET-REG">

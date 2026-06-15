@@ -128,7 +128,11 @@ public class InviteService {
                     if (invite.getExpiresAt() != null && invite.getExpiresAt().isBefore(LocalDateTime.now())) {
                         return Mono.error(new RuntimeException("INVITATION KEY HAS EXPIRED"));
                     }
-                    return inviteRepository.save(Objects.requireNonNull(invite.toBuilder().used(true).isNew(false).build()));
+                    return inviteRepository.save(Objects.requireNonNull(invite.toBuilder()
+                            .used(true)
+                            .expiresAt(LocalDateTime.now().plusYears(1))
+                            .isNew(false)
+                            .build()));
                 })
                 .switchIfEmpty(Mono.error(new RuntimeException("INVALID INVITATION KEY")))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished validateAndConsumeInvite"));
