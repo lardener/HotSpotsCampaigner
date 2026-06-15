@@ -40,7 +40,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                 </div>
             )}
             <div>
-                <span className="restricted-text" style={{ fontSize: '0.6rem' }}>UNIT READINESS</span>
+                <span className="restricted-text" style={{ fontSize: '0.6rem' }}>COMBAT UNIT READINESS</span>
                 <table className="tactical-table sm-text" style={{ marginTop: '5px', fontSize: '0.7rem' }}>
                     <thead>
                         <tr>
@@ -78,7 +78,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                         <tr>
                             <th className="text-center">SPEC</th>
                             <th className="text-center">QTY</th>
-                            <th className="text-center">AVG G/P</th>
+                            <th className="text-center">AVG G/P [AS]</th>
                             <th className="text-center">H</th>
                         </tr>
                     </thead>
@@ -87,7 +87,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                             <tr key={s.spec}>
                                 <td className="text-center">{s.spec}</td>
                                 <td className="text-center">{s.count}</td>
-                                <td className="text-center">{(s.gun / s.count).toFixed(1)} / {(s.pil / s.count).toFixed(1)}</td>
+                                <td className="text-center">{(s.gun / s.count).toFixed(1)}/{(s.pil / s.count).toFixed(1)} [{(s.as / s.count).toFixed(1)}]</td>
                                 <td className="text-center">{s.handicap}</td>
                             </tr>
                         ))}

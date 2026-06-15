@@ -64,17 +64,15 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
         }
     };
 
-    const labelWidth = '160px';
-
     return (
         <div className="ledger-form-container">
             <LedgerBackground />
             <h3 className="zone-header" style={{ margin: '0 0 10px 0' }}>RECORD SP TRANSACTION</h3>
             <form onSubmit={handleSubmit} className="flex-col flex-gap-10">
                 <div className="flex-col flex-gap-5">
-                    <div className="input-group flex items-center">
-                        <label htmlFor="description" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>DESCRIPTION</label>
-                        <div className="status-bar theme-green flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                    <div className="input-group flex-col">
+                        <label htmlFor="description" className="restricted-text sm-text mb-5">DESCRIPTION</label>
+                        <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                             <input
                                 id="description"
                                 type="text"
@@ -90,9 +88,9 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     </div>
 
                     <div className="grid-2-col flex-gap-20">
-                        <div className="input-group flex items-center">
-                            <label htmlFor="amount" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>SUPPORT POINTS</label>
-                            <div className={`status-bar theme-green ${isInputInvalid(amount) ? 'invalid' : ''}`} style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <div className="input-group flex-col">
+                            <label htmlFor="amount" className="restricted-text sm-text mb-5">SUPPORT POINTS</label>
+                            <div className={`status-bar theme-green ${isInputInvalid(amount) ? 'invalid' : ''}`} style={{ padding: '0 5px', display: 'flex', alignItems: 'center', width: 'calc(8em + 10px)' }}>
                                 <input
                                     id="amount"
                                     type="number"
@@ -106,9 +104,9 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                                 />
                             </div>
                         </div>
-                        <div className="input-group flex items-center">
-                            <label htmlFor="reputationChange" className="restricted-text sm-text" style={{ minWidth: '120px' }}>REPUTATION Δ</label>
-                            <div className={`status-bar theme-green ${isInputInvalid(reputationChange) ? 'invalid' : ''}`} style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <div className="input-group flex-col">
+                            <label htmlFor="reputationChange" className="restricted-text sm-text mb-5">REPUTATION Δ</label>
+                            <div className={`status-bar theme-green ${isInputInvalid(reputationChange) ? 'invalid' : ''}`} style={{ padding: '0 5px', display: 'flex', alignItems: 'center', width: 'calc(6em + 10px)' }}>
                                 <input
                                     id="reputationChange"
                                     type="number"
@@ -124,9 +122,9 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     </div>
 
                     <div className="grid-2-col flex-gap-20">
-                        <div className="input-group flex items-center">
-                            <label htmlFor="campaignName" className="restricted-text sm-text" style={{ minWidth: labelWidth }}>THEATER</label>
-                            <div className="status-bar theme-green flex-grow" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <div className="input-group flex-col">
+                            <label htmlFor="campaignName" className="restricted-text sm-text mb-5">THEATER</label>
+                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
                                 <input
                                     id="campaignName"
                                     type="text"
@@ -139,9 +137,9 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                                 />
                             </div>
                         </div>
-                        <div className="input-group flex items-center">
-                            <label htmlFor="monthIndex" className="restricted-text sm-text" style={{ minWidth: '120px' }}>MONTH INDEX</label>
-                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}>
+                        <div className="input-group flex-col">
+                            <label htmlFor="monthIndex" className="restricted-text sm-text mb-5">MONTH INDEX</label>
+                            <div className="status-bar theme-green" style={{ padding: '0 5px', display: 'flex', alignItems: 'center', width: 'calc(6em + 10px)' }}>
                                 <input
                                     id="monthIndex"
                                     type="number"
@@ -159,9 +157,6 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                 </div>
 
                 <div className="flex flex-between items-center mt-5">
-                    <div className="restricted-text xs-text subdued">
-                        * USE NEGATIVE VALUES FOR COSTS / OUTGOING SP
-                    </div>
                     <button
                         type="submit"
                         disabled={
@@ -174,6 +169,9 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
                     >
                         {loading ? '>> COMMITTING...' : '✓ COMMIT TRANSACTION'}
                     </button>
+                    <div className="restricted-text xs-text subdued">
+                        * USE NEGATIVE VALUES FOR COSTS / OUTGOING SP
+                    </div>
                 </div>
 
                 {submissionError && (

@@ -592,6 +592,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         <DetachmentReadinessSummary
                             units={filteredUnits}
                             pilots={filteredPilots}
+                            compact
                             campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
                         />
                     </section>
@@ -608,14 +609,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         <table className="tactical-table">
                             <thead>
                                 <tr>
-                                    <th className="text-center">TYPE</th>
                                     <th title="Chassis of the unit (ex. Shadow Hawk)">MODEL</th>
                                     <th className="text-center" title="Variant of the unit (ex. SHD-2K)">VARIANT</th>
-                                    <th className="text-center" title="Tech Base">TECH</th>
-                                    <th className="text-center" title="Tonnage">TONS</th>
-                                    <th className="text-center" title="Alpha Strike Size">SZ</th>
-                                    <th className="text-center" title="Battle Value">BV</th>
-                                    <th className="text-center" title="Point Value">PV</th>
+                                    <th className="text-center">VALUE (BV [PV])</th>
                                     <th className="text-center">STATUS</th>
                                     {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
                                     <th className="text-center"></th>
@@ -624,14 +620,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <tbody>
                                 {filteredUnits.map((u: CombatUnit) => (
                                     <tr key={u.id}>
-                                        <td className="text-center">{u.type}</td>
                                         <td>{u.model}</td>
                                         <td className="text-center">{u.variant || '---'}</td>
-                                        <td className="text-center">{u.techBase}</td>
-                                        <td className="text-center">{u.tonnage}</td>
-                                        <td className="text-center">{u.asSize}</td>
-                                        <td className="text-center">{u.bv}</td>
-                                        <td className="text-center">{u.pv}</td>
+                                        <td className="text-center">{u.bv} [{u.pv}]</td>
                                         <td className="text-center">{u.status}</td>
                                         {!selectedDetachmentId && (
                                             <td className="text-center">
@@ -681,9 +672,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <thead>
                                 <tr>
                                     <th>NAME</th>
-                                    <th className="text-center">GUNNERY</th>
-                                    <th className="text-center">PILOTING</th>
-                                    <th className="text-center">AS SKILL</th>
+                                    <th className="text-center">SKILL (G/P [AS])</th>
                                     <th className="text-center">UNIT SPECIALTY</th>
                                     <th className="text-center">WOUNDS</th>
                                     <th className="text-center">HANDICAP</th>
@@ -695,9 +684,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 {filteredPilots.map((p: Pilot) => (
                                     <tr key={p.id}>
                                         <td>{p.name}</td>
-                                        <td className="text-center">{p.gunnery}</td>
-                                        <td className="text-center">{p.piloting}</td>
-                                        <td className="text-center">{p.asSkill}</td>
+                                        <td className="text-center">{p.gunnery}/{p.piloting} [{p.asSkill}]</td>
                                         <td className="text-center">{p.unitType}</td>
                                         <td className="text-center">{p.wounds}</td>
                                         <td className="text-center">{p.handicap}</td>
