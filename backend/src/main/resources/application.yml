@@ -2,12 +2,17 @@ spring:
   application:
     name: battletech-campaign-backend
   r2dbc:
-    url: r2dbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:BT_Campaigner}${MYSQL_PARAMS}
+    url: r2dbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:BT_Campaigner}${MYSQL_PARAMS:}
     username: ${MYSQL_USER}
     password: ${MYSQL_PASSWORD}
     pool:
-      initial-size: 10
-      max-size: 20
+      initial-size: 1
+      max-size: 10
+      max-idle-time: 30m
+      max-life-time: 60m
+      validation-query: SELECT 1
+      max-create-connection-time: 5s
+      max-acquire-time: 30s
   security:
     oauth2:
       client:
