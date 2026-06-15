@@ -196,6 +196,26 @@ public class CampaignGraphQLController {
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getCampaignInvites"));
     }
 
+    @SchemaMapping(typeName = "Campaign", field = "isManager")
+    public Mono<Boolean> isManager(Campaign campaign, Principal principal) {
+        if (isAnonymous(principal)) {
+            return Mono.just(false);
+        }
+        return userService.resolveOrCreateUser(principal.getName())
+                .map(user -> campaign.getManagerId().equals(user.getId().toString()))
+                .defaultIfEmpty(false);
+    }
+
+    @SchemaMapping(typeName = "Campaign", field = "isParticipant")
+    public Mono<Boolean> isParticipant(Campaign campaign, Principal principal) {
+        if (isAnonymous(principal)) {
+            return Mono.just(false);
+        }
+        return userService.resolveOrCreateUser(principal.getName())
+                .flatMap(user -> commandService.isParticipantInCampaign(campaign.getId(), user.getId().toString(), principal.getName()))
+                .defaultIfEmpty(false);
+    }
+
     @QueryMapping
     public CampaignMetadata campaignMetadata(Principal principal) {
         log.trace("[TRACE] Entering campaignMetadata");

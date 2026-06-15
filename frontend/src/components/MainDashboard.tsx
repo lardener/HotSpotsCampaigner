@@ -591,15 +591,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
         switch (activeTab) {
             case 'my-campaigns':
-                if (!isManager) {
-                    return (
-                        <div className="placeholder-content">
-                            <h2 style={{ color: 'var(--terminal-alert)' }}>UNAUTHORIZED ACCESS</h2>
-                            <p className="restricted-text">THEATER MANAGEMENT PROTOCOLS ARE RESTRICTED TO CERTIFIED MANAGERS.</p>
-                            <button className="mode-btn" onClick={() => setActiveTab('commands')}>RETURN TO REGISTRY</button>
-                        </div>
-                    );
-                }
                 return (
                     <CampaignTheaterView
                         managedData={managedData as any}

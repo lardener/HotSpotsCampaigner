@@ -555,4 +555,6 @@ type Campaign {
     learnCommandAbility2Cost: Int
     learnCommandAbility3Cost: Int
     replaceCommandAbilityCost: Int
+    isManager: Boolean
+    isParticipant: Boolean
 }

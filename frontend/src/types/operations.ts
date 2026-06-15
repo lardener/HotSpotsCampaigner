@@ -499,6 +499,8 @@ export const GET_CAMPAIGN_DETAILS = gql`
       description
       lengthInMonths
       trackCount
+      isManager
+      isParticipant
       status
       primaryEmployer
       secondaryEmployer
@@ -540,6 +542,9 @@ export const GET_CAMPAIGN_DETAILS = gql`
       learnCommandAbility2Cost
       learnCommandAbility3Cost
       replaceCommandAbilityCost
+      contracts {
+        ...ContractFields
+      }
       factions {
         id
         factionName
@@ -565,6 +570,7 @@ export const GET_CAMPAIGN_DETAILS = gql`
       }
     }
   }
+  ${FRAGMENT_CONTRACT}
   ${FRAGMENT_TRACK}
   ${FRAGMENT_COMBAT_UNIT}
   ${FRAGMENT_PILOT}

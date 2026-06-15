@@ -656,13 +656,15 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 <div className="tactical-panel narrative-editor mb-20 theme-red" data-id="AAR-NARRATIVE">
                     <div className="flex-between mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>
                         <h3 className="zone-header" style={{ margin: 0 }}>OPERATIONAL DEBRIEFING</h3>
-                        <button
-                            className="mode-btn"
-                            style={{ fontSize: '0.6rem', padding: '2px 6px' }}
-                            onClick={() => setIsEditingNarrative(!isEditingNarrative)}
-                        >
-                            {isEditingNarrative ? '[ CLOSE ]' : '[ EDIT ]'}
-                        </button>
+                        {(campaign as any).isManager && (
+                            <button
+                                className="mode-btn"
+                                style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                                onClick={() => setIsEditingNarrative(!isEditingNarrative)}
+                            >
+                                {isEditingNarrative ? '[ CLOSE ]' : '[ EDIT ]'}
+                            </button>
+                        )}
                     </div>
                     {isEditingNarrative ? (
                         <div className="status-bar theme-red" style={{ padding: '5px' }}>
@@ -695,7 +697,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     )}
                 </div>
 
-                {campaign.participatingDetachments?.map((det: any) => (
+                {campaign.participatingDetachments?.filter((det: any) => {
+                    if ((campaign as any).isManager) return true;
+                    return userCommands?.some(cmd => cmd.id === det.mercenaryCommandId);
+                }).map((det: any) => (
                     <div key={det.id} className="dashboard-section mb-20" style={{ border: '1px solid var(--accent-dim)', padding: '15px', backgroundColor: 'transparent' }}>
                         <div className="flex-between mb-15" style={{ borderBottom: '1px solid var(--accent-dim)', paddingBottom: '8px' }}>
                             <h4 className="terminal-text" style={{ margin: 0 }}>{det.name.toUpperCase()}</h4>

@@ -542,7 +542,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                         </div>
                                     ))}
 
-                                {selectedDetachmentId && !isManagerView && (() => {
+                                {selectedDetachmentId && (() => {
                                     const currentDet = command.detachments?.find((d: any) => d.id === selectedDetachmentId);
 
                                     if (currentDet?.campaignId) {
@@ -557,17 +557,19 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                     >
                                                         VIEW THEATER
                                                     </button>
-                                                    <button
+                                                    {!isManagerView && <button
                                                         className="mode-btn"
                                                         style={{ flex: 1, fontSize: '0.7rem', color: 'var(--terminal-alert)' }}
                                                         onClick={handleLeaveCampaign}
                                                     >
                                                         LEAVE
-                                                    </button>
+                                                    </button>}
                                                 </div>
                                             </div>
                                         );
                                     }
+
+                                    if (isManagerView) return null;
 
                                     return (
                                         <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
@@ -731,76 +733,78 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     </section>
                 </main>
 
-                <section className="dashboard-section tactical-panel" data-id={selectedDetachmentId ? "DETACHMENT-LEDGER" : "COMMAND-LEDGER"} style={{ gridColumn: '1 / -1', marginTop: '30px' }}>
-                    <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT LEDGER' : 'COMMAND LEDGER'}</h3>
+                {!isManagerView && (
+                    <section className="dashboard-section tactical-panel" data-id={selectedDetachmentId ? "DETACHMENT-LEDGER" : "COMMAND-LEDGER"} style={{ gridColumn: '1 / -1', marginTop: '30px' }}>
+                        <h3 className="zone-header">{selectedDetachmentId ? 'DETACHMENT LEDGER' : 'COMMAND LEDGER'}</h3>
 
-                    <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
-                        <LedgerEntryForm
-                            commandId={commandId}
-                            detachmentId={selectedDetachmentId}
-                            campaignId={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignId}
-                            initialCampaignName={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignName || ''}
-                            onEntryAdded={() => refetch()}
-                        />
-                    </div>
-
-                    <table className="tactical-table">
-                        <thead>
-                            <tr>
-                                <th style={{ width: '10%' }}>DATE</th>
-                                <th style={{ width: '35%' }}>DESCRIPTION</th>
-                                <th className="text-right" style={{ width: '10%' }}>SP (+/-)</th>
-                                <th className="text-right" style={{ width: '10%' }}>REP (+/-)</th>
-                                <th className="text-center" style={{ width: '25%' }}>CONTRACT</th>
-                                <th className="text-center" style={{ width: '10%' }}>MO</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {paginatedLedger.length > 0 ? (
-                                paginatedLedger.map(entry => (
-                                    <tr key={entry.id}>
-                                        <td>{new Date(entry.timestamp).toLocaleDateString()}</td>
-                                        <td>{entry.description}</td>
-                                        <td className="text-right" style={{ color: (entry.amount || 0) >= 0 ? 'var(--terminal-green)' : 'var(--terminal-alert)' }}>
-                                            {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
-                                        </td>
-                                        <td className="text-right" style={{ color: (entry.reputationChange || 0) > 0 ? 'var(--terminal-green)' : (entry.reputationChange || 0) < 0 ? 'var(--terminal-alert)' : 'inherit' }}>
-                                            {entry.reputationChange !== undefined && entry.reputationChange !== 0
-                                                ? (entry.reputationChange > 0 ? `+${entry.reputationChange}` : entry.reputationChange)
-                                                : '-'}
-                                        </td>
-                                        <td className="text-center">{entry.campaignName || '-'}</td>
-                                        <td className="text-center">{entry.monthIndex || '-'}</td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={6} className="text-center restricted-text">NO TRANSACTIONS RECORDED</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-
-                    {sortedLedger.length > entriesPerPage && (
-                        <div className="flex-between items-center mt-15 pt-10" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
-                            <div className="restricted-text sm-text subdued">
-                                ENTRIES: {sortedLedger.length} | PAGE {ledgerPage} OF {totalPages}
-                            </div>
-                            <div className="flex flex-gap-10">
-                                <button
-                                    className="mode-btn sm-text"
-                                    disabled={ledgerPage <= 1}
-                                    onClick={() => setLedgerPage(prev => Math.max(1, prev - 1))}
-                                >PREV</button>
-                                <button
-                                    className="mode-btn sm-text"
-                                    disabled={ledgerPage >= totalPages}
-                                    onClick={() => setLedgerPage(prev => Math.min(totalPages, prev + 1))}
-                                >NEXT</button>
-                            </div>
+                        <div style={{ marginBottom: '30px', borderBottom: '1px dashed var(--accent-dim)', paddingBottom: '20px' }}>
+                            <LedgerEntryForm
+                                commandId={commandId}
+                                detachmentId={selectedDetachmentId}
+                                campaignId={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignId}
+                                initialCampaignName={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignName || ''}
+                                onEntryAdded={() => refetch()}
+                            />
                         </div>
-                    )}
-                </section>
+
+                        <table className="tactical-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '10%' }}>DATE</th>
+                                    <th style={{ width: '35%' }}>DESCRIPTION</th>
+                                    <th className="text-right" style={{ width: '10%' }}>SP (+/-)</th>
+                                    <th className="text-right" style={{ width: '10%' }}>REP (+/-)</th>
+                                    <th className="text-center" style={{ width: '25%' }}>CONTRACT</th>
+                                    <th className="text-center" style={{ width: '10%' }}>MO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedLedger.length > 0 ? (
+                                    paginatedLedger.map(entry => (
+                                        <tr key={entry.id}>
+                                            <td>{new Date(entry.timestamp).toLocaleDateString()}</td>
+                                            <td>{entry.description}</td>
+                                            <td className="text-right" style={{ color: (entry.amount || 0) >= 0 ? 'var(--terminal-green)' : 'var(--terminal-alert)' }}>
+                                                {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
+                                            </td>
+                                            <td className="text-right" style={{ color: (entry.reputationChange || 0) > 0 ? 'var(--terminal-green)' : (entry.reputationChange || 0) < 0 ? 'var(--terminal-alert)' : 'inherit' }}>
+                                                {entry.reputationChange !== undefined && entry.reputationChange !== 0
+                                                    ? (entry.reputationChange > 0 ? `+${entry.reputationChange}` : entry.reputationChange)
+                                                    : '-'}
+                                            </td>
+                                            <td className="text-center">{entry.campaignName || '-'}</td>
+                                            <td className="text-center">{entry.monthIndex || '-'}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={6} className="text-center restricted-text">NO TRANSACTIONS RECORDED</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+                        {sortedLedger.length > entriesPerPage && (
+                            <div className="flex-between items-center mt-15 pt-10" style={{ borderTop: '1px dashed var(--accent-dim)' }}>
+                                <div className="restricted-text sm-text subdued">
+                                    ENTRIES: {sortedLedger.length} | PAGE {ledgerPage} OF {totalPages}
+                                </div>
+                                <div className="flex flex-gap-10">
+                                    <button
+                                        className="mode-btn sm-text"
+                                        disabled={ledgerPage <= 1}
+                                        onClick={() => setLedgerPage(prev => Math.max(1, prev - 1))}
+                                    >PREV</button>
+                                    <button
+                                        className="mode-btn sm-text"
+                                        disabled={ledgerPage >= totalPages}
+                                        onClick={() => setLedgerPage(prev => Math.min(totalPages, prev + 1))}
+                                    >NEXT</button>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                )}
             </div>
 
             {overlay && (

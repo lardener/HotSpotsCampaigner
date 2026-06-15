@@ -58,12 +58,14 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
         e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
     };
 
+    const isManager = (campaign as any).isManager;
+
     return (
         <div
-            draggable
+            draggable={isManager}
             onDragStart={(e) => e.dataTransfer.setData("trackId", track.id)}
             onDrop={(e) => {
-                e.stopPropagation(); // prevent panel drop from firing
+                if (isManager) e.stopPropagation(); // prevent panel drop from firing
                 onDrop(e, track.id);
             }}
             className="asset-card"
@@ -78,6 +80,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         value={trackName}
                         onChange={(e) => setTrackName(e.target.value)}
                         onBlur={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
+                        readOnly={!isManager}
                         title="Track type"
                         placeholder="TRACK TYPE?"
                     />
@@ -87,11 +90,13 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         ))}
                     </datalist>
                 </div>
-                <button
-                    className="mode-btn theme-amber sm-text mr-10"
-                    style={{ padding: '0 5px', height: '18px', fontSize: '0.6rem' }}
-                    onClick={() => handleReroll(track.id)}
-                >REROLL</button>
+                {isManager && (
+                    <button
+                        className="mode-btn theme-amber sm-text mr-10"
+                        style={{ padding: '0 5px', height: '18px', fontSize: '0.6rem' }}
+                        onClick={() => handleReroll(track.id)}
+                    >REROLL</button>
+                )}
                 <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
             </div>
             <div className="mb-5">
@@ -106,6 +111,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         value={complications}
                         onChange={(e) => setComplications(e.target.value)}
                         onBlur={(e) => handleTextareaBlur(e, 'complications')}
+                        readOnly={!isManager}
                         placeholder="COMPLICATIONS"
                         title="Mission complications or modifiers"
                     />
@@ -124,6 +130,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                             value={oppositionComplications}
                             onChange={(e) => setOppositionComplications(e.target.value)}
                             onBlur={(e) => handleTextareaBlur(e, 'oppositionComplications')}
+                            readOnly={!isManager}
                             placeholder="OPPOSITION COMPLICATIONS"
                             title="Opposition mission complications"
                         />
@@ -138,6 +145,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
                         onBlur={(e) => handleTrackUpdate(track.id, 'location', e.target.value)}
+                        readOnly={!isManager}
                         placeholder="GAME LOCATION"
                         title="Physical location"
                     />
@@ -155,6 +163,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         value={nextSession}
                         onChange={(e) => setNextSession(e.target.value)}
                         onBlur={(e) => handleTrackUpdate(track.id, 'nextSession', e.target.value)}
+                        readOnly={!isManager}
                         title="Session date and time"
                     />
                 </div>
@@ -165,6 +174,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         value={attackerFactionId}
                         onChange={(e) => setAttackerFactionId(e.target.value)}
                         onBlur={(e) => handleTrackUpdate(track.id, 'attackerFactionId', e.target.value)}
+                        disabled={!isManager}
                         title="Attacker"
                     >
                         <option value="">[ ATK ]</option>

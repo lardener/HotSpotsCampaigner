@@ -1191,38 +1191,57 @@ public class MercenaryCommandService {
                 .switchIfEmpty(Mono.error(new RuntimeException("Track not found: " + trackId)))
                 .flatMap(track -> campaignRepository.findById(Objects.requireNonNull(track.getCampaignId()))
                 .flatMap(camp -> userService.resolveOrCreateUser(userId).flatMap(user -> {
-            if (!camp.getManagerId().equals(user.getId().toString())) {
-                return Mono.error(new RuntimeException("Access Denied: Only the theater manager can update tracks."));
-            }
-            track.setNew(false);
-            if (input.trackName() != null) {
-                track.setTrackName(input.trackName());
-            }
-            if (input.sequenceOrder() != null) {
-                track.setSequenceOrder(input.sequenceOrder());
-            }
-            if (input.location() != null) {
-                track.setLocation(input.location());
-            }
-            if (input.nextSession() != null) {
-                track.setNextSession(input.nextSession().isBlank() ? null : LocalDateTime.parse(input.nextSession()));
-            }
-            if (input.attackerFactionId() != null) {
-                track.setAttackerFactionId(input.attackerFactionId());
-            }
-            if (input.monthIndex() != null) {
-                track.setMonthIndex(input.monthIndex());
-            }
-            if (input.complications() != null) {
-                track.setComplications(input.complications());
-            }
-            if (input.oppositionComplications() != null) {
-                track.setOppositionComplications(input.oppositionComplications());
-            }
-            if (input.afterActionNarrative() != null) {
-                track.setAfterActionNarrative(input.afterActionNarrative());
-            }
-            return campaignTrackRepository.save(track);
+            String internalId = user.getId().toString();
+            boolean isManager = camp.getManagerId().equals(internalId);
+
+            return (isManager ? Mono.just(true) : isParticipantInCampaign(camp.getId(), internalId, userId))
+                    .flatMap(authorized -> {
+                        if (Boolean.FALSE.equals(authorized)) {
+                            return Mono.error(new RuntimeException("Access Denied: Only the theater manager or participants can update tracks."));
+                        }
+
+                        // Participants who are not managers can ONLY update the narrative
+                        if (!isManager && (input.trackName() != null || input.sequenceOrder() != null
+                                || input.location() != null || input.nextSession() != null
+                                || input.attackerFactionId() != null || input.monthIndex() != null
+                                || input.complications() != null || input.oppositionComplications() != null)) {
+                            return Mono.error(new RuntimeException("Access Denied: Participants can only update the After Action Narrative."));
+                        }
+
+                        track.setNew(false);
+                        if (isManager) {
+                            if (input.trackName() != null) {
+                                track.setTrackName(input.trackName());
+                            }
+                            if (input.sequenceOrder() != null) {
+                                track.setSequenceOrder(input.sequenceOrder());
+                            }
+                            if (input.location() != null) {
+                                track.setLocation(input.location());
+                            }
+                            if (input.nextSession() != null) {
+                                track.setNextSession(input.nextSession().isBlank() ? null : LocalDateTime.parse(input.nextSession()));
+                            }
+                            if (input.attackerFactionId() != null) {
+                                track.setAttackerFactionId(input.attackerFactionId());
+                            }
+                            if (input.monthIndex() != null) {
+                                track.setMonthIndex(input.monthIndex());
+                            }
+                            if (input.complications() != null) {
+                                track.setComplications(input.complications());
+                            }
+                            if (input.oppositionComplications() != null) {
+                                track.setOppositionComplications(input.oppositionComplications());
+                            }
+                        }
+
+                        if (input.afterActionNarrative() != null) {
+                            track.setAfterActionNarrative(input.afterActionNarrative());
+                        }
+
+                        return campaignTrackRepository.save(track);
+                    });
         })))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateTrack"));
     }
@@ -1286,12 +1305,17 @@ public class MercenaryCommandService {
         log.trace("[TRACE] Starting isAuthorizedForCommand: cmdId={}, user={}", commandId, userId);
         return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
             String internalId = user.getId().toString();
+            // A user is authorized to view a command if they are the owner,
+            // the campaign manager for an active deployment, or a fellow participant
+            // in any campaign theater where the command has assets deployed.
             String sql = "SELECT EXISTS ("
                     + "  SELECT 1 FROM mercenary_commands mc "
                     + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
                     + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
                     + "  WHERE mc.id = :cmdId "
-                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
+                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId"
+                    + "       OR EXISTS (SELECT 1 FROM detachments d_self JOIN mercenary_commands mc_self ON d_self.mercenary_command_id = mc_self.id "
+                    + "                  WHERE d_self.campaign_id = d.campaign_id AND (mc_self.owner_id = :userId OR mc_self.owner_id = :externalId)))"
                     + ")";
 
             var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);
@@ -1303,6 +1327,23 @@ public class MercenaryCommandService {
                     .defaultIfEmpty(false)
                     .doOnTerminate(() -> log.trace("[TRACE] Finished isAuthorizedForCommand"));
         });
+    }
+
+    public Mono<Boolean> isParticipantInCampaign(@NonNull UUID campaignId, String internalUserId, String externalUserId) {
+        log.trace("[TRACE] Checking campaign participation: campId={}, internalId={}, externalId={}", campaignId, internalUserId, externalUserId);
+        String sql = "SELECT COUNT(*) "
+                + "  FROM detachments d "
+                + "  JOIN mercenary_commands mc ON d.mercenary_command_id = mc.id "
+                + "  WHERE d.campaign_id = :campId "
+                + "  AND (mc.owner_id = :userId OR mc.owner_id = :externalId)";
+
+        var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "campId", campaignId);
+        spec = SqlUtils.bindString(spec, "userId", internalUserId);
+        spec = SqlUtils.bindString(spec, "externalId", externalUserId);
+        return spec.map((row, metadata) -> row.get(0, Number.class))
+                .one()
+                .map(n -> n != null && n.longValue() > 0)
+                .defaultIfEmpty(false);
     }
 
     /**
@@ -1334,8 +1375,8 @@ public class MercenaryCommandService {
     }
 
     /**
-     * Calculates and applies rearm costs for a specific unit based on its tonnage
-     * and the campaign's logistical rules.
+     * Calculates and applies rearm costs for a specific unit based on its
+     * tonnage and the campaign's logistical rules.
      */
     @Transactional
     public Mono<Void> automatedRearmUnit(@NonNull UUID unitId, String userId) {

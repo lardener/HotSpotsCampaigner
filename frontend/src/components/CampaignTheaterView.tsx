@@ -50,6 +50,8 @@ interface CampaignTheaterViewProps {
 }
 
 interface TheaterCampaign extends CampaignDetail {
+    isManager?: boolean;
+    isParticipant?: boolean;
 }
 
 /**
@@ -65,7 +67,8 @@ const useTheaterCampaignSync = (
     rerollTrack: any,
     refetchCampaign: any,
     onSyncChange?: (syncing: boolean) => void,
-    onRefresh?: () => Promise<void>
+    onRefresh?: () => Promise<void>,
+    userCommands?: any[]
 ) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const saveTimeoutRef = useRef<Record<string, number>>({});
@@ -113,13 +116,19 @@ const useTheaterCampaignSync = (
             ? (campaignQueryData.getCampaign as Partial<TheaterCampaign>)
             : {};
 
+        const localIsParticipant = userCommands?.some(cmd =>
+            cmd.detachments?.some((det: any) => det.campaignId === selectedCampaignId)
+        ) || false;
+
         return {
             ...baseCampaign,
             ...queryCampaign,
+            isManager: queryCampaign.isManager ?? !!campaignFromProps,
+            isParticipant: queryCampaign.isParticipant ?? localIsParticipant,
             id: queryCampaign.id || baseCampaign.id || selectedCampaignId || '',
             contracts: queryCampaign.contracts || baseCampaign.contracts || []
         } as TheaterCampaign;
-    }, [managedData, campaignQueryData, selectedCampaignId]);
+    }, [managedData, campaignQueryData, selectedCampaignId, userCommands]);
 
     // Derived state for theater layout
     const displayMonthCount = useMemo(() => {
@@ -390,7 +399,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         rerollTrack,
         refetchCampaign,
         onSyncChange,
-        onRefresh
+        onRefresh,
+        userCommands
     );
 
     const {
@@ -613,575 +623,609 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     </div>
                 </>
             ) : (
-                <>
-                    <header className="dashboard-header">
-                        <div className="flex-between">
-                            <div>
-                                <h1 className="terminal-text">{campaign?.name}</h1>
-                                <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName?.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
+                (() => {
+                    if (loading) {
+                        return <div className="loading-intel pulse" style={{ padding: '100px', textAlign: 'center' }}>RETRIEVING THEATER DATA...</div>;
+                    }
+
+                    if (!campaign?.id || campaign.id !== selectedCampaignId) {
+                        return (
+                            <div className="placeholder-content">
+                                <h2 className="terminal-text">DATA SYNCHRONIZATION ERROR</h2>
+                                <p className="restricted-text">UNABLE TO RETRIEVE OPERATIONAL RECORD FOR THEATER: {selectedCampaignId}</p>
+                                <button className="mode-btn" onClick={onReturnToList}>RETURN TO LIST</button>
                             </div>
-                            <div className="flex flex-gap-10">
-                                <button
-                                    type="button"
-                                    className={`mode-btn ${campaign.status === 'ACTIVE' ? 'theme-red' : 'theme-green'}`}
-                                    onClick={handleStatusToggle}
-                                >
-                                    {campaign.status === 'ACTIVE' ? '[ DEACTIVATE THEATER ]' : '[ ACTIVATE THEATER ]'}
-                                </button>
-                                <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
-                            </div>
-                        </div>
-                    </header>
+                        );
+                    }
 
-                    <div className="mb-30">
-                        <div className="tactical-panel">
-                            <div className="flex-between mb-10">
-                                <h3 className="zone-header">THEATER COMMAND DATA</h3>
-                                <button
-                                    className="mode-btn theme-amber"
-                                    style={{ fontSize: '0.6rem', padding: '2px 6px' }}
-                                    onClick={() => setIsEditingDescription(!isEditingDescription)}
-                                >
-                                    {isEditingDescription ? '[ CLOSE ]' : '[ EDIT ]'}
-                                </button>
-                            </div>
-
-                            <div className="mt-10" style={{ width: '100%' }}>
-                                {isEditingDescription ? (
-                                    <div className="status-bar theme-amber" style={{ padding: '5px' }}>
-                                        <textarea
-                                            id="theater-description"
-                                            className="table-input"
-                                            style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
-                                            defaultValue={campaign?.description}
-                                            autoFocus
-                                            onChange={(e) => handleUpdate('description', e.target.value)}
-                                            placeholder="Enter operational briefing (Markdown supported)..."
-                                            title="Exit field to save mission description"
-                                            aria-label="Theater command briefing"
-                                        />
-                                    </div>
-                                ) : (
-                                    <div
-                                        className="markdown-preview"
-                                        style={{
-                                            minHeight: '80px',
-                                            width: '100%',
-                                            fontSize: '0.9rem',
-                                            lineHeight: '1.4'
-                                        }}
-                                    >
-                                        <div style={{ flex: 1 }}>
-                                            {campaign?.description ? (
-                                                <TacticalMarkdown
-                                                    content={campaign.description}
-                                                    onAction={handleHscAction}
-                                                />
-                                            ) : (
-                                                <span className="restricted-text subdued">NO OPERATIONAL BRIEFING FILED. CLICK EDIT TO INITIALIZE THEATER LORE.</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="mt-20 pt-10" style={{ borderTop: '1px solid var(--terminal-border)' }}>
-                                <h4 className="restricted-text mb-10" style={{ fontSize: '0.7rem', color: 'var(--terminal-amber)' }}>CAMPAIGN DURATION</h4>
-                                <div className="grid-6-col" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                    return (
+                        <>
+                            <header className="dashboard-header">
+                                <div className="flex-between">
                                     <div>
-                                        <label htmlFor="campaign-length-in-months" className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
-                                        <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                            <input id="campaign-length-in-months" type="number" min="1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                value={campaignLengthInMonths}
-                                                onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
-                                                onBlur={(e) => handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1))}
-                                                title="Number of months for the campaign" />
-                                        </div>
+                                        <h1 className="terminal-text">{campaign?.name}</h1>
+                                        <p className="restricted-text">THEATER COMMAND DATA: {campaign?.systemName?.toUpperCase()} {isSyncing && <span className="pulse">...SYNCHRONIZING</span>}</p>
                                     </div>
-                                    <div>
-                                        <label htmlFor="campaign-track-count" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
-                                        <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                            <input id="campaign-track-count" type="number" min="1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                value={campaignTrackCount}
-                                                onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
-                                                onBlur={(e) => handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1))}
-                                                title="Number of tracks in the campaign" />
-                                        </div>
-                                    </div>
-                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                                        <button
-                                            type="button"
-                                            className="mode-btn theme-amber"
-                                            style={{ height: '24px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                            onClick={() => setShowRecruitment(true)}
-                                            title="Open recruitment management"
-                                        >[ RECRUITING ]</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <details className="mt-20">
-                                <summary className="restricted-text cursor-pointer" style={{ fontSize: '0.7rem', color: 'var(--terminal-amber)' }}>[ ADVANCED THEATER SETTINGS & LOGISTICS ]</summary>
-                                <div className="tactical-panel mt-10" style={{ padding: '15px', backgroundColor: 'rgba(0,0,0,0.15)' }}>
-                                    <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>FINANCIAL PARAMETERS</h5>
-                                    <div className="grid-4-col mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                                        <div>
-                                            <label htmlFor="campaign-monthly-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>BASE PAY</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input id="campaign-monthly-pay" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={monthlyPay}
-                                                    onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
-                                                    onBlur={(e) => handleUpdate('monthlyPay', e.target.value)}
-                                                    placeholder="0"
-                                                    title="Base monthly pay" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="campaign-monthly-maintenance" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>MAINTENANCE</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input id="campaign-monthly-maintenance" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={monthlyMaintenance}
-                                                    onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
-                                                    onBlur={(e) => handleUpdate('monthlyMaintenance', e.target.value)}
-                                                    placeholder="0"
-                                                    title="Monthly maintenance cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="campaign-transportation-cost" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>TRANS COST</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input id="campaign-transportation-cost" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={transportationCost}
-                                                    onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
-                                                    onBlur={(e) => handleUpdate('transportationCost', e.target.value)}
-                                                    placeholder="0"
-                                                    title="Transportation cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label htmlFor="campaign-combat-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>COMBAT PAY</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input id="campaign-combat-pay" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={combatPay}
-                                                    onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
-                                                    onBlur={(e) => handleUpdate('combatPay', e.target.value)}
-                                                    placeholder="0"
-                                                    title="Combat pay bonus" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>ACTIVITY COSTS</h5>
-                                    <div className="grid-7-col flex-gap-10 mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM TON</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={rearmTon}
-                                                    onChange={(e) => setRearmTon(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('rearmCostPerTon', e.target.value)}
-                                                    title="Rearm cost per ton" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM AS</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={rearmAS}
-                                                    onChange={(e) => setRearmAS(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('rearmCostPerTonAlphaStrike', e.target.value)}
-                                                    title="Rearm cost per ton (Alpha Strike)" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE MW</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={hireMW}
-                                                    onChange={(e) => setHireMW(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('hireMechWarriorCost', e.target.value)}
-                                                    title="Hire MechWarrior cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE PILOT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={hirePilot}
-                                                    onChange={(e) => setHirePilot(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('hireNamedPilotCost', e.target.value)}
-                                                    title="Hire named pilot cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE BA</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={hireBA}
-                                                    onChange={(e) => setHireBA(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('hireBattleArmorCost', e.target.value)}
-                                                    title="Hire Battle Armor cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL WOUND</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={healWound}
-                                                    onChange={(e) => setHealWound(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('healMechWarriorPerWoundBoxCost', e.target.value)}
-                                                    title="Heal MechWarrior per wound box cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL MONTH</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={healMonth}
-                                                    onChange={(e) => setHealMonth(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('healMechWarriorPerMonthLimit', e.target.value)}
-                                                    title="Heal MechWarrior per month limit" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL BA</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={healBA}
-                                                    onChange={(e) => setHealBA(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('healBattleArmorCost', e.target.value)}
-                                                    title="Heal Battle Armor cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN CMD</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={trainCmd}
-                                                    onChange={(e) => setTrainCmd(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('trainFormationCommanderCost', e.target.value)}
-                                                    title="Train formation commander cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN FORM</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={trainForm}
-                                                    onChange={(e) => setTrainForm(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('changeFormationTrainingCost', e.target.value)}
-                                                    title="Change formation training cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 1</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={ability1}
-                                                    onChange={(e) => setAbility1(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('learnCommandAbility1Cost', e.target.value)}
-                                                    title="Learn first ability cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 2</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={ability2}
-                                                    onChange={(e) => setAbility2(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('learnCommandAbility2Cost', e.target.value)}
-                                                    title="Learn second ability cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 3</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={ability3}
-                                                    onChange={(e) => setAbility3(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('learnCommandAbility3Cost', e.target.value)}
-                                                    title="Learn third ability cost" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REPLACE ABIL</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={replaceAbility}
-                                                    onChange={(e) => setReplaceAbility(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('replaceCommandAbilityCost', e.target.value)}
-                                                    title="Replace ability cost" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>LOGISTICS & REPAIR MULTIPLIERS</h5>
-                                    <div className="grid-5-col flex-gap-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>OMNI MOD</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={omnimechMod}
-                                                    onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value)}
-                                                    title="OmniMech reconfiguration cost modifier" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>BUY MULT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={purchaseMult}
-                                                    onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('pvPurchaseUnitMultiplier', e.target.value)}
-                                                    title="Purchase unit multiplier" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>SELL MULT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={sellMult}
-                                                    onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
-                                                    onBlur={(e) => handleActivityCostUpdate('pvSellUnitMultiplier', e.target.value)}
-                                                    title="Sell unit multiplier" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ARMOR MULT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={armorMult}
-                                                    onChange={(e) => setArmorMult(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('armorMultiplier', e.target.value)}
-                                                    title="Repair cost multiplier for armor damage" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>INTERNAL MULT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={internalMult}
-                                                    onChange={(e) => setInternalMult(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('internalMultiplier', e.target.value)}
-                                                    title="Repair cost multiplier for internal damage" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CRIPPLED MULT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={crippledMult}
-                                                    onChange={(e) => setCrippledMult(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('crippledMultiplier', e.target.value)}
-                                                    title="Repair cost multiplier for crippled units" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>DESTROYED MULT</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={destroyedMult}
-                                                    onChange={(e) => setDestroyedMult(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('destroyedMultiplier', e.target.value)}
-                                                    title="Repair cost multiplier for destroyed units" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>NON-MECH MOD</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={nonMechMod}
-                                                    onChange={(e) => setNonMechMod(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('nonMechModifier', e.target.value)}
-                                                    title="Adjustment for Vehicles, Battle Armor, and Infantry" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>MIXED TECH TAX</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={mixedTechTax}
-                                                    onChange={(e) => setMixedTechTax(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('mixedTechModifier', e.target.value)}
-                                                    title="Repair cost tax for Mixed technology assets" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CLAN TECH TAX</label>
-                                            <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
-                                                <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
-                                                    value={clanTechTax}
-                                                    onChange={(e) => setClanTechTax(parseFloat(e.target.value) || 0)}
-                                                    onBlur={(e) => handleRepairRuleUpdate('clanTechModifier', e.target.value)}
-                                                    title="Repair cost tax for pure Clan technology assets" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </details>
-                            <div className="mt-15">
-                                <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
-                                <div className="grid-5-col mt-5">
-                                    <div>
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY (STEP {campaign?.payStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
-                                            {Math.round((campaign?.payRate || 0) * 100)}%
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SALVAGE ({campaign?.salvageStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
-                                            {campaign?.salvageTerms}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SUPPORT ({campaign?.supportStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
-                                            {campaign?.supportTerms}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS ({campaign?.transportStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
-                                            {campaign?.transportTerms}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CMD ({campaign?.commandStep})</label>
-                                        <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
-                                            {campaign?.commandRights}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {opposition && (
-                                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--terminal-border)' }}>
-                                    <label className="restricted-text" style={{ color: 'var(--terminal-red)' }}>OPPOSITION CONTRACT: {opposition.employerCategory}</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '5px' }}>
-                                        <div>
-                                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY ({opposition.payStep})</label>
-                                            <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{Math.round((opposition.payRate || 0) * 100)}%</div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SALVAGE ({opposition.salvageStep})</label>
-                                            <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.salvageTerms}</div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SUPPORT ({opposition.supportStep})</label>
-                                            <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.supportTerms}</div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS ({opposition.transportStep})</label>
-                                            <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.transportTerms}</div>
-                                        </div>
-                                        <div>
-                                            <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CMD ({opposition.commandStep})</label>
-                                            <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.commandRights}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="dashboard-section tactical-panel mb-30">
-                        <h3 className="section-title">TRACK OPERATIONS</h3>
-                        <div className="month-panel-grid mt-15" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px', alignItems: 'start' }}>
-                            {Array.from({ length: displayMonthCount }, (_, i) => i + 1).map(mIdx => {
-                                const monthTracks = (campaign?.tracks || []).filter((t: TrackDetail) => (t.monthIndex || 1) === mIdx)
-                                    .sort((a: TrackDetail, b: TrackDetail) => a.sequenceOrder - b.sequenceOrder);
-                                return (
-                                    <div
-                                        key={mIdx}
-                                        className="tactical-panel"
-                                        style={{
-                                            height: 'auto',
-                                            minHeight: '100px',
-                                            border: dragOverMonth === mIdx ? '1px solid var(--terminal-green)' : '1px dashed var(--accent-dim)',
-                                            padding: '10px',
-                                            backgroundColor: dragOverMonth === mIdx ? 'rgba(51, 255, 51, 0.05)' : 'rgba(255, 255, 255, 0.02)'
-                                        }}
-                                        onDragOver={(e) => e.preventDefault()}
-                                        onDragLeave={() => setDragOverMonth(null)}
-                                        onDrop={(e) => handleDrop(e, mIdx)}
-                                    >
-                                        <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div className="flex items-center" style={{ gap: '10px' }}>
-                                                <span>[ MONTH {mIdx} ]</span>
-                                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>
-                                                    [{monthTracks.length} OPS]
-                                                </span>
-                                            </div>
+                                    <div className="flex flex-gap-10">
+                                        {campaign.isManager && (
                                             <button
-                                                className="mode-btn theme-blue"
-                                                style={{ fontSize: '0.6rem', padding: '2px 6px' }}
-                                                onClick={() => setShowMonthlyExpensesEditor(mIdx)}
+                                                type="button"
+                                                className={`mode-btn ${campaign.status === 'ACTIVE' ? 'theme-red' : 'theme-green'}`}
+                                                onClick={handleStatusToggle}
                                             >
-                                                [ EXPENSES ]
+                                                {campaign.status === 'ACTIVE' ? '[ DEACTIVATE THEATER ]' : '[ ACTIVATE THEATER ]'}
                                             </button>
-                                        </h4>
-                                        <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            {monthTracks.map((track: TrackDetail) => (
-                                                <EditableTrackCard
-                                                    key={track.id} // Use track.id as the key
-                                                    track={track}
-                                                    campaign={campaign}
-                                                    metaData={metaData}
-                                                    handleTrackUpdate={handleTrackUpdate}
-                                                    handleReroll={handleReroll}
-                                                    setShowAarForTrack={setShowAarForTrack}
-                                                    onDrop={(e, targetTrackId) => handleDrop(e, mIdx, targetTrackId)}
-                                                />
-                                            ))}
-                                            {
-                                                monthTracks.length === 0 && (
-                                                    <div className="restricted-text subdued" style={{ textAlign: 'center', padding: '20px', fontSize: '0.7rem' }}>
-                                                        NO OPS SCHEDULED
-                                                    </div>
-                                                )
-                                            }
-                                        </div >
-                                    </div >
-                                );
-                            })}
-                        </div >
-                    </div >
-
-                    <div className="dashboard-section tactical-panel">
-                        <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
-                        <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                            {campaign?.participatingDetachments?.map((det: Detachment) => (
-                                <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
-                                    <div
-                                        style={{ cursor: 'pointer' }} // Use DetachmentReadinessSummary
-                                        onClick={() => onSelectDetachment({
-                                            id: `camp-det-${det.id}`,
-                                            label: det.name,
-                                            type: 'DETACHMENT',
-                                            metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: campaign?.id, managerView: true }
-                                        })}
-                                    >
-                                        <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
-                                        <div className="asset-label" style={{ marginBottom: '10px', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', display: 'flex', justifyContent: 'space-between' }}>
-                                            <span>{det.name}</span>
-                                            {det.campaignRating != null && <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating}</span>}
-                                        </div>
-                                        <DetachmentReadinessSummary
-                                            units={det.units || []}
-                                            pilots={det.pilots || []}
-                                        />
+                                        )}
+                                        {!campaign.isManager && campaign.isParticipant && (
+                                            <div className="status-bar theme-blue" style={{ padding: '0 15px', height: '32px', display: 'flex', alignItems: 'center' }}>
+                                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[ THEATER STATUS: DEPLOYED ]</span>
+                                            </div>
+                                        )}
+                                        {!campaign.isManager && !campaign.isParticipant && (
+                                            <div className="status-bar theme-amber" style={{ padding: '0 15px', height: '32px', display: 'flex', alignItems: 'center' }}>
+                                                <span className="restricted-text" style={{ fontSize: '0.7rem' }}>[ THEATER STATUS: PUBLIC INTEL ]</span>
+                                            </div>
+                                        )}
+                                        <button type="button" className="mode-btn" onClick={onReturnToList}>[ RETURN TO LIST ]</button>
                                     </div>
-                                    <button type="button" className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>
                                 </div>
-                            ))}
-                            {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (
-                                <div className="restricted-text">NO DETACHMENTS CURRENTLY DEPLOYED IN THIS THEATER.</div>
-                            )}
-                        </div>
-                    </div>
-                </>
+                            </header>
+
+                            <div className="mb-30">
+                                <div className="tactical-panel">
+                                    <div className="flex-between mb-10">
+                                        <h3 className="zone-header">THEATER COMMAND DATA</h3>
+                                        {campaign.isManager && <button
+                                            className="mode-btn theme-amber"
+                                            style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                                            onClick={() => setIsEditingDescription(!isEditingDescription)}
+                                        >
+                                            {isEditingDescription ? '[ CLOSE ]' : '[ EDIT ]'}
+                                        </button>}
+                                    </div>
+
+                                    <div className="mt-10" style={{ width: '100%' }}>
+                                        {isEditingDescription ? (
+                                            <div className="status-bar theme-amber" style={{ padding: '5px' }}>
+                                                <textarea
+                                                    id="theater-description"
+                                                    className="table-input"
+                                                    style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
+                                                    defaultValue={campaign?.description}
+                                                    autoFocus
+                                                    onChange={(e) => handleUpdate('description', e.target.value)}
+                                                    placeholder="Enter operational briefing (Markdown supported)..."
+                                                    title="Exit field to save mission description"
+                                                    aria-label="Theater command briefing"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className="markdown-preview"
+                                                style={{
+                                                    minHeight: '80px',
+                                                    width: '100%',
+                                                    fontSize: '0.9rem',
+                                                    lineHeight: '1.4'
+                                                }}
+                                            >
+                                                <div style={{ flex: 1 }}>
+                                                    {campaign?.description ? (
+                                                        <TacticalMarkdown
+                                                            content={campaign.description}
+                                                            onAction={handleHscAction}
+                                                        />
+                                                    ) : (
+                                                        <span className="restricted-text subdued">NO OPERATIONAL BRIEFING FILED. CLICK EDIT TO INITIALIZE THEATER LORE.</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mt-20 pt-10" style={{ borderTop: '1px solid var(--terminal-border)' }}>
+                                        <h4 className="restricted-text mb-10" style={{ fontSize: '0.7rem', color: 'var(--terminal-amber)' }}>CAMPAIGN DURATION</h4>
+                                        <div className="grid-6-col" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                                            <div>
+                                                <label htmlFor="campaign-length-in-months" className="restricted-text" style={{ fontSize: '0.6rem' }}>MONTHS</label>
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <input id="campaign-length-in-months" type="number" min="1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={campaignLengthInMonths} disabled={!campaign.isManager}
+                                                        onChange={(e) => setCampaignLengthInMonths(Math.max(1, parseInt(e.target.value) || 1))}
+                                                        onBlur={(e) => handleUpdate('lengthInMonths', Math.max(1, parseInt(e.target.value) || 1))}
+                                                        title="Number of months for the campaign" />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label htmlFor="campaign-track-count" className="restricted-text" style={{ fontSize: '0.6rem' }}>TRACKS</label>
+                                                <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <input id="campaign-track-count" type="number" min="1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }}
+                                                        value={campaignTrackCount} disabled={!campaign.isManager}
+                                                        onChange={(e) => setCampaignTrackCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                                        onBlur={(e) => handleUpdate('trackCount', Math.max(1, parseInt(e.target.value) || 1))}
+                                                        title="Number of tracks in the campaign" />
+                                                </div>
+                                            </div>
+                                            {campaign.isManager && <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                <button
+                                                    type="button"
+                                                    className="mode-btn theme-amber"
+                                                    style={{ height: '24px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setShowRecruitment(true)}
+                                                    title="Open recruitment management"
+                                                >[ RECRUITING ]</button>
+                                            </div>}
+                                        </div>
+                                    </div>
+
+                                    <details className="mt-20">
+                                        <summary className="restricted-text cursor-pointer" style={{ fontSize: '0.7rem', color: 'var(--terminal-amber)' }}>[ ADVANCED THEATER SETTINGS & LOGISTICS ]</summary>
+                                        <div className="tactical-panel mt-10" style={{ padding: '15px', backgroundColor: 'rgba(0,0,0,0.15)' }}>
+                                            <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>FINANCIAL PARAMETERS</h5>
+                                            <div className="grid-4-col mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                                <div>
+                                                    <label htmlFor="campaign-monthly-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>BASE PAY</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input id="campaign-monthly-pay" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={monthlyPay}
+                                                            onChange={(e) => setMonthlyPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            onBlur={(e) => handleUpdate('monthlyPay', e.target.value)}
+                                                            placeholder="0"
+                                                            title="Base monthly pay" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="campaign-monthly-maintenance" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>MAINTENANCE</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input id="campaign-monthly-maintenance" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={monthlyMaintenance}
+                                                            onChange={(e) => setMonthlyMaintenance(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            onBlur={(e) => handleUpdate('monthlyMaintenance', e.target.value)}
+                                                            placeholder="0"
+                                                            title="Monthly maintenance cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="campaign-transportation-cost" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>TRANS COST</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input id="campaign-transportation-cost" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={transportationCost}
+                                                            onChange={(e) => setTransportationCost(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            onBlur={(e) => handleUpdate('transportationCost', e.target.value)}
+                                                            placeholder="0"
+                                                            title="Transportation cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="campaign-combat-pay" className="restricted-text" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>COMBAT PAY</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input id="campaign-combat-pay" type="number" min="0" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={combatPay}
+                                                            onChange={(e) => setCombatPay(Math.max(0, parseInt(e.target.value) || 0))}
+                                                            onBlur={(e) => handleUpdate('combatPay', e.target.value)}
+                                                            placeholder="0"
+                                                            title="Combat pay bonus" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>ACTIVITY COSTS</h5>
+                                            <div className="grid-7-col flex-gap-10 mb-20" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px' }}>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM TON</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={rearmTon}
+                                                            onChange={(e) => setRearmTon(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('rearmCostPerTon', e.target.value)}
+                                                            title="Rearm cost per ton" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REARM AS</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={rearmAS}
+                                                            onChange={(e) => setRearmAS(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('rearmCostPerTonAlphaStrike', e.target.value)}
+                                                            title="Rearm cost per ton (Alpha Strike)" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE MW</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={hireMW}
+                                                            onChange={(e) => setHireMW(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('hireMechWarriorCost', e.target.value)}
+                                                            title="Hire MechWarrior cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE PILOT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={hirePilot}
+                                                            onChange={(e) => setHirePilot(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('hireNamedPilotCost', e.target.value)}
+                                                            title="Hire named pilot cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HIRE BA</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={hireBA}
+                                                            onChange={(e) => setHireBA(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('hireBattleArmorCost', e.target.value)}
+                                                            title="Hire Battle Armor cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL WOUND</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={healWound}
+                                                            onChange={(e) => setHealWound(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('healMechWarriorPerWoundBoxCost', e.target.value)}
+                                                            title="Heal MechWarrior per wound box cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL MONTH</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={healMonth}
+                                                            onChange={(e) => setHealMonth(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('healMechWarriorPerMonthLimit', e.target.value)}
+                                                            title="Heal MechWarrior per month limit" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>HEAL BA</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={healBA}
+                                                            onChange={(e) => setHealBA(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('healBattleArmorCost', e.target.value)}
+                                                            title="Heal Battle Armor cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN CMD</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={trainCmd}
+                                                            onChange={(e) => setTrainCmd(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('trainFormationCommanderCost', e.target.value)}
+                                                            title="Train formation commander cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>TRAIN FORM</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={trainForm}
+                                                            onChange={(e) => setTrainForm(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('changeFormationTrainingCost', e.target.value)}
+                                                            title="Change formation training cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 1</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={ability1}
+                                                            onChange={(e) => setAbility1(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('learnCommandAbility1Cost', e.target.value)}
+                                                            title="Learn first ability cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 2</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={ability2}
+                                                            onChange={(e) => setAbility2(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('learnCommandAbility2Cost', e.target.value)}
+                                                            title="Learn second ability cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ABILITY 3</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={ability3}
+                                                            onChange={(e) => setAbility3(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('learnCommandAbility3Cost', e.target.value)}
+                                                            title="Learn third ability cost" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>REPLACE ABIL</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={replaceAbility}
+                                                            onChange={(e) => setReplaceAbility(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('replaceCommandAbilityCost', e.target.value)}
+                                                            title="Replace ability cost" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <h5 className="restricted-text mb-10" style={{ fontSize: '0.6rem', color: 'var(--terminal-amber)' }}>LOGISTICS & REPAIR MULTIPLIERS</h5>
+                                            <div className="grid-5-col flex-gap-10" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>OMNI MOD</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={omnimechMod}
+                                                            onChange={(e) => setOmnimechMod(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('omnimechReconfigureModifier', e.target.value)}
+                                                            title="OmniMech reconfiguration cost modifier" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>BUY MULT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={purchaseMult}
+                                                            onChange={(e) => setPurchaseMult(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('pvPurchaseUnitMultiplier', e.target.value)}
+                                                            title="Purchase unit multiplier" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>SELL MULT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={sellMult}
+                                                            onChange={(e) => setSellMult(parseInt(e.target.value) || 0)}
+                                                            onBlur={(e) => handleActivityCostUpdate('pvSellUnitMultiplier', e.target.value)}
+                                                            title="Sell unit multiplier" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>ARMOR MULT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={armorMult}
+                                                            onChange={(e) => setArmorMult(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('armorMultiplier', e.target.value)}
+                                                            title="Repair cost multiplier for armor damage" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>INTERNAL MULT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={internalMult}
+                                                            onChange={(e) => setInternalMult(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('internalMultiplier', e.target.value)}
+                                                            title="Repair cost multiplier for internal damage" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CRIPPLED MULT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={crippledMult}
+                                                            onChange={(e) => setCrippledMult(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('crippledMultiplier', e.target.value)}
+                                                            title="Repair cost multiplier for crippled units" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>DESTROYED MULT</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={destroyedMult}
+                                                            onChange={(e) => setDestroyedMult(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('destroyedMultiplier', e.target.value)}
+                                                            title="Repair cost multiplier for destroyed units" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>NON-MECH MOD</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={nonMechMod}
+                                                            onChange={(e) => setNonMechMod(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('nonMechModifier', e.target.value)}
+                                                            title="Adjustment for Vehicles, Battle Armor, and Infantry" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>MIXED TECH TAX</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={mixedTechTax}
+                                                            onChange={(e) => setMixedTechTax(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('mixedTechModifier', e.target.value)}
+                                                            title="Repair cost tax for Mixed technology assets" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text sm-text" style={{ fontSize: '0.55rem', color: 'var(--terminal-amber)' }}>CLAN TECH TAX</label>
+                                                    <div className="status-bar theme-amber cursor-pointer" style={{ display: 'flex', margin: 0, padding: '0 5px', height: '24px', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <input type="number" step="0.1" className="table-input" style={{ width: '100%', textAlign: 'center', border: 'none' }} disabled={!campaign.isManager}
+                                                            value={clanTechTax}
+                                                            onChange={(e) => setClanTechTax(parseFloat(e.target.value) || 0)}
+                                                            onBlur={(e) => handleRepairRuleUpdate('clanTechModifier', e.target.value)}
+                                                            title="Repair cost tax for pure Clan technology assets" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </details>
+                                    <div className="mt-15">
+                                        <label className="restricted-text" style={{ color: 'var(--terminal-green)' }}>PRIMARY CONTRACT: {campaign?.primaryEmployer}</label>
+                                        <div className="grid-5-col mt-5">
+                                            <div>
+                                                <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY (STEP {campaign?.payStep})</label>
+                                                <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                                    {Math.round((campaign?.payRate || 0) * 100)}%
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SALVAGE ({campaign?.salvageStep})</label>
+                                                <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                                    {campaign?.salvageTerms}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SUPPORT ({campaign?.supportStep})</label>
+                                                <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                                    {campaign?.supportTerms}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS ({campaign?.transportStep})</label>
+                                                <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                                    {campaign?.transportTerms}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CMD ({campaign?.commandStep})</label>
+                                                <div className="status-bar theme-green" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-green)', borderColor: 'var(--terminal-green-dim)' }}>
+                                                    {campaign?.commandRights}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {opposition && (
+                                        <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--terminal-border)' }}>
+                                            <label className="restricted-text" style={{ color: 'var(--terminal-red)' }}>OPPOSITION CONTRACT: {opposition.employerCategory}</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginTop: '5px' }}>
+                                                <div>
+                                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>PAY ({opposition.payStep})</label>
+                                                    <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{Math.round((opposition.payRate || 0) * 100)}%</div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SALVAGE ({opposition.salvageStep})</label>
+                                                    <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.salvageTerms}</div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>SUPPORT ({opposition.supportStep})</label>
+                                                    <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.supportTerms}</div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>TRANS ({opposition.transportStep})</label>
+                                                    <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.transportTerms}</div>
+                                                </div>
+                                                <div>
+                                                    <label className="restricted-text" style={{ fontSize: '0.6rem' }}>CMD ({opposition.commandStep})</label>
+                                                    <div className="status-bar" style={{ display: 'block', margin: 0, fontSize: '0.7rem', color: 'var(--terminal-red)', borderColor: 'var(--terminal-red-dim)' }}>{opposition.commandRights}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="dashboard-section tactical-panel mb-30">
+                                <h3 className="section-title">TRACK OPERATIONS</h3>
+                                <div className="month-panel-grid mt-15" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px', alignItems: 'start' }}>
+                                    {Array.from({ length: displayMonthCount }, (_, i) => i + 1).map(mIdx => {
+                                        const monthTracks = (campaign?.tracks || []).filter((t: TrackDetail) => (t.monthIndex || 1) === mIdx)
+                                            .sort((a: TrackDetail, b: TrackDetail) => a.sequenceOrder - b.sequenceOrder);
+                                        return (
+                                            <div
+                                                key={mIdx}
+                                                className="tactical-panel"
+                                                style={{
+                                                    height: 'auto',
+                                                    minHeight: '100px',
+                                                    border: dragOverMonth === mIdx ? '1px solid var(--terminal-green)' : '1px dashed var(--accent-dim)',
+                                                    padding: '10px',
+                                                    backgroundColor: dragOverMonth === mIdx ? 'rgba(51, 255, 51, 0.05)' : 'rgba(255, 255, 255, 0.02)'
+                                                }}
+                                                onDragOver={(e) => {
+                                                    if (campaign.isManager) e.preventDefault();
+                                                }}
+                                                onDragLeave={() => setDragOverMonth(null)}
+                                                onDrop={(e) => {
+                                                    if (campaign.isManager) handleDrop(e, mIdx);
+                                                }}
+                                            >
+                                                <h4 className="zone-header" style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div className="flex items-center" style={{ gap: '10px' }}>
+                                                        <span>[ MONTH {mIdx} ]</span>
+                                                        <span className="restricted-text" style={{ fontSize: '0.7rem' }}>
+                                                            [{monthTracks.length} OPS]
+                                                        </span>
+                                                    </div>
+                                                    {campaign.isManager && <button
+                                                        className="mode-btn theme-blue"
+                                                        style={{ fontSize: '0.6rem', padding: '2px 6px' }}
+                                                        onClick={() => setShowMonthlyExpensesEditor(mIdx)}
+                                                    >
+                                                        [ EXPENSES ]
+                                                    </button>}
+                                                </h4>
+                                                <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                    {monthTracks.map((track: TrackDetail) => (
+                                                        <EditableTrackCard
+                                                            key={track.id}
+                                                            track={track}
+                                                            campaign={campaign}
+                                                            metaData={metaData}
+                                                            handleTrackUpdate={campaign.isManager ? handleTrackUpdate : () => { }}
+                                                            handleReroll={campaign.isManager ? handleReroll : async () => { }}
+                                                            setShowAarForTrack={setShowAarForTrack}
+                                                            onDrop={(e, targetTrackId) => handleDrop(e, mIdx, targetTrackId)}
+                                                        />
+                                                    ))}
+                                                    {
+                                                        monthTracks.length === 0 && (
+                                                            <div className="restricted-text subdued" style={{ textAlign: 'center', padding: '20px', fontSize: '0.7rem' }}>
+                                                                NO OPS SCHEDULED
+                                                            </div>
+                                                        )
+                                                    }
+                                                </div >
+                                            </div >
+                                        );
+                                    })}
+                                </div >
+                            </div >
+
+                            <div className="dashboard-section tactical-panel">
+                                <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
+                                <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '15px', marginTop: '15px' }}>
+                                    {campaign?.participatingDetachments?.map((det: Detachment) => (
+                                        <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
+                                            <div
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => onSelectDetachment({
+                                                    id: `camp-det-${det.id}`,
+                                                    label: det.name,
+                                                    type: 'DETACHMENT',
+                                                    metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: campaign?.id, managerView: true }
+                                                })}
+                                            >
+                                                <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
+                                                <div className="asset-label" style={{ marginBottom: '10px', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>{det.name}</span>
+                                                    {det.campaignRating != null && <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating}</span>}
+                                                </div>
+                                                <DetachmentReadinessSummary
+                                                    units={det.units || []}
+                                                    pilots={det.pilots || []}
+                                                />
+                                            </div>
+                                            {campaign.isManager && <button type="button" className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>}
+                                        </div>
+                                    ))}
+                                    {(!campaign?.participatingDetachments || campaign.participatingDetachments.length === 0) && (
+                                        <div className="restricted-text">NO DETACHMENTS CURRENTLY DEPLOYED IN THIS THEATER.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    );
+                })()
             )
             }
             {
