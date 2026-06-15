@@ -123,18 +123,21 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return next;
     };
 
-    const [formData, setFormData] = useState<Pilot>(pilot || createDefaultPilot());
+    const [formData, setFormData] = useState<Pilot>(() => recalcDerived(pilot ? { ...pilot } : createDefaultPilot()));
 
     // Ensure form updates if the pilot prop changes or when initializing for a new detachment
     useEffect(() => {
-        const base = pilot || createDefaultPilot();
-        // If we are hiring via a pre-filled record (like hsc:// hire links), recompute derived stats
-        if (mode === 'create' && pilot) {
-            setFormData(recalcDerived({ ...base }));
-        } else {
-            setFormData(base);
-        }
+        setFormData(recalcDerived(pilot ? { ...pilot } : createDefaultPilot()));
     }, [pilot, detachmentId, mode]);
+
+    const pilotOriginalTotalSp = useMemo(() => {
+        if (!pilot) return 0;
+        // Calculate actual SP currently allocated to skills to use as a reliable baseline
+        return (pilot.gunnerySpEarned || 0) +
+            (pilot.pilotingSpEarned || 0) +
+            (pilot.edgeTokensSpEarned || 0) +
+            (pilot.edgeAbilitySpEarned || 0);
+    }, [pilot]);
 
     const [isSaving, setIsSaving] = useState(false);
     const [overlay, setOverlay] = useState<{
@@ -166,6 +169,12 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return 150; // Example default, should ideally come from global metadata or Rules.ts
     }, [overridePrice, campaignHireCost]);
 
+    const trainingCost = useMemo(() => {
+        if (mode !== 'edit' || !pilot) return 0;
+        const currentTotal = formData.totalSpEarned || 0;
+        return currentTotal - pilotOriginalTotalSp;
+    }, [mode, pilotOriginalTotalSp, formData.totalSpEarned]);
+
     const handleInputChange = (field: keyof Pilot, value: any) => {
         const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'handicap', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
         setFormData(prev => {
@@ -187,7 +196,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         });
     };
 
-    const handleSave = async () => {
+    const handleSave = async (isTraining: boolean = false) => {
         // Validation
         if (!formData.name.trim()) {
             setOverlay({
@@ -238,6 +247,16 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: `ALLOCATED SKILL POINTS (${allocatedSp}) MUST EQUAL TOTAL SP EARNED (${formData.totalSpEarned}).`,
+                variant: 'alert',
+                onConfirm: () => setOverlay(null)
+            });
+            return;
+        }
+
+        if (isTraining && trainingCost > 0 && availableSP !== undefined && availableSP < trainingCost) {
+            setOverlay({
+                title: "INSUFFICIENT FUNDS",
+                message: `COMMAND WARCHEST (${availableSP} SP) IS INSUFFICIENT FOR THIS TRAINING (${trainingCost} SP).`,
                 variant: 'alert',
                 onConfirm: () => setOverlay(null)
             });
@@ -308,8 +327,26 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         input
                     }
                 });
-
                 if (result.data?.updatePilot) {
+                    if (isTraining && trainingCost !== 0) {
+                        try {
+                            const isRefund = trainingCost < 0;
+                            await addLedgerEntry({
+                                variables: {
+                                    commandId,
+                                    detachmentId: formData.detachmentId || detachmentId,
+                                    input: {
+                                        amount: -trainingCost,
+                                        description: isRefund
+                                            ? `TRAINING ADJUSTMENT (REFUND): ${formData.name} (${trainingCost} SP)`.trim()
+                                            : `SKILL TRAINING: ${formData.name} (+${trainingCost} SP)`.trim()
+                                    }
+                                }
+                            });
+                        } catch (ledgerErr) {
+                            console.error("Ledger entry failed for pilot training:", ledgerErr);
+                        }
+                    }
                     onSave(result.data.updatePilot);
                 }
             }
@@ -346,7 +383,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     {mode === 'create' && detachmentId && (
                         <button
                             className={`mode-btn ${availableSP !== undefined && availableSP < hiringPrice ? 'theme-amber' : 'theme-blue'}`}
-                            onClick={handleSave}
+                            onClick={() => handleSave()}
                             disabled={isSaving}
                             style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                             title={
@@ -357,9 +394,20 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         </button>
                     )}
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {mode === 'edit' && trainingCost !== 0 && (
+                            <button
+                                className="mode-btn theme-blue"
+                                onClick={() => handleSave(true)}
+                                disabled={isSaving || (trainingCost > 0 && availableSP !== undefined && availableSP < trainingCost)}
+                                style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                                title={trainingCost > 0 ? `Commit training for ${trainingCost} SP` : `Process training adjustment/refund for ${Math.abs(trainingCost)} SP`}
+                            >
+                                {isSaving ? '...' : (trainingCost > 0 ? `TRAIN: ${trainingCost}` : `REFUND: ${Math.abs(trainingCost)}`)}
+                            </button>
+                        )}
                         <button
                             className="mode-btn theme-green"
-                            onClick={handleSave}
+                            onClick={() => handleSave(false)}
                             disabled={isSaving}
                             style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                             title="Confirm and save"
