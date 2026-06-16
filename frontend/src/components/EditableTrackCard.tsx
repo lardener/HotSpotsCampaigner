@@ -22,18 +22,18 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
     onDrop
 }) => {
     const [trackName, setTrackName] = useState(track.trackName);
-    const [complications, setComplications] = useState(track.complications);
-    const [oppositionComplications, setOppositionComplications] = useState(track.oppositionComplications);
-    const [location, setLocation] = useState(track.location);
+    const [complications, setComplications] = useState(track.complications ?? '');
+    const [oppositionComplications, setOppositionComplications] = useState(track.oppositionComplications ?? '');
+    const [location, setLocation] = useState(track.location ?? '');
     const [nextSession, setNextSession] = useState(track.nextSession ? track.nextSession.substring(0, 16) : '');
     const [attackerFactionId, setAttackerFactionId] = useState(track.attackerFactionId || '');
 
     // Update local state when track prop changes (e.g., after reroll)
     useEffect(() => {
         setTrackName(track.trackName);
-        setComplications(track.complications);
-        setOppositionComplications(track.oppositionComplications);
-        setLocation(track.location);
+        setComplications(track.complications ?? '');
+        setOppositionComplications(track.oppositionComplications ?? '');
+        setLocation(track.location ?? '');
         setNextSession(track.nextSession ? track.nextSession.substring(0, 16) : '');
         setAttackerFactionId(track.attackerFactionId || '');
     }, [track]);

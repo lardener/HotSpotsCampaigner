@@ -257,8 +257,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
     const [updateUnit] = useMutation(UPDATE_UNIT);
     const [updatePilot] = useMutation(UPDATE_PILOT);
-    const [deletePilot] = useMutation(DELETE_PILOT, { // Removed <any> from ApolloCache
-        update(cache: ApolloCache, { data }: any, { variables }: any) {
+    const [deletePilot] = useMutation(DELETE_PILOT, {
+        update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deletePilot && variables?.pilotId) {
                 cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
                 cache.gc();
@@ -266,8 +266,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     });
     const [updateTrack] = useMutation(UPDATE_TRACK);
-    const [deleteUnit] = useMutation(DELETE_UNIT, { // Removed <any> from ApolloCache
-        update(cache: ApolloCache, { data }: any, { variables }: any) {
+    const [deleteUnit] = useMutation(DELETE_UNIT, {
+        update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
                 cache.gc();
@@ -353,9 +353,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         };
     };
 
-    const handleAwardToDetachment = async (detId: string, cmdId: string) => {
+    const handleAwardToDetachment = async (detId: string, cmdId: string | null) => {
         const detAar = state.detachmentAars[detId];
-        if (!detAar) return;
+        if (!detAar || !cmdId) return;
 
         const noticeKey = `${detId}-award`;
         // Resolve contract based on the current selection in the reducer state
@@ -405,7 +405,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
-    const handleProcessUnit = (detId: string, cmdId: string, unit: CombatUnit) => {
+    const handleProcessUnit = (detId: string, cmdId: string | null, unit: CombatUnit) => {
+        if (!cmdId) return;
         const uState = state.unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 };
         const { isTrulyDestroyed } = calculateUnitFinancials(unit, uState.status, repairRules, unitStatuses, state.pricingRule);
 
@@ -520,9 +521,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
-    const handleProcessPilot = async (detId: string, cmdId: string, pilot: Pilot) => {
+    const handleProcessPilot = async (detId: string, cmdId: string | null, pilot: Pilot) => {
         const detAar = state.detachmentAars[detId];
-        if (!detAar) return;
+        if (!detAar || !cmdId) return;
 
         const noticeKey = `${pilot.id}-medical`;
         const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
@@ -1081,10 +1082,23 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             {showProcureEditor && procureAssetData && procureTargetDetachment && (
                 <CombatUnitEditor
                     mode="create"
-                    commandId={procureTargetDetachment.mercenaryCommandId}
+                    commandId={procureTargetDetachment.mercenaryCommandId || ''}
                     detachmentId={procureTargetDetachment.id}
                     availableSP={procureTargetDetachment.totalSupportPoints}
-                    unit={{ ...procureAssetData, id: '', status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL' }}
+                    unit={{
+                        ...procureAssetData,
+                        id: '',
+                        type: procureAssetData.type || 'BM',
+                        model: procureAssetData.model || 'NEW UNIT',
+                        variant: procureAssetData.variant || '',
+                        techBase: procureAssetData.techBase || 'Inner Sphere',
+                        tonnage: procureAssetData.tonnage || 0,
+                        asSize: procureAssetData.asSize || 0,
+                        bv: procureAssetData.bv || 0,
+                        pv: procureAssetData.pv || 0,
+                        status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL',
+                        detachmentId: procureTargetDetachment.id
+                    } as CombatUnit}
                     unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
                     unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
                     techBases={(metaData?.publicCampaignMetadata as any)?.techBases || ['Inner Sphere', 'Clan', 'Mixed']}
@@ -1097,14 +1111,33 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             {showHireEditor && hirePilotData && hireTargetDetachment && (
                 <PilotEditor
                     mode="create"
-                    commandId={hireTargetDetachment.mercenaryCommandId}
+                    commandId={hireTargetDetachment.mercenaryCommandId || ''}
                     detachmentId={hireTargetDetachment.id}
                     availableSP={hireTargetDetachment.totalSupportPoints}
-                    pilot={{ ...hirePilotData, id: '' }}
+                    pilot={{
+                        ...hirePilotData,
+                        id: '',
+                        name: hirePilotData.name || 'NEW PILOT',
+                        gunnery: 4,
+                        piloting: 5,
+                        asSkill: 4,
+                        edgeTokensSkill: null,
+                        edgeAbilitySkill: null,
+                        edgeAbilities: hirePilotData.edgeAbilities ?? null,
+                        unitType: hirePilotData.unitType || 'BM',
+                        wounds: hirePilotData.wounds || 0,
+                        handicap: 0,
+                        totalSpEarned: hirePilotData.totalSpEarned || 0,
+                        gunnerySpEarned: hirePilotData.gunnerySpEarned || 0,
+                        pilotingSpEarned: hirePilotData.pilotingSpEarned || 0,
+                        edgeTokensSpEarned: hirePilotData.edgeTokensSpEarned || 0,
+                        edgeAbilitySpEarned: hirePilotData.edgeAbilitySpEarned || 0,
+                        detachmentId: hireTargetDetachment.id
+                    } as Pilot}
                     onSave={handleHireSave}
                     onCancel={handleHireCancel}
                     overridePrice={hirePilotData.overridePrice}
-                    campaignHireCost={campaign.hireNamedPilotCost}
+                    campaignHireCost={campaign.hireNamedPilotCost ?? undefined}
                 />
             )}
 

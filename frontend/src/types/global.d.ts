@@ -55,6 +55,7 @@ export interface ResolvedStepEntry {
 }
 
 export interface CombatUnit {
+    __typename?: string;
     id: string;
     type: string;
     model: string;
@@ -65,20 +66,21 @@ export interface CombatUnit {
     bv: number;
     pv: number;
     status: string;
-    detachmentId?: string | null;
+    detachmentId: string | null;
 }
 
-export type CombatUnitUpdateInput = Partial<Omit<CombatUnit, 'id'>>;
+export type CombatUnitUpdateInput = Partial<Omit<CombatUnit, 'id' | '__typename'>>;
 
 export interface Pilot {
+    __typename?: string;
     id: string;
     name: string;
     gunnery: number;
     piloting: number;
     asSkill: number;
-    edgeTokensSkill?: number;
-    edgeAbilitySkill?: number;
-    edgeAbilities?: string;
+    edgeTokensSkill: number | null;
+    edgeAbilitySkill: number | null;
+    edgeAbilities: string | null;
     unitType: string;
     wounds: number;
     handicap: number;
@@ -87,89 +89,90 @@ export interface Pilot {
     pilotingSpEarned: number;
     edgeTokensSpEarned: number;
     edgeAbilitySpEarned: number;
-    detachmentId?: string | null;
+    detachmentId: string | null;
 }
 
-export type PilotUpdateInput = Partial<Omit<Pilot, 'id'>>;
+export type PilotUpdateInput = Partial<Omit<Pilot, 'id' | '__typename'>>;
 
 export interface TrackUpdateInput {
-    trackName?: string;
-    location?: string;
-    nextSession?: string;
-    attackerFactionId?: string;
-    monthIndex?: number;
-    complication?: string;
-    oppositionComplication?: string;
+    trackName?: string | null;
+    location?: string | null;
+    nextSession?: string | null;
+    attackerFactionId?: string | null;
+    monthIndex?: number | null;
+    complications?: string | null;
+    oppositionComplications?: string | null;
+    afterActionNarrative?: string | null;
 }
 
 export interface CampaignCreateInput {
-    name?: string;
-    employer?: string;
-    opponent?: string;
-    mission?: string;
-    employerCategory?: string;
-    opponentCategory?: string;
-    oppMission?: string;
-    systemName?: string;
-    description?: string;
-    status?: string;
-    payRate?: number;
-    salvageTerms?: string;
-    supportTerms?: string;
-    transportTerms?: string;
-    commandRights?: string;
-    payStep?: number;
-    salvageStep?: number;
-    supportStep?: number;
-    transportStep?: number;
-    commandStep?: number;
-    oppPayRate?: number;
-    oppPayStep?: number;
-    oppSalvageTerms?: string;
-    oppSalvageStep?: number;
-    oppSupportTerms?: string;
-    oppSupportStep?: number;
-    oppTransportTerms?: string;
-    oppTransportStep?: number;
-    oppCommandRights?: string;
-    oppCommandStep?: number;
-    trackCount?: number;
-    lengthInMonths?: number;
-    monthlyPay?: number;
-    monthlyMaintenance?: number;
-    transportationCost?: number;
-    combatPay?: number;
-    armorMultiplier?: number;
-    internalMultiplier?: number;
-    crippledMultiplier?: number;
-    destroyedMultiplier?: number;
-    nonMechModifier?: number;
-    mixedTechModifier?: number;
-    clanTechModifier?: number;
-    omnimechReconfigureModifier?: number;
-    pvPurchaseUnitMultiplier?: number;
-    pvSellUnitMultiplier?: number;
-    rearmCostPerTon?: number;
-    rearmCostPerTonAlphaStrike?: number;
-    hireMechWarriorCost?: number;
-    hireNamedPilotCost?: number;
-    hireBattleArmorCost?: number;
-    healMechWarriorPerWoundBoxCost?: number;
-    healMechWarriorPerMonthLimit?: number;
-    healBattleArmorCost?: number;
-    trainFormationCommanderCost?: number;
-    changeFormationTrainingCost?: number;
-    learnCommandAbility1Cost?: number;
-    learnCommandAbility2Cost?: number;
-    learnCommandAbility3Cost?: number;
-    replaceCommandAbilityCost?: number;
-    tracks?: ProposedTrackInput[];
+    name?: string | null;
+    employer?: string | null;
+    opponent?: string | null;
+    mission?: string | null;
+    employerCategory?: string | null;
+    opponentCategory?: string | null;
+    oppMission?: string | null;
+    systemName?: string | null;
+    description?: string | null;
+    status?: string | null;
+    payRate?: number | null;
+    salvageTerms?: string | null;
+    supportTerms?: string | null;
+    transportTerms?: string | null;
+    commandRights?: string | null;
+    payStep?: number | null;
+    salvageStep?: number | null;
+    supportStep?: number | null;
+    transportStep?: number | null;
+    commandStep?: number | null;
+    oppPayRate?: number | null;
+    oppPayStep?: number | null;
+    oppSalvageTerms?: string | null;
+    oppSalvageStep?: number | null;
+    oppSupportTerms?: string | null;
+    oppSupportStep?: number | null;
+    oppTransportTerms?: string | null;
+    oppTransportStep?: number | null;
+    oppCommandRights?: string | null;
+    oppCommandStep?: number | null;
+    trackCount?: number | null;
+    lengthInMonths?: number | null;
+    monthlyPay?: number | null;
+    monthlyMaintenance?: number | null;
+    transportationCost?: number | null;
+    combatPay?: number | null;
+    armorMultiplier?: number | null;
+    internalMultiplier?: number | null;
+    crippledMultiplier?: number | null;
+    destroyedMultiplier?: number | null;
+    nonMechModifier?: number | null;
+    mixedTechModifier?: number | null;
+    clanTechModifier?: number | null;
+    omnimechReconfigureModifier?: number | null;
+    pvPurchaseUnitMultiplier?: number | null;
+    pvSellUnitMultiplier?: number | null;
+    rearmCostPerTon?: number | null;
+    rearmCostPerTonAlphaStrike?: number | null;
+    hireMechWarriorCost?: number | null;
+    hireNamedPilotCost?: number | null;
+    hireBattleArmorCost?: number | null;
+    healMechWarriorPerWoundBoxCost?: number | null;
+    healMechWarriorPerMonthLimit?: number | null;
+    healBattleArmorCost?: number | null;
+    trainFormationCommanderCost?: number | null;
+    changeFormationTrainingCost?: number | null;
+    learnCommandAbility1Cost?: number | null;
+    learnCommandAbility2Cost?: number | null;
+    learnCommandAbility3Cost?: number | null;
+    replaceCommandAbilityCost?: number | null;
+    tracks?: ProposedTrackInput[] | null;
 }
 
 export interface ProposedTrackInput {
-    name?: string;
-    complication?: string;
-    oppositionComplication?: string;
+    name?: string | null;
+    complication?: string | null;
+    oppositionComplication?: string | null;
 }
 
 export type CampaignUpdateInput = Omit<Partial<CampaignCreateInput>, 'tracks'>;
@@ -179,25 +182,27 @@ export type CommandUpdateInput = Partial<Pick<MercenaryCommand, 'name' | 'comman
 export interface LedgerEntryInput {
     amount: number;
     description: string;
-    reputationChange?: number;
-    campaignId?: string;
-    campaignName?: string;
-    monthIndex?: number;
+    reputationChange?: number | null;
+    campaignId?: string | null;
+    campaignName?: string | null;
+    monthIndex?: number | null;
 }
 
 export interface LedgerEntry extends LedgerEntryInput {
+    __typename?: string;
     id: string;
-    detachmentId?: string;
+    detachmentId: string | null;
     timestamp: string;
 }
 
 export interface Detachment {
+    __typename?: string;
     id: string;
     name: string;
-    campaignId?: string | null;
-    campaignName?: string | null;
-    mercenaryCommandId?: string;
-    mercenaryCommandName?: string;
+    campaignId: string | null;
+    campaignName: string | null;
+    mercenaryCommandId: string | null;
+    mercenaryCommandName: string | null;
     units?: CombatUnit[];
     pilots?: Pilot[];
     campaignRating?: number;
@@ -206,6 +211,7 @@ export interface Detachment {
 export type Command = MercenaryCommand;
 
 export interface MercenaryCommand {
+    __typename?: string;
     id: string;
     name: string;
     totalSupportPoints: number;
@@ -220,10 +226,11 @@ export interface MercenaryCommand {
 // ==================== GraphQL Data Models ====================
 
 export interface UserAccount {
+    __typename?: string;
     id: string;
     name: string;
     email: string;
-    displayName?: string | null;
+    displayName: string | null;
     role: string;
 }
 
@@ -279,6 +286,7 @@ export interface ContractPreview {
 }
 
 export interface Contract extends ContractPreview {
+    __typename?: string;
     id: string;
 }
 
@@ -294,35 +302,35 @@ export interface Proposal {
         systemName: string;
         trackCount: number;
         lengthInMonths: number;
-        monthlyPay?: number;
-        monthlyMaintenance?: number;
-        transportationCost?: number;
-        combatPay?: number;
+        monthlyPay?: number | null;
+        monthlyMaintenance?: number | null;
+        transportationCost?: number | null;
+        combatPay?: number | null;
     };
-    armorMultiplier?: number;
-    internalMultiplier?: number;
-    crippledMultiplier?: number;
-    destroyedMultiplier?: number;
-    nonMechModifier?: number;
-    mixedTechModifier?: number;
-    clanTechModifier?: number;
-    omnimechReconfigureModifier?: number;
-    pvPurchaseUnitMultiplier?: number;
-    pvSellUnitMultiplier?: number;
-    rearmCostPerTon?: number;
-    rearmCostPerTonAlphaStrike?: number;
-    hireMechWarriorCost?: number;
-    hireNamedPilotCost?: number;
-    hireBattleArmorCost?: number;
-    healMechWarriorPerWoundBoxCost?: number;
-    healMechWarriorPerMonthLimit?: number;
-    healBattleArmorCost?: number;
-    trainFormationCommanderCost?: number;
-    changeFormationTrainingCost?: number;
-    learnCommandAbility1Cost?: number;
-    learnCommandAbility2Cost?: number;
-    learnCommandAbility3Cost?: number;
-    replaceCommandAbilityCost?: number;
+    armorMultiplier?: number | null;
+    internalMultiplier?: number | null;
+    crippledMultiplier?: number | null;
+    destroyedMultiplier?: number | null;
+    nonMechModifier?: number | null;
+    mixedTechModifier?: number | null;
+    clanTechModifier?: number | null;
+    omnimechReconfigureModifier?: number | null;
+    pvPurchaseUnitMultiplier?: number | null;
+    pvSellUnitMultiplier?: number | null;
+    rearmCostPerTon?: number | null;
+    rearmCostPerTonAlphaStrike?: number | null;
+    hireMechWarriorCost?: number | null;
+    hireNamedPilotCost?: number | null;
+    hireBattleArmorCost?: number | null;
+    healMechWarriorPerWoundBoxCost?: number | null;
+    healMechWarriorPerMonthLimit?: number | null;
+    healBattleArmorCost?: number | null;
+    trainFormationCommanderCost?: number | null;
+    changeFormationTrainingCost?: number | null;
+    learnCommandAbility1Cost?: number | null;
+    learnCommandAbility2Cost?: number | null;
+    learnCommandAbility3Cost?: number | null;
+    replaceCommandAbilityCost?: number | null;
     contracts: ContractPreview[];
     tracks: ProposedTrack[];
 }
@@ -347,79 +355,83 @@ export interface ActiveCampaignPage {
 }
 
 export interface CampaignInvite {
+    __typename?: string;
     id: string;
     token: string;
-    recipientName?: string;
+    recipientName: string | null;
     expiresAt: string;
     used: boolean;
 }
 
 export interface TrackDetail {
+    __typename?: string;
     id: string;
     trackName: string;
     sequenceOrder: number;
-    location?: string;
-    nextSession?: string;
-    attackerFactionId?: string;
-    monthIndex?: number;
-    complications?: string;
-    afterActionNarrative?: string;
-    oppositionComplications?: string;
+    location: string | null;
+    nextSession: string | null;
+    attackerFactionId: string | null;
+    monthIndex: number | null;
+    complications: string | null;
+    afterActionNarrative: string | null;
+    oppositionComplications: string | null;
 }
 
 export interface CampaignFaction {
+    __typename?: string;
     id: string;
     factionName: string;
 }
 
 export interface CampaignDetail {
+    __typename?: string;
     id: string;
     name: string;
     systemName: string;
-    description?: string;
-    lengthInMonths?: number;
-    trackCount?: number;
+    description: string | null;
+    lengthInMonths: number | null;
+    trackCount: number | null;
     status: string;
     primaryEmployer: string;
     secondaryEmployer: string;
-    payRate?: number;
-    payStep?: number;
-    salvageTerms?: string;
-    salvageStep?: number;
-    supportTerms?: string;
-    supportStep?: number;
-    transportTerms?: string;
-    transportStep?: number;
-    commandRights?: string;
-    commandStep?: number;
-    monthlyPay?: number;
-    monthlyMaintenance?: number;
-    transportationCost?: number;
-    combatPay?: number;
-    armorMultiplier?: number;
-    internalMultiplier?: number;
-    crippledMultiplier?: number;
-    destroyedMultiplier?: number;
-    nonMechModifier?: number;
-    mixedTechModifier?: number;
-    clanTechModifier?: number;
-    omnimechReconfigureModifier?: number;
-    pvPurchaseUnitMultiplier?: number;
-    pvSellUnitMultiplier?: number;
-    rearmCostPerTon?: number;
-    rearmCostPerTonAlphaStrike?: number;
-    hireMechWarriorCost?: number;
-    hireNamedPilotCost?: number;
-    hireBattleArmorCost?: number;
-    healMechWarriorPerWoundBoxCost?: number;
-    healMechWarriorPerMonthLimit?: number;
-    healBattleArmorCost?: number;
-    trainFormationCommanderCost?: number;
-    changeFormationTrainingCost?: number;
-    learnCommandAbility1Cost?: number;
-    learnCommandAbility2Cost?: number;
-    learnCommandAbility3Cost?: number;
-    replaceCommandAbilityCost?: number;
+    payRate: number | null;
+    payStep: number | null;
+    salvageTerms: string | null;
+    salvageStep: number | null;
+    supportTerms: string | null;
+    supportStep: number | null;
+    transportTerms: string | null;
+    transportStep: number | null;
+    commandRights: string | null;
+    commandStep: number | null;
+    monthlyPay: number | null;
+    monthlyMaintenance: number | null;
+    transportationCost: number | null;
+    combatPay: number | null;
+    armorMultiplier: number | null;
+    internalMultiplier: number | null;
+    crippledMultiplier: number | null;
+    destroyedMultiplier: number | null;
+    nonMechModifier: number | null;
+    mixedTechModifier: number | null;
+    clanTechModifier: number | null;
+    omnimechReconfigureModifier: number | null;
+    pvPurchaseUnitMultiplier: number | null;
+    pvSellUnitMultiplier: number | null;
+    rearmCostPerTon: number | null;
+    rearmCostPerTonAlphaStrike: number | null;
+    hireMechWarriorCost: number | null;
+    hireNamedPilotCost: number | null;
+    hireBattleArmorCost: number | null;
+    healMechWarriorPerWoundBoxCost: number | null;
+    healMechWarriorPerMonthLimit: number | null;
+    healBattleArmorCost: number | null;
+    trainFormationCommanderCost: number | null;
+    changeFormationTrainingCost: number | null;
+    learnCommandAbility1Cost: number | null;
+    learnCommandAbility2Cost: number | null;
+    learnCommandAbility3Cost: number | null;
+    replaceCommandAbilityCost: number | null;
     contracts?: Contract[];
     factions?: CampaignFaction[];
     tracks?: TrackDetail[];
@@ -445,6 +457,22 @@ export interface DetachmentAarState {
 export interface UpdateCommandVars {
     id: string;
     input: CommandUpdateInput;
+}
+
+export interface AssignAssetVars {
+    assetType: string;
+    assetId: string;
+    detachmentId: string | null;
+}
+
+export interface JoinCampaignVars {
+    token: string;
+    detachmentId: string;
+}
+
+export interface AssignDetachmentVars {
+    detachmentId: string;
+    campaignId: string | null;
 }
 
 export interface UpdateUnitVars {
@@ -493,7 +521,7 @@ export interface CreateDetachmentVars {
 
 export interface CreateInviteVars {
     campaignId: string;
-    recipientName?: string | null;
+    recipientName: string | null;
 }
 
 /**

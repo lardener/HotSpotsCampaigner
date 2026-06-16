@@ -10,9 +10,9 @@ import {
     FloatingFocusManager,
 } from '@floating-ui/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CombatUnit, CombatUnitUpdateInput, AddUnitVars, UpdateUnitVars, ImportAssetsVars } from '../types/global.d'; // This was already correct
+import { CombatUnit, CombatUnitUpdateInput } from '../types/global.d'; // This was already correct
 import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS, GET_METADATA, ADD_LEDGER_ENTRY } from '../types/operations';
-import { AddUnitData, UpdateUnitData, MetadataDataFull } from '../types/graphql.d';
+import { MetadataDataFull } from '../types/graphql.d';
 import { CombatUnitBackground } from './CombatUnitBackground';
 
 interface CombatUnitEditorProps {
@@ -53,16 +53,22 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
         bv: 0,
         pv: 0,
         status: unitStatuses[0] || 'ACTIVE',
-        detachmentId: detachmentId || null // Use the prop detachmentId if available
+        detachmentId: detachmentId ?? null // Ensure undefined from props is null
     });
 
-    const [formData, setFormData] = useState<CombatUnit>(unit || createDefaultUnit());
+    const [formData, setFormData] = useState<CombatUnit>(() => unit ? {
+        ...unit,
+        detachmentId: unit.detachmentId ?? detachmentId ?? null
+    } as CombatUnit : createDefaultUnit());
     const [pricingRule, setPricingRule] = useState<'Core' | 'Alpha Strike'>('Core');
 
     // Ensure form updates if the unit prop changes (e.g. clicking edit on a different unit while editor is open)
     useEffect(() => {
-        setFormData(unit || createDefaultUnit());
-    }, [unit]);
+        setFormData(unit ? {
+            ...unit,
+            detachmentId: unit.detachmentId ?? detachmentId ?? null
+        } as CombatUnit : createDefaultUnit());
+    }, [unit, detachmentId]);
 
     const [importLink, setImportLink] = useState('');
     const [isSaving, setIsSaving] = useState(false);
@@ -88,9 +94,9 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     const role = useRole(context, { role: 'dialog' });
     const { getFloatingProps } = useInteractions([dismiss, role]);
 
-    const [addUnit] = useMutation<AddUnitData, AddUnitVars>(ADD_UNIT);
-    const [updateUnit] = useMutation<UpdateUnitData, UpdateUnitVars>(UPDATE_UNIT);
-    const [importAssets] = useMutation<any, ImportAssetsVars>(IMPORT_ASSETS);
+    const [addUnit] = useMutation(ADD_UNIT);
+    const [updateUnit] = useMutation(UPDATE_UNIT);
+    const [importAssets] = useMutation(IMPORT_ASSETS);
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
     const { data: metadataData } = useQuery<MetadataDataFull>(GET_METADATA);
 
@@ -233,8 +239,9 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                 }
             });
 
-            if (result.data?.importCombatUnitsFromLink?.length > 0) {
-                const imported = result.data.importCombatUnitsFromLink[0];
+            const importedUnits = result.data?.importCombatUnitsFromLink;
+            if (importedUnits && importedUnits.length > 0) {
+                const imported = importedUnits[0];
                 setFormData(prev => ({
                     ...prev,
                     model: imported.model || prev.model,

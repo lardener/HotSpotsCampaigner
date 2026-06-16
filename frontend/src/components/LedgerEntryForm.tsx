@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react'; // Keep this import style
-import { LedgerEntryInput, NumericInput } from '../types/global.d';
+import { NumericInput } from '../types/global.d';
 import { parseNumericInput, isInputInvalid } from '../util/contractUtils';
 import { ADD_LEDGER_ENTRY, GET_UNIT_DOSSIER, GET_LEDGER_DATA } from '../types/operations';
-import { AddLedgerEntryData } from '../types/graphql.d';
 import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerEntryFormProps {
@@ -21,7 +20,7 @@ export const LedgerEntryForm: React.FC<LedgerEntryFormProps> = ({ commandId, det
     const [reputationChange, setReputationChange] = useState<NumericInput>('');
     const [campaignName, setCampaignName] = useState(initialCampaignName);
     const [monthIndex, setMonthIndex] = useState<number | undefined>(initialMonthIndex);
-    const [addLedgerEntry, { loading }] = useMutation<AddLedgerEntryData, { commandId: string; detachmentId: string | null; input: LedgerEntryInput }>(ADD_LEDGER_ENTRY);
+    const [addLedgerEntry, { loading }] = useMutation(ADD_LEDGER_ENTRY);
     const [submissionError, setSubmissionError] = useState<string | null>(null);
 
     useEffect(() => {

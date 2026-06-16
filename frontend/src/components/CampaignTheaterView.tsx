@@ -18,7 +18,9 @@ import {
     Detachment,
     CampaignDetail,
     TrackDetail,
-    Contract
+    Contract,
+    CombatUnit,
+    Pilot
 } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
@@ -691,7 +693,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     id="theater-description"
                                                     className="table-input"
                                                     style={{ height: '180px', width: '100%', display: 'block', fontSize: '0.9rem' }}
-                                                    defaultValue={campaign?.description}
+                                                    defaultValue={campaign?.description ?? undefined}
                                                     autoFocus
                                                     onChange={(e) => handleUpdate('description', e.target.value)}
                                                     placeholder="Enter operational briefing (Markdown supported)..."
@@ -1262,10 +1264,23 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 showProcureEditor && procureAssetData && procureTargetDetachment && (
                     <CombatUnitEditor
                         mode="create"
-                        commandId={procureTargetDetachment.mercenaryCommandId}
+                        commandId={procureTargetDetachment.mercenaryCommandId || ''}
                         detachmentId={procureTargetDetachment.id}
                         availableSP={procureTargetDetachment.totalSupportPoints}
-                        unit={{ ...procureAssetData, id: '', status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL' }}
+                        unit={{
+                            ...procureAssetData,
+                            id: '',
+                            type: procureAssetData.type || 'BM',
+                            model: procureAssetData.model || 'NEW UNIT',
+                            variant: procureAssetData.variant || '',
+                            techBase: procureAssetData.techBase || 'Inner Sphere',
+                            tonnage: procureAssetData.tonnage || 0,
+                            asSize: procureAssetData.asSize || 0,
+                            bv: procureAssetData.bv || 0,
+                            pv: procureAssetData.pv || 0,
+                            status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL',
+                            detachmentId: procureTargetDetachment.id
+                        } as CombatUnit}
                         unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || FALLBACK_TYPES}
                         unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
                         techBases={(metaData?.publicCampaignMetadata as any)?.techBases || FALLBACK_TECH}
@@ -1280,14 +1295,33 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 showHireEditor && hirePilotData && hireTargetDetachment && (
                     <PilotEditor
                         mode="create"
-                        commandId={hireTargetDetachment.mercenaryCommandId}
+                        commandId={hireTargetDetachment.mercenaryCommandId || ''}
                         detachmentId={hireTargetDetachment.id}
                         availableSP={hireTargetDetachment.totalSupportPoints}
-                        pilot={{ ...hirePilotData, id: '' }}
+                        pilot={{
+                            ...hirePilotData,
+                            id: '',
+                            name: hirePilotData.name || 'NEW PILOT',
+                            gunnery: 4,
+                            piloting: 5,
+                            asSkill: 4,
+                            edgeTokensSkill: null,
+                            edgeAbilitySkill: null,
+                            edgeAbilities: hirePilotData.edgeAbilities ?? null,
+                            unitType: hirePilotData.unitType || 'BM',
+                            wounds: hirePilotData.wounds || 0,
+                            handicap: 0,
+                            totalSpEarned: hirePilotData.totalSpEarned || 0,
+                            gunnerySpEarned: hirePilotData.gunnerySpEarned || 0,
+                            pilotingSpEarned: hirePilotData.pilotingSpEarned || 0,
+                            edgeTokensSpEarned: hirePilotData.edgeTokensSpEarned || 0,
+                            edgeAbilitySpEarned: hirePilotData.edgeAbilitySpEarned || 0,
+                            detachmentId: hireTargetDetachment.id
+                        } as Pilot}
                         onSave={handleHireSave}
                         onCancel={handleHireCancel}
                         overridePrice={hirePilotData.overridePrice}
-                        campaignHireCost={campaign.hireNamedPilotCost}
+                        campaignHireCost={campaign.hireNamedPilotCost ?? undefined}
                     />
                 )
             }

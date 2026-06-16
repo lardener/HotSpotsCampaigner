@@ -6,7 +6,7 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
-import { CombatUnit, Pilot, Detachment, CommandUpdateInput, LedgerEntry, UpdateCommandVars, DeleteUnitVars, DeletePilotVars, DeleteDetachmentVars, CreateDetachmentVars } from '../types/global.d';
+import { CombatUnit, Pilot, Detachment, CommandUpdateInput, LedgerEntry } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 import { UnitDossierData } from '../types/graphql.d';
 import { CommandDashboardBackground } from './CommandDashboardBackground';
@@ -93,10 +93,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const [joinCampaign] = useMutation(JOIN_CAMPAIGN);
 
-    const [updateCommand] = useMutation<any, UpdateCommandVars>(UPDATE_COMMAND);
+    const [updateCommand] = useMutation(UPDATE_COMMAND);
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
-    const [assignAsset] = useMutation<any, { assetType: string, assetId: string, detachmentId: string | null }>(ASSIGN_ASSET, {
-        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
+    const [assignAsset] = useMutation(ASSIGN_ASSET, {
+        update(cache: ApolloCache, { data: result }, { variables }) {
             if (result?.assignAsset && variables) {
                 const queryVars = { commandId };
                 const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: queryVars });
@@ -114,8 +114,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         }
     });
 
-    const [deleteDetachment] = useMutation<any, DeleteDetachmentVars>(DELETE_DETACHMENT, {
-        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
+    const [deleteDetachment] = useMutation(DELETE_DETACHMENT, {
+        update(cache: ApolloCache, { data: result }, { variables }) {
             if (result?.deleteDetachment && variables?.detachmentId) {
                 cache.evict({ id: cache.identify({ __typename: 'Detachment', id: variables.detachmentId }) });
                 cache.gc();
@@ -123,8 +123,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         }
     });
 
-    const [deleteUnit] = useMutation<any, DeleteUnitVars>(DELETE_UNIT, {
-        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
+    const [deleteUnit] = useMutation(DELETE_UNIT, {
+        update(cache: ApolloCache, { data: result }, { variables }) {
             if (result?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
                 cache.gc();
@@ -132,8 +132,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         }
     });
 
-    const [deletePilot] = useMutation<any, DeletePilotVars>(DELETE_PILOT, {
-        update(cache: ApolloCache, { data: result }: any, { variables }: any) {
+    const [deletePilot] = useMutation(DELETE_PILOT, {
+        update(cache: ApolloCache, { data: result }, { variables }) {
             if (result?.deletePilot && variables?.pilotId) {
                 cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
                 cache.gc();
@@ -141,8 +141,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         }
     });
 
-    const [createDetachment] = useMutation<any, CreateDetachmentVars>(CREATE_DETACHMENT, {
-        update(cache: ApolloCache, { data: createData }: any) {
+    const [createDetachment] = useMutation(CREATE_DETACHMENT, {
+        update(cache: ApolloCache, { data: createData }) {
             if (!createData?.createDetachment) return;
             const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
             if (existing?.getCommand) {
@@ -769,7 +769,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                                 {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
                                             </td>
                                             <td className="text-right" style={{ color: (entry.reputationChange || 0) > 0 ? 'var(--terminal-green)' : (entry.reputationChange || 0) < 0 ? 'var(--terminal-alert)' : 'inherit' }}>
-                                                {entry.reputationChange !== undefined && entry.reputationChange !== 0
+                                                {entry.reputationChange != null && entry.reputationChange !== 0
                                                     ? (entry.reputationChange > 0 ? `+${entry.reputationChange}` : entry.reputationChange)
                                                     : '-'}
                                             </td>

@@ -1,4 +1,52 @@
-import { gql } from '@apollo/client';
+import { gql, TypedDocumentNode } from '@apollo/client';
+import {
+  LoginWithTokenData,
+  UpdateUserProfileData,
+  CreateCampaignData,
+  UpdateCampaignData,
+  CreateDetachmentData,
+  DeleteDetachmentData,
+  AssignDetachmentData,
+  JoinCampaignData,
+  UpdateTrackData,
+  RerollTrackData,
+  ReorderTracksData,
+  CreateInviteData,
+  EstablishCommandData,
+  UpdateCommandData,
+  DeleteCommandData,
+  AssignAssetData,
+  AddUnitData,
+  UpdateUnitData,
+  ImportAssetsData,
+  HirePilotData,
+  UpdatePilotData,
+  AddLedgerEntryData,
+  DeleteUnitData,
+  DeletePilotData,
+  DeleteInviteData,
+} from './graphql.d';
+import {
+  UpdateCommandVars,
+  UpdateUnitVars,
+  AddUnitVars,
+  ImportAssetsVars,
+  UpdatePilotVars,
+  HirePilotVars,
+  DeleteUnitVars,
+  DeletePilotVars,
+  DeleteDetachmentVars,
+  CreateDetachmentVars,
+  CreateInviteVars,
+  AssignAssetVars,
+  JoinCampaignVars,
+  AssignDetachmentVars,
+  LedgerEntryInput,
+  TrackUpdateInput,
+  CampaignCreateInput,
+  CampaignUpdateInput,
+  CommandUpdateInput
+} from './global.d';
 
 /**
  * Shared GraphQL Operations
@@ -133,13 +181,13 @@ export const GET_USER_PROFILE = gql`
   }
 `;
 
-export const LOGIN_WITH_TOKEN = gql`
+export const LOGIN_WITH_TOKEN: TypedDocumentNode<LoginWithTokenData, { token: string }> = gql`
   mutation LoginWithToken($token: String!) {
     loginWithToken(token: $token)
   }
 `;
 
-export const UPDATE_USER_PROFILE = gql`
+export const UPDATE_USER_PROFILE: TypedDocumentNode<UpdateUserProfileData, { displayName: string }> = gql`
   mutation UpdateUserProfile($displayName: String!) {
     updateUserProfile(displayName: $displayName) {
       id
@@ -294,7 +342,7 @@ export const GENERATE_TRACKS = gql`
   }
 `;
 
-export const CREATE_CAMPAIGN = gql`
+export const CREATE_CAMPAIGN: TypedDocumentNode<CreateCampaignData, { input: CampaignCreateInput }> = gql`
   mutation CreateCampaign($input: CampaignCreateInput!) {
     createCampaign(input: $input) {
       id
@@ -346,7 +394,7 @@ export const CREATE_CAMPAIGN = gql`
   }
 `;
 
-export const UPDATE_CAMPAIGN = gql`
+export const UPDATE_CAMPAIGN: TypedDocumentNode<UpdateCampaignData, { id: string, input: CampaignUpdateInput }> = gql`
   mutation UpdateCampaign($id: ID!, $input: CampaignUpdateInput!) {
     updateCampaign(id: $id, input: $input) {
       id
@@ -463,7 +511,7 @@ export const GET_MANAGED_CAMPAIGNS = gql`
   ${FRAGMENT_DETACHMENT}
 `;
 
-export const CREATE_DETACHMENT = gql`
+export const CREATE_DETACHMENT: TypedDocumentNode<CreateDetachmentData, CreateDetachmentVars> = gql`
   mutation CreateDetachment($commandId: ID!, $campaignId: ID, $name: String!) {
     createDetachment(commandId: $commandId, campaignId: $campaignId, name: $name) {
       ...DetachmentFields
@@ -472,19 +520,19 @@ export const CREATE_DETACHMENT = gql`
   ${FRAGMENT_DETACHMENT}
 `;
 
-export const DELETE_DETACHMENT = gql`
+export const DELETE_DETACHMENT: TypedDocumentNode<DeleteDetachmentData, DeleteDetachmentVars> = gql`
   mutation DeleteDetachment($detachmentId: ID!) {
     deleteDetachment(detachmentId: $detachmentId)
   }
 `;
 
-export const ASSIGN_DETACHMENT = gql`
+export const ASSIGN_DETACHMENT: TypedDocumentNode<AssignDetachmentData, AssignDetachmentVars> = gql`
   mutation AssignDetachmentToCampaign($detachmentId: ID!, $campaignId: ID) {
     assignDetachmentToCampaign(detachmentId: $detachmentId, campaignId: $campaignId)
   }
 `;
 
-export const JOIN_CAMPAIGN = gql`
+export const JOIN_CAMPAIGN: TypedDocumentNode<JoinCampaignData, JoinCampaignVars> = gql`
   mutation JoinCampaign($token: String!, $detachmentId: ID!) {
     joinCampaign(token: $token, detachmentId: $detachmentId)
   }
@@ -577,7 +625,7 @@ export const GET_CAMPAIGN_DETAILS = gql`
   ${FRAGMENT_DETACHMENT}
 `;
 
-export const UPDATE_TRACK = gql`
+export const UPDATE_TRACK: TypedDocumentNode<UpdateTrackData, { id: string, input: TrackUpdateInput }> = gql`
   mutation UpdateTrack($id: ID!, $input: TrackUpdateInput!) {
     updateTrack(id: $id, input: $input) {
       id
@@ -593,7 +641,7 @@ export const UPDATE_TRACK = gql`
   }
 `;
 
-export const REROLL_TRACK = gql`
+export const REROLL_TRACK: TypedDocumentNode<RerollTrackData, { id: string }> = gql`
   mutation RerollTrack($id: ID!) {
     rerollTrack(id: $id) {
       id
@@ -604,7 +652,7 @@ export const REROLL_TRACK = gql`
   }
 `;
 
-export const REORDER_TRACKS = gql`
+export const REORDER_TRACKS: TypedDocumentNode<ReorderTracksData, { campaignId: string, trackIds: string[] }> = gql`
   mutation ReorderTracks($campaignId: ID!, $trackIds: [ID!]!) {
     reorderTracks(campaignId: $campaignId, trackIds: $trackIds) {
       id
@@ -621,7 +669,7 @@ export const REORDER_TRACKS = gql`
   }
 `;
 
-export const CREATE_INVITE = gql`
+export const CREATE_INVITE: TypedDocumentNode<CreateInviteData, CreateInviteVars> = gql`
   mutation CreateInvite($campaignId: ID!, $recipientName: String) {
     createInvite(campaignId: $campaignId, recipientName: $recipientName) {
       token
@@ -630,7 +678,7 @@ export const CREATE_INVITE = gql`
   }
 `;
 
-export const DELETE_INVITE = gql`
+export const DELETE_INVITE: TypedDocumentNode<DeleteInviteData, { id: string }> = gql`
   mutation DeleteInvite($id: ID!) {
     deleteInvite(id: $id)
   }
@@ -709,7 +757,7 @@ export const GET_UNIT_DOSSIER = gql`
   ${FRAGMENT_DETACHMENT}
 `;
 
-export const ESTABLISH_COMMAND = gql`
+export const ESTABLISH_COMMAND: TypedDocumentNode<EstablishCommandData, { input: CommandUpdateInput }> = gql`
   mutation EstablishCommand($input: CommandUpdateInput!) {
     establishCommand(input: $input) {
       ...CommandFields
@@ -718,7 +766,7 @@ export const ESTABLISH_COMMAND = gql`
   ${FRAGMENT_COMMAND}
 `;
 
-export const UPDATE_COMMAND = gql`
+export const UPDATE_COMMAND: TypedDocumentNode<UpdateCommandData, UpdateCommandVars> = gql`
   mutation UpdateCommand($id: ID!, $input: CommandUpdateInput!) {
     updateCommand(id: $id, input: $input) {
       ...CommandFields
@@ -727,13 +775,13 @@ export const UPDATE_COMMAND = gql`
   ${FRAGMENT_COMMAND}
 `;
 
-export const DELETE_COMMAND = gql`
+export const DELETE_COMMAND: TypedDocumentNode<DeleteCommandData, { commandId: string, force?: boolean }> = gql`
   mutation DeleteCommand($commandId: ID!, $force: Boolean) {
     deleteCommand(commandId: $commandId, force: $force)
   }
 `;
 
-export const ASSIGN_ASSET = gql`
+export const ASSIGN_ASSET: TypedDocumentNode<AssignAssetData, AssignAssetVars> = gql`
   mutation AssignAsset($assetType: String!, $assetId: ID!, $detachmentId: ID) {
     assignAsset(assetType: $assetType, assetId: $assetId, detachmentId: $detachmentId)
   }
@@ -811,7 +859,7 @@ export const GET_FORCE_DATA = gql`
 
 // ==================== Ledger Operations ====================
 
-export const ADD_LEDGER_ENTRY = gql`
+export const ADD_LEDGER_ENTRY: TypedDocumentNode<AddLedgerEntryData, { commandId: string, detachmentId: string | null, input: LedgerEntryInput }> = gql`
   mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $input: LedgerEntryInput!) {
     addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, input: $input) {
       ...LedgerEntryFields
@@ -836,7 +884,7 @@ export const GET_LEDGER_DATA = gql`
   }
 `;
 
-export const UPDATE_UNIT = gql`
+export const UPDATE_UNIT: TypedDocumentNode<UpdateUnitData, UpdateUnitVars> = gql`
   mutation UpdateUnit($id: ID!, $input: CombatUnitUpdateInput!) {
     updateCombatUnit(id: $id, input: $input) {
       ...CombatUnitFields
@@ -845,7 +893,7 @@ export const UPDATE_UNIT = gql`
   ${FRAGMENT_COMBAT_UNIT}
 `;
 
-export const UPDATE_PILOT = gql`
+export const UPDATE_PILOT: TypedDocumentNode<UpdatePilotData, UpdatePilotVars> = gql`
   mutation UpdatePilot($id: ID!, $input: PilotUpdateInput!) {
     updatePilot(id: $id, input: $input) {
       ...PilotFields
@@ -854,7 +902,7 @@ export const UPDATE_PILOT = gql`
   ${FRAGMENT_PILOT}
 `;
 
-export const ADD_COMBAT_UNIT = gql`
+export const ADD_COMBAT_UNIT: TypedDocumentNode<AddUnitData, AddUnitVars> = gql`
   mutation AddCombatUnit($commandId: ID!, $input: CombatUnitUpdateInput!) {
     addCombatUnit(commandId: $commandId, input: $input) {
       ...CombatUnitFields
@@ -863,7 +911,7 @@ export const ADD_COMBAT_UNIT = gql`
   ${FRAGMENT_COMBAT_UNIT}
 `;
 
-export const HIRE_PILOT = gql`
+export const HIRE_PILOT: TypedDocumentNode<HirePilotData, HirePilotVars> = gql`
   mutation HirePilot($commandId: ID!, $input: PilotUpdateInput!) {
     hirePilot(commandId: $commandId, input: $input) {
       ...PilotFields
@@ -872,7 +920,7 @@ export const HIRE_PILOT = gql`
   ${FRAGMENT_PILOT}
 `;
 
-export const IMPORT_ASSETS = gql`
+export const IMPORT_ASSETS: TypedDocumentNode<ImportAssetsData, ImportAssetsVars> = gql`
   mutation ImportAssets($commandId: ID!, $detachmentId: ID, $link: String!) {
     importCombatUnitsFromLink(commandId: $commandId, detachmentId: $detachmentId, link: $link) {
       ...CombatUnitFields
@@ -881,13 +929,13 @@ export const IMPORT_ASSETS = gql`
   ${FRAGMENT_COMBAT_UNIT}
 `;
 
-export const DELETE_UNIT = gql`
+export const DELETE_UNIT: TypedDocumentNode<DeleteUnitData, DeleteUnitVars> = gql`
   mutation DeleteUnit($unitId: ID!) {
     deleteUnit(unitId: $unitId)
   }
 `;
 
-export const DELETE_PILOT = gql`
+export const DELETE_PILOT: TypedDocumentNode<DeletePilotData, DeletePilotVars> = gql`
   mutation DeletePilot($pilotId: ID!) {
     deletePilot(pilotId: $pilotId)
   }

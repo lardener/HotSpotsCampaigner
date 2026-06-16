@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { Pilot, PilotUpdateInput, HirePilotVars, UpdatePilotVars } from '../types/global.d';
+import { Pilot, PilotUpdateInput } from '../types/global.d';
 import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
-import { HirePilotData, UpdatePilotData } from '../types/graphql.d';
 import { PilotBackground } from './PilotBackground';
 
 interface PilotEditorProps {
@@ -49,7 +48,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         pilotingSpEarned: 0,
         edgeTokensSpEarned: 0,
         edgeAbilitySpEarned: 0,
-        detachmentId: detachmentId || null
+        detachmentId: detachmentId ?? null
     });
 
     // Canonical thresholds per skill (ascending by SP). Each entry: { sp, skill, handicap }
@@ -123,11 +122,23 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return next;
     };
 
-    const [formData, setFormData] = useState<Pilot>(() => recalcDerived(pilot ? { ...pilot } : createDefaultPilot()));
+    const [formData, setFormData] = useState<Pilot>(() => recalcDerived(pilot ? {
+        ...pilot,
+        edgeTokensSkill: pilot.edgeTokensSkill ?? null,
+        edgeAbilitySkill: pilot.edgeAbilitySkill ?? null,
+        edgeAbilities: pilot.edgeAbilities ?? null,
+        detachmentId: pilot.detachmentId ?? detachmentId ?? null
+    } as Pilot : createDefaultPilot()));
 
     // Ensure form updates if the pilot prop changes or when initializing for a new detachment
     useEffect(() => {
-        setFormData(recalcDerived(pilot ? { ...pilot } : createDefaultPilot()));
+        setFormData(recalcDerived(pilot ? {
+            ...pilot,
+            edgeTokensSkill: pilot.edgeTokensSkill ?? null,
+            edgeAbilitySkill: pilot.edgeAbilitySkill ?? null,
+            edgeAbilities: pilot.edgeAbilities ?? null,
+            detachmentId: pilot.detachmentId ?? detachmentId ?? null
+        } as Pilot : createDefaultPilot()));
     }, [pilot, detachmentId, mode]);
 
     const pilotOriginalTotalSp = useMemo(() => {
@@ -153,8 +164,8 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         inputLabel?: string;
     } | null>(null);
 
-    const [hirePilot] = useMutation<HirePilotData, HirePilotVars>(HIRE_PILOT);
-    const [updatePilot] = useMutation<UpdatePilotData, UpdatePilotVars>(UPDATE_PILOT);
+    const [hirePilot] = useMutation(HIRE_PILOT);
+    const [updatePilot] = useMutation(UPDATE_PILOT);
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
 
     const hiringPrice = useMemo(() => {
@@ -334,7 +345,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             await addLedgerEntry({
                                 variables: {
                                     commandId,
-                                    detachmentId: formData.detachmentId || detachmentId,
+                                    detachmentId: formData.detachmentId || detachmentId || null,
                                     input: {
                                         amount: -trainingCost,
                                         description: isRefund
@@ -491,7 +502,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                         type="text"
                                         className="table-input w-100"
                                         style={{ border: 'none' }}
-                                        value={formData.edgeAbilities}
+                                        value={formData.edgeAbilities ?? ''}
                                         onChange={(e) => handleInputChange('edgeAbilities', e.target.value)}
                                         placeholder="EDGE ABILITIES"
                                         title="Describe the pilot's edge abilities"
