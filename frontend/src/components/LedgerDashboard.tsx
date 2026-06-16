@@ -13,7 +13,9 @@ interface LedgerDashboardProps {
 export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, detachmentId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string>('');
     const { loading, data, refetch } = useQuery<LedgerData>(GET_LEDGER_DATA, {
-        variables: { commandId }
+        variables: { commandId },
+        fetchPolicy: 'cache-and-network',
+        notifyOnNetworkStatusChange: true
     });
 
     useEffect(() => {
@@ -30,7 +32,7 @@ export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, det
     const selectedDet = useMemo(() => detachments.find((d: any) => d.id === selectedDetachmentId), [detachments, selectedDetachmentId]);
 
 
-    if (loading) return <div>ACCESSING SECURE LEDGER...</div>;
+    if (loading && !data) return <div>ACCESSING SECURE LEDGER...</div>;
 
     return (
         <div className="ledger-dashboard" style={{ position: 'relative', overflow: 'hidden' }}>

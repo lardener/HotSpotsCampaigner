@@ -220,13 +220,14 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
     const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
         skip: !user,
-        fetchPolicy: 'network-only',
+        fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 
     const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<ManagedCampaignsData>(GET_MANAGED_CAMPAIGNS, {
         variables: { status: campaignFilter },
         skip: !user,
+        fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 

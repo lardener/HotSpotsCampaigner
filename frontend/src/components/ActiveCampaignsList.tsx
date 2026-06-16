@@ -10,10 +10,12 @@ interface ActiveCampaignsListProps {
 
 export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSelectCampaign }) => {
     const { loading, error, data } = useQuery<ActiveCampaignsData>(GET_ACTIVE_CAMPAIGNS, {
-        variables: { page: 0, size: 10 }
+        variables: { page: 0, size: 10 },
+        fetchPolicy: 'cache-and-network',
+        notifyOnNetworkStatusChange: true
     });
 
-    if (loading) return <div className="loading-intel">DECRYPTING THEATER INTEL...</div>;
+    if (loading && !data) return <div className="loading-intel">DECRYPTING THEATER INTEL...</div>;
 
     if (error) return (
         <div className="error-message">COMMUNICATIONS FAILURE: UNABLE TO ACCESS THEATER DATA.</div>

@@ -74,7 +74,8 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
 
     const { loading, error, data, refetch } = useQuery<ForceData>(GET_FORCE_DATA, {
         variables: { commandId },
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'cache-and-network',
+        notifyOnNetworkStatusChange: true
     });
 
     const sortUnits = (list: CombatUnit[]) => [...list].sort((a, b) =>

@@ -78,6 +78,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const { loading, error, data, refetch } = useQuery<UnitDossierData>(GET_UNIT_DOSSIER, {
         variables: { commandId },
+        fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 

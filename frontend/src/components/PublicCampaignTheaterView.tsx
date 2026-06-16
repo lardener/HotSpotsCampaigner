@@ -16,10 +16,11 @@ interface PublicCampaignTheaterViewProps {
 export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps> = ({ campaignId, onBack }) => {
     const { loading, error, data } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId },
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'cache-and-network',
+        notifyOnNetworkStatusChange: true
     });
 
-    if (loading) return <div className="loading-intel pulse">ACCESSING THEATER DATA...</div>;
+    if (loading && !data) return <div className="loading-intel pulse">ACCESSING THEATER DATA...</div>;
     if (error) return <div className="error-message">COMMUNICATIONS FAILURE: {error.message}</div>;
 
     const campaign = data?.getCampaign;

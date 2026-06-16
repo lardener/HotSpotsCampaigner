@@ -342,7 +342,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId: selectedCampaignId || '' },
         skip: !selectedCampaignId,
-        fetchPolicy: 'network-only',
+        fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
     const { data: metaData } = useQuery<MetadataDataFull>(GET_METADATA);
@@ -624,7 +624,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                 </>
             ) : (
                 (() => {
-                    if (loading) {
+                    if (loading && !campaignQueryData) {
                         return <div className="loading-intel pulse" style={{ padding: '100px', textAlign: 'center' }}>RETRIEVING THEATER DATA...</div>;
                     }
 

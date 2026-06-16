@@ -321,7 +321,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }, 5000);
     };
 
-    if (metadataLoading) {
+    if (metadataLoading && !queryMetaData) {
         return (
             <TerminalOverlay
                 title="LOGISTICS LINK"
