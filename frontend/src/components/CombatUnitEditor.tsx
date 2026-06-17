@@ -120,6 +120,24 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
         }
     }, [formData.bv, formData.techBase, metadataData, overridePrice, pricingRule, formData.pv]);
 
+    const reconfigureCost = useMemo(() => {
+        if (mode !== 'edit' || !unit || !formData.detachmentId) return 0;
+        if (formData.bv === unit.bv && formData.pv === unit.pv) return 0;
+
+        const meta = metadataData?.publicCampaignMetadata;
+        const modifier = meta?.omnimechReconfigureModifier ?? 0.5;
+
+        const techTax = formData.techBase === 'Clan'
+            ? (meta?.clanTechModifier ?? 2.0)
+            : (formData.techBase === 'Mixed' ? (meta?.mixedTechModifier ?? 1.5) : 1.0);
+
+        const basis = pricingRule === 'Core'
+            ? (formData.tonnage || 0)
+            : (formData.asSize || 0) * 20;
+
+        return Math.round(basis * modifier * techTax);
+    }, [mode, unit, formData.detachmentId, formData.bv, formData.pv, formData.tonnage, formData.asSize, formData.techBase, pricingRule, metadataData]);
+
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
         const isNumeric = ['tonnage', 'asSize', 'bv', 'pv'].includes(field);
         setFormData(prev => ({
@@ -128,7 +146,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
         }));
     };
 
-    const handleSave = async (isPurchase: boolean = false) => {
+    const handleSave = async (isTransaction: boolean = false) => {
         if (!formData.model.trim()) {
             setOverlay({
                 title: "VALIDATION ERROR",
@@ -139,10 +157,12 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             return;
         }
 
-        if (isPurchase && availableSP !== undefined && availableSP < purchasePrice) {
+        const cost = mode === 'create' ? purchasePrice : reconfigureCost;
+
+        if (isTransaction && cost > 0 && availableSP !== undefined && availableSP < cost) {
             setOverlay({
                 title: "INSUFFICIENT FUNDS",
-                message: `COMMAND WARCHEST (${availableSP} SP) IS INSUFFICIENT FOR THIS PROCUREMENT (${purchasePrice} SP).`,
+                message: `COMMAND WARCHEST (${availableSP} SP) IS INSUFFICIENT FOR THIS ${mode === 'create' ? 'PROCUREMENT' : 'RECONFIGURATION'} (${cost} SP).`,
                 variant: 'alert',
                 onConfirm: () => setOverlay(null)
             });
@@ -185,15 +205,17 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             }
 
             if (savedUnit) {
-                if (isPurchase && detachmentId) {
+                if (isTransaction && cost > 0 && (detachmentId || formData.detachmentId)) {
                     try {
                         await addLedgerEntry({
                             variables: {
                                 commandId,
-                                detachmentId,
+                                detachmentId: detachmentId || formData.detachmentId,
                                 input: {
-                                    amount: -purchasePrice,
-                                    description: `UNIT PURCHASE: ${formData.model} ${formData.variant}`.trim()
+                                    amount: -cost,
+                                    description: mode === 'create'
+                                        ? `UNIT PURCHASE: ${formData.model} ${formData.variant}`.trim()
+                                        : `OMNIMECH RECONFIGURE: ${formData.model} ${formData.variant}`.trim()
                                 }
                             }
                         });
@@ -289,7 +311,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                 {mode === 'create' ? 'UNIT PROCUREMENT' : 'UNIT RECORD'}
                             </h2>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                {mode === 'create' && overridePrice === undefined && (
+                                {((mode === 'create' && overridePrice === undefined) || (mode === 'edit' && reconfigureCost > 0)) && (
                                     <button
                                         type="button"
                                         className="mode-btn theme-amber"
@@ -313,6 +335,21 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                         }
                                     >
                                         {isSaving ? '>> PROCESSING...' : `$ PURCHASE: ${purchasePrice}`}
+                                    </button>
+                                )}
+                                {mode === 'edit' && reconfigureCost > 0 && (
+                                    <button
+                                        className={`mode-btn ${availableSP !== undefined && availableSP < reconfigureCost ? 'theme-amber' : 'theme-blue'}`}
+                                        onClick={() => handleSave(true)}
+                                        disabled={isSaving}
+                                        style={{ padding: '2px 8px', fontSize: '0.8rem' }}
+                                        title={
+                                            availableSP !== undefined && availableSP < reconfigureCost
+                                                ? `INSUFFICIENT FUNDS: ${availableSP} SP AVAILABLE`
+                                                : `Reconfigure OmniMech for ${reconfigureCost} SP`
+                                        }
+                                    >
+                                        {isSaving ? '...' : `RECONFIGURE: ${reconfigureCost}`}
                                     </button>
                                 )}
                                 <button
