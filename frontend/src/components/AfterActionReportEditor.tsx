@@ -5,11 +5,11 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { PilotEditor } from './PilotEditor';
-import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput } from '../types/global.d';
+import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus, Detachment, Contract } from '../types/global.d';
 import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
-import { MetadataDataMinimal, AddLedgerEntryData, UpdateUnitData, UpdatePilotData, DeletePilotData, UpdateTrackData, DeleteUnitData } from '../types/graphql.d';
+import { MetadataDataMinimal, AddLedgerEntryData, UpdateUnitData, UpdatePilotData, UpdateTrackData, DeleteUnitData } from '../types/graphql.d';
 import {
     GET_METADATA,
     UPDATE_UNIT,
@@ -133,7 +133,12 @@ const useAarState = (campaign: CampaignDetail, track: TrackDetail, unitStatuses:
     return [state, dispatch] as const;
 };
 
-export const calculatePilotFinancials = (pState: { healed: number }, terms: any, healCost: number, pricingRule: 'Core' | 'Alpha Strike' = 'Core') => {
+interface SupportTerms {
+    type: 'BATTLE' | 'STRAIGHT' | 'NONE';
+    pct: number;
+}
+
+export const calculatePilotFinancials = (pState: { healed: number }, terms: { support: SupportTerms }, healCost: number, pricingRule: 'Core' | 'Alpha Strike' = 'Core') => {
     // Alpha Strike: only 1 wound max can be healed
     const effectiveHealCount = pricingRule === 'Alpha Strike' ? Math.min(pState.healed, 1) : pState.healed;
 
@@ -159,7 +164,7 @@ export const calculatePilotFinancials = (pState: { healed: number }, terms: any,
     };
 };
 
-export const calculateAwardFinancials = (campaign: CampaignDetail, terms: any) => {
+export const calculateAwardFinancials = (campaign: CampaignDetail, terms: DetachmentAarState & { payRate: number; salvageCoverage: number }) => {
     const baseCombatPay = campaign.combatPay || 0;
 
     // Convert potential string inputs to numbers for calculation
@@ -194,7 +199,7 @@ interface AfterActionReportEditorProps {
 }
 
 // New helper function to calculate financial implications of a unit's status
-export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Partial<CampaignDetail> | undefined, statuses: string[], pricingRule: 'Core' | 'Alpha Strike' = 'Core') => {
+export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules: Partial<CampaignDetail> | undefined, statuses: UnitStatus[], pricingRule: 'Core' | 'Alpha Strike' = 'Core') => {
     const [operational, armor, internal, crippled, destroyed, trulyDestroyed] = statuses;
 
     const isTrulyDestroyed = status === trulyDestroyed;
@@ -279,8 +284,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     });
 
     const metaData = propMetaData || queryMetaData;
-
-    const unitStatuses = (metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES;
+    const unitStatuses = (metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[]) || (FALLBACK_STATUSES as UnitStatus[]);
     const [state, dispatch] = useAarState(campaign, track, unitStatuses);
     const [isEditingNarrative, setIsEditingNarrative] = useState(false);
     const [notices, setNotices] = useState<Record<string, string>>({});
@@ -657,7 +661,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 <div className="tactical-panel narrative-editor mb-20 theme-red" data-id="AAR-NARRATIVE">
                     <div className="flex-between mb-10" style={{ borderBottom: '1px solid var(--terminal-amber-dim)', paddingBottom: '5px' }}>
                         <h3 className="zone-header" style={{ margin: 0 }}>OPERATIONAL DEBRIEFING</h3>
-                        {(campaign as any).isManager && (
+                        {campaign.isManager && (
                             <button
                                 className="mode-btn"
                                 style={{ fontSize: '0.6rem', padding: '2px 6px' }}
@@ -698,10 +702,10 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     )}
                 </div>
 
-                {campaign.participatingDetachments?.filter((det: any) => {
-                    if ((campaign as any).isManager) return true;
+                {campaign.participatingDetachments?.filter((det: Detachment) => {
+                    if (campaign.isManager) return true;
                     return userCommands?.some(cmd => cmd.id === det.mercenaryCommandId);
-                }).map((det: any) => (
+                }).map((det: Detachment) => (
                     <div key={det.id} className="dashboard-section mb-20" style={{ border: '1px solid var(--accent-dim)', padding: '15px', backgroundColor: 'transparent' }}>
                         <div className="flex-between mb-15" style={{ borderBottom: '1px solid var(--accent-dim)', paddingBottom: '8px' }}>
                             <h4 className="terminal-text" style={{ margin: 0 }}>{det.name.toUpperCase()}</h4>
@@ -721,7 +725,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { selectedContractId: e.target.value } })}
                                             title="Select contract for this detachment"
                                         >
-                                            {campaign.contracts?.map((c: any) => (
+                                            {campaign.contracts?.map((c: Contract) => (
                                                 <option key={c.id} value={c.id}>{c.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({c.employerCategory})</option>
                                             ))}
                                         </select>
@@ -842,7 +846,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     <tbody>
                                         {[...(det.units || [])]
                                             .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
-                                            .map((u: any) => {
+                                            .map((u: CombatUnit) => {
                                                 const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
                                                 const ammoTons = parseNumericInput(uState.ammo);
                                                 const terms = getDetachmentTerms(det.id);
@@ -946,7 +950,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 </table>
                                 {[...(det.units || [])]
                                     .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
-                                    .map((u: any) => {
+                                    .map((u: CombatUnit) => {
                                         const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
                                         return notices[`${u.id}-logistics`] && !isTrulyDestroyed && (
                                             <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
@@ -954,7 +958,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     })}
                                 {[...(det.units || [])]
                                     .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
-                                    .map((u: any) => {
+                                    .map((u: CombatUnit) => {
                                         const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
                                         return errorStates[`${u.id}-logistics`] && !isTrulyDestroyed && (
                                             <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
@@ -977,7 +981,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     <tbody> {/* Use pilot.id for key */}
                                         {[...(det.pilots || [])]
                                             .sort((a, b) => a.name.localeCompare(b.name))
-                                            .map((p: any) => {
+                                            .map((p: Pilot) => {
                                                 const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
                                                 const terms = getDetachmentTerms(det.id);
                                                 const financials = calculatePilotFinancials(pState, terms, injuryHealCost, state.pricingRule);
@@ -1043,14 +1047,14 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 </table>
                                 {[...(det.pilots || [])]
                                     .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map((p: any) => notices[`${p.id}-medical`] && (
+                                    .map((p: Pilot) => notices[`${p.id}-medical`] && (
                                         <div key={p.id} className="restricted-text theme-green xs-text mt-5 text-center">
                                             {p.name}: {notices[`${p.id}-medical`]}
                                         </div>
                                     ))}
                                 {[...(det.pilots || [])]
                                     .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map((p: any) => errorStates[`${p.id}-medical`] && (
+                                    .map((p: Pilot) => errorStates[`${p.id}-medical`] && (
                                         <div key={p.id} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>
                                             {p.name}: {errorStates[`${p.id}-medical`]}
                                         </div>
@@ -1096,12 +1100,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                         asSize: procureAssetData.asSize || 0,
                         bv: procureAssetData.bv || 0,
                         pv: procureAssetData.pv || 0,
-                        status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL',
+                        status: (metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[])?.[0] || 'OPERATIONAL',
                         detachmentId: procureTargetDetachment.id
                     } as CombatUnit}
-                    unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
-                    unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
-                    techBases={(metaData?.publicCampaignMetadata as any)?.techBases || ['Inner Sphere', 'Clan', 'Mixed']}
+                    unitTypes={metaData?.publicCampaignMetadata?.unitTypes || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
+                    unitStatuses={metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES}
+                    techBases={metaData?.publicCampaignMetadata?.techBases || ['Inner Sphere', 'Clan', 'Mixed']}
                     onSave={handleProcureSave}
                     onCancel={handleProcureCancel}
                     overridePrice={procureAssetData.overridePrice}

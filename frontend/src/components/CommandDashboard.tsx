@@ -6,7 +6,7 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
-import { CombatUnit, Pilot, Detachment, CommandUpdateInput, LedgerEntry } from '../types/global.d';
+import { CombatUnit, Pilot, Detachment, CommandUpdateInput } from '../types/global.d';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 import { UnitDossierData } from '../types/graphql.d';
 import { CommandDashboardBackground } from './CommandDashboardBackground';
@@ -544,23 +544,23 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     ))}
 
                                 {selectedDetachmentId && (() => {
-                                    const currentDet = command.detachments?.find(d => d.id === selectedDetachmentId);
+                                    const currentDet = command.detachments?.find((d: Detachment) => d.id === selectedDetachmentId);
 
                                     if (currentDet?.campaignId) {
                                         return (
                                             <div className="tactical-panel" style={{ marginTop: '20px', padding: '10px' }}>
                                                 <h4 className="restricted-text" style={{ fontSize: '0.6rem', marginBottom: '10px' }}>ACTIVE DEPLOYMENT</h4>
-                                                <div className="flex flex-gap-5">
+                                                <div className="flex-col flex-gap-5">
                                                     <button
                                                         className="mode-btn"
-                                                        style={{ flex: 2, fontSize: '0.7rem' }}
+                                                        style={{ width: '100%', fontSize: '0.7rem' }}
                                                         onClick={() => onViewCampaign?.(currentDet.campaignId!)}
                                                     >
                                                         VIEW THEATER
                                                     </button>
                                                     {!isManagerView && <button
                                                         className="mode-btn"
-                                                        style={{ flex: 1, fontSize: '0.7rem', color: 'var(--terminal-alert)' }}
+                                                        style={{ width: '100%', fontSize: '0.7rem', color: 'var(--terminal-alert)' }}
                                                         onClick={handleLeaveCampaign}
                                                     >
                                                         LEAVE
@@ -597,7 +597,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     units={filteredUnits}
                                     pilots={filteredPilots}
                                     compact
-                                    campaignRating={selectedDetachmentId ? (command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
+                                    campaignRating={selectedDetachmentId ? (command.detachments?.find((d: Detachment) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
                                 />
                             </div>
                         </div>

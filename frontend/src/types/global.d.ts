@@ -9,6 +9,10 @@
  */
 export type NumericInput = string | number;
 
+export type UnitType = 'BM' | 'CV' | 'PM' | 'IM' | 'BA' | 'CI';
+export type TechBase = 'Inner Sphere' | 'Clan' | 'Mixed';
+export type UnitStatus = 'OPERATIONAL' | 'ARMOR DAMAGE' | 'INTERNAL DAMAGE' | 'CRIPPLED' | 'DESTROYED' | 'TRULY DESTROYED';
+
 export interface CampaignMetadata {
     missions: MissionMetadata;
     trackTypes: string[];
@@ -39,9 +43,9 @@ export interface CampaignMetadata {
     learnCommandAbility2Cost: number;
     learnCommandAbility3Cost: number;
     replaceCommandAbilityCost: number;
-    unitTypes: string[];
-    techBases: string[];
-    unitStatuses: string[];
+    unitTypes: UnitType[];
+    techBases: TechBase[];
+    unitStatuses: UnitStatus[];
 }
 
 export interface MissionMetadata {
@@ -57,15 +61,15 @@ export interface ResolvedStepEntry {
 export interface CombatUnit {
     __typename?: string;
     id: string;
-    type: string;
+    type: UnitType;
     model: string;
     variant: string;
-    techBase: string;
+    techBase: TechBase;
     tonnage: number;
     asSize: number;
     bv: number;
     pv: number;
-    status: string;
+    status: UnitStatus;
     detachmentId: string | null;
 }
 
@@ -81,7 +85,7 @@ export interface Pilot {
     edgeTokensSkill: number | null;
     edgeAbilitySkill: number | null;
     edgeAbilities: string | null;
-    unitType: string;
+    unitType: UnitType;
     wounds: number;
     handicap: number;
     totalSpEarned: number;
@@ -216,6 +220,8 @@ export interface MercenaryCommand {
     name: string;
     totalSupportPoints: number;
     reputation: number;
+    isManager?: boolean;
+    isParticipant?: boolean;
     commandingOfficer: string;
     detachments?: Detachment[];
     units?: CombatUnit[];
@@ -252,7 +258,7 @@ export type ResolvedSteps = Record<string, ResolvedStep>;
 
 export type PublicCampaignMetadata = Pick<
     CampaignMetadata,
-    'missions' | 'trackTypes' | 'factions' | 'employerTypes' | 'resolvedSteps'
+    'missions' | 'trackTypes' | 'factions' | 'employerTypes' | 'resolvedSteps' | 'unitStatuses' | 'unitTypes' | 'techBases'
 >;
 
 export type PublicCampaignMetadataWithRules = PublicCampaignMetadata &
@@ -391,6 +397,8 @@ export interface CampaignDetail {
     description: string | null;
     lengthInMonths: number | null;
     trackCount: number | null;
+    isManager?: boolean;
+    isParticipant?: boolean;
     status: string;
     primaryEmployer: string;
     secondaryEmployer: string;

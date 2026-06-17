@@ -3,13 +3,20 @@ import './navigation-tree.css';
 
 export type NodeType = 'ROOT' | 'DEPLOYMENT' | 'COMMAND' | 'DETACHMENT' | 'CAMPAIGN' | 'INTEL';
 
+export interface TreeItemMetadata {
+    detachmentId?: string;
+    commandId?: string | null;
+    campaignId?: string | null;
+    managerView?: boolean;
+}
+
 export interface TreeItem {
     id: string;
     label: string;
     type: NodeType;
     children?: TreeItem[];
     initiallyExpanded?: boolean;
-    metadata?: Record<string, any>;
+    metadata?: TreeItemMetadata;
 }
 
 const getNodeIcon = (type: NodeType) => {

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CampaignDetail, MercenaryCommand, CombatUnit, Pilot, Detachment } from '../types/global.d';
+import { CampaignDetail, MercenaryCommand, CombatUnit, Pilot, Detachment, UnitType, TechBase } from '../types/global.d';
 import { MetadataDataFull } from '../types/graphql.d';
 
 interface ProcureAssetData extends Partial<CombatUnit> {
@@ -13,7 +13,7 @@ interface HirePilotData extends Partial<Pilot> {
 interface UseHscActionHandlerProps {
     campaign: CampaignDetail;
     userCommands?: MercenaryCommand[];
-    setOverlay: (overlay: any) => void; // Simplified type for now, matches TerminalOverlayProps
+    setOverlay: (overlay: any | null) => void;
     onActionComplete?: () => void; // Callback for when an editor saves
     metaData?: MetadataDataFull;
 }
@@ -108,8 +108,8 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
                     bv: parseInt(params.get('bv') || '0'),
                     pv: parseInt(params.get('pv') || '0'),
                     asSize: parseInt(params.get('sz') || '0'),
-                    type: params.get('type') || 'BM',
-                    techBase: params.get('tech') || 'Inner Sphere',
+                    type: (params.get('type') as UnitType) || 'BM',
+                    techBase: (params.get('tech') as TechBase) || 'Inner Sphere',
                     tonnage: parseInt(params.get('tons') || '0'),
                     overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
                 };

@@ -10,7 +10,7 @@ import {
     FloatingFocusManager,
 } from '@floating-ui/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CombatUnit, CombatUnitUpdateInput } from '../types/global.d'; // This was already correct
+import { CombatUnit, CombatUnitUpdateInput, UnitType, UnitStatus, TechBase } from '../types/global.d'; // This was already correct
 import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS, GET_METADATA, ADD_LEDGER_ENTRY } from '../types/operations';
 import { MetadataDataFull } from '../types/graphql.d';
 import { CombatUnitBackground } from './CombatUnitBackground';
@@ -22,9 +22,9 @@ interface CombatUnitEditorProps {
     mode: 'create' | 'edit';
     onSave: (unit: CombatUnit) => void;
     onCancel: () => void;
-    unitTypes: string[];
-    unitStatuses: string[];
-    techBases: string[];
+    unitTypes: UnitType[];
+    unitStatuses: UnitStatus[];
+    techBases: TechBase[];
     availableSP?: number;
     overridePrice?: number;
 }
@@ -42,17 +42,17 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     detachmentId,
     overridePrice
 }) => {
-    const createDefaultUnit = () => ({
+    const createDefaultUnit = (): CombatUnit => ({
         id: '',
         model: 'NEW UNIT',
         type: unitTypes[0] || 'BM',
         variant: '',
-        techBase: techBases[0] || 'IS',
+        techBase: techBases[0] || 'Inner Sphere',
         tonnage: 0,
         asSize: 0,
         bv: 0,
         pv: 0,
-        status: unitStatuses[0] || 'ACTIVE',
+        status: unitStatuses[0] || 'OPERATIONAL',
         detachmentId: detachmentId ?? null // Ensure undefined from props is null
     });
 

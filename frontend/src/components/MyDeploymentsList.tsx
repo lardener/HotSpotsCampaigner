@@ -1,11 +1,11 @@
 import React from 'react';
-import { NodeType } from './NavigationTree';
+import { NodeType, TreeItemMetadata } from './NavigationTree';
 import { MercenaryCommand } from '../types/global.d';
 import { MyDeploymentsBackground } from './MyDeploymentsBackground';
 
 interface MyDeploymentsListProps {
     commands: MercenaryCommand[];
-    onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
+    onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: TreeItemMetadata }) => void;
 }
 
 export const MyDeploymentsList: React.FC<MyDeploymentsListProps> = ({ commands, onSelectDetachment }) => {

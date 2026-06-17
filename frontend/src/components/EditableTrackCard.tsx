@@ -58,7 +58,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
         e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
     };
 
-    const isManager = (campaign as any).isManager;
+    const isManager = campaign.isManager;
 
     return (
         <div

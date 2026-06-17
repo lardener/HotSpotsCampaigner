@@ -1,5 +1,5 @@
 import React from 'react';
-import { CombatUnit, Pilot } from '../types/global.d';
+import { CombatUnit, Pilot, UnitType } from '../types/global.d';
 
 interface Props {
     units: CombatUnit[];
@@ -8,8 +8,26 @@ interface Props {
     compact?: boolean;
 }
 
+interface UnitTypeSummary {
+    type: UnitType | 'UNKNOWN';
+    count: number;
+    tons: number;
+    bv: number;
+    pv: number;
+    sz: number;
+}
+
+interface PilotSpecSummary {
+    spec: UnitType | 'UNKNOWN';
+    count: number;
+    gun: number;
+    pil: number;
+    as: number;
+    handicap: number;
+}
+
 export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, campaignRating, compact = false }) => {
-    const unitSummaries = Object.values(units.reduce((acc, u) => {
+    const unitSummaries = Object.values(units.reduce<Record<string, UnitTypeSummary>>((acc, u) => {
         const type = u.type || 'UNKNOWN';
         if (!acc[type]) acc[type] = { type, count: 0, tons: 0, bv: 0, pv: 0, sz: 0 };
         acc[type].count++;
@@ -18,9 +36,9 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
         acc[type].pv += u.pv || 0;
         acc[type].sz += u.asSize || 0;
         return acc;
-    }, {} as Record<string, any>));
+    }, {}));
 
-    const pilotSummaries = Object.values(pilots.reduce((acc, p) => {
+    const pilotSummaries = Object.values(pilots.reduce<Record<string, PilotSpecSummary>>((acc, p) => {
         const spec = p.unitType || 'UNKNOWN';
         if (!acc[spec]) acc[spec] = { spec, count: 0, gun: 0, pil: 0, as: 0, handicap: 0 };
         acc[spec].count++;
@@ -29,7 +47,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
         acc[spec].as += p.asSkill || 0;
         acc[spec].handicap += p.handicap || 0;
         return acc;
-    }, {} as Record<string, any>));
+    }, {}));
 
     return (
         <div className="flex flex-gap-20" style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1fr 1fr', gap: '15px' }}>
@@ -52,7 +70,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                         </tr>
                     </thead>
                     <tbody>
-                        {unitSummaries.map((s: any) => (
+                        {unitSummaries.map(s => (
                             <tr key={s.type}>
                                 <td className="text-center">{s.type}</td>
                                 <td className="text-center">{s.count}</td>
@@ -63,10 +81,10 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                         ))}
                         <tr style={{ borderTop: '1px dashed var(--accent-dim)', fontWeight: 'bold' }}>
                             <td className="text-center">TTL</td>
-                            <td className="text-center">{unitSummaries.reduce((sum: number, s: any) => sum + s.count, 0)}</td>
-                            <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.tons, 0)}</td>
-                            <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.bv, 0)}</td>
-                            <td className="text-right">{unitSummaries.reduce((sum: number, s: any) => sum + s.pv, 0)}</td>
+                            <td className="text-center">{unitSummaries.reduce((sum: number, s) => sum + s.count, 0)}</td>
+                            <td className="text-right">{unitSummaries.reduce((sum: number, s) => sum + s.tons, 0)}</td>
+                            <td className="text-right">{unitSummaries.reduce((sum: number, s) => sum + s.bv, 0)}</td>
+                            <td className="text-right">{unitSummaries.reduce((sum: number, s) => sum + s.pv, 0)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -83,7 +101,7 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                         </tr>
                     </thead>
                     <tbody>
-                        {pilotSummaries.map((s: any) => (
+                        {pilotSummaries.map(s => (
                             <tr key={s.spec}>
                                 <td className="text-center">{s.spec}</td>
                                 <td className="text-center">{s.count}</td>
@@ -93,9 +111,9 @@ export const DetachmentReadinessSummary: React.FC<Props> = ({ units, pilots, cam
                         ))}
                         <tr style={{ borderTop: '1px dashed var(--accent-dim)', fontWeight: 'bold' }}>
                             <td className="text-center">TTL</td>
-                            <td className="text-center">{pilotSummaries.reduce((sum: number, s: any) => sum + s.count, 0)}</td>
+                            <td className="text-center">{pilotSummaries.reduce((sum: number, s) => sum + s.count, 0)}</td>
                             <td className="text-center">---</td>
-                            <td className="text-center">{pilotSummaries.reduce((sum: number, s: any) => sum + s.handicap, 0)}</td>
+                            <td className="text-center">{pilotSummaries.reduce((sum: number, s) => sum + s.handicap, 0)}</td>
                         </tr>
                     </tbody>
                 </table>

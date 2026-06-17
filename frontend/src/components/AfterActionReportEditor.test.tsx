@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateAwardFinancials, calculateUnitFinancials, calculatePilotFinancials, aarReducer, AarDataState, AarAction } from './AfterActionReportEditor';
-import { CampaignDetail, CombatUnit, TrackDetail } from '../types/global.d';
+import { CampaignDetail, CombatUnit, TrackDetail, UnitStatus } from '../types/global.d';
 
 describe('AfterActionReportEditor Financial Helpers', () => {
     const mockCampaign = {
@@ -10,6 +10,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
     describe('calculateAwardFinancials', () => {
         it('should calculate standard successful award correctly', () => {
             const terms = {
+                selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0,
                 payRate: 1.0,
                 selectedLevel: 1,
@@ -29,6 +30,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
         it('should apply multipliers (bonus, rate, level) and round pay correctly', () => {
             const terms = {
+                selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.5, // 150% bonus
                 payRate: 0.8,          // 80% contract rate
                 selectedLevel: 2,      // Level 2 deployment
@@ -48,6 +50,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             const noPayCampaign = { combatPay: 0 } as CampaignDetail;
 
             const termsDown = {
+                selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1, payRate: 1, selectedLevel: 1, customAward: 0,
                 salvageValue: 333,
                 salvageCoverage: 0.25 // 83.25 -> 83
@@ -55,6 +58,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             expect(calculateAwardFinancials(noPayCampaign, termsDown).salvageAward).toBe(83);
 
             const termsUp = {
+                selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1, payRate: 1, selectedLevel: 1, customAward: 0,
                 salvageValue: 333,
                 salvageCoverage: 0.5 // 166.5 -> 167
@@ -64,6 +68,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
         it('should include custom awards in the total (positive and negative)', () => {
             const terms = {
+                selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0, payRate: 1.0, selectedLevel: 1, salvageValue: 0, salvageCoverage: 0,
                 customAward: 500
             };
@@ -75,6 +80,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
         it('should handle missing combat pay by defaulting to 0', () => {
             const result = calculateAwardFinancials({} as CampaignDetail, {
+                selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0, payRate: 1.0, selectedLevel: 1, salvageValue: 100, salvageCoverage: 1.0, customAward: 0
             });
             expect(result.payAward).toBe(0);
@@ -84,7 +90,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
     describe('calculatePilotFinancials', () => {
         const terms = {
-            support: { type: 'STRAIGHT', pct: 0.5 }
+            support: { type: 'STRAIGHT' as const, pct: 0.5 }
         };
         const healCost = 30;
 
@@ -100,19 +106,19 @@ describe('AfterActionReportEditor Financial Helpers', () => {
         });
 
         it('should handle battle support (100% coverage)', () => {
-            const battleTerms = { support: { type: 'BATTLE', pct: 1.0 } };
+            const battleTerms = { support: { type: 'BATTLE' as const, pct: 1.0 } };
             const result = calculatePilotFinancials({ healed: 1 }, battleTerms, healCost);
             expect(result.mercenaryCost).toBe(0);
         });
 
         it('should handle no support coverage', () => {
-            const noTerms = { support: { type: 'NONE', pct: 0 } };
+            const noTerms = { support: { type: 'NONE' as const, pct: 0 } };
             const result = calculatePilotFinancials({ healed: 1 }, noTerms, healCost);
             expect(result.mercenaryCost).toBe(30);
         });
 
         it('should use provided custom heal cost', () => {
-            const result = calculatePilotFinancials({ healed: 1 }, { support: { type: 'NONE', pct: 0 } }, 50);
+            const result = calculatePilotFinancials({ healed: 1 }, { support: { type: 'NONE' as const, pct: 0 } }, 50);
             expect(result.rawMedicalCost).toBe(50);
         });
     });
@@ -125,7 +131,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             techBase: 'Inner Sphere'
         } as CombatUnit;
 
-        const statuses = ['OPERATIONAL', 'ARMOR DAMAGE', 'INTERNAL DAMAGE', 'CRIPPLED', 'DESTROYED', 'TRULY DESTROYED'];
+        const statuses: UnitStatus[] = ['OPERATIONAL', 'ARMOR DAMAGE', 'INTERNAL DAMAGE', 'CRIPPLED', 'DESTROYED', 'TRULY DESTROYED'];
         const rules = {} as unknown as CampaignDetail; // Will use defaults
 
         it('should return 0 cost for operational status', () => {

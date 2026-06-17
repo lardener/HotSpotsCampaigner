@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, MutationTuple } from '@apollo/client/react';
 import { EditableTrackCard } from './EditableTrackCard';
 import { CombatUnitEditor } from './CombatUnitEditor';
-import { NodeType } from './NavigationTree';
+import { NodeType, TreeItemMetadata } from './NavigationTree';
 import { PilotEditor } from './PilotEditor';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
@@ -23,7 +23,9 @@ import {
     Pilot,
     CampaignUpdateInput,
     TrackUpdateInput,
-    MercenaryCommand
+    MercenaryCommand,
+    UnitType,
+    UnitStatus
 } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
@@ -48,7 +50,7 @@ interface CampaignTheaterViewProps {
     onSelectCampaign: (id: string) => void;
     onReturnToList: () => void;
     onCreateNew: () => void;
-    onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
+    onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: TreeItemMetadata }) => void;
     onRefresh?: () => Promise<void>;
     onSyncChange?: (syncing: boolean) => void;
     userCommands?: MercenaryCommand[];
@@ -122,7 +124,7 @@ const useTheaterCampaignSync = (
             : {};
 
         const localIsParticipant = userCommands?.some(cmd =>
-            cmd.detachments?.some((det: any) => det.campaignId === selectedCampaignId)
+            cmd.detachments?.some((det: Detachment) => det.campaignId === selectedCampaignId)
         ) || false;
 
         return {
@@ -1269,7 +1271,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         unit={{
                             ...procureAssetData,
                             id: '',
-                            type: procureAssetData.type || 'BM',
+                            type: (procureAssetData.type as UnitType) || 'BM',
                             model: procureAssetData.model || 'NEW UNIT',
                             variant: procureAssetData.variant || '',
                             techBase: procureAssetData.techBase || 'Inner Sphere',
@@ -1277,12 +1279,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             asSize: procureAssetData.asSize || 0,
                             bv: procureAssetData.bv || 0,
                             pv: procureAssetData.pv || 0,
-                            status: (metaData?.publicCampaignMetadata as any)?.unitStatuses?.[0] || 'OPERATIONAL',
+                            status: (metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[])?.[0] || 'OPERATIONAL',
                             detachmentId: procureTargetDetachment.id
                         } as CombatUnit}
-                        unitTypes={(metaData?.publicCampaignMetadata as any)?.unitTypes || FALLBACK_TYPES}
-                        unitStatuses={(metaData?.publicCampaignMetadata as any)?.unitStatuses || FALLBACK_STATUSES}
-                        techBases={(metaData?.publicCampaignMetadata as any)?.techBases || FALLBACK_TECH}
+                        unitTypes={metaData?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES}
+                        unitStatuses={metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES}
+                        techBases={metaData?.publicCampaignMetadata?.techBases || FALLBACK_TECH}
                         onSave={handleProcureSave}
                         onCancel={handleProcureCancel}
                         overridePrice={procureAssetData.overridePrice}
@@ -1328,7 +1330,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             {
                 showMonthlyExpensesEditor !== null && campaign && campaign.participatingDetachments && (
                     <MonthlyExpensesEditor
-                        campaignDetails={campaign as any} // Cast to any for now, will refine CampaignDetailSummary
+                        campaignDetails={campaign}
                         detachments={campaign.participatingDetachments}
                         currentMonthIndex={showMonthlyExpensesEditor}
                         onClose={() => {
@@ -1348,9 +1350,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             {
                 showAarForTrack && campaign && (
                     <AfterActionReportEditor
-                        campaign={campaign as any}
+                        campaign={campaign}
                         track={showAarForTrack}
-                        metaData={metaData as any}
+                        metaData={metaData}
                         onClose={async () => {
                             await refetchCampaign();
                             if (onRefresh) await onRefresh();
