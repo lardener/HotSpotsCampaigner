@@ -9,7 +9,7 @@ import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, Num
 import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
-import { MetadataDataMinimal } from '../types/graphql.d';
+import { MetadataDataMinimal, AddLedgerEntryData, UpdateUnitData, UpdatePilotData, DeletePilotData, UpdateTrackData, DeleteUnitData } from '../types/graphql.d';
 import {
     GET_METADATA,
     UPDATE_UNIT,
@@ -254,9 +254,9 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
 };
 
 export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded, userCommands }) => {
-    const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
-    const [updateUnit] = useMutation(UPDATE_UNIT);
-    const [updatePilot] = useMutation(UPDATE_PILOT);
+    const [addLedgerEntry] = useMutation<AddLedgerEntryData>(ADD_LEDGER_ENTRY);
+    const [updateUnit] = useMutation<UpdateUnitData>(UPDATE_UNIT);
+    const [updatePilot] = useMutation<UpdatePilotData>(UPDATE_PILOT);
     const [deletePilot] = useMutation(DELETE_PILOT, {
         update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deletePilot && variables?.pilotId) {
@@ -265,8 +265,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         }
     });
-    const [updateTrack] = useMutation(UPDATE_TRACK);
-    const [deleteUnit] = useMutation(DELETE_UNIT, {
+    const [updateTrack] = useMutation<UpdateTrackData>(UPDATE_TRACK);
+    const [deleteUnit] = useMutation<DeleteUnitData>(DELETE_UNIT, {
         update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
@@ -343,7 +343,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     const getDetachmentTerms = (detId: string) => {
         const detAar = state.detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1.0, salvageValue: 0, customAward: 0 };
-        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
 
         return {
             support: parseSupportTerms(contract.supportTerms || ''),
@@ -359,7 +359,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
         const noticeKey = `${detId}-award`;
         // Resolve contract based on the current selection in the reducer state
-        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
 
         const financials = calculateAwardFinancials(campaign, {
             ...detAar,
@@ -431,7 +431,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         if (!detAar) return;
 
         const noticeKey = `${unit.id}-logistics`;
-        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
         const terms = {
             support: parseSupportTerms(contract.supportTerms || ''),
             ...detAar
@@ -526,7 +526,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         if (!detAar || !cmdId) return;
 
         const noticeKey = `${pilot.id}-medical`;
-        const contract = campaign.contracts?.find((c: any) => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
         const terms = {
             support: parseSupportTerms(contract.supportTerms || ''),
             ...detAar

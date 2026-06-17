@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation, MutationTuple } from '@apollo/client/react';
 import { EditableTrackCard } from './EditableTrackCard';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { NodeType } from './NavigationTree';
@@ -20,7 +20,10 @@ import {
     TrackDetail,
     Contract,
     CombatUnit,
-    Pilot
+    Pilot,
+    CampaignUpdateInput,
+    TrackUpdateInput,
+    MercenaryCommand
 } from '../types/global.d';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
@@ -33,7 +36,7 @@ import {
     REORDER_TRACKS
 } from '../types/operations';
 import { useHscActionHandler } from './useHscActionHandler';
-import { MetadataDataFull, CampaignDetailsData } from '../types/graphql.d';
+import { MetadataDataFull, CampaignDetailsData, UpdateCampaignData, RerollTrackData } from '../types/graphql.d';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
 interface CampaignTheaterViewProps {
@@ -48,7 +51,7 @@ interface CampaignTheaterViewProps {
     onSelectDetachment: (item: { id: string, label: string, type: NodeType, metadata: any }) => void;
     onRefresh?: () => Promise<void>;
     onSyncChange?: (syncing: boolean) => void;
-    userCommands?: any[];
+    userCommands?: MercenaryCommand[];
 }
 
 interface TheaterCampaign extends CampaignDetail {
@@ -65,12 +68,12 @@ const useTheaterCampaignSync = (
     metaData: MetadataDataFull | undefined,
     selectedCampaignId: string | null,
     queryLoading: boolean,
-    updateCampaign: any,
-    rerollTrack: any,
-    refetchCampaign: any,
+    updateCampaign: MutationTuple<UpdateCampaignData, { id: string, input: CampaignUpdateInput }>[0],
+    rerollTrack: MutationTuple<RerollTrackData, { id: string }>[0],
+    refetchCampaign: () => Promise<any>,
     onSyncChange?: (syncing: boolean) => void,
     onRefresh?: () => Promise<void>,
-    userCommands?: any[]
+    userCommands?: MercenaryCommand[]
 ) => {
     const [isSyncing, setIsSyncing] = useState(false);
     const saveTimeoutRef = useRef<Record<string, number>>({});
@@ -203,16 +206,13 @@ const useTheaterCampaignSync = (
         saveTimeoutRef.current[key] = setTimeout(async () => {
             if (selectedCampaignId !== targetId) return;
             setIsSyncing(true);
-            const input: { [key: string]: any } = { [field]: value };
+            let valToUse = value;
             const numericFields = ['trackCount', 'lengthInMonths', 'monthlyPay', 'monthlyMaintenance', 'transportationCost', 'combatPay'];
             if (numericFields.includes(field)) {
-                const val = parseInt(value as string) || 0;
-                if (field === 'trackCount' || field === 'lengthInMonths') {
-                    input[field] = Math.max(1, val);
-                } else {
-                    input[field] = Math.max(0, val);
-                }
+                const parsed = parseInt(value as string) || 0;
+                valToUse = (field === 'trackCount' || field === 'lengthInMonths') ? Math.max(1, parsed) : Math.max(0, parsed);
             }
+            const input = { [field]: valToUse } as CampaignUpdateInput;
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
             if (onRefresh) await onRefresh();
@@ -229,7 +229,7 @@ const useTheaterCampaignSync = (
         saveTimeoutRef.current[key] = setTimeout(async () => {
             if (selectedCampaignId !== targetId) return;
             setIsSyncing(true);
-            const input: { [key: string]: any } = { [field]: parseFloat(value as string) || 0 };
+            const input = { [field]: parseFloat(value as string) || 0 } as CampaignUpdateInput;
 
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
@@ -248,7 +248,7 @@ const useTheaterCampaignSync = (
             setIsSyncing(true);
             const isFloat = field === 'omnimechReconfigureModifier';
             const val = isFloat ? parseFloat(value as string) : parseInt(value as string);
-            const input: { [key: string]: any } = { [field]: isNaN(val) ? 0 : val };
+            const input = { [field]: isNaN(val) ? 0 : val } as CampaignUpdateInput;
 
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
@@ -268,6 +268,7 @@ const useTheaterCampaignSync = (
 
     const performStatusUpdate = async (newStatus: string) => {
         setIsSyncing(true);
+        if (!selectedCampaignId) return;
         await updateCampaign({
             variables: {
                 id: selectedCampaignId,
@@ -479,10 +480,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
 
         saveTimeoutRef.current[key] = setTimeout(async () => {
             setIsSyncing(true);
-            const input: any = { [field]: value };
-            if (field === 'monthIndex') {
-                input[field] = parseInt(value);
-            }
+            const valToUse = field === 'monthIndex' ? parseInt(value) : value;
+            const input = { [field]: valToUse } as TrackUpdateInput;
             await updateTrack({ variables: { id: trackId, input } });
             await refetchCampaign();
             if (onRefresh) await onRefresh();

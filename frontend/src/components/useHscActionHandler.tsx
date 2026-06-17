@@ -1,22 +1,34 @@
 import { useState, useCallback } from 'react';
-import { CampaignDetail } from '../types/global.d';
+import { CampaignDetail, MercenaryCommand, CombatUnit, Pilot, Detachment } from '../types/global.d';
 import { MetadataDataFull } from '../types/graphql.d';
+
+interface ProcureAssetData extends Partial<CombatUnit> {
+    overridePrice?: number;
+}
+
+interface HirePilotData extends Partial<Pilot> {
+    overridePrice?: number;
+}
 
 interface UseHscActionHandlerProps {
     campaign: CampaignDetail;
-    userCommands?: any[];
+    userCommands?: MercenaryCommand[];
     setOverlay: (overlay: any) => void; // Simplified type for now, matches TerminalOverlayProps
     onActionComplete?: () => void; // Callback for when an editor saves
     metaData?: MetadataDataFull;
 }
 
+interface ExtendedDetachment extends Detachment {
+    totalSupportPoints: number;
+}
+
 export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActionComplete }: UseHscActionHandlerProps) => {
-    const [procureAssetData, setProcureAssetData] = useState<any>(null);
-    const [procureTargetDetachment, setProcureTargetDetachment] = useState<any>(null);
+    const [procureAssetData, setProcureAssetData] = useState<ProcureAssetData | null>(null);
+    const [procureTargetDetachment, setProcureTargetDetachment] = useState<ExtendedDetachment | null>(null);
     const [showProcureEditor, setShowProcureEditor] = useState(false);
 
-    const [hirePilotData, setHirePilotData] = useState<any>(null);
-    const [hireTargetDetachment, setHireTargetDetachment] = useState<any>(null);
+    const [hirePilotData, setHirePilotData] = useState<HirePilotData | null>(null);
+    const [hireTargetDetachment, setHireTargetDetachment] = useState<ExtendedDetachment | null>(null);
     const [showHireEditor, setShowHireEditor] = useState(false);
 
     const handleHscAction = useCallback((url: string) => {
@@ -28,10 +40,10 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
             }
 
             const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
-                .filter((det: any) => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
-                .map((det: any) => {
+                .filter(det => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
+                .map(det => {
                     const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
-                    return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 };
+                    return { ...det, totalSupportPoints: cmd?.totalSupportPoints || 0 } as ExtendedDetachment;
                 });
 
             if (myDetachmentsInCampaign.length === 0) {
@@ -44,15 +56,15 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
                 return;
             }
 
-            const selectDetachmentAndOpenEditor = (assetData: any, editorType: 'procure' | 'hire') => {
+            const selectDetachmentAndOpenEditor = (assetData: ProcureAssetData | HirePilotData, editorType: 'procure' | 'hire') => {
                 if (myDetachmentsInCampaign.length === 1) {
                     if (editorType === 'procure') {
                         setProcureTargetDetachment(myDetachmentsInCampaign[0]);
-                        setProcureAssetData(assetData);
+                        setProcureAssetData(assetData as ProcureAssetData);
                         setShowProcureEditor(true);
                     } else {
                         setHireTargetDetachment(myDetachmentsInCampaign[0]);
-                        setHirePilotData(assetData);
+                        setHirePilotData(assetData as HirePilotData);
                         setShowHireEditor(true);
                     }
                 } else {
@@ -62,18 +74,18 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
                         onConfirm: () => { }, // No-op, handled by button clicks
                         children: (
                             <div className="flex-col flex-gap-10 mt-15">
-                                {myDetachmentsInCampaign.map((det: any) => (
+                                {myDetachmentsInCampaign.map(det => (
                                     <button
                                         key={det.id}
                                         className="mode-btn theme-amber text-left"
                                         onClick={() => {
                                             if (editorType === 'procure') {
                                                 setProcureTargetDetachment(det);
-                                                setProcureAssetData(assetData);
+                                                setProcureAssetData(assetData as ProcureAssetData);
                                                 setShowProcureEditor(true);
                                             } else {
                                                 setHireTargetDetachment(det);
-                                                setHirePilotData(assetData);
+                                                setHirePilotData(assetData as HirePilotData);
                                                 setShowHireEditor(true);
                                             }
                                             setOverlay(null); // Close selection overlay

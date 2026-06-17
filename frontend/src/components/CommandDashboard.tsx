@@ -176,7 +176,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         };
     }, []);
 
-    const handleHeaderUpdate = (field: string, value: any, immediate = true) => {
+    const handleHeaderUpdate = (field: 'NAME' | 'CO', value: string, immediate = true) => {
         const key = `header-${field}`;
         if (saveTimeoutRef.current[key]) {
             clearTimeout(saveTimeoutRef.current[key]);
@@ -388,7 +388,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const filteredUnits = useMemo(() => {
         if (!command) return [];
         const list = selectedDetachmentId
-            ? (command.units || []).filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
+            ? (command.units || []).filter(u => u.detachmentId === selectedDetachmentId)
             : (command.units || []);
         return [...list].sort((a, b) =>
             a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || '')
@@ -398,7 +398,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const filteredPilots = useMemo(() => {
         if (!command) return [];
         const list = selectedDetachmentId
-            ? (command.pilots || []).filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
+            ? (command.pilots || []).filter(p => p.detachmentId === selectedDetachmentId)
             : (command.pilots || []);
         return [...list].sort((a, b) => a.name.localeCompare(b.name));
     }, [command, selectedDetachmentId]);
@@ -406,7 +406,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const filteredLedger = useMemo(() => {
         if (!command) return [];
         return selectedDetachmentId
-            ? (command.allLedgerEntries || []).filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
+            ? (command.allLedgerEntries || []).filter(e => e.detachmentId === selectedDetachmentId)
             : (command.allLedgerEntries || []);
     }, [command, selectedDetachmentId]);
 
@@ -544,7 +544,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     ))}
 
                                 {selectedDetachmentId && (() => {
-                                    const currentDet = command.detachments?.find((d: any) => d.id === selectedDetachmentId);
+                                    const currentDet = command.detachments?.find(d => d.id === selectedDetachmentId);
 
                                     if (currentDet?.campaignId) {
                                         return (
@@ -742,8 +742,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <LedgerEntryForm
                                 commandId={commandId}
                                 detachmentId={selectedDetachmentId}
-                                campaignId={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignId}
-                                initialCampaignName={command.detachments?.find((d: any) => d.id === selectedDetachmentId)?.campaignName || ''}
+                                campaignId={command.detachments?.find(d => d.id === selectedDetachmentId)?.campaignId}
+                                initialCampaignName={command.detachments?.find(d => d.id === selectedDetachmentId)?.campaignName || ''}
                                 onEntryAdded={() => refetch()}
                             />
                         </div>
