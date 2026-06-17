@@ -54,7 +54,7 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
             <h2 className="section-title">ACTIVE THEATER DEPLOYMENTS</h2>
             <p className="restricted-text">SITUATION REPORT: INNER SPHERE</p>
 
-            <div className="mb-20 mt-20 recruitment-box border-dashed-gray status-bar theme-amber" style={{ padding: '0 10px', display: 'flex', alignItems: 'center', height: '40px' }}>
+            <div className="mb-20 mt-20 recruitment-box border-dashed-gray status-bar" style={{ padding: '0 10px', display: 'flex', alignItems: 'center', height: '40px', transition: 'all 0.2s ease' }}>
                 <span className="restricted-text sm-text mr-10" style={{ whiteSpace: 'nowrap' }}>SEARCH INTEL:</span>
                 <input
                     type="text"
@@ -62,7 +62,6 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
                     placeholder="FILTER BY NAME, FACTION, OR DETACHMENT..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ border: 'none', background: 'transparent' }}
                     title="Filter campaigns by name, system, description, employers, or participating forces"
                 />
                 {searchTerm && (
@@ -119,6 +118,26 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
                 }
                 .recruitment-box {
                     background-color: rgba(0, 0, 0, 0.3) !important;
+                }
+                .status-bar:focus-within { 
+                    background-color: rgba(255, 255, 255, 0.05); 
+                    box-shadow: 0 0 8px rgba(255, 255, 255, 0.1); 
+                }
+                .theme-amber .status-bar:focus-within { border-color: var(--terminal-amber); box-shadow: 0 0 8px rgba(255, 176, 0, 0.3); }
+                .theme-green .status-bar:focus-within { border-color: var(--terminal-green); box-shadow: 0 0 8px rgba(51, 255, 51, 0.3); }
+                .theme-blue .status-bar:focus-within { border-color: var(--terminal-blue); box-shadow: 0 0 8px rgba(0, 191, 255, 0.3); }
+                .theme-red .status-bar:focus-within { border-color: var(--terminal-red); box-shadow: 0 0 8px rgba(255, 51, 51, 0.3); }
+
+                .status-bar input.table-input, .status-bar select.table-input, .status-bar textarea.table-input {
+                    background: transparent !important;
+                    color: inherit !important;
+                    outline: none !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                }
+                .status-bar input.table-input::placeholder {
+                    color: inherit;
+                    opacity: 0.5;
                 }
             `}</style>
         </section>

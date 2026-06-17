@@ -486,6 +486,13 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                     background-color: rgba(5, 7, 5, 0.3) !important;
                     backdrop-filter: blur(1px);
                 }
+                .generator-panel label.restricted-text { 
+                    color: var(--terminal-red);
+                    display: block;
+                    margin-bottom: 4px;
+                    font-size: 0.65rem;
+                    letter-spacing: 1px;
+                 }
                 .status-bar input.table-input, .status-bar select.table-input { 
                     background: transparent !important; 
                     color: inherit !important; 
