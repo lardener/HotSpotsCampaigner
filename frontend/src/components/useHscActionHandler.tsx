@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { CampaignDetail, MercenaryCommand, CombatUnit, Pilot, Detachment, UnitType, TechBase } from '../types/global.d';
+import { TerminalOverlayProps } from './TerminalOverlay';
 import { MetadataDataFull } from '../types/graphql.d';
 
 interface ProcureAssetData extends Partial<CombatUnit> {
@@ -13,7 +14,7 @@ interface HirePilotData extends Partial<Pilot> {
 interface UseHscActionHandlerProps {
     campaign: CampaignDetail;
     userCommands?: MercenaryCommand[];
-    setOverlay: (overlay: any | null) => void;
+    setOverlay: (overlay: TerminalOverlayProps | null) => void;
     onActionComplete?: () => void; // Callback for when an editor saves
     metaData?: MetadataDataFull;
 }

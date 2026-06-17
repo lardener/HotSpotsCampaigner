@@ -204,6 +204,7 @@ export const GET_ACTIVE_CAMPAIGNS = gql`
     publicActiveCampaigns(page: $page, size: $size) {
       id
       name
+      description
       systemName
       status
       trackCount

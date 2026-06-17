@@ -48,13 +48,11 @@ export type UnitDossierData = GQLResponse<'getCommand', Command> &
     GQLResponse<'managedCampaigns', Pick<CampaignDetail, 'id' | 'name'>[]> &
     GQLResponse<'publicCampaignMetadata', PublicCampaignMetadataMinimal>;
 export type GetMyCommandsData = GQLResponse<'myCommands', Command[]>;
-export type ManagedCampaignsData = GQLResponse<'managedCampaigns', (Omit<CampaignDetail, 'tracks' | 'monthlyPay' | 'monthlyMaintenance' | 'transportationCost' | 'combatPay' | 'lengthInMonths'> & {
-    tracks: Omit<TrackDetail, 'complications' | 'afterActionNarrative' | 'oppositionComplications'>[];
-})[]>;
+export type ManagedCampaignsData = GQLResponse<'managedCampaigns', CampaignDetail[]>;
 
 export type ForceData = GQLResponse<'getCommand', Command> &
-    GQLResponse<'managedCampaigns', any[]> &
-    GQLResponse<'participatingCampaigns', any[]> &
+    GQLResponse<'managedCampaigns', CampaignDetail[]> &
+    GQLResponse<'participatingCampaigns', CampaignDetail[]> &
     GQLResponse<'publicCampaignMetadata', PublicCampaignMetadataMinimal>;
 
 export type LedgerData = GQLResponse<'getCommand', Pick<Command, 'id' | 'name' | 'totalSupportPoints'> & {

@@ -27,12 +27,12 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
                 const inCampaignFields = [
                     c.name,
                     c.systemName,
-                    (c as any).description,
+                    c.description,
                     c.primaryEmployer,
                     c.secondaryEmployer
                 ].some(field => field?.toLowerCase().includes(term));
 
-                const inDetachments = (c as any).participatingDetachments?.some((det: any) =>
+                const inDetachments = c.participatingDetachments?.some(det =>
                     det.name?.toLowerCase().includes(term) ||
                     det.mercenaryCommandName?.toLowerCase().includes(term)
                 );

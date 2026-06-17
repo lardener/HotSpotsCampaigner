@@ -593,7 +593,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             case 'my-campaigns':
                 return (
                     <CampaignTheaterView
-                        managedData={managedData as any}
+                        managedData={managedData}
                         loadingManaged={loadingManaged}
                         selectedCampaignId={selectedCampaignId}
                         campaignFilter={campaignFilter}

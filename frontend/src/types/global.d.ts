@@ -346,6 +346,7 @@ export type CampaignProposal = Proposal;
 export interface ActiveCampaignSummary {
     id: string;
     name: string;
+    description?: string | null;
     systemName: string;
     trackCount: number;
     status: string;

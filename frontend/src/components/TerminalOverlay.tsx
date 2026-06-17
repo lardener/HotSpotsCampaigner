@@ -9,7 +9,7 @@ import {
     FloatingFocusManager,
 } from '@floating-ui/react';
 
-interface TerminalOverlayProps {
+export interface TerminalOverlayProps {
     title: string;
     message: string;
     confirmLabel?: string;

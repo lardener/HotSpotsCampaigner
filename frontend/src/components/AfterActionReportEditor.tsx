@@ -4,8 +4,8 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { CombatUnitEditor } from './CombatUnitEditor';
-import { PilotEditor } from './PilotEditor';
-import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus, Detachment, Contract } from '../types/global.d';
+import { PilotEditor } from './PilotEditor'; // This import is for the component, not the type
+import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus, Detachment, Contract, MercenaryCommand } from '../types/global.d';
 import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
@@ -195,7 +195,7 @@ interface AfterActionReportEditorProps {
     metaData?: MetadataDataMinimal;
     onClose: () => void | Promise<void>;
     onLedgerEntryAdded?: () => void | Promise<void>;
-    userCommands?: any[];
+    userCommands?: MercenaryCommand[];
 }
 
 // New helper function to calculate financial implications of a unit's status
@@ -557,7 +557,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         }
     };
 
-    const commitPilotLogistics = async (detId: string, cmdId: string, pilot: Pilot, pState: { injuries: number; healed: number; }, terms: any, noticeKey: string, isPilotDead: boolean) => {
+    const commitPilotLogistics = async (detId: string, cmdId: string, pilot: Pilot, pState: { injuries: number; healed: number; }, terms: { support: SupportTerms }, noticeKey: string, isPilotDead: boolean) => {
         const financials = calculatePilotFinancials(pState, terms, injuryHealCost, state.pricingRule);
         const finalCost = financials.mercenaryCostSigned;
 
