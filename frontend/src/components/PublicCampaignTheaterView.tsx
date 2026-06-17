@@ -3,7 +3,7 @@ import { useQuery } from '@apollo/client/react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
-import { GET_CAMPAIGN_DETAILS } from '../types/operations';
+import { GET_PUBLIC_CAMPAIGN_DETAILS } from '../types/operations';
 import { CampaignDetailsData } from '../types/graphql.d';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 import { TrackDetail, Detachment } from '../types/global.d';
@@ -14,7 +14,7 @@ interface PublicCampaignTheaterViewProps {
 }
 
 export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps> = ({ campaignId, onBack }) => {
-    const { loading, error, data } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
+    const { loading, error, data } = useQuery<CampaignDetailsData>(GET_PUBLIC_CAMPAIGN_DETAILS, {
         variables: { campaignId },
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true

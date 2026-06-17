@@ -5,7 +5,6 @@ import { ActiveCampaignsList } from './ActiveCampaignsList';
 import { ActiveCampaignsBackground } from './ActiveCampaignsBackground';
 import { CampaignGenerator } from './CampaignGenerator';
 import { CreateCommandForm } from './CreateCommandForm';
-import { Welcome } from './Welcome';
 import { LedgerDashboard } from './LedgerDashboard';
 import { CommandDashboard } from './CommandDashboard';
 import { CampaignTheaterView } from './CampaignTheaterView';
@@ -690,38 +689,38 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 );
             case 'intel-hub':
                 return (
-                    <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', overflow: 'hidden', minHeight: '100%', background: 'transparent' }}>
-                        <ActiveCampaignsBackground />
-                        <header className="dashboard-header">
-                            <h1 className="terminal-text">HINTERLANDS INTELLIGENCE HUB</h1>
-                            <p className="restricted-text">GLOBAL SIGNAL INTERCEPT ACTIVE</p>
-                        </header>
-                        <div className="grid-2-col mt-30">
-                            <div
-                                className="dashboard-section establish-command-placeholder"
-                                style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
-                                onClick={() => { setActiveTab('public-campaigns'); setSelectedNodeId('public-intel'); }}
-                            >
-                                <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>AVAILABLE CONTRACTS</h2>
-                                <p className="sm-text">BROWSE THEATERS RECRUITING MERCENARY COMMANDS</p>
+                    publicViewingCampaignId ? (
+                        <PublicCampaignTheaterView campaignId={publicViewingCampaignId} onBack={() => setPublicViewingCampaignId(null)} />
+                    ) : (
+                        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative', overflow: 'hidden', minHeight: '100%', background: 'transparent' }}>
+                            <ActiveCampaignsBackground />
+                            <header className="dashboard-header">
+                                <h1 className="terminal-text">HINTERLANDS INTELLIGENCE HUB</h1>
+                                <p className="restricted-text">GLOBAL SIGNAL INTERCEPT ACTIVE</p>
+                            </header>
+                            <div className="grid-2-col mt-30">
+                                <div
+                                    className="dashboard-section establish-command-placeholder"
+                                    style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
+                                    onClick={() => { setActiveTab('public-campaigns'); setSelectedNodeId('public-intel'); }}
+                                >
+                                    <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>AVAILABLE CONTRACTS</h2>
+                                    <p className="sm-text">BROWSE THEATERS RECRUITING MERCENARY COMMANDS</p>
+                                </div>
+                                {isManager && <div
+                                    className="dashboard-section establish-command-placeholder"
+                                    style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
+                                    onClick={() => { setActiveTab('create-campaign'); setSelectedNodeId('create-campaign'); }}
+                                >
+                                    <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>NEW CAMPAIGN PROTOCOL</h2>
+                                    <p className="sm-text">AUTHORIZE AND ESTABLISH A NEW CAMPAIGN THEATER</p>
+                                </div>}
                             </div>
-                            {isManager && <div
-                                className="dashboard-section establish-command-placeholder"
-                                style={{ height: '240px', flexDirection: 'column', gap: '15px' }}
-                                onClick={() => { setActiveTab('create-campaign'); setSelectedNodeId('create-campaign'); }}
-                            >
-                                <h2 className="terminal-text" style={{ fontSize: '1.5rem' }}>NEW CAMPAIGN PROTOCOL</h2>
-                                <p className="sm-text">AUTHORIZE AND ESTABLISH A NEW CAMPAIGN THEATER</p>
-                            </div>}
+                            <div className="mt-40">
+                                <ActiveCampaignsList onSelectCampaign={setPublicViewingCampaignId} />
+                            </div>
                         </div>
-                    </div>
-                );
-            default:
-                return (
-                    <div className="container" style={{ position: 'relative', overflow: 'hidden', minHeight: '100%', background: 'transparent' }}>
-                        <ActiveCampaignsBackground />
-                        <Welcome userName={user.name} />
-                    </div>
+                    )
                 );
         }
     };

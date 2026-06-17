@@ -532,6 +532,38 @@ export const ASSIGN_DETACHMENT: TypedDocumentNode<AssignDetachmentData, AssignDe
   }
 `;
 
+export const GET_PUBLIC_CAMPAIGN_DETAILS = gql`
+  query GetPublicCampaignDetails($campaignId: ID!) {
+    getCampaign(id: $campaignId) {
+      id
+      name
+      systemName
+      description
+      lengthInMonths
+      trackCount
+      status
+      primaryEmployer
+      secondaryEmployer
+      tracks {
+        ...TrackFields
+      }
+      participatingDetachments {
+        ...DetachmentFields
+        units {
+          ...CombatUnitFields
+        }
+        pilots {
+          ...PilotFields
+        }
+      }
+    }
+  }
+  ${FRAGMENT_TRACK}
+  ${FRAGMENT_COMBAT_UNIT}
+  ${FRAGMENT_PILOT}
+  ${FRAGMENT_DETACHMENT}
+`;
+
 export const JOIN_CAMPAIGN: TypedDocumentNode<JoinCampaignData, JoinCampaignVars> = gql`
   mutation JoinCampaign($token: String!, $detachmentId: ID!) {
     joinCampaign(token: $token, detachmentId: $detachmentId)
