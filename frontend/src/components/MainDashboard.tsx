@@ -716,9 +716,6 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                                     <p className="sm-text">AUTHORIZE AND ESTABLISH A NEW CAMPAIGN THEATER</p>
                                 </div>}
                             </div>
-                            <div className="mt-40">
-                                <ActiveCampaignsList onSelectCampaign={setPublicViewingCampaignId} />
-                            </div>
                         </div>
                     )
                 );
