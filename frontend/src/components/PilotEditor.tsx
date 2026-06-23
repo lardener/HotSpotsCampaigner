@@ -5,6 +5,8 @@ import { Pilot, PilotUpdateInput } from '../types/global.d';
 import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
 import { PilotBackground } from './PilotBackground';
+import { gunneryThresholds, pilotingThresholds, edgeTokensThresholds, edgeAbilityThresholds } from '../constants/pilotThresholds';
+import { recalcDerived } from '../util/pilotCalculations';
 
 interface PilotEditorProps {
     pilot?: Pilot | null;
@@ -50,77 +52,6 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         edgeAbilitySpEarned: 0,
         detachmentId: detachmentId ?? null
     });
-
-    // Canonical thresholds per skill (ascending by SP). Each entry: { sp, skill, handicap }
-    const gunneryThresholds = [
-        { sp: 0, skill: 4, handicap: 0 },
-        { sp: 300, skill: 3, handicap: 12 },
-        { sp: 700, skill: 2, handicap: 28 },
-        { sp: 1200, skill: 1, handicap: 48 },
-        { sp: 2200, skill: 0, handicap: 88 }
-    ];
-
-    const pilotingThresholds = [
-        { sp: 0, skill: 5, handicap: 0 },
-        { sp: 100, skill: 4, handicap: 4 },
-        { sp: 200, skill: 3, handicap: 8 },
-        { sp: 700, skill: 2, handicap: 28 },
-        { sp: 1200, skill: 1, handicap: 48 }
-    ];
-
-    const edgeTokensThresholds = [
-        { sp: 0, skill: 1, handicap: 0 },
-        { sp: 60, skill: 2, handicap: 2 },
-        { sp: 120, skill: 3, handicap: 5 },
-        { sp: 200, skill: 4, handicap: 8 },
-        { sp: 300, skill: 5, handicap: 13 },
-        { sp: 420, skill: 6, handicap: 17 },
-        { sp: 560, skill: 7, handicap: 22 },
-        { sp: 720, skill: 8, handicap: 29 },
-        { sp: 900, skill: 9, handicap: 36 },
-        { sp: 1100, skill: 10, handicap: 44 }
-    ];
-
-    const edgeAbilityThresholds = [
-        { sp: 0, skill: 0, handicap: 0 },
-        { sp: 60, skill: 1, handicap: 2 },
-        { sp: 180, skill: 2, handicap: 8 },
-        { sp: 360, skill: 3, handicap: 14 },
-        { sp: 600, skill: 4, handicap: 24 },
-        { sp: 900, skill: 5, handicap: 36 }
-    ];
-
-    const getActiveThreshold = (thresholds: { sp: number; skill: number; handicap: number }[], alloc: number) => {
-        for (let i = thresholds.length - 1; i >= 0; i--) {
-            if (alloc >= thresholds[i].sp) return thresholds[i];
-        }
-        return thresholds[0];
-    };
-
-    const recalcDerived = (next: Pilot) => {
-        // Calculate Total SP as sum of component allocations
-        next.totalSpEarned = (next.gunnerySpEarned || 0) +
-            (next.pilotingSpEarned || 0) +
-            (next.edgeTokensSpEarned || 0) +
-            (next.edgeAbilitySpEarned || 0);
-
-        // Map component SP to Skill levels
-        next.gunnery = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).skill;
-        next.piloting = getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).skill;
-        next.edgeTokensSkill = getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).skill;
-        next.edgeAbilitySkill = getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).skill;
-
-        // AS skill = floor((gunnery + piloting) / 2)
-        next.asSkill = Math.floor((next.gunnery + next.piloting) / 2);
-
-        // Handicap is the sum of component handicaps
-        next.handicap = getActiveThreshold(gunneryThresholds, next.gunnerySpEarned || 0).handicap +
-            getActiveThreshold(pilotingThresholds, next.pilotingSpEarned || 0).handicap +
-            getActiveThreshold(edgeTokensThresholds, next.edgeTokensSpEarned || 0).handicap +
-            getActiveThreshold(edgeAbilityThresholds, next.edgeAbilitySpEarned || 0).handicap;
-
-        return next;
-    };
 
     const [formData, setFormData] = useState<Pilot>(() => recalcDerived(pilot ? {
         ...pilot,
