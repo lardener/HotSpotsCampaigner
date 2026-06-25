@@ -39,8 +39,9 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 - **Status**: Both extractions verified via TypeScript compilation (no errors)
 
 ### 📋 Pending Refactoring Tasks
-- [ ] Extract pricing logic from `CombatUnitEditor.tsx`
-- [ ] Extract financial calculations from `AfterActionReportEditor.tsx`
+- [x] Analyze pricing logic in `CombatUnitEditor.tsx` (2025-05-22) - ✅ Analysis complete, pricingUtils.ts functions verified
+- [x] Replace inline pricing calculations in `CombatUnitEditor.tsx` with pricingUtils.ts imports
+- [x] Extract financial calculations from `AfterActionReportEditor.tsx`
 - [ ] Backend service decomposition (CampaignService, MercenaryCommandService)
 - [ ] Unified GraphQL client standardization
 

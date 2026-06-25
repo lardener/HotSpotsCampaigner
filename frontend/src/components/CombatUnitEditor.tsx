@@ -11,6 +11,7 @@ import {
 } from '@floating-ui/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { CombatUnit, CombatUnitUpdateInput, UnitType, UnitStatus, TechBase } from '../types/global.d'; // This was already correct
+import { calculateReconfigureCost, calculatePurchasePrice } from '../util/pricingUtils';
 import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS, GET_METADATA, ADD_LEDGER_ENTRY } from '../types/operations';
 import { MetadataDataFull } from '../types/graphql.d';
 import { CombatUnitBackground } from './CombatUnitBackground';
@@ -104,38 +105,13 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
         if (overridePrice !== undefined) {
             return overridePrice;
         }
-
-        const getTechTax = () => {
-            const meta = metadataData?.publicCampaignMetadata;
-            if (formData.techBase === 'Clan') return meta?.clanTechModifier ?? 2.0;
-            if (formData.techBase === 'Mixed') return meta?.mixedTechModifier ?? 1.5;
-            return 1.0;
-        };
-
-        if (pricingRule === 'Core') {
-            return Math.round((formData.bv || 0) * getTechTax());
-        } else { // Alpha Strike
-            const pvMultiplier = metadataData?.publicCampaignMetadata?.pvPurchaseUnitMultiplier ?? 40; // Default to 40 if not in metadata
-            return Math.round((formData.pv || 0) * pvMultiplier);
-        }
-    }, [formData.bv, formData.techBase, metadataData, overridePrice, pricingRule, formData.pv]);
+        return calculatePurchasePrice(formData.bv, formData.pv, formData.techBase, pricingRule, overridePrice, metadataData?.publicCampaignMetadata);
+    }, [formData, metadataData, pricingRule, overridePrice]);
 
     const reconfigureCost = useMemo(() => {
         if (mode !== 'edit' || !unit || !formData.detachmentId) return 0;
         if (formData.bv === unit.bv && formData.pv === unit.pv) return 0;
-
-        const meta = metadataData?.publicCampaignMetadata;
-        const modifier = meta?.omnimechReconfigureModifier ?? 0.5;
-
-        const techTax = formData.techBase === 'Clan'
-            ? (meta?.clanTechModifier ?? 2.0)
-            : (formData.techBase === 'Mixed' ? (meta?.mixedTechModifier ?? 1.5) : 1.0);
-
-        const basis = pricingRule === 'Core'
-            ? (formData.tonnage || 0)
-            : (formData.asSize || 0) * 20;
-
-        return Math.round(basis * modifier * techTax);
+        return calculateReconfigureCost(mode, unit, formData.bv, formData.pv, formData.tonnage, formData.asSize, formData.techBase, formData.detachmentId, pricingRule, metadataData?.publicCampaignMetadata);
     }, [mode, unit, formData.detachmentId, formData.bv, formData.pv, formData.tonnage, formData.asSize, formData.techBase, pricingRule, metadataData]);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {

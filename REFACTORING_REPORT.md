@@ -72,9 +72,20 @@ The `HotSpotsCampaigner` codebase is a modern, reactive application utilizing a 
 - **Benefit**: Separated calculation logic from UI component, improved testability, reduced component complexity
 - **Status**: ✅ Compilation verified clean (get_errors: No errors found)
 
+#### ✅ Completed: Financial Calculations Extraction (2026-06-24)
+- **What**: Extracted `calculatePilotFinancials`, `calculateAwardFinancials`, and `calculateUnitFinancials` from `AfterActionReportEditor.tsx` to `financialUtils.ts`
+- **Files Changed**:
+  - `frontend/src/util/financialUtils.ts` (NEW): Contains pilot financials, award financials, and unit financials calculation functions
+  - `frontend/src/components/AfterActionReportEditor.tsx` (MODIFIED): Removed inline financial function definitions, now imports from `../util/financialUtils`
+- **Benefit**: Separated financial calculation logic from UI component, improved testability, reduced component complexity
+- **Status**: ✅ Extraction complete
+
 #### 📅 Remaining Frontend Refactoring Tasks
-- [ ] Extract pricing logic from `CombatUnitEditor.tsx`
-- [ ] Extract financial calculations from `AfterActionReportEditor.tsx`
+- [x] Analyze pricing logic in `CombatUnitEditor.tsx` (2025-05-22) - ✅ Analysis complete, pricingUtils.ts functions identified and integrated
+- [x] Replace inline pricing logic in `CombatUnitEditor.tsx` with imports from `pricingUtils.ts`
+- [x] Extract financial calculations from `AfterActionReportEditor.tsx` to `financialUtils.ts`
+- [ ] Standardize GraphQL client usage across all API services
+- [ ] Modularize `global.d.ts` into domain-specific type files
 - [ ] Standardize GraphQL client usage across all API services
 - [ ] Modularize `global.d.ts` into domain-specific type files
 
