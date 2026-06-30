@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { Welcome } from './Welcome';
+import { Welcome } from '../components/Welcome';
 
 describe('Welcome Component', () => {
   it('should display welcome message with user name', () => {

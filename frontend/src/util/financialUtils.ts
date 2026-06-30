@@ -77,7 +77,11 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
 
     if (isTrulyDestroyed) {
         // For truly destroyed units, calculate replacement value modified by tech tax
-        baseReplacementValue = (unit.bv || 0) * 0.5 * techTax;
+        if (pricingRule === 'Alpha Strike') {
+            baseReplacementValue = (unit.pv || 0) * 40 * 0.5 * techTax;
+        } else {
+            baseReplacementValue = (unit.bv || 0) * 0.5 * techTax;
+        }
     } else {
         // For other statuses, calculate repair cost
         const multipliers: Record<string, number> = {

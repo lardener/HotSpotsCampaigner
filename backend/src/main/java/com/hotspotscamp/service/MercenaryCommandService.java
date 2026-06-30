@@ -14,6 +14,11 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotspotscamp.dto.CampaignUpdateInput;
+import com.hotspotscamp.dto.CombatUnitUpdateInput;
+import com.hotspotscamp.dto.CommandUpdateInput;
+import com.hotspotscamp.dto.LedgerEntryInput;
+import com.hotspotscamp.dto.PilotUpdateInput;
 import com.hotspotscamp.dto.TrackUpdateInput;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
@@ -45,6 +50,11 @@ import reactor.core.publisher.Sinks;
 public class MercenaryCommandService {
 
     private static final Logger log = LoggerFactory.getLogger(MercenaryCommandService.class);
+
+    /**
+     * Reactive sink for broadcasting command updates to subscribers.
+     */
+    private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
 
     private final MercenaryCommandRepository commandRepository;
     private final DetachmentRepository detachmentRepository;
@@ -90,138 +100,6 @@ public class MercenaryCommandService {
         this.scraperFactory = scraperFactory;
         this.campaignService = campaignService;
         this.configService = configService;
-    }
-
-    /**
-     * Reactive sink for broadcasting command updates to subscribers.
-     */
-    private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
-
-    /**
-     * DTO for updating campaign details via GraphQL.
-     */
-    public record CampaignUpdateInput(
-            String name,
-            String status,
-            String systemName,
-            String description,
-            String employer,
-            String opponent,
-            String mission,
-            Integer monthlyPay,
-            Integer monthlyMaintenance,
-            Integer transportationCost,
-            Integer combatPay,
-            Double armorMultiplier,
-            Double internalMultiplier,
-            Double crippledMultiplier,
-            Double destroyedMultiplier,
-            Double nonMechModifier,
-            Double mixedTechModifier,
-            Double clanTechModifier,
-            Double omnimechReconfigureModifier,
-            Integer pvPurchaseUnitMultiplier,
-            Integer pvSellUnitMultiplier,
-            Integer rearmCostPerTon,
-            Integer rearmCostPerTonAlphaStrike,
-            Integer hireMechWarriorCost,
-            Integer hireNamedPilotCost,
-            Integer hireBattleArmorCost,
-            Integer healMechWarriorPerWoundBoxCost,
-            Integer healMechWarriorPerMonthLimit,
-            Integer healBattleArmorCost,
-            Integer trainFormationCommanderCost,
-            Integer changeFormationTrainingCost,
-            Integer learnCommandAbility1Cost,
-            Integer learnCommandAbility2Cost,
-            Integer learnCommandAbility3Cost,
-            Integer replaceCommandAbilityCost,
-            Integer lengthInMonths,
-            Integer trackCount,
-            Double payRate,
-            Integer payStep,
-            String salvageTerms,
-            Integer salvageStep,
-            String supportTerms,
-            Integer supportStep,
-            String transportTerms,
-            Integer transportStep,
-            String commandRights,
-            Integer commandStep,
-            String employerCategory,
-            String opponentCategory,
-            String oppMission,
-            Double oppPayRate,
-            Integer oppPayStep,
-            String oppSalvageTerms,
-            Integer oppSalvageStep,
-            String oppSupportTerms,
-            Integer oppSupportStep,
-            String oppTransportTerms,
-            Integer oppTransportStep,
-            String oppCommandRights,
-            Integer oppCommandStep
-            ) {
-
-    }
-
-    public record CombatUnitUpdateInput(
-            String type,
-            String model,
-            String variant,
-            String techBase,
-            Integer tonnage,
-            Integer asSize,
-            Integer bv,
-            Integer pv,
-            String status,
-            UUID detachmentId
-            ) {
-
-    }
-
-    public record PilotUpdateInput(
-            String name,
-            Integer gunnery,
-            Integer piloting,
-            Integer asSkill,
-            Integer edgeTokensSkill,
-            Integer edgeAbilitySkill,
-            String edgeAbilities,
-            String unitType,
-            Integer wounds,
-            Integer handicap,
-            Integer totalSpEarned,
-            Integer gunnerySpEarned,
-            Integer pilotingSpEarned,
-            Integer edgeTokensSpEarned,
-            Integer edgeAbilitySpEarned,
-            UUID detachmentId
-            ) {
-
-    }
-
-    /**
-     * DTO for updating command details via GraphQL.
-     */
-    public record CommandUpdateInput(
-            String name,
-            String commandingOfficer,
-            Integer totalSupportPoints,
-            Integer reputation
-            ) {
-
-    }
-
-    public record LedgerEntryInput(
-            Integer amount,
-            String description,
-            Integer reputationChange,
-            UUID campaignId,
-            String campaignName,
-            Integer monthIndex
-            ) {
-
     }
 
     /**

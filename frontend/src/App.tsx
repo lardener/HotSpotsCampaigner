@@ -5,7 +5,6 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { ApolloProvider } from '@apollo/client/react';
 import { createClient } from 'graphql-ws';
 import { MainDashboard } from './components/MainDashboard';
-import * as campaignApi from './services/campaignApi';
 import { GET_USER_PROFILE } from './types/operations';
 import { UserAccount } from './types/global.d';
 import { UserProfileData } from './types/graphql.d';
@@ -100,7 +99,7 @@ export function App() {
 
   const handleLogout = async () => {
     try {
-      await campaignApi.logout();
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
     } catch (err) {
       console.error("Logout sequence failed:", err);
     }

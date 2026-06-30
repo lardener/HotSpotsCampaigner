@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { calculateAwardFinancials, calculateUnitFinancials, calculatePilotFinancials, aarReducer, AarDataState, AarAction } from './AfterActionReportEditor';
-import { CampaignDetail, CombatUnit, TrackDetail, UnitStatus } from '../types/global.d';
+import { aarReducer, AarDataState, AarAction } from '../components/AfterActionReportEditor';
+import { calculatePilotFinancials, calculateAwardFinancials, calculateUnitFinancials } from '../util/financialUtils';
+import { CampaignDetail, CombatUnit, TrackDetail, UnitStatus } from '../types/global';
 
 describe('AfterActionReportEditor Financial Helpers', () => {
     const mockCampaign = {
