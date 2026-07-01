@@ -1,14 +1,16 @@
 package com.hotspotscamp.dto;
 
-import com.hotspotscamp.service.RuleConfigurationService;
 import java.util.List;
 
+import com.hotspotscamp.dto.ruleConfiguration.MissionMetadata;
+import com.hotspotscamp.dto.ruleConfiguration.ResolvedStepEntry;
+
 public record CampaignMetadata(
-        RuleConfigurationService.MissionMetadata missions,
+        MissionMetadata missions,
         List<String> trackTypes,
         List<String> factions,
         List<String> employerTypes,
-        List<RuleConfigurationService.ResolvedStepEntry> resolvedSteps,
+        List<ResolvedStepEntry> resolvedSteps,
         List<String> unitTypes,
         List<String> techBases,
         List<String> unitStatuses,
@@ -36,4 +38,5 @@ public record CampaignMetadata(
         Integer learnCommandAbility2Cost,
         Integer learnCommandAbility3Cost,
         Integer replaceCommandAbilityCost) {
+
 }

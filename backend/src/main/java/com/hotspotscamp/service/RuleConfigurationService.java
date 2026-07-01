@@ -13,6 +13,18 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hotspotscamp.dto.ruleConfiguration.AttackerDeterminationConfig;
+import com.hotspotscamp.dto.ruleConfiguration.ComplicationsTableConfig;
+import com.hotspotscamp.dto.ruleConfiguration.ContractStepEntry;
+import com.hotspotscamp.dto.ruleConfiguration.ContractStepsTableConfig;
+import com.hotspotscamp.dto.ruleConfiguration.ContractTableConfigV2;
+import com.hotspotscamp.dto.ruleConfiguration.EmployerTableConfig;
+import com.hotspotscamp.dto.ruleConfiguration.IntensityTableEntry;
+import com.hotspotscamp.dto.ruleConfiguration.MissionTableConfig;
+import com.hotspotscamp.dto.ruleConfiguration.RollEntry;
+import com.hotspotscamp.dto.ruleConfiguration.SystemTableConfig;
+import com.hotspotscamp.dto.ruleConfiguration.TrackCountTableConfig;
+import com.hotspotscamp.dto.ruleConfiguration.TrackTableConfig;
 import com.hotspotscamp.util.RulesConstants;
 
 import jakarta.annotation.PostConstruct;
@@ -23,119 +35,6 @@ import lombok.RequiredArgsConstructor;
 public class RuleConfigurationService {
 
     private static final Logger log = LoggerFactory.getLogger(RuleConfigurationService.class);
-
-    // Rule Configuration DTOs
-    public record RollEntry(int minRoll, int maxRoll, String value) {
-
-    }
-
-    public record CountEntry(int minRoll, int maxRoll, int value) {
-
-    }
-
-    public record SubTable(int diceCount, int diceSides, List<RollEntry> entries) {
-
-    }
-
-    public record MissionEntry(int minRoll, int maxRoll, SubTable primary, SubTable opponent) {
-
-    }
-
-    public record MissionTableConfig(int diceCount, int diceSides, List<MissionEntry> entries) {
-
-    }
-
-    public record SystemEntry(int roll, String name) {
-
-    }
-
-    public record SystemGroup(int roll, List<SystemEntry> entries) {
-
-    }
-
-    public record SystemTableConfig(Integer groupDiceCount, Integer groupDiceSides, Integer entryDiceCount, Integer entryDiceSides, List<SystemGroup> groups) {
-
-    }
-
-    public record ContractStepEntry(int step, String payRate, String salvageRights, String supportRights, String transportation, String commandRights) {
-
-    }
-
-    public record ContractStepsTableConfig(int diceCount, int diceSides, List<ContractStepEntry> entries) {
-
-    }
-
-    public record RollToStepEntry(int minRoll, int maxRoll, int step) {
-
-    }
-
-    public record TrackGroup(List<String> missions, List<RollEntry> entries) {
-
-    }
-
-    public record TrackTableConfig(int diceCount, int diceSides, List<TrackGroup> groups) {
-
-    }
-
-    public record TrackCountGroup(List<String> missions, List<CountEntry> entries) {
-
-    }
-
-    public record TrackCountTableConfig(int diceCount, int diceSides, List<TrackCountGroup> groups) {
-
-    }
-
-    public record EmployerEntry(int roll, String type) {
-
-    }
-
-    public record ComplicationRule(int diceCount, int diceSides, int modifier) {
-
-    }
-
-    public record ComplicationsTableConfig(Map<String, ComplicationRule> rules, List<RollEntry> entries) {
-
-    }
-
-    public record EmployerTableConfig(int diceCount, int diceSides, List<EmployerEntry> entries) {
-
-    }
-
-    public record ContractTableConfigV2(int diceCount, int diceSides, List<RollToStepEntry> rollToStep, Map<String, Integer> employerModifiers, Map<String, Integer> missionModifiers) {
-
-    }
-
-    public record IntensityMonthEntry(int minRoll, int maxRoll, String intensity) {
-
-    }
-
-    public record IntensityTrackCountEntry(int count, List<IntensityMonthEntry> months) {
-
-    }
-
-    public record IntensityTracksConfig(int diceCount, int diceSides, List<IntensityTrackCountEntry> tracks) {
-
-    }
-
-    public record IntensityTableEntry(int campaignLength, IntensityTracksConfig tracks) {
-
-    }
-
-    public record AttackerRule(String missionType, List<Integer> primaryAttackerRolls, List<String> attackerTracks, List<String> defenderTracks) {
-
-    }
-
-    public record AttackerDeterminationConfig(int diceCount, int diceSides, List<AttackerRule> rules) {
-
-    }
-
-    public record ResolvedStepEntry(Integer step, Map<String, String> values) {
-
-    }
-
-    public record MissionMetadata(List<String> primary, List<String> opponent) {
-
-    }
 
     // Loaded Tables
     private EmployerTableConfig employerTableConfig;
@@ -244,14 +143,22 @@ public class RuleConfigurationService {
      */
     public Double getRepairMultiplier(String key) {
         return switch (key) {
-            case "armor" -> RulesConstants.REPAIR_MULT_ARMOR;
-            case "internal" -> RulesConstants.REPAIR_MULT_INTERNAL;
-            case "crippled" -> RulesConstants.REPAIR_MULT_CRIPPLED;
-            case "destroyed" -> RulesConstants.REPAIR_MULT_DESTROYED;
-            case "nonMech" -> RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER;
-            case "mixedTech" -> RulesConstants.REPAIR_MULT_MIXED_TECH;
-            case "clanTech" -> RulesConstants.REPAIR_MULT_CLAN_TECH;
-            default -> 1.0;
+            case "armor" ->
+                RulesConstants.REPAIR_MULT_ARMOR;
+            case "internal" ->
+                RulesConstants.REPAIR_MULT_INTERNAL;
+            case "crippled" ->
+                RulesConstants.REPAIR_MULT_CRIPPLED;
+            case "destroyed" ->
+                RulesConstants.REPAIR_MULT_DESTROYED;
+            case "nonMech" ->
+                RulesConstants.REPAIR_MULT_NON_MECH_MODIFIER;
+            case "mixedTech" ->
+                RulesConstants.REPAIR_MULT_MIXED_TECH;
+            case "clanTech" ->
+                RulesConstants.REPAIR_MULT_CLAN_TECH;
+            default ->
+                1.0;
         };
     }
 
@@ -270,41 +177,66 @@ public class RuleConfigurationService {
      */
     public Integer getActivityCostInt(String key) {
         return switch (key) {
-            case "purchaseUnit" -> RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER;
-            case "sellUnit" -> RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER;
-            case "rearmTon" -> RulesConstants.REARM_COST_PER_TON;
-            case "rearmAS" -> RulesConstants.REARM_COST_ALPHA_STRIKE;
-            case "hireMechWarrior" -> RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW;
-            case "hireNamedPilot" -> RulesConstants.HIRE_NAMED_PILOT;
-            case "hireBattleArmor" -> RulesConstants.HIRE_BATTLE_ARMOR_TROOPER;
-            case "healWound" -> RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX;
-            case "healMonth" -> RulesConstants.HEAL_MECHWARRIOR_PER_MONTH;
-            case "healBattleArmor" -> RulesConstants.HEAL_BATTLE_ARMOR_TROOPER;
-            case "trainCommander" -> RulesConstants.TRAIN_FORMATION_COMMANDER;
-            case "changeFormation" -> RulesConstants.CHANGE_FORMATION_TRAINING;
-            case "learnAbility1" -> RulesConstants.LEARN_FIRST_COMMAND_ABILITY;
-            case "learnAbility2" -> RulesConstants.LEARN_SECOND_COMMAND_ABILITY;
-            case "learnAbility3" -> RulesConstants.LEARN_THIRD_COMMAND_ABILITY;
-            case "replaceAbility" -> RulesConstants.REPLACE_COMMAND_ABILITY;
-            default -> 0;
+            case "purchaseUnit" ->
+                RulesConstants.PURCHASE_UNIT_POINT_VALUE_MULTIPLIER;
+            case "sellUnit" ->
+                RulesConstants.SELLING_UNIT_POINT_VALUE_MULTIPLIER;
+            case "rearmTon" ->
+                RulesConstants.REARM_COST_PER_TON;
+            case "rearmAS" ->
+                RulesConstants.REARM_COST_ALPHA_STRIKE;
+            case "hireMechWarrior" ->
+                RulesConstants.HIRE_NON_NAMED_MECHWARRIOR_CREW;
+            case "hireNamedPilot" ->
+                RulesConstants.HIRE_NAMED_PILOT;
+            case "hireBattleArmor" ->
+                RulesConstants.HIRE_BATTLE_ARMOR_TROOPER;
+            case "healWound" ->
+                RulesConstants.HEAL_MECHWARRIOR_PER_WOUND_BOX;
+            case "healMonth" ->
+                RulesConstants.HEAL_MECHWARRIOR_PER_MONTH;
+            case "healBattleArmor" ->
+                RulesConstants.HEAL_BATTLE_ARMOR_TROOPER;
+            case "trainCommander" ->
+                RulesConstants.TRAIN_FORMATION_COMMANDER;
+            case "changeFormation" ->
+                RulesConstants.CHANGE_FORMATION_TRAINING;
+            case "learnAbility1" ->
+                RulesConstants.LEARN_FIRST_COMMAND_ABILITY;
+            case "learnAbility2" ->
+                RulesConstants.LEARN_SECOND_COMMAND_ABILITY;
+            case "learnAbility3" ->
+                RulesConstants.LEARN_THIRD_COMMAND_ABILITY;
+            case "replaceAbility" ->
+                RulesConstants.REPLACE_COMMAND_ABILITY;
+            default ->
+                0;
         };
     }
 
     public Integer getCampaignDefault(String key) {
         return switch (key) {
-            case "monthlyPay" -> RulesConstants.DEFAULT_MONTHLY_PAY;
-            case "monthlyMaintenance" -> RulesConstants.DEFAULT_MONTHLY_MAINTENANCE;
-            case "transportationCost" -> RulesConstants.DEFAULT_TRANSPORTATION_COST;
-            case "combatPay" -> RulesConstants.DEFAULT_COMBAT_PAY;
-            default -> 0;
+            case "monthlyPay" ->
+                RulesConstants.DEFAULT_MONTHLY_PAY;
+            case "monthlyMaintenance" ->
+                RulesConstants.DEFAULT_MONTHLY_MAINTENANCE;
+            case "transportationCost" ->
+                RulesConstants.DEFAULT_TRANSPORTATION_COST;
+            case "combatPay" ->
+                RulesConstants.DEFAULT_COMBAT_PAY;
+            default ->
+                0;
         };
     }
 
     public Integer getCommandDefault(String key) {
         return switch (key) {
-            case "startingSP" -> RulesConstants.STARTING_SUPPORT_POINTS;
-            case "startingRep" -> RulesConstants.STARTING_REPUTATION;
-            default -> 0;
+            case "startingSP" ->
+                RulesConstants.STARTING_SUPPORT_POINTS;
+            case "startingRep" ->
+                RulesConstants.STARTING_REPUTATION;
+            default ->
+                0;
         };
     }
 

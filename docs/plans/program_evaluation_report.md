@@ -100,8 +100,8 @@ graph TD
 - [x] **Relocate Inline Records**: Migrate inline DTO structures to the [com.hotspotscamp.dto](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/dto) package. *(Completed — 13 DTOs relocated)*
 
 #### Phase 2: Medium Priority (Architecture Standards)
-- [ ] **Enforce Service Delegation**: Refactor [CampaignGraphQLController.java](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/api/CampaignGraphQLController.java) fields to call services instead of repositories directly. *(Pending — still injects 5 repositories)*
-- [ ] **GraphQL Error Handler**: Add a central Spring exception advice to map database/domain exceptions to structured GraphQL error responses. *(Pending — no handler found)*
+- [x] **Enforce Service Delegation**: Refactor [CampaignGraphQLController.java](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/api/CampaignGraphQLController.java) fields to call services instead of repositories directly. *(Completed — refactored to use CampaignService)*
+- [x] **GraphQL Error Handler**: Add a central Spring exception advice to map database/domain exceptions to structured GraphQL error responses. *(Completed — implemented GraphQLExceptionHandler)*
 - [x] **Standardize Repository Annotations**: Add `@Repository` consistently across all Spring Data interfaces. *(Completed — all 9 repositories annotated)*
 
 #### Phase 3: Low Priority (Code Quality & Tooling)

@@ -16,6 +16,9 @@ import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignMetadata;
 import com.hotspotscamp.dto.CampaignProposal;
 import com.hotspotscamp.dto.GeneratedTrack;
+import com.hotspotscamp.dto.ruleConfiguration.EmployerEntry;
+import com.hotspotscamp.dto.ruleConfiguration.MissionMetadata;
+import com.hotspotscamp.dto.ruleConfiguration.ResolvedStepEntry;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignFaction;
 import com.hotspotscamp.entity.CampaignInvite;
@@ -55,10 +58,10 @@ public class CampaignService {
     // --- Metadata and Summaries ---
     public CampaignMetadata getCampaignMetadata() {
         return new CampaignMetadata(
-                new RuleConfigurationService.MissionMetadata(configService.getAvailablePrimaryMissions(), configService.getAvailableOpponentMissions()),
+                new MissionMetadata(configService.getAvailablePrimaryMissions(), configService.getAvailableOpponentMissions()),
                 configService.getAvailableTrackTypes(), configService.getAvailableFactions(),
-                configService.getEmployerTableConfig().entries().stream().map(RuleConfigurationService.EmployerEntry::type).distinct().sorted().toList(),
-                configService.getResolvedStepsTable().entrySet().stream().map(e -> new RuleConfigurationService.ResolvedStepEntry(e.getKey(), e.getValue())).toList(),
+                configService.getEmployerTableConfig().entries().stream().map(EmployerEntry::type).distinct().sorted().toList(),
+                configService.getResolvedStepsTable().entrySet().stream().map(e -> new ResolvedStepEntry(e.getKey(), e.getValue())).toList(),
                 RulesConstants.UNIT_TYPES, RulesConstants.TECH_BASES, RulesConstants.UNIT_STATUS_OPTIONS,
                 configService.getRepairMultiplier("armor"), configService.getRepairMultiplier("internal"), configService.getRepairMultiplier("crippled"), configService.getRepairMultiplier("destroyed"),
                 configService.getRepairMultiplier("nonMech"), configService.getRepairMultiplier("mixedTech"), configService.getRepairMultiplier("clanTech"),

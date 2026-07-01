@@ -11,14 +11,18 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hotspotscamp.dto.GeneratedTrack;
+import com.hotspotscamp.dto.ruleConfiguration.AttackerDeterminationConfig;
+import com.hotspotscamp.dto.ruleConfiguration.IntensityMonthEntry;
+import com.hotspotscamp.dto.ruleConfiguration.IntensityTableEntry;
+import com.hotspotscamp.dto.ruleConfiguration.IntensityTrackCountEntry;
+import com.hotspotscamp.dto.ruleConfiguration.IntensityTracksConfig;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
-import com.hotspotscamp.dto.*;
-import com.hotspotscamp.service.RuleConfigurationService.*;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -168,7 +172,7 @@ public class TrackManagementService {
     }
 
     public boolean primaryIsAttacker(String mission, String trackName) {
-        RuleConfigurationService.AttackerDeterminationConfig config = configService.getAttackerDeterminationConfig();
+        AttackerDeterminationConfig config = configService.getAttackerDeterminationConfig();
         if (config == null || mission == null) {
             return false;
         }
