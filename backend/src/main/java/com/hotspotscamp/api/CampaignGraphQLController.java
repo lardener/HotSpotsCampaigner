@@ -24,11 +24,6 @@ import com.hotspotscamp.entity.CampaignInvite;
 import com.hotspotscamp.entity.CampaignTrack;
 import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.Detachment;
-import com.hotspotscamp.repository.CampaignFactionRepository;
-import com.hotspotscamp.repository.CampaignRepository;
-import com.hotspotscamp.repository.CampaignTrackRepository;
-import com.hotspotscamp.repository.ContractRepository;
-import com.hotspotscamp.repository.DetachmentRepository;
 import com.hotspotscamp.service.CampaignService;
 import com.hotspotscamp.service.MercenaryCommandService;
 import com.hotspotscamp.service.UserService;
@@ -43,11 +38,6 @@ public class CampaignGraphQLController {
 
     private static final Logger log = LoggerFactory.getLogger(CampaignGraphQLController.class);
 
-    private final CampaignRepository campaignRepository;
-    private final ContractRepository contractRepository;
-    private final CampaignFactionRepository campaignFactionRepository;
-    private final CampaignTrackRepository campaignTrackRepository;
-    private final DetachmentRepository detachmentRepository;
     private final CampaignService campaignService;
     private final MercenaryCommandService commandService;
     private final UserService userService;
@@ -61,7 +51,7 @@ public class CampaignGraphQLController {
         }
         int pageSize = (size != null) ? size : 5;
         int offset = (page != null) ? page * pageSize : 0;
-        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset)
+        return campaignService.findAllByStatus("ACTIVE", pageSize, offset)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting activeCampaigns"));
     }
 
@@ -78,9 +68,9 @@ public class CampaignGraphQLController {
                 .flatMapMany(user -> {
                     String internalId = user.getId().toString();
                     if (status != null && !status.isEmpty() && !status.equals("ALL")) {
-                        return campaignRepository.findAllByManagerIdAndStatus(internalId, status);
+                        return campaignService.findAllByManagerIdAndStatus(internalId, status);
                     }
-                    return campaignRepository.findAllByManagerId(internalId);
+                    return campaignService.findAllByManagerId(internalId);
                 })
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting managedCampaigns"));
     }
@@ -92,7 +82,7 @@ public class CampaignGraphQLController {
             log.trace("[TRACE] Exiting getCampaign (null id)");
             return Mono.empty();
         }
-        return campaignRepository.findById(id)
+        return campaignService.findById(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getCampaign"));
     }
 
@@ -109,7 +99,7 @@ public class CampaignGraphQLController {
                     if (id == null) {
                         return Mono.empty();
                     }
-                    return campaignRepository.findById(id);
+                    return campaignService.findById(id);
                 })
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting participatingCampaigns"));
     }
@@ -122,11 +112,7 @@ public class CampaignGraphQLController {
             log.trace("[TRACE] Exiting getPrimaryEmployer (null id)");
             return Mono.empty();
         }
-        return contractRepository.findAllByCampaignId(id)
-                .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
-                .map(Contract::getEmployerCategory)
-                .next()
-                .defaultIfEmpty("Unknown")
+        return campaignService.getPrimaryEmployer(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getPrimaryEmployer"));
     }
 
@@ -138,11 +124,7 @@ public class CampaignGraphQLController {
             log.trace("[TRACE] Exiting getSecondaryEmployer (null id)");
             return Mono.empty();
         }
-        return contractRepository.findAllByCampaignId(id)
-                .filter(c -> Boolean.FALSE.equals(c.getPrimaryContract()))
-                .map(Contract::getEmployerCategory)
-                .next()
-                .defaultIfEmpty("Unknown")
+        return campaignService.getSecondaryEmployer(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getSecondaryEmployer"));
     }
 
@@ -154,21 +136,21 @@ public class CampaignGraphQLController {
             log.trace("[TRACE] Exiting getParticipatingDetachments (null id)");
             return Flux.empty();
         }
-        return detachmentRepository.findAllByCampaignId(id)
+        return campaignService.getParticipatingDetachments(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getParticipatingDetachments"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "tracks")
     public Flux<CampaignTrack> getTracks(Campaign campaign) {
         log.trace("[TRACE] Entering getTracks for campaign: {}", campaign.getId());
-        return campaignTrackRepository.findAllByCampaignId(campaign.getId())
+        return campaignService.getTracks(campaign.getId())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getTracks"));
     }
 
     @SchemaMapping(typeName = "Campaign", field = "factions")
     public Flux<CampaignFaction> getFactions(Campaign campaign) {
         log.trace("[TRACE] Entering getFactions for campaign: {}", campaign.getId());
-        return campaignFactionRepository.findAllByCampaignId(campaign.getId())
+        return campaignService.getFactions(campaign.getId())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getFactions"));
     }
 
@@ -180,7 +162,7 @@ public class CampaignGraphQLController {
             log.trace("[TRACE] Exiting getContracts (null id)");
             return Flux.empty();
         }
-        return contractRepository.findAllByCampaignId(id)
+        return campaignService.getContracts(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getContracts"));
     }
 
@@ -255,7 +237,7 @@ public class CampaignGraphQLController {
         log.trace("[TRACE] Entering publicActiveCampaigns");
         int pageSize = (size != null) ? size : 5;
         int offset = (page != null) ? page * pageSize : 0;
-        return campaignRepository.findAllByStatus("ACTIVE", pageSize, offset)
+        return campaignService.findAllByStatus("ACTIVE", pageSize, offset)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting publicActiveCampaigns"));
     }
 

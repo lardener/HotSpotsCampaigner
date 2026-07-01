@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
@@ -15,6 +14,11 @@ import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.graphql.data.method.annotation.SubscriptionMapping;
 import org.springframework.stereotype.Controller;
 
+import com.hotspotscamp.dto.CampaignUpdateInput;
+import com.hotspotscamp.dto.CombatUnitUpdateInput;
+import com.hotspotscamp.dto.CommandUpdateInput;
+import com.hotspotscamp.dto.LedgerEntryInput;
+import com.hotspotscamp.dto.PilotUpdateInput;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.Detachment;
@@ -193,7 +197,7 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<MercenaryCommand> establishCommand(@Argument MercenaryCommandService.CommandUpdateInput input,
+    public Mono<MercenaryCommand> establishCommand(@Argument CommandUpdateInput input,
             Principal principal) {
         log.trace("[TRACE] Entering establishCommand");
         if (principal == null || input == null || input.name() == null) {
@@ -211,7 +215,7 @@ public class CommandGraphQLController {
 
     @MutationMapping
     public Mono<MercenaryCommand> updateCommand(@Argument UUID id,
-            @Argument MercenaryCommandService.CommandUpdateInput input,
+            @Argument CommandUpdateInput input,
             Principal principal) {
         log.trace("[TRACE] Entering updateCommand: id={}", id);
         if (id == null || principal == null || input == null) {
@@ -222,7 +226,7 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Campaign> updateCampaign(@Argument UUID id, @Argument MercenaryCommandService.CampaignUpdateInput input, Principal principal) {
+    public Mono<Campaign> updateCampaign(@Argument UUID id, @Argument CampaignUpdateInput input, Principal principal) {
         log.trace("[TRACE] Entering updateCampaign: id={}", id);
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
@@ -252,7 +256,7 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument MercenaryCommandService.PilotUpdateInput input, Principal principal) {
+    public Mono<Pilot> hirePilot(@Argument UUID commandId, @Argument PilotUpdateInput input, Principal principal) {
         log.trace("[TRACE] Entering hirePilot: commandId={}", commandId);
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
@@ -262,7 +266,7 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<Pilot> updatePilot(@Argument UUID id, @Argument MercenaryCommandService.PilotUpdateInput input, Principal principal) {
+    public Mono<Pilot> updatePilot(@Argument UUID id, @Argument PilotUpdateInput input, Principal principal) {
         log.trace("[TRACE] Entering updatePilot: id={}", id);
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
@@ -301,19 +305,6 @@ public class CommandGraphQLController {
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting deleteDetachment"));
     }
 
-    /**
-     * GraphQL-specific input for ledger entries.
-     * Uses String for campaignId to match GraphQL ID type mapping.
-     */
-    public record LedgerEntryInput(
-            Integer amount,
-            String description,
-            Integer reputationChange,
-            String campaignId,
-            String campaignName,
-            Integer monthIndex
-    ) {}
-
     @MutationMapping
     public Mono<LedgerEntry> addLedgerEntry(@Argument UUID commandId,
             @Argument UUID detachmentId,
@@ -324,9 +315,10 @@ public class CommandGraphQLController {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
 
-        MercenaryCommandService.LedgerEntryInput serviceInput = new MercenaryCommandService.LedgerEntryInput(
+        // Fix: Pass input.campaignId() directly if it is already a UUID
+        LedgerEntryInput serviceInput = new LedgerEntryInput(
                 input.amount(), input.description(), input.reputationChange(),
-                input.campaignId() != null ? UUID.fromString(input.campaignId()) : null,
+                input.campaignId(),
                 input.campaignName(), input.monthIndex());
 
         return commandService.addLedgerEntry(commandId, detachmentId, serviceInput, principal.getName())
@@ -334,7 +326,7 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument MercenaryCommandService.CombatUnitUpdateInput input, Principal principal) {
+    public Mono<CombatUnit> addCombatUnit(@Argument UUID commandId, @Argument CombatUnitUpdateInput input, Principal principal) {
         log.trace("[TRACE] Entering addCombatUnit: commandId={}", commandId);
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
@@ -344,7 +336,7 @@ public class CommandGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CombatUnit> updateCombatUnit(@Argument UUID id, @Argument MercenaryCommandService.CombatUnitUpdateInput input, Principal principal) {
+    public Mono<CombatUnit> updateCombatUnit(@Argument UUID id, @Argument CombatUnitUpdateInput input, Principal principal) {
         log.trace("[TRACE] Entering updateCombatUnit: id={}", id);
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));

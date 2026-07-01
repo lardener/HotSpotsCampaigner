@@ -95,16 +95,16 @@ graph TD
 ### Actionable Checklists
 
 #### Phase 1: High Priority (Structural & Clean Code)
-- [ ] **Delete legacy REST folder**: Remove the contents of [frontend/src/services](file:///d:/dev/HotSpotsCampaigner/frontend/src/services).
-- [ ] **Decompose God Services**: Break up [MercenaryCommandService.java](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/service/MercenaryCommandService.java) into `DetachmentService`, `AssetService`, and `LedgerService`.
-- [ ] **Relocate Inline Records**: Migrate inline DTO structures to the [com.hotspotscamp.dto](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/dto) package.
+- [x] **Delete legacy REST folder**: Remove the contents of [frontend/src/services](file:///d:/dev/HotSpotsCampaigner/frontend/src/services). *(Completed — directory is empty)*
+- [x] **Decompose God Services**: Break up [MercenaryCommandService.java](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/service/MercenaryCommandService.java) into `DetachmentService`, `AssetService`, and `LedgerService`. *(Completed — all 3 services exist)*
+- [x] **Relocate Inline Records**: Migrate inline DTO structures to the [com.hotspotscamp.dto](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/dto) package. *(Completed — 13 DTOs relocated)*
 
 #### Phase 2: Medium Priority (Architecture Standards)
-- [ ] **Enforce Service Delegation**: Refactor [CampaignGraphQLController.java](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/api/CampaignGraphQLController.java) fields to call services instead of repositories directly.
-- [ ] **GraphQL Error Handler**: Add a central Spring exception advice to map database/domain exceptions to structured GraphQL error responses.
-- [ ] **Standardize Repository Annotations**: Add `@Repository` consistently across all Spring Data interfaces.
+- [ ] **Enforce Service Delegation**: Refactor [CampaignGraphQLController.java](file:///d:/dev/HotSpotsCampaigner/backend/src/main/java/com/hotspotscamp/api/CampaignGraphQLController.java) fields to call services instead of repositories directly. *(Pending — still injects 5 repositories)*
+- [ ] **GraphQL Error Handler**: Add a central Spring exception advice to map database/domain exceptions to structured GraphQL error responses. *(Pending — no handler found)*
+- [x] **Standardize Repository Annotations**: Add `@Repository` consistently across all Spring Data interfaces. *(Completed — all 9 repositories annotated)*
 
 #### Phase 3: Low Priority (Code Quality & Tooling)
-- [ ] **Modularize Frontend Types**: Split [global.d.ts](file:///d:/dev/HotSpotsCampaigner/frontend/src/types/global.d.ts) into domain modules.
-- [ ] **Automated Mapping**: Implement MapStruct on the backend for cleaner Object-to-DTO conversion.
-- [ ] **Automated GraphQL Codegen**: Configure `@graphql-codegen` in the React frontend.
+- [x] **Modularize Frontend Types**: Split [global.d.ts](file:///d:/dev/HotSpotsCampaigner/frontend/src/types/global.d.ts) into domain modules. *(Completed — 6 domain modules created)*
+- [ ] **Automated Mapping**: Implement MapStruct on the backend for cleaner Object-to-DTO conversion. *(Pending — not in pom.xml)*
+- [ ] **Automated GraphQL Codegen**: Configure `@graphql-codegen` in the React frontend. *(Pending — not in package.json)*

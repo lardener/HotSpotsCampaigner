@@ -97,6 +97,55 @@ public class CampaignService {
                 .doOnTerminate(() -> log.trace("[TRACE] Finished getParticipatingCampaigns"));
     }
 
+    // --- Repository Delegation Methods ---
+    public Flux<Campaign> findAllByStatus(String status, int limit, int offset) {
+        return campaignRepository.findAllByStatus(status, limit, offset);
+    }
+
+    public Flux<Campaign> findAllByManagerId(String managerId) {
+        return campaignRepository.findAllByManagerId(managerId);
+    }
+
+    public Flux<Campaign> findAllByManagerIdAndStatus(String managerId, String status) {
+        return campaignRepository.findAllByManagerIdAndStatus(managerId, status);
+    }
+
+    public Mono<Campaign> findById(UUID id) {
+        return campaignRepository.findById(id);
+    }
+
+    public Mono<String> getPrimaryEmployer(UUID campaignId) {
+        return contractRepository.findAllByCampaignId(campaignId)
+                .filter(c -> Boolean.TRUE.equals(c.getPrimaryContract()))
+                .map(Contract::getEmployerCategory)
+                .next()
+                .defaultIfEmpty("Unknown");
+    }
+
+    public Mono<String> getSecondaryEmployer(UUID campaignId) {
+        return contractRepository.findAllByCampaignId(campaignId)
+                .filter(c -> Boolean.FALSE.equals(c.getPrimaryContract()))
+                .map(Contract::getEmployerCategory)
+                .next()
+                .defaultIfEmpty("Unknown");
+    }
+
+    public Flux<Detachment> getParticipatingDetachments(UUID campaignId) {
+        return detachmentRepository.findAllByCampaignId(campaignId);
+    }
+
+    public Flux<CampaignTrack> getTracks(UUID campaignId) {
+        return campaignTrackRepository.findAllByCampaignId(campaignId);
+    }
+
+    public Flux<CampaignFaction> getFactions(UUID campaignId) {
+        return campaignFactionRepository.findAllByCampaignId(campaignId);
+    }
+
+    public Flux<Contract> getContracts(UUID campaignId) {
+        return contractRepository.findAllByCampaignId(campaignId);
+    }
+
     // --- Generation Logic ---
     public CampaignProposal generateProposal(CampaignCreateInput input) {
         return generationService.generateProposal(input);
