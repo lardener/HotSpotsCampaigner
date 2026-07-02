@@ -25,7 +25,10 @@ import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.LedgerEntry;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.service.AssetService;
 import com.hotspotscamp.service.CommandAssetsResponse;
+import com.hotspotscamp.service.DetachmentService;
+import com.hotspotscamp.service.LedgerService;
 import com.hotspotscamp.service.MercenaryCommandService;
 
 import lombok.RequiredArgsConstructor;
@@ -39,6 +42,9 @@ public class CommandGraphQLController {
     private static final Logger log = LoggerFactory.getLogger(CommandGraphQLController.class);
 
     private final MercenaryCommandService commandService;
+    private final DetachmentService detachmentService;
+    private final AssetService assetService;
+    private final LedgerService ledgerService;
 
     @QueryMapping
     public Flux<MercenaryCommand> myCommands(Principal principal) {
@@ -60,7 +66,7 @@ public class CommandGraphQLController {
             return Mono.empty();
         }
         String userId = principal.getName();
-        return commandService.isAuthorizedForCommand(id, userId)
+        return detachmentService.isAuthorizedForCommand(id, userId)
                 .flatMap(authorized -> authorized ? commandService.getCommandById(id) : Mono.empty())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getCommand"));
     }
@@ -83,7 +89,7 @@ public class CommandGraphQLController {
             log.trace("[TRACE] Exiting ledgerUpdated (null id)");
             return Flux.empty();
         }
-        return commandService.getCommandUpdates(commandId)
+        return ledgerService.getCommandUpdates(commandId)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting ledgerUpdated"));
     }
 
@@ -121,7 +127,7 @@ public class CommandGraphQLController {
             log.trace("[TRACE] Exiting getDetachments (null id)");
             return Flux.empty();
         }
-        return commandService.getDetachmentsByCommandId(id)
+        return detachmentService.getDetachmentsByCommandId(id)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getDetachments"));
     }
 
@@ -133,7 +139,7 @@ public class CommandGraphQLController {
             log.trace("[TRACE] Exiting getCampaignName (null campaignId)");
             return Mono.empty();
         }
-        return commandService.getCampaignName(campaignId)
+        return ledgerService.getCampaignName(campaignId)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getCampaignName"));
     }
 
@@ -165,7 +171,7 @@ public class CommandGraphQLController {
         if (campaignId == null) {
             return Mono.just(0);
         }
-        return commandService.getDetachmentRating(detachment.getId(), campaignId)
+        return detachmentService.getDetachmentRating(detachment.getId(), campaignId)
                 .defaultIfEmpty(0);
     }
 
@@ -177,7 +183,7 @@ public class CommandGraphQLController {
             log.trace("[TRACE] Exiting getAllLedgerEntries (null id)");
             return Flux.empty();
         }
-        return commandService.getLedgerEntriesByCommandId(id)
+        return ledgerService.getLedgerEntriesByCommandId(id)
                 .sort(Comparator.comparing(LedgerEntry::getTimestamp).reversed())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getAllLedgerEntries"));
     }
@@ -251,7 +257,7 @@ public class CommandGraphQLController {
         if (unitId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.deleteCombatUnit(unitId, principal.getName()).thenReturn(true)
+        return assetService.deleteCombatUnit(unitId, principal.getName()).thenReturn(true)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting deleteUnit"));
     }
 
@@ -261,7 +267,7 @@ public class CommandGraphQLController {
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.hirePilot(commandId, input, principal.getName())
+        return assetService.hirePilot(commandId, input, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting hirePilot"));
     }
 
@@ -271,7 +277,7 @@ public class CommandGraphQLController {
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.updatePilot(id, input, principal.getName())
+        return assetService.updatePilot(id, input, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting updatePilot"));
     }
 
@@ -281,7 +287,7 @@ public class CommandGraphQLController {
         if (pilotId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.deletePilot(pilotId, principal.getName()).thenReturn(true)
+        return assetService.deletePilot(pilotId, principal.getName()).thenReturn(true)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting deletePilot"));
     }
 
@@ -291,7 +297,7 @@ public class CommandGraphQLController {
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.createDetachment(commandId, campaignId, name, principal.getName())
+        return detachmentService.createDetachment(commandId, campaignId, name, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting createDetachment"));
     }
 
@@ -301,7 +307,7 @@ public class CommandGraphQLController {
         if (detachmentId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.deleteDetachment(detachmentId, principal.getName()).thenReturn(true)
+        return detachmentService.deleteDetachment(detachmentId, principal.getName()).thenReturn(true)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting deleteDetachment"));
     }
 
@@ -321,7 +327,7 @@ public class CommandGraphQLController {
                 input.campaignId(),
                 input.campaignName(), input.monthIndex());
 
-        return commandService.addLedgerEntry(commandId, detachmentId, serviceInput, principal.getName())
+        return ledgerService.addLedgerEntry(commandId, detachmentId, serviceInput, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting addLedgerEntry"));
     }
 
@@ -331,7 +337,7 @@ public class CommandGraphQLController {
         if (commandId == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.addCombatUnit(commandId, input, principal.getName())
+        return assetService.addCombatUnit(commandId, input, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting addCombatUnit"));
     }
 
@@ -341,7 +347,7 @@ public class CommandGraphQLController {
         if (id == null || principal == null) {
             return Mono.error(new IllegalArgumentException("Invalid arguments"));
         }
-        return commandService.updateCombatUnit(id, input, principal.getName())
+        return assetService.updateCombatUnit(id, input, principal.getName())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting updateCombatUnit"));
     }
 

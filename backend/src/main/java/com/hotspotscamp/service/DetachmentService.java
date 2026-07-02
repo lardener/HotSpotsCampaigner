@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.repository.DetachmentRepository;
-import com.hotspotscamp.repository.LedgerEntryRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.util.SqlUtils;
 
@@ -29,7 +28,6 @@ public class DetachmentService {
 
     private final DetachmentRepository detachmentRepository;
     private final MercenaryCommandRepository commandRepository;
-    private final LedgerEntryRepository ledgerEntryRepository;
     private final UserService userService;
     private final DatabaseClient databaseClient;
     private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
@@ -37,12 +35,10 @@ public class DetachmentService {
     public DetachmentService(
             DetachmentRepository detachmentRepository,
             MercenaryCommandRepository commandRepository,
-            LedgerEntryRepository ledgerEntryRepository,
             UserService userService,
             DatabaseClient databaseClient) {
         this.detachmentRepository = detachmentRepository;
         this.commandRepository = commandRepository;
-        this.ledgerEntryRepository = ledgerEntryRepository;
         this.userService = userService;
         this.databaseClient = databaseClient;
     }
