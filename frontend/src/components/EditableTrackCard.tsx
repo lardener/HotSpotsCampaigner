@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CampaignDetail, TrackDetail } from '../types/global.d';
-import { MetadataDataFull } from '../types/graphql.d';
+import { CampaignDetail, TrackDetail } from '../types/helpers';
+import { GetCampaignMetadataQuery } from '../types/generated';
 
 interface EditableTrackCardProps {
     track: TrackDetail;
     campaign: CampaignDetail;
-    metaData: MetadataDataFull | undefined;
+    metaData: GetCampaignMetadataQuery | undefined;
     handleTrackUpdate: (trackId: string, field: string, value: string) => void;
     handleReroll: (trackId: string) => Promise<void>;
     setShowAarForTrack: (track: TrackDetail) => void;
@@ -58,7 +58,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
         e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px';
     };
 
-    const isManager = campaign.isManager;
+    const isManager = campaign.isManager ?? false;
 
     return (
         <div
@@ -77,7 +77,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         className="table-input"
                         list={`track-types-${track.id}`}
                         style={{ fontWeight: 'bold', width: '100%', border: 'none', background: 'transparent', color: 'inherit' }}
-                        value={trackName}
+                        value={trackName || ''}
                         onChange={(e) => setTrackName(e.target.value)}
                         onBlur={(e) => handleTrackUpdate(track.id, 'trackName', e.target.value)}
                         readOnly={!isManager}
@@ -85,7 +85,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         placeholder="TRACK TYPE?"
                     />
                     <datalist id={`track-types-${track.id}`}>
-                        {metaData?.publicCampaignMetadata?.trackTypes.map(t => (
+                        {metaData?.publicCampaignMetadata?.trackTypes?.filter((t): t is string => typeof t === 'string' && t !== null).map(t => (
                             <option key={t} value={t} />
                         ))}
                     </datalist>
@@ -97,7 +97,7 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         onClick={() => handleReroll(track.id)}
                     >REROLL</button>
                 )}
-                <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{track.sequenceOrder + 1}</span>
+                <span className="restricted-text" style={{ fontSize: '0.6rem' }}>#{(track.sequenceOrder ?? 0) + 1}</span>
             </div>
             <div className="mb-5">
                 <div className="restricted-text mb-2" style={{ fontSize: '0.55rem', opacity: 0.8 }}>
@@ -178,10 +178,12 @@ export const EditableTrackCard: React.FC<EditableTrackCardProps> = ({
                         title="Attacker"
                     >
                         <option value="">[ ATK ]</option>
-                        {campaign?.factions?.map((f: { id: string, factionName: string }) => {
-                            const isPri = campaign?.contracts?.find(c => c.primaryContract)?.employerCategory.startsWith(f.factionName);
+                        {campaign?.factions?.filter((f): f is NonNullable<typeof f> => f != null && f.factionName != null).map((f) => {
+                            const validContracts = campaign?.contracts?.filter((c): c is NonNullable<typeof c> => c != null);
+                            const employerCategory = validContracts?.find(c => c.primaryContract && c.employerCategory != null)?.employerCategory;
+                            const isPri = employerCategory != null && employerCategory.startsWith(f.factionName!);
                             return (
-                                <option key={f.id} value={f.id}>{isPri ? 'Pri: ' : 'Opp: '}{f.factionName.substring(0, 3).toUpperCase()}</option>
+                                <option key={f.id} value={f.id}>{isPri ? 'Pri: ' : 'Opp: '}{f.factionName!.substring(0, 3).toUpperCase()}</option>
                             );
                         })}
                     </select>

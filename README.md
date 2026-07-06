@@ -235,6 +235,7 @@ The platform is designed to run on **Managed Kubernetes (MKS)**.
 - **Security**: Spring Security with dual OAuth2 (Google) and Token-based (Invite Key) identity providers. 
 - **Persistence**: Spring Data R2DBC for reactive SQL connectivity to MySQL.
 - **API**: Spring GraphQL acting as the sole gateway, reducing over-fetching and supporting real-time subscriptions.
+- **Mapping**: The backend uses **MapStruct** for DTO-to-entity update flows, reducing repetitive field-copying boilerplate in services. Current mapper usage includes combat unit, pilot, command, campaign, and track updates under the backend mapper package.
 
 ### Frontend (React + TypeScript)
 - **Apollo Client**: Manages local state and GraphQL communication with optimistic UI updates.

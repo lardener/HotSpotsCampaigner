@@ -1,4 +1,5 @@
-import { CombatUnit, CampaignDetail, DetachmentAarState, UnitStatus } from '../types/global.d';
+import { CombatUnit } from '../types/generated';
+import { DetachmentAarState, CampaignDetail, UnitStatus } from '../types/helpers';
 import { parseNumericInput } from './contractUtils';
 
 export interface SupportTerms {
@@ -39,7 +40,7 @@ export const calculateAwardFinancials = (campaign: CampaignDetail, terms: Detach
     const sValue = parseNumericInput(terms.salvageValue);
     const cAward = parseNumericInput(terms.customAward);
 
-    const payAward = Math.round(baseCombatPay * terms.outcomeMultiplier * terms.selectedLevel);
+    const payAward = Math.round(baseCombatPay * (terms.outcomeMultiplier ?? 1) * (terms.selectedLevel ?? 1));
     const salvageAward = Math.round(sValue * terms.salvageCoverage);
     const total = payAward + salvageAward + cAward;
 
@@ -96,7 +97,7 @@ export const calculateUnitFinancials = (unit: CombatUnit, status: string, rules:
 
         baseRepairCost = costBasis * damageMultiplier;
 
-        if (['CV', 'BA', 'CI'].includes(unit.type)) {
+        if (['CV', 'BA', 'CI'].includes(unit.type || '')) {
             unitModifier = (rules?.nonMechModifier ?? 0.5);
             baseRepairCost *= unitModifier;
         }

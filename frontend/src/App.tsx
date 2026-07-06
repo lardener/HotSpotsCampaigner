@@ -6,8 +6,7 @@ import { ApolloProvider } from '@apollo/client/react';
 import { createClient } from 'graphql-ws';
 import { MainDashboard } from './components/MainDashboard';
 import { GET_USER_PROFILE } from './types/operations';
-import { UserAccount } from './types/global.d';
-import { UserProfileData } from './types/graphql.d';
+import { UserProfile, GetUserProfileQuery } from './types/generated';
 import './styles/index.css';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || '';
@@ -45,7 +44,7 @@ const client = new ApolloClient({
 });
 
 export function App() {
-  const [user, setUser] = useState<UserAccount | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -73,7 +72,7 @@ export function App() {
   }, []);
 
   const fetchProfile = () => {
-    client.query<UserProfileData>({ query: GET_USER_PROFILE, fetchPolicy: 'network-only' })
+    client.query<GetUserProfileQuery>({ query: GET_USER_PROFILE, fetchPolicy: 'network-only' })
       .then(result => {
         const profile = result.data?.userProfile;
         if (profile) {

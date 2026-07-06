@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { CombatUnit, Pilot } from '../types/global.d';
-import { ForceData } from '../types/graphql.d'; // This was already correct
+import { CombatUnit, Pilot, GetForceDataQuery } from '../types/generated';
 import { GET_FORCE_DATA, ASSIGN_ASSET } from '../types/operations';
+import { UnitStatus, UnitType, TechBase } from '../types/helpers';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
@@ -72,31 +72,34 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
     const [showCombatUnitEditor, setShowCombatUnitEditor] = useState(false);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
 
-    const { loading, error, data, refetch } = useQuery<ForceData>(GET_FORCE_DATA, {
+    const { loading, error, data, refetch } = useQuery<GetForceDataQuery>(GET_FORCE_DATA, {
         variables: { commandId },
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 
     const sortUnits = (list: CombatUnit[]) => [...list].sort((a, b) =>
-        a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || '')
+        (a.model || '').localeCompare(b.model || '') || (a.variant || '').localeCompare(b.variant || '')
     );
 
-    const sortPilots = (list: Pilot[]) => [...list].sort((a, b) => a.name.localeCompare(b.name));
+    const sortPilots = (list: Pilot[]) => [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
     useEffect(() => {
-        if (data) {
-            setUnits(sortUnits(data.getCommand.units || []));
-            setPilots(sortPilots(data.getCommand.pilots || []));
-            setDetachments(data.getCommand.detachments || []);
+        if (data?.getCommand) {
+            const rawUnits = data.getCommand.units?.filter((u): u is NonNullable<typeof u> => u != null) || [];
+            const rawPilots = data.getCommand.pilots?.filter((p): p is NonNullable<typeof p> => p != null) || [];
+            const rawDetachments = data.getCommand.detachments?.filter((d): d is NonNullable<typeof d> => d != null) || [];
+            setUnits(sortUnits(rawUnits));
+            setPilots(sortPilots(rawPilots));
+            setDetachments(rawDetachments);
             setManagedCampaigns(data.managedCampaigns || []);
             setParticipatingCampaigns(data.participatingCampaigns || []);
         }
     }, [data]);
 
-    const unitStatuses = data?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
-    const unitTypes = data?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES;
-    const techBases = data?.publicCampaignMetadata?.techBases || FALLBACK_TECH;
+    const unitStatuses = (data?.publicCampaignMetadata?.unitStatuses?.filter((s): s is string => s != null) || FALLBACK_STATUSES) as UnitStatus[];
+    const unitTypes = (data?.publicCampaignMetadata?.unitTypes?.filter((t): t is string => t != null) || FALLBACK_TYPES) as UnitType[];
+    const techBases = (data?.publicCampaignMetadata?.techBases?.filter((t): t is string => t != null) || FALLBACK_TECH) as TechBase[];
 
     const [assignAsset] = useMutation(ASSIGN_ASSET);
 
@@ -179,7 +182,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                         key={u.id}
                                         id={u.id}
                                         type="UNIT"
-                                        label={u.model}
+                                        label={u.model || ''}
                                         subLabel={`${u.tonnage}T | ${u.status}`}
                                     />
                                 ))}
@@ -194,7 +197,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                         key={p.id}
                                         id={p.id}
                                         type="PILOT"
-                                        label={p.name}
+                                        label={p.name || ''}
                                         subLabel={`G/P: ${p.gunnery}/${p.piloting} | W:${p.wounds} | H:${p.handicap}`}
                                     />
                                 ))}
@@ -215,7 +218,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                                 key={u.id}
                                                 id={u.id}
                                                 type="UNIT"
-                                                label={u.model}
+                                                label={u.model || ''}
                                                 subLabel={`${u.tonnage}T`}
                                             />
                                         ))}
@@ -224,7 +227,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                                                 key={p.id}
                                                 id={p.id}
                                                 type="PILOT"
-                                                label={p.name}
+                                                label={p.name || ''}
                                                 subLabel={`G/P: ${p.gunnery}/${p.piloting} | H:${p.handicap}`}
                                             />
                                         ))}
@@ -321,7 +324,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
                     unitTypes={unitTypes}
                     unitStatuses={unitStatuses}
                     techBases={techBases}
-                    availableSP={data?.getCommand?.totalSupportPoints}
+                    availableSP={data?.getCommand?.totalSupportPoints ?? undefined}
                     onSave={() => { setShowCombatUnitEditor(false); refetch(); }}
                     onCancel={() => setShowCombatUnitEditor(false)}
                 />

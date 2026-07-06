@@ -10,10 +10,11 @@ import {
     FloatingFocusManager,
 } from '@floating-ui/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CombatUnit, CombatUnitUpdateInput, UnitType, UnitStatus, TechBase } from '../types/global.d'; // This was already correct
+import { CombatUnit, CombatUnitUpdateInput } from '../types/generated';
+import { UnitType, UnitStatus, TechBase } from '../types/helpers';
 import { calculateReconfigureCost, calculatePurchasePrice } from '../util/pricingUtils';
 import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS, GET_METADATA, ADD_LEDGER_ENTRY } from '../types/operations';
-import { MetadataDataFull } from '../types/graphql.d';
+import { GetCampaignMetadataQuery } from '../types/generated';
 import { CombatUnitBackground } from './CombatUnitBackground';
 
 interface CombatUnitEditorProps {
@@ -99,19 +100,19 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     const [updateUnit] = useMutation(UPDATE_UNIT);
     const [importAssets] = useMutation(IMPORT_ASSETS);
     const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
-    const { data: metadataData } = useQuery<MetadataDataFull>(GET_METADATA);
+    const { data: metadataData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA);
 
     const purchasePrice = useMemo(() => {
         if (overridePrice !== undefined) {
             return overridePrice;
         }
-        return calculatePurchasePrice(formData.bv, formData.pv, formData.techBase, pricingRule, overridePrice, metadataData?.publicCampaignMetadata);
+        return calculatePurchasePrice(formData.bv || 0, formData.pv || 0, formData.techBase || 'Inner Sphere', pricingRule, overridePrice, metadataData?.publicCampaignMetadata ?? undefined);
     }, [formData, metadataData, pricingRule, overridePrice]);
 
     const reconfigureCost = useMemo(() => {
         if (mode !== 'edit' || !unit || !formData.detachmentId) return 0;
         if (formData.bv === unit.bv && formData.pv === unit.pv) return 0;
-        return calculateReconfigureCost(mode, unit, formData.bv, formData.pv, formData.tonnage, formData.asSize, formData.techBase, formData.detachmentId, pricingRule, metadataData?.publicCampaignMetadata);
+        return calculateReconfigureCost(mode, unit, formData.bv || 0, formData.pv || 0, formData.tonnage || 0, formData.asSize || 0, formData.techBase || 'Inner Sphere', formData.detachmentId, pricingRule, metadataData?.publicCampaignMetadata ?? undefined);
     }, [mode, unit, formData.detachmentId, formData.bv, formData.pv, formData.tonnage, formData.asSize, formData.techBase, pricingRule, metadataData]);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
@@ -123,7 +124,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     };
 
     const handleSave = async (isTransaction: boolean = false) => {
-        if (!formData.model.trim()) {
+        if (!formData.model || !formData.model.trim()) {
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: "UNIT MODEL DESIGNATION REQUIRED.",
@@ -169,7 +170,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         input
                     }
                 });
-                savedUnit = result.data?.addCombatUnit;
+                savedUnit = result.data?.addCombatUnit as CombatUnit | undefined;
             } else if (mode === 'edit' && unit?.id) {
                 const result = await updateUnit({
                     variables: {
@@ -177,7 +178,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         input
                     }
                 });
-                savedUnit = result.data?.updateCombatUnit;
+                savedUnit = result.data?.updateCombatUnit as CombatUnit | undefined;
             }
 
             if (savedUnit) {
@@ -240,17 +241,19 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             const importedUnits = result.data?.importCombatUnitsFromLink;
             if (importedUnits && importedUnits.length > 0) {
                 const imported = importedUnits[0];
-                setFormData(prev => ({
-                    ...prev,
-                    model: imported.model || prev.model,
-                    variant: imported.variant || prev.variant,
-                    type: imported.type || prev.type,
-                    techBase: imported.techBase || prev.techBase,
-                    tonnage: imported.tonnage || prev.tonnage,
-                    asSize: imported.asSize || prev.asSize,
-                    bv: imported.bv || prev.bv,
-                    pv: imported.pv || prev.pv,
-                }));
+                if (imported) {
+                    setFormData(prev => ({
+                        ...prev,
+                        model: imported.model ?? prev.model,
+                        variant: imported.variant ?? prev.variant,
+                        type: (imported.type as CombatUnit['type']) ?? prev.type,
+                        techBase: (imported.techBase as CombatUnit['techBase']) ?? prev.techBase,
+                        tonnage: imported.tonnage ?? prev.tonnage,
+                        asSize: imported.asSize ?? prev.asSize,
+                        bv: imported.bv ?? prev.bv,
+                        pv: imported.pv ?? prev.pv,
+                    }));
+                }
                 setImportLink('');
             }
         } catch (err) {
@@ -428,7 +431,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                 type="text"
                                                 className="table-input w-100"
                                                 style={{ border: 'none' }}
-                                                value={formData.model}
+                                                value={formData.model || ''}
                                                 onChange={(e) => handleInputChange('model', e.target.value)}
                                                 placeholder="UNIT MODEL DESIGNATION"
                                                 title="Unit chassis model"
@@ -445,7 +448,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                 type="text"
                                                 className="table-input w-100"
                                                 style={{ border: 'none' }}
-                                                value={formData.variant}
+                                                value={formData.variant || ''}
                                                 onChange={(e) => handleInputChange('variant', e.target.value)}
                                                 placeholder="VARIANT CODE (E.G., SHD-2K)"
                                                 title="Unit variant designation"
@@ -461,7 +464,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                     id="mech-type"
                                                     className="table-input w-100"
                                                     style={{ border: 'none' }}
-                                                    value={formData.type}
+                                                    value={formData.type || ''}
                                                     onChange={(e) => handleInputChange('type', e.target.value)}
                                                     title="Unit classification"
                                                 >
@@ -478,7 +481,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                     id="mech-tech"
                                                     className="table-input w-100"
                                                     style={{ border: 'none' }}
-                                                    value={formData.techBase}
+                                                    value={formData.techBase || ''}
                                                     onChange={(e) => handleInputChange('techBase', e.target.value)}
                                                     title="Technology base"
                                                 >
@@ -495,7 +498,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                     id="mech-status"
                                                     className="table-input w-100"
                                                     style={{ border: 'none' }}
-                                                    value={formData.status}
+                                                    value={formData.status || ''}
                                                     onChange={(e) => handleInputChange('status', e.target.value)}
                                                     title="Operational status"
                                                 >
@@ -518,7 +521,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                 type="number"
                                                 className="table-input text-center"
                                                 style={{ border: 'none', width: '100%' }}
-                                                value={formData.tonnage}
+                                                value={formData.tonnage || 0}
                                                 onChange={(e) => handleInputChange('tonnage', e.target.value)}
                                                 title="Unit tonnage"
                                             />
@@ -532,7 +535,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                 type="number"
                                                 className="table-input text-center"
                                                 style={{ border: 'none', width: '100%' }}
-                                                value={formData.asSize}
+                                                value={formData.asSize || 0}
                                                 onChange={(e) => handleInputChange('asSize', e.target.value)}
                                                 title="Alpha Strike size"
                                             />
@@ -546,7 +549,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                 type="number"
                                                 className="table-input text-center"
                                                 style={{ border: 'none', width: '100%' }}
-                                                value={formData.bv}
+                                                value={formData.bv || 0}
                                                 onChange={(e) => handleInputChange('bv', e.target.value)}
                                                 title="Battle value"
                                             />
@@ -560,7 +563,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                                 type="number"
                                                 className="table-input text-center"
                                                 style={{ border: 'none', width: '100%' }}
-                                                value={formData.pv}
+                                                value={formData.pv || 0}
                                                 onChange={(e) => handleInputChange('pv', e.target.value)}
                                                 title="Point value"
                                             />

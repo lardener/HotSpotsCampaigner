@@ -1,5 +1,5 @@
 import React from 'react';
-import { MercenaryCommand } from '../types/global.d';
+import { MercenaryCommand } from '../types/generated';
 import { MercenaryRegistryBackground } from './MercenaryRegistryBackground';
 
 interface MercenaryRegistryViewProps {

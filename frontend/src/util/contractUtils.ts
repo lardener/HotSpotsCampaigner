@@ -1,4 +1,4 @@
-import { NumericInput } from '../types/global.d';
+import { NumericInput } from '../types/helpers';
 export type SupportType = 'BATTLE' | 'STRAIGHT' | 'NONE';
 
 export interface SupportTerms {
@@ -48,7 +48,7 @@ export const parseSupportTerms = (term: string | undefined | null): SupportTerms
 export const parseNumericInput = (val: NumericInput | undefined | null, fallback: number = 0): number => {
     if (val === undefined || val === null || val === '') return fallback;
     if (typeof val === 'number') return val;
-    
+
     const parsed = parseInt(val);
     return isNaN(parsed) ? fallback : parsed;
 };

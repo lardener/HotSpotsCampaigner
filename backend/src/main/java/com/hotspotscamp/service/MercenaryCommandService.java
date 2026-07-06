@@ -1,6 +1,5 @@
 package com.hotspotscamp.service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,6 +24,9 @@ import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.mapper.CampaignMapper;
+import com.hotspotscamp.mapper.CommandMapper;
+import com.hotspotscamp.mapper.TrackMapper;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
@@ -49,7 +51,7 @@ public class MercenaryCommandService {
     /**
      * Reactive sink for broadcasting command updates to subscribers.
      */
-    private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
+    private final Sinks.Many<MercenaryCommand> commandSink;
 
     private final MercenaryCommandRepository commandRepository;
     private final DetachmentRepository detachmentRepository;
@@ -65,8 +67,12 @@ public class MercenaryCommandService {
     private final CampaignService campaignService;
     private final RuleConfigurationService configService;
     private final LedgerService ledgerService;
+    private final CommandMapper commandMapper;
+    private final CampaignMapper campaignMapper;
+    private final TrackMapper trackMapper;
 
     public MercenaryCommandService(
+            Sinks.Many<MercenaryCommand> commandSink,
             MercenaryCommandRepository commandRepository,
             DetachmentRepository detachmentRepository,
             CampaignFactionRepository campaignFactionRepository,
@@ -80,7 +86,11 @@ public class MercenaryCommandService {
             ScraperFactory scraperFactory,
             @Lazy CampaignService campaignService,
             RuleConfigurationService configService,
-            LedgerService ledgerService) {
+            LedgerService ledgerService,
+            CommandMapper commandMapper,
+            CampaignMapper campaignMapper,
+            TrackMapper trackMapper) {
+        this.commandSink = commandSink;
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
         this.campaignFactionRepository = campaignFactionRepository;
@@ -95,6 +105,9 @@ public class MercenaryCommandService {
         this.campaignService = campaignService;
         this.configService = configService;
         this.ledgerService = ledgerService;
+        this.commandMapper = commandMapper;
+        this.campaignMapper = campaignMapper;
+        this.trackMapper = trackMapper;
     }
 
     /**
@@ -143,18 +156,7 @@ public class MercenaryCommandService {
                 return Mono.<MercenaryCommand>error(new RuntimeException("Access Denied")); // Explicitly type Mono.error
             }
 
-            if (input.name() != null) {
-                cmd.setName(input.name());
-            }
-            if (input.commandingOfficer() != null) {
-                cmd.setCommandingOfficer(input.commandingOfficer());
-            }
-            if (input.totalSupportPoints() != null) {
-                cmd.setTotalSupportPoints(input.totalSupportPoints());
-            }
-            if (input.reputation() != null) {
-                cmd.setReputation(input.reputation());
-            }
+            commandMapper.updateCommandFromDto(input, cmd);
             cmd.setNew(false);
             return commandRepository.save(cmd)
                     .doOnNext(commandSink::tryEmitNext)
@@ -340,133 +342,11 @@ public class MercenaryCommandService {
                             camp.setNew(false);
                             log.trace("[TRACE] setIsNew(false) called for campaign: id={}", camp.getId());
                             log.trace("[TRACE] Updating campaign details for campaign: id={}", camp.getId());
-                            if (input.name() != null) {
-                                camp.setName(input.name());
-                            }
-                            if (input.systemName() != null) {
-                                camp.setSystemName(input.systemName());
-                            }
-                            if (input.description() != null) {
-                                camp.setDescription(input.description());
-                            }
-                            if (input.payRate() != null) {
-                                camp.setPayRate(input.payRate());
-                            }
-                            if (input.payStep() != null) {
-                                camp.setPayStep(input.payStep());
-                            }
-                            if (input.salvageTerms() != null) {
-                                camp.setSalvageTerms(input.salvageTerms());
-                            }
-                            if (input.salvageStep() != null) {
-                                camp.setSalvageStep(input.salvageStep());
-                            }
-                            if (input.supportTerms() != null) {
-                                camp.setSupportTerms(input.supportTerms());
-                            }
-                            if (input.supportStep() != null) {
-                                camp.setSupportStep(input.supportStep());
-                            }
-                            if (input.transportTerms() != null) {
-                                camp.setTransportTerms(input.transportTerms());
-                            }
-                            if (input.transportStep() != null) {
-                                camp.setTransportStep(input.transportStep());
-                            }
-                            if (input.commandRights() != null) {
-                                camp.setCommandRights(input.commandRights());
-                            }
-                            if (input.commandStep() != null) {
-                                camp.setCommandStep(input.commandStep());
-                            }
-                            if (input.monthlyPay() != null) {
-                                camp.setMonthlyPay(input.monthlyPay());
-                            }
-                            if (input.monthlyMaintenance() != null) {
-                                camp.setMonthlyMaintenance(input.monthlyMaintenance());
-                            }
-                            if (input.transportationCost() != null) {
-                                camp.setTransportationCost(input.transportationCost());
-                            }
-                            if (input.combatPay() != null) {
-                                camp.setCombatPay(input.combatPay());
-                            }
-                            log.trace("[TRACE] Updated basic campaign details for campaign: id={}", camp.getId());
-                            if (input.armorMultiplier() != null) {
-                                camp.setArmorMultiplier(input.armorMultiplier());
-                            }
-                            if (input.internalMultiplier() != null) {
-                                camp.setInternalMultiplier(input.internalMultiplier());
-                            }
-                            if (input.crippledMultiplier() != null) {
-                                camp.setCrippledMultiplier(input.crippledMultiplier());
-                            }
-                            if (input.destroyedMultiplier() != null) {
-                                camp.setDestroyedMultiplier(input.destroyedMultiplier());
-                            }
-                            if (input.nonMechModifier() != null) {
-                                camp.setNonMechModifier(input.nonMechModifier());
-                            }
-                            if (input.mixedTechModifier() != null) {
-                                camp.setMixedTechModifier(input.mixedTechModifier());
-                            }
-                            if (input.clanTechModifier() != null) {
-                                camp.setClanTechModifier(input.clanTechModifier());
-                            }
-                            log.trace("[TRACE] Updated flattened repair rules for campaign: id={}", camp.getId());
 
-                            if (input.omnimechReconfigureModifier() != null) {
-                                camp.setOmnimechReconfigureModifier(input.omnimechReconfigureModifier());
-                            }
-                            if (input.pvPurchaseUnitMultiplier() != null) {
-                                camp.setPvPurchaseUnitMultiplier(input.pvPurchaseUnitMultiplier());
-                            }
-                            if (input.pvSellUnitMultiplier() != null) {
-                                camp.setPvSellUnitMultiplier(input.pvSellUnitMultiplier());
-                            }
-                            if (input.rearmCostPerTon() != null) {
-                                camp.setRearmCostPerTon(input.rearmCostPerTon());
-                            }
-                            if (input.rearmCostPerTonAlphaStrike() != null) {
-                                camp.setRearmCostPerTonAlphaStrike(input.rearmCostPerTonAlphaStrike());
-                            }
-                            if (input.hireMechWarriorCost() != null) {
-                                camp.setHireMechWarriorCost(input.hireMechWarriorCost());
-                            }
-                            if (input.hireNamedPilotCost() != null) {
-                                camp.setHireNamedPilotCost(input.hireNamedPilotCost());
-                            }
-                            if (input.hireBattleArmorCost() != null) {
-                                camp.setHireBattleArmorCost(input.hireBattleArmorCost());
-                            }
-                            if (input.healMechWarriorPerWoundBoxCost() != null) {
-                                camp.setHealMechWarriorPerWoundBoxCost(input.healMechWarriorPerWoundBoxCost());
-                            }
-                            if (input.healMechWarriorPerMonthLimit() != null) {
-                                camp.setHealMechWarriorPerMonthLimit(input.healMechWarriorPerMonthLimit());
-                            }
-                            if (input.healBattleArmorCost() != null) {
-                                camp.setHealBattleArmorCost(input.healBattleArmorCost());
-                            }
-                            if (input.trainFormationCommanderCost() != null) {
-                                camp.setTrainFormationCommanderCost(input.trainFormationCommanderCost());
-                            }
-                            if (input.changeFormationTrainingCost() != null) {
-                                camp.setChangeFormationTrainingCost(input.changeFormationTrainingCost());
-                            }
-                            if (input.learnCommandAbility1Cost() != null) {
-                                camp.setLearnCommandAbility1Cost(input.learnCommandAbility1Cost());
-                            }
-                            if (input.learnCommandAbility2Cost() != null) {
-                                camp.setLearnCommandAbility2Cost(input.learnCommandAbility2Cost());
-                            }
-                            if (input.learnCommandAbility3Cost() != null) {
-                                camp.setLearnCommandAbility3Cost(input.learnCommandAbility3Cost());
-                            }
-                            if (input.replaceCommandAbilityCost() != null) {
-                                camp.setReplaceCommandAbilityCost(input.replaceCommandAbilityCost());
-                            }
-                            log.trace("[TRACE] Updated flattened activity costs for campaign: id={}", camp.getId());
+                            String oldStatus = camp.getStatus();
+                            Integer oldLengthInMonths = camp.getLengthInMonths();
+                            campaignMapper.updateCampaignFromDto(input, camp);
+                            log.trace("[TRACE] Updated campaign details for campaign: id={}", camp.getId());
 
                             return contractRepository.findAllByCampaignId(camp.getId()).collectList()
                                     .flatMap(contracts -> {
@@ -590,9 +470,7 @@ public class MercenaryCommandService {
                                         Mono<Campaign> chain = Mono.just(camp);
 
                                         if (input.status() != null) {
-                                            String oldStatus = camp.getStatus();
-                                            String newStatus = input.status();
-                                            camp.setStatus(newStatus);
+                                            String newStatus = camp.getStatus();
                                             if ("INACTIVE".equalsIgnoreCase(newStatus) && !"INACTIVE".equalsIgnoreCase(oldStatus)) {
                                                 chain = SqlUtils.bindUuid(databaseClient.sql("UPDATE detachments SET campaign_id = NULL WHERE campaign_id = :id"), "id", campaignId)
                                                         .fetch().rowsUpdated().then(chain);
@@ -664,33 +542,8 @@ public class MercenaryCommandService {
 
                         track.setNew(false);
                         if (isManager) {
-                            if (input.trackName() != null) {
-                                track.setTrackName(input.trackName());
-                            }
-                            if (input.sequenceOrder() != null) {
-                                track.setSequenceOrder(input.sequenceOrder());
-                            }
-                            if (input.location() != null) {
-                                track.setLocation(input.location());
-                            }
-                            if (input.nextSession() != null) {
-                                track.setNextSession(input.nextSession().isBlank() ? null : LocalDateTime.parse(input.nextSession()));
-                            }
-                            if (input.attackerFactionId() != null) {
-                                track.setAttackerFactionId(input.attackerFactionId());
-                            }
-                            if (input.monthIndex() != null) {
-                                track.setMonthIndex(input.monthIndex());
-                            }
-                            if (input.complications() != null) {
-                                track.setComplications(input.complications());
-                            }
-                            if (input.oppositionComplications() != null) {
-                                track.setOppositionComplications(input.oppositionComplications());
-                            }
-                        }
-
-                        if (input.afterActionNarrative() != null) {
+                            trackMapper.updateTrackFromDto(input, track);
+                        } else if (input.afterActionNarrative() != null) {
                             track.setAfterActionNarrative(input.afterActionNarrative());
                         }
 

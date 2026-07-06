@@ -1,6 +1,6 @@
 import React from 'react';
 import { NodeType, TreeItemMetadata } from './NavigationTree';
-import { MercenaryCommand } from '../types/global.d';
+import { MercenaryCommand } from '../types/generated';
 import { MyDeploymentsBackground } from './MyDeploymentsBackground';
 
 interface MyDeploymentsListProps {
@@ -10,10 +10,10 @@ interface MyDeploymentsListProps {
 
 export const MyDeploymentsList: React.FC<MyDeploymentsListProps> = ({ commands, onSelectDetachment }) => {
     const deployedDetachments = commands.flatMap(cmd =>
-        cmd.detachments?.filter(det => det.campaignId).map(det => ({
-            ...det,
+        cmd.detachments?.filter(det => det?.campaignId).map(det => ({
+            ...det!,
             commandName: cmd.name,
-            campaignName: (det as any).campaignName,
+            campaignName: (det! as any).campaignName,
             commandId: cmd.id
         })) || []
     );

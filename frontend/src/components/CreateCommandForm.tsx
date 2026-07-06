@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CommandUpdateInput } from '../types/global.d';
+import { CommandUpdateInput, EstablishCommandMutation } from '../types/generated';
 import { ESTABLISH_COMMAND } from '../types/operations';
-import { EstablishCommandData } from '../types/graphql.d';
 
 // Props for the CreateCommandForm component
 interface CreateCommandFormProps {
     user: { name: string; displayName?: string | null };
     onCancel: () => void;
-    onSuccess: (newCommand: EstablishCommandData['establishCommand']) => void;
+    onSuccess: (newCommand: EstablishCommandMutation['establishCommand']) => void;
 }
 
 export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCancel, onSuccess }) => {
@@ -18,7 +17,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [establishCommand] = useMutation<EstablishCommandData, { input: CommandUpdateInput }>(ESTABLISH_COMMAND);
+    const [establishCommand] = useMutation<EstablishCommandMutation, { input: CommandUpdateInput }>(ESTABLISH_COMMAND);
 
     const handleSubmit = async () => {
         if (isSubmitting) return;

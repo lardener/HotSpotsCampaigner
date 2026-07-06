@@ -8,9 +8,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "build": "npm run codegen && tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "npm run codegen && vitest",
     "test:ui": "vitest --ui"
   },
   "dependencies": {
@@ -26,6 +27,10 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.7",
+    "@graphql-codegen/typed-document-node": "^5.0.0",
+    "@graphql-codegen/typescript": "^4.0.0",
+    "@graphql-codegen/typescript-operations": "^4.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/react": "^19.0.8",

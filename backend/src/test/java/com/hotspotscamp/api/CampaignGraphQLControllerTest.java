@@ -17,9 +17,9 @@ import org.springframework.graphql.test.tester.GraphQlTester;
 import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignMetadata;
 import com.hotspotscamp.dto.CampaignProposal;
+import com.hotspotscamp.dto.ruleConfiguration.MissionMetadata;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.service.CampaignService;
-import com.hotspotscamp.service.RuleConfigurationService;
 import com.hotspotscamp.service.UserService;
 import com.hotspotscamp.util.RulesConstants;
 
@@ -39,7 +39,7 @@ public class CampaignGraphQLControllerTest {
     @Test
     void campaignMetadata_ShouldBeAccessibleWithoutAuth() {
         CampaignMetadata mockMeta = new CampaignMetadata(
-                new RuleConfigurationService.MissionMetadata(List.of("Raid"), List.of("Defense")),
+                new MissionMetadata(List.of("Raid"), List.of("Defense")),
                 List.of("Assault"),
                 Collections.emptyList(),
                 Collections.emptyList(),

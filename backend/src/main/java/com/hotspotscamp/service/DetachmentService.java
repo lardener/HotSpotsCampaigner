@@ -30,17 +30,19 @@ public class DetachmentService {
     private final MercenaryCommandRepository commandRepository;
     private final UserService userService;
     private final DatabaseClient databaseClient;
-    private final Sinks.Many<MercenaryCommand> commandSink = Sinks.many().multicast().directBestEffort();
+    private final Sinks.Many<MercenaryCommand> commandSink;
 
     public DetachmentService(
             DetachmentRepository detachmentRepository,
             MercenaryCommandRepository commandRepository,
             UserService userService,
-            DatabaseClient databaseClient) {
+            DatabaseClient databaseClient,
+            Sinks.Many<MercenaryCommand> commandSink) {
         this.detachmentRepository = detachmentRepository;
         this.commandRepository = commandRepository;
         this.userService = userService;
         this.databaseClient = databaseClient;
+        this.commandSink = commandSink;
     }
 
     /**

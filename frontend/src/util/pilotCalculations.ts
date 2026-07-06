@@ -1,4 +1,4 @@
-import { Pilot } from '../types/global.d';
+import { Pilot } from '../types/generated';
 import {
     gunneryThresholds,
     pilotingThresholds,

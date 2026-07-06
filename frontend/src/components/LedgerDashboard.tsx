@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LedgerEntryForm } from './LedgerEntryForm';
 import { useQuery } from '@apollo/client/react';
 import { GET_LEDGER_DATA } from '../types/operations';
-import { LedgerData } from '../types/graphql.d';
+import { GetLedgerDataQuery } from '../types/generated';
 import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerDashboardProps {
@@ -12,24 +12,28 @@ interface LedgerDashboardProps {
 
 export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, detachmentId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string>('');
-    const { loading, data, refetch } = useQuery<LedgerData>(GET_LEDGER_DATA, {
+    const { loading, data, refetch } = useQuery<GetLedgerDataQuery>(GET_LEDGER_DATA, {
         variables: { commandId },
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 
+    const detachments = useMemo(() => {
+        return (data?.getCommand?.detachments || [])
+            .filter((d): d is NonNullable<typeof d> => d != null);
+    }, [data]);
+
     useEffect(() => {
         // Prioritize the detachmentId passed from the Navigation Tree
         if (detachmentId) {
             setSelectedDetachmentId(detachmentId);
-        } else if (data?.getCommand?.detachments && data.getCommand.detachments.length > 0 && !selectedDetachmentId) {
+        } else if (detachments.length > 0 && !selectedDetachmentId) {
             // Fallback to the first detachment if none is selected
-            setSelectedDetachmentId(data.getCommand.detachments[0].id);
+            setSelectedDetachmentId(detachments[0].id);
         }
-    }, [data, selectedDetachmentId, detachmentId]);
+    }, [detachments, selectedDetachmentId, detachmentId]);
 
-    const detachments = data?.getCommand?.detachments || [];
-    const selectedDet = useMemo(() => detachments.find((d: any) => d.id === selectedDetachmentId), [detachments, selectedDetachmentId]);
+    const selectedDet = useMemo(() => detachments.find((d) => d.id === selectedDetachmentId), [detachments, selectedDetachmentId]);
 
 
     if (loading && !data) return <div>ACCESSING SECURE LEDGER...</div>;

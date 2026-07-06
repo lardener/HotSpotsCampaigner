@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { Pilot, PilotUpdateInput } from '../types/global.d';
+import { Pilot, PilotUpdateInput } from '../types/generated';
 import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
 import { PilotBackground } from './PilotBackground';
@@ -124,7 +124,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             const updated = recalcDerived(next);
 
             // Enforce gunnery/piloting distance constraint after recomputation
-            if (Math.abs(updated.gunnery - updated.piloting) > 2) {
+            if (Math.abs((updated.gunnery ?? 0) - (updated.piloting ?? 0)) > 2) {
                 setOverlay({
                     title: 'VALIDATION ERROR',
                     message: 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.',
@@ -140,7 +140,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 
     const handleSave = async (isTraining: boolean = false) => {
         // Validation
-        if (!formData.name.trim()) {
+        if (!(formData.name ?? '').trim()) {
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: "PILOT DESIGNATION REQUIRED. ENTER CALLSIGN.",
@@ -150,7 +150,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             return;
         }
 
-        if (formData.gunnery < 0 || formData.gunnery > 12) {
+        if ((formData.gunnery ?? 0) < 0 || (formData.gunnery ?? 0) > 12) {
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: "GUNNERY SKILL MUST BE BETWEEN 0 AND 12.",
@@ -160,7 +160,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             return;
         }
 
-        if (formData.piloting < 0 || formData.piloting > 12) {
+        if ((formData.piloting ?? 0) < 0 || (formData.piloting ?? 0) > 12) {
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: "PILOTING SKILL MUST BE BETWEEN 0 AND 12.",
@@ -170,7 +170,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             return;
         }
 
-        if (formData.asSkill < 0 || formData.asSkill > 12) {
+        if ((formData.asSkill ?? 0) < 0 || (formData.asSkill ?? 0) > 12) {
             setOverlay({
                 title: "VALIDATION ERROR",
                 message: "ALPHA STRIKE SKILL MUST BE BETWEEN 0 AND 12.",
@@ -260,7 +260,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     } catch (ledgerErr) { console.error("Ledger entry failed for pilot hire:", ledgerErr); }
                 }
                 if (result.data?.hirePilot) {
-                    onSave(result.data.hirePilot);
+                    onSave(result.data.hirePilot as Pilot);
                 }
             } else if (mode === 'edit' && pilot?.id) {
                 const result = await updatePilot({
@@ -289,7 +289,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             console.error("Ledger entry failed for pilot training:", ledgerErr);
                         }
                     }
-                    onSave(result.data.updatePilot);
+                    onSave(result.data.updatePilot as Pilot);
                 }
             }
         } catch (err) {
@@ -380,7 +380,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                         type="text"
                                         className="table-input w-100"
                                         style={{ border: 'none' }}
-                                        value={formData.name}
+                                        value={formData.name ?? ''}
                                         onChange={(e) => handleInputChange('name', e.target.value)}
                                         placeholder="PILOT DESIGNATION"
                                         title="Pilot designation or callsign"
@@ -397,7 +397,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                         id="pilot-unit-type"
                                         className="table-input w-100"
                                         style={{ border: 'none' }}
-                                        value={formData.unitType}
+                                        value={formData.unitType ?? ''}
                                         onChange={(e) => handleInputChange('unitType', e.target.value)}
                                         title="Select unit type specialization"
                                     >
@@ -415,7 +415,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                         id="pilot-wounds"
                                         className="table-input w-100"
                                         style={{ border: 'none' }}
-                                        value={formData.wounds}
+                                        value={formData.wounds ?? 0}
                                         onChange={(e) => handleInputChange('wounds', e.target.value)}
                                         title="Select pilot wounds (0-6)"
                                     >
@@ -471,7 +471,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                             type="number"
                                             className="table-input text-right"
                                             style={{ border: 'none', width: '60px' }}
-                                            value={formData.totalSpEarned}
+                                            value={formData.totalSpEarned ?? 0}
                                             onChange={(e) => handleInputChange('totalSpEarned', e.target.value)}
                                             title="Total SP Earned"
                                         />
@@ -485,7 +485,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                             type="number"
                                             className="table-input text-right"
                                             style={{ border: 'none', width: '60px' }}
-                                            value={formData.gunnerySpEarned}
+                                            value={formData.gunnerySpEarned ?? 0}
                                             onChange={(e) => handleInputChange('gunnerySpEarned', e.target.value)}
                                             title="Gunnery SP"
                                         />
@@ -499,7 +499,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                             type="number"
                                             className="table-input text-right"
                                             style={{ border: 'none', width: '60px' }}
-                                            value={formData.pilotingSpEarned}
+                                            value={formData.pilotingSpEarned ?? 0}
                                             onChange={(e) => handleInputChange('pilotingSpEarned', e.target.value)}
                                             title="Piloting SP"
                                         />
@@ -513,7 +513,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                             type="number"
                                             className="table-input text-right"
                                             style={{ border: 'none', width: '60px' }}
-                                            value={formData.edgeTokensSpEarned}
+                                            value={formData.edgeTokensSpEarned ?? 0}
                                             onChange={(e) => handleInputChange('edgeTokensSpEarned', e.target.value)}
                                             title="Edge Tokens SP"
                                         />
@@ -527,7 +527,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                             type="number"
                                             className="table-input text-right"
                                             style={{ border: 'none', width: '60px' }}
-                                            value={formData.edgeAbilitySpEarned}
+                                            value={formData.edgeAbilitySpEarned ?? 0}
                                             onChange={(e) => handleInputChange('edgeAbilitySpEarned', e.target.value)}
                                             title="Edge Ability SP"
                                         />

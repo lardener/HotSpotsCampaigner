@@ -1,52 +1,56 @@
 import { gql, TypedDocumentNode } from '@apollo/client';
-import {
-  LoginWithTokenData,
-  UpdateUserProfileData,
-  CreateCampaignData,
-  UpdateCampaignData,
-  CreateDetachmentData,
-  DeleteDetachmentData,
-  AssignDetachmentData,
-  JoinCampaignData,
-  UpdateTrackData,
-  RerollTrackData,
-  ReorderTracksData,
-  CreateInviteData,
-  EstablishCommandData,
-  UpdateCommandData,
-  DeleteCommandData,
-  AssignAssetData,
-  AddUnitData,
-  UpdateUnitData,
-  ImportAssetsData,
-  HirePilotData,
-  UpdatePilotData,
-  AddLedgerEntryData,
-  DeleteUnitData,
-  DeletePilotData,
-  DeleteInviteData,
-} from './graphql.d';
-import {
-  UpdateCommandVars,
-  UpdateUnitVars,
-  AddUnitVars,
-  ImportAssetsVars,
-  UpdatePilotVars,
-  HirePilotVars,
-  DeleteUnitVars,
-  DeletePilotVars,
-  DeleteDetachmentVars,
-  CreateDetachmentVars,
-  CreateInviteVars,
-  AssignAssetVars,
-  JoinCampaignVars,
-  AssignDetachmentVars,
-  LedgerEntryInput,
-  TrackUpdateInput,
-  CampaignCreateInput,
-  CampaignUpdateInput,
-  CommandUpdateInput
-} from './global.d';
+import type {
+  LoginWithTokenMutation as LoginWithTokenData,
+  LoginWithTokenMutationVariables as LoginWithTokenVars,
+  UpdateUserProfileMutation as UpdateUserProfileData,
+  UpdateUserProfileMutationVariables as UpdateUserProfileVars,
+  CreateCampaignMutation as CreateCampaignData,
+  CreateCampaignMutationVariables as CreateCampaignVars,
+  UpdateCampaignMutation as UpdateCampaignData,
+  UpdateCampaignMutationVariables as UpdateCampaignVars,
+  CreateDetachmentMutation as CreateDetachmentData,
+  CreateDetachmentMutationVariables as CreateDetachmentVars,
+  DeleteDetachmentMutation as DeleteDetachmentData,
+  DeleteDetachmentMutationVariables as DeleteDetachmentVars,
+  AssignDetachmentToCampaignMutation as AssignDetachmentData,
+  AssignDetachmentToCampaignMutationVariables as AssignDetachmentVars,
+  JoinCampaignMutation as JoinCampaignData,
+  JoinCampaignMutationVariables as JoinCampaignVars,
+  UpdateTrackMutation as UpdateTrackData,
+  UpdateTrackMutationVariables as UpdateTrackVars,
+  RerollTrackMutation as RerollTrackData,
+  RerollTrackMutationVariables as RerollTrackVars,
+  ReorderTracksMutation as ReorderTracksData,
+  ReorderTracksMutationVariables as ReorderTracksVars,
+  CreateInviteMutation as CreateInviteData,
+  CreateInviteMutationVariables as CreateInviteVars,
+  DeleteInviteMutation as DeleteInviteData,
+  DeleteInviteMutationVariables as DeleteInviteVars,
+  EstablishCommandMutation as EstablishCommandData,
+  EstablishCommandMutationVariables as EstablishCommandVars,
+  UpdateCommandMutation as UpdateCommandData,
+  UpdateCommandMutationVariables as UpdateCommandVars,
+  DeleteCommandMutation as DeleteCommandData,
+  DeleteCommandMutationVariables as DeleteCommandVars,
+  AssignAssetMutation as AssignAssetData,
+  AssignAssetMutationVariables as AssignAssetVars,
+  AddCombatUnitMutation as AddUnitData,
+  AddCombatUnitMutationVariables as AddUnitVars,
+  UpdateUnitMutation as UpdateUnitData,
+  UpdateUnitMutationVariables as UpdateUnitVars,
+  ImportAssetsMutation as ImportAssetsData,
+  ImportAssetsMutationVariables as ImportAssetsVars,
+  HirePilotMutation as HirePilotData,
+  HirePilotMutationVariables as HirePilotVars,
+  UpdatePilotMutation as UpdatePilotData,
+  UpdatePilotMutationVariables as UpdatePilotVars,
+  AddLedgerEntryMutation as AddLedgerEntryData,
+  AddLedgerEntryMutationVariables as AddLedgerEntryVars,
+  DeleteUnitMutation as DeleteUnitData,
+  DeleteUnitMutationVariables as DeleteUnitVars,
+  DeletePilotMutation as DeletePilotData,
+  DeletePilotMutationVariables as DeletePilotVars,
+} from './generated';
 
 /**
  * Shared GraphQL Operations
@@ -181,13 +185,13 @@ export const GET_USER_PROFILE = gql`
   }
 `;
 
-export const LOGIN_WITH_TOKEN: TypedDocumentNode<LoginWithTokenData, { token: string }> = gql`
+export const LOGIN_WITH_TOKEN: TypedDocumentNode<LoginWithTokenData, LoginWithTokenVars> = gql`
   mutation LoginWithToken($token: String!) {
     loginWithToken(token: $token)
   }
 `;
 
-export const UPDATE_USER_PROFILE: TypedDocumentNode<UpdateUserProfileData, { displayName: string }> = gql`
+export const UPDATE_USER_PROFILE: TypedDocumentNode<UpdateUserProfileData, UpdateUserProfileVars> = gql`
   mutation UpdateUserProfile($displayName: String!) {
     updateUserProfile(displayName: $displayName) {
       id
@@ -343,7 +347,7 @@ export const GENERATE_TRACKS = gql`
   }
 `;
 
-export const CREATE_CAMPAIGN: TypedDocumentNode<CreateCampaignData, { input: CampaignCreateInput }> = gql`
+export const CREATE_CAMPAIGN: TypedDocumentNode<CreateCampaignData, CreateCampaignVars> = gql`
   mutation CreateCampaign($input: CampaignCreateInput!) {
     createCampaign(input: $input) {
       id
@@ -395,7 +399,7 @@ export const CREATE_CAMPAIGN: TypedDocumentNode<CreateCampaignData, { input: Cam
   }
 `;
 
-export const UPDATE_CAMPAIGN: TypedDocumentNode<UpdateCampaignData, { id: string, input: CampaignUpdateInput }> = gql`
+export const UPDATE_CAMPAIGN: TypedDocumentNode<UpdateCampaignData, UpdateCampaignVars> = gql`
   mutation UpdateCampaign($id: ID!, $input: CampaignUpdateInput!) {
     updateCampaign(id: $id, input: $input) {
       id
@@ -658,7 +662,7 @@ export const GET_CAMPAIGN_DETAILS = gql`
   ${FRAGMENT_DETACHMENT}
 `;
 
-export const UPDATE_TRACK: TypedDocumentNode<UpdateTrackData, { id: string, input: TrackUpdateInput }> = gql`
+export const UPDATE_TRACK: TypedDocumentNode<UpdateTrackData, UpdateTrackVars> = gql`
   mutation UpdateTrack($id: ID!, $input: TrackUpdateInput!) {
     updateTrack(id: $id, input: $input) {
       id
@@ -674,7 +678,7 @@ export const UPDATE_TRACK: TypedDocumentNode<UpdateTrackData, { id: string, inpu
   }
 `;
 
-export const REROLL_TRACK: TypedDocumentNode<RerollTrackData, { id: string }> = gql`
+export const REROLL_TRACK: TypedDocumentNode<RerollTrackData, RerollTrackVars> = gql`
   mutation RerollTrack($id: ID!) {
     rerollTrack(id: $id) {
       id
@@ -685,7 +689,7 @@ export const REROLL_TRACK: TypedDocumentNode<RerollTrackData, { id: string }> = 
   }
 `;
 
-export const REORDER_TRACKS: TypedDocumentNode<ReorderTracksData, { campaignId: string, trackIds: string[] }> = gql`
+export const REORDER_TRACKS: TypedDocumentNode<ReorderTracksData, ReorderTracksVars> = gql`
   mutation ReorderTracks($campaignId: ID!, $trackIds: [ID!]!) {
     reorderTracks(campaignId: $campaignId, trackIds: $trackIds) {
       id
@@ -711,7 +715,7 @@ export const CREATE_INVITE: TypedDocumentNode<CreateInviteData, CreateInviteVars
   }
 `;
 
-export const DELETE_INVITE: TypedDocumentNode<DeleteInviteData, { id: string }> = gql`
+export const DELETE_INVITE: TypedDocumentNode<DeleteInviteData, DeleteInviteVars> = gql`
   mutation DeleteInvite($id: ID!) {
     deleteInvite(id: $id)
   }
@@ -790,7 +794,7 @@ export const GET_UNIT_DOSSIER = gql`
   ${FRAGMENT_DETACHMENT}
 `;
 
-export const ESTABLISH_COMMAND: TypedDocumentNode<EstablishCommandData, { input: CommandUpdateInput }> = gql`
+export const ESTABLISH_COMMAND: TypedDocumentNode<EstablishCommandData, EstablishCommandVars> = gql`
   mutation EstablishCommand($input: CommandUpdateInput!) {
     establishCommand(input: $input) {
       ...CommandFields
@@ -808,7 +812,7 @@ export const UPDATE_COMMAND: TypedDocumentNode<UpdateCommandData, UpdateCommandV
   ${FRAGMENT_COMMAND}
 `;
 
-export const DELETE_COMMAND: TypedDocumentNode<DeleteCommandData, { commandId: string, force?: boolean }> = gql`
+export const DELETE_COMMAND: TypedDocumentNode<DeleteCommandData, DeleteCommandVars> = gql`
   mutation DeleteCommand($commandId: ID!, $force: Boolean) {
     deleteCommand(commandId: $commandId, force: $force)
   }
@@ -892,7 +896,7 @@ export const GET_FORCE_DATA = gql`
 
 // ==================== Ledger Operations ====================
 
-export const ADD_LEDGER_ENTRY: TypedDocumentNode<AddLedgerEntryData, { commandId: string, detachmentId: string | null, input: LedgerEntryInput }> = gql`
+export const ADD_LEDGER_ENTRY: TypedDocumentNode<AddLedgerEntryData, AddLedgerEntryVars> = gql`
   mutation AddLedgerEntry($commandId: ID!, $detachmentId: ID, $input: LedgerEntryInput!) {
     addLedgerEntry(commandId: $commandId, detachmentId: $detachmentId, input: $input) {
       ...LedgerEntryFields

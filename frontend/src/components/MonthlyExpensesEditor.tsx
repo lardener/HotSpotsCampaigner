@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { Detachment, CampaignDetailSummary, NumericInput } from '../types/global.d';
+import { Detachment } from '../types/generated';
+import { CampaignDetailSummary, NumericInput } from '../types/helpers';
 import { ADD_LEDGER_ENTRY } from '../types/operations';
 import { parseMultiplier, parseNumericInput, isInputInvalid } from '../util/contractUtils'; // This was already correct
 
@@ -49,7 +50,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     };
 
     const calculateFormDefaults = (chargeType: DetachmentFormState['chargeType'], level: number, contractId: string) => {
-        const contract = campaignDetails.contracts?.find(c => c.id === contractId);
+        const contract = campaignDetails.contracts?.find(c => c != null && c.id === contractId);
         const levelMult = level;
         let amount = 0;
         let termsLabel = '';
@@ -92,7 +93,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                 const { amount, description } = calculateFormDefaults('Monthly Pay & Expenses', 1, defaultContractId);
                 return {
                     detachmentId: det.id,
-                    detachmentName: det.name,
+                    detachmentName: det.name || '',
                     mercenaryCommandId: det.mercenaryCommandId || '',
                     selectedContractId: defaultContractId,
                     selectedLevel: 1,
@@ -195,9 +196,9 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                                             title="Select contract terms"
                                         >
                                             {campaignDetails.contracts?.length === 0 && <option value="">NO CONTRACTS</option>}
-                                            {campaignDetails.contracts?.map(contract => (
-                                                <option key={contract.id} value={contract.id}>
-                                                    {contract.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({contract.employerCategory})
+                                            {campaignDetails.contracts?.filter((c): c is NonNullable<typeof c> => c != null && c.id != null).map(contract => (
+                                                <option key={contract.id ?? ''} value={contract.id ?? ''}>
+                                                    {contract.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({contract.employerCategory || 'N/A'})
                                                 </option>
                                             ))}
                                         </select>

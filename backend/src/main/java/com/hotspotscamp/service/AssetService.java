@@ -14,6 +14,8 @@ import com.hotspotscamp.dto.PilotUpdateInput;
 import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.entity.Pilot;
+import com.hotspotscamp.mapper.CombatUnitMapper;
+import com.hotspotscamp.mapper.PilotMapper;
 import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
@@ -32,18 +34,24 @@ public class AssetService {
     private final MercenaryCommandRepository commandRepository;
     private final UserService userService;
     private final Sinks.Many<MercenaryCommand> commandSink;
+    private final CombatUnitMapper combatUnitMapper;
+    private final PilotMapper pilotMapper;
 
     public AssetService(
             CombatUnitRepository combatUnitRepository,
             PilotRepository pilotRepository,
             MercenaryCommandRepository commandRepository,
             UserService userService,
-            Sinks.Many<MercenaryCommand> commandSink) {
+            Sinks.Many<MercenaryCommand> commandSink,
+            CombatUnitMapper combatUnitMapper,
+            PilotMapper pilotMapper) {
         this.combatUnitRepository = combatUnitRepository;
         this.pilotRepository = pilotRepository;
         this.commandRepository = commandRepository;
         this.userService = userService;
         this.commandSink = commandSink;
+        this.combatUnitMapper = combatUnitMapper;
+        this.pilotMapper = pilotMapper;
     }
 
     /**
@@ -62,11 +70,11 @@ public class AssetService {
                     return commandRepository.findById(commandId)
                             .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
                             .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> {
-                                if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                                    return Mono.<Void>error(new RuntimeException("Access Denied"));
-                                }
-                                return combatUnitRepository.delete(unit);
-                            }));
+                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                            return Mono.<Void>error(new RuntimeException("Access Denied"));
+                        }
+                        return combatUnitRepository.delete(unit);
+                    }));
                 })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deleteCombatUnit"));
     }
@@ -87,11 +95,11 @@ public class AssetService {
                     return commandRepository.findById(commandId)
                             .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
                             .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> {
-                                if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                                    return Mono.<Void>error(new RuntimeException("Access Denied"));
-                                }
-                                return pilotRepository.delete(pilot);
-                            }));
+                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                            return Mono.<Void>error(new RuntimeException("Access Denied"));
+                        }
+                        return pilotRepository.delete(pilot);
+                    }));
                 })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deletePilot"));
     }
@@ -112,46 +120,17 @@ public class AssetService {
                     return commandRepository.findById(commandId)
                             .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
                             .<CombatUnit>flatMap(cmd -> userService.resolveOrCreateUser(userId).<CombatUnit>flatMap(user -> {
-                                if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                                    return Mono.<CombatUnit>error(new RuntimeException("Access Denied"));
-                                }
-                                unit.setNew(false);
-                                if (input.type() != null) {
-                                    unit.setType(input.type());
-                                }
-                                if (input.model() != null) {
-                                    unit.setModel(input.model());
-                                }
-                                if (input.variant() != null) {
-                                    unit.setVariant(input.variant());
-                                }
-                                if (input.techBase() != null) {
-                                    unit.setTechBase(input.techBase());
-                                }
-                                if (input.tonnage() != null) {
-                                    unit.setTonnage(input.tonnage());
-                                }
-                                if (input.asSize() != null) {
-                                    unit.setAsSize(input.asSize());
-                                }
-                                if (input.bv() != null) {
-                                    unit.setBv(input.bv());
-                                }
-                                if (input.pv() != null) {
-                                    unit.setPv(input.pv());
-                                }
-                                if (input.status() != null) {
-                                    unit.setStatus(input.status());
-                                }
-                                if (input.detachmentId() != null) {
-                                    unit.setDetachmentId(input.detachmentId());
-                                }
-                                return combatUnitRepository.save(unit)
-                                        .flatMap(u -> commandRepository.findById(commandId)
-                                        .doOnNext(commandSink::tryEmitNext)
-                                        .thenReturn(u))
-                                        .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
-                            }));
+                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                            return Mono.<CombatUnit>error(new RuntimeException("Access Denied"));
+                        }
+                        unit.setNew(false);
+                        combatUnitMapper.updateCombatUnitFromDto(input, unit);
+                        return combatUnitRepository.save(unit)
+                                .flatMap(u -> commandRepository.findById(commandId)
+                                .doOnNext(commandSink::tryEmitNext)
+                                .thenReturn(u))
+                                .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
+                    }));
                 })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateCombatUnit"));
     }
@@ -172,61 +151,17 @@ public class AssetService {
                     return commandRepository.findById(commandId)
                             .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
                             .<Pilot>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Pilot>flatMap(user -> {
-                                if (!cmd.getOwnerId().equals(user.getId().toString())) {
-                                    return Mono.<Pilot>error(new RuntimeException("Access Denied"));
-                                }
-                                pilot.setNew(false);
-                                if (input.name() != null) {
-                                    pilot.setName(input.name());
-                                }
-                                if (input.gunnery() != null) {
-                                    pilot.setGunnery(input.gunnery());
-                                }
-                                if (input.piloting() != null) {
-                                    pilot.setPiloting(input.piloting());
-                                }
-                                if (input.asSkill() != null) {
-                                    pilot.setAsSkill(input.asSkill());
-                                }
-                                if (input.unitType() != null) {
-                                    pilot.setUnitType(input.unitType());
-                                }
-                                if (input.wounds() != null) {
-                                    pilot.setWounds(input.wounds());
-                                }
-                                if (input.handicap() != null) {
-                                    pilot.setHandicap(input.handicap());
-                                }
-                                if (input.totalSpEarned() != null) {
-                                    pilot.setTotalSpEarned(input.totalSpEarned());
-                                }
-                                if (input.gunnerySpEarned() != null) {
-                                    pilot.setGunnerySpEarned(input.gunnerySpEarned());
-                                }
-                                if (input.pilotingSpEarned() != null) {
-                                    pilot.setPilotingSpEarned(input.pilotingSpEarned());
-                                }
-                                if (input.edgeTokensSpEarned() != null) {
-                                    pilot.setEdgeTokensSpEarned(input.edgeTokensSpEarned());
-                                }
-                                if (input.edgeAbilitySpEarned() != null) {
-                                    pilot.setEdgeAbilitySpEarned(input.edgeAbilitySpEarned());
-                                }
-                                if (input.edgeTokensSkill() != null) {
-                                    pilot.setEdgeTokensSkill(input.edgeTokensSkill());
-                                }
-                                if (input.edgeAbilitySkill() != null) {
-                                    pilot.setEdgeAbilitySkill(input.edgeAbilitySkill());
-                                }
-                                if (input.edgeAbilities() != null) {
-                                    pilot.setEdgeAbilities(input.edgeAbilities());
-                                }
-                                return pilotRepository.save(pilot)
-                                        .flatMap(p -> commandRepository.findById(commandId)
-                                        .doOnNext(commandSink::tryEmitNext)
-                                        .thenReturn(p))
-                                        .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
-                            }));
+                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                            return Mono.<Pilot>error(new RuntimeException("Access Denied"));
+                        }
+                        pilot.setNew(false);
+                        pilotMapper.updatePilotFromDto(input, pilot);
+                        return pilotRepository.save(pilot)
+                                .flatMap(p -> commandRepository.findById(commandId)
+                                .doOnNext(commandSink::tryEmitNext)
+                                .thenReturn(p))
+                                .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
+                    }));
                 })
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updatePilot"));
     }

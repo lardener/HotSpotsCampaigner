@@ -20,6 +20,8 @@ import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignMetadata;
 import com.hotspotscamp.dto.CampaignProposal;
 import com.hotspotscamp.dto.GeneratedTrack;
+import com.hotspotscamp.dto.ruleConfiguration.EmployerEntry;
+import com.hotspotscamp.dto.ruleConfiguration.EmployerTableConfig;
 import com.hotspotscamp.entity.Campaign;
 import com.hotspotscamp.repository.CampaignFactionRepository;
 import com.hotspotscamp.repository.CampaignInviteRepository;
@@ -66,8 +68,8 @@ class CampaignServiceTest {
         when(configService.getAvailableTrackTypes()).thenReturn(List.of("Assault"));
         when(configService.getAvailableFactions()).thenReturn(List.of("Davion"));
 
-        RuleConfigurationService.EmployerTableConfig empConfig = mock(RuleConfigurationService.EmployerTableConfig.class);
-        when(empConfig.entries()).thenReturn(List.of(new RuleConfigurationService.EmployerEntry(2, "Major Power")));
+        EmployerTableConfig empConfig = mock(EmployerTableConfig.class);
+        when(empConfig.entries()).thenReturn(List.of(new EmployerEntry(2, "Major Power")));
         when(configService.getEmployerTableConfig()).thenReturn(empConfig);
 
         when(configService.getResolvedStepsTable()).thenReturn(Map.of(7, Map.of("payRate", "100%")));

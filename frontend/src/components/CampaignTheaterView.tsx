@@ -16,17 +16,20 @@ import {
 } from './Rules';
 import {
     Detachment,
-    CampaignDetail,
-    TrackDetail,
+    Campaign,
     Contract,
     CombatUnit,
     Pilot,
     CampaignUpdateInput,
     TrackUpdateInput,
     MercenaryCommand,
-    UnitType,
-    UnitStatus
-} from '../types/global.d';
+    CampaignTrack,
+    GetCampaignMetadataQuery,
+    GetCampaignDetailsQuery,
+    UpdateCampaignMutation,
+    RerollTrackMutation
+} from '../types/generated';
+import { UnitType, UnitStatus, TechBase } from '../types/helpers';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
 import {
     GET_METADATA,
@@ -38,11 +41,10 @@ import {
     REORDER_TRACKS
 } from '../types/operations';
 import { useHscActionHandler } from './useHscActionHandler';
-import { MetadataDataFull, CampaignDetailsData, UpdateCampaignData, RerollTrackData } from '../types/graphql.d';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
 interface CampaignTheaterViewProps {
-    managedData: { managedCampaigns: CampaignDetail[] } | undefined;
+    managedData: { managedCampaigns: Campaign[] } | undefined;
     loadingManaged: boolean;
     selectedCampaignId: string | null;
     campaignFilter: string;
@@ -56,7 +58,7 @@ interface CampaignTheaterViewProps {
     userCommands?: MercenaryCommand[];
 }
 
-interface TheaterCampaign extends CampaignDetail {
+interface TheaterCampaign extends Campaign {
     isManager?: boolean;
     isParticipant?: boolean;
 }
@@ -65,13 +67,13 @@ interface TheaterCampaign extends CampaignDetail {
  * Custom hook to manage campaign theater state and server synchronization.
  */
 const useTheaterCampaignSync = (
-    managedData: { managedCampaigns: CampaignDetail[] } | undefined,
-    campaignQueryData: CampaignDetailsData | undefined,
-    metaData: MetadataDataFull | undefined,
+    managedData: { managedCampaigns: Campaign[] } | undefined,
+    campaignQueryData: GetCampaignDetailsQuery | undefined,
+    metaData: GetCampaignMetadataQuery | undefined,
     selectedCampaignId: string | null,
     queryLoading: boolean,
-    updateCampaign: MutationTuple<UpdateCampaignData, { id: string, input: CampaignUpdateInput }>[0],
-    rerollTrack: MutationTuple<RerollTrackData, { id: string }>[0],
+    updateCampaign: MutationTuple<UpdateCampaignMutation, { id: string, input: CampaignUpdateInput }>[0],
+    rerollTrack: MutationTuple<RerollTrackMutation, { id: string }>[0],
     refetchCampaign: () => Promise<any>,
     onSyncChange?: (syncing: boolean) => void,
     onRefresh?: () => Promise<void>,
@@ -124,7 +126,7 @@ const useTheaterCampaignSync = (
             : {};
 
         const localIsParticipant = userCommands?.some(cmd =>
-            cmd.detachments?.some((det: Detachment) => det.campaignId === selectedCampaignId)
+            (cmd.detachments || []).filter((d): d is Detachment => d != null).some((det: Detachment) => det.campaignId === selectedCampaignId)
         ) || false;
 
         return {
@@ -139,16 +141,16 @@ const useTheaterCampaignSync = (
 
     // Derived state for theater layout
     const displayMonthCount = useMemo(() => {
-        const trackMax = (campaign.tracks || []).reduce((max: number, t: TrackDetail) => Math.max(max, t.monthIndex || 1), 0);
+        const trackMax = (campaign.tracks || []).filter((t): t is CampaignTrack => t != null).reduce((max: number, t: CampaignTrack) => Math.max(max, t.monthIndex || 1), 0);
         return Math.max(campaignLengthInMonths, trackMax, 1);
     }, [campaignLengthInMonths, campaign?.tracks]);
 
     const opposition = useMemo(() =>
-        campaign?.contracts?.find((c: Contract) => !c.primaryContract),
+        (campaign?.contracts || []).filter((c): c is Contract => c != null).find((c: Contract) => !c.primaryContract),
         [campaign]
     );
 
-    const campaignInvites = campaignQueryData?.getCampaign?.campaignInvites || [];
+    const campaignInvites = (campaignQueryData?.getCampaign?.campaignInvites || []).filter((i): i is any => i != null);
 
     useEffect(() => {
         onSyncChange?.(queryLoading || isSyncing);
@@ -344,13 +346,13 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     userCommands
 }) => {
     // --- Queries & Mutations ---
-    const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<CampaignDetailsData>(GET_CAMPAIGN_DETAILS, {
+    const { loading, data: campaignQueryData, refetch: refetchCampaign } = useQuery<GetCampaignDetailsQuery>(GET_CAMPAIGN_DETAILS, {
         variables: { campaignId: selectedCampaignId || '' },
         skip: !selectedCampaignId,
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
-    const { data: metaData } = useQuery<MetadataDataFull>(GET_METADATA);
+    const { data: metaData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA);
 
     const [updateCampaign] = useMutation(UPDATE_CAMPAIGN);
     const [updateTrack] = useMutation(UPDATE_TRACK);
@@ -362,7 +364,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const saveTimeoutRef = useRef<Record<string, number>>({});
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
-    const [showAarForTrack, setShowAarForTrack] = useState<TrackDetail | null>(null);
+    const [showAarForTrack, setShowAarForTrack] = useState<CampaignTrack | null>(null);
     const [showRecruitment, setShowRecruitment] = useState(false);
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
@@ -498,9 +500,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         if (!draggedTrackId || !campaign?.tracks) return;
 
         // 1. Prepare sorted tracks list (prioritize month, then existing sequence)
-        const tracks = [...campaign.tracks].sort((a, b) => {
+        const tracks = [...(campaign.tracks || [])].filter((t): t is CampaignTrack => t != null).sort((a, b) => {
             if (a.monthIndex !== b.monthIndex) return (a.monthIndex || 1) - (b.monthIndex || 1);
-            return a.sequenceOrder - b.sequenceOrder;
+            return (a.sequenceOrder || 0) - (b.sequenceOrder || 0);
         });
 
         const draggedTrack = tracks.find(t => t.id === draggedTrackId);
@@ -576,7 +578,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                     <div className="command-panels-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '40px' }}>
                         {loadingManaged && <div className="loading-intel">RETRIEVING THEATER DATA...</div>}
 
-                        {managedData?.managedCampaigns.map((camp) => (
+                        {(managedData?.managedCampaigns || []).filter((c): c is any => c != null).map((camp) => (
                             <div
                                 key={camp.id}
                                 className="dashboard-section"
@@ -601,12 +603,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                     <div>
                                         <span className="restricted-text" style={{ fontSize: '0.7rem', display: 'block' }}>DETACHMENTS</span>
                                         <div style={{ maxHeight: '60px', overflowY: 'auto' }}>
-                                            {camp.participatingDetachments?.map(d => (
+                                            {(camp.participatingDetachments || []).filter((d: Detachment | null | undefined): d is Detachment => d != null).map((d: Detachment) => (
                                                 <div key={d.id} className="sm-text" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                     • {d.name} {d.campaignRating != null && <span style={{ color: 'var(--terminal-amber)' }}>({d.campaignRating})</span>}
                                                 </div>
                                             ))}
-                                            {(!camp.participatingDetachments || camp.participatingDetachments.length === 0) && <span className="sm-text subdued">NONE</span>}
+                                            {((camp.participatingDetachments || []).filter((d: Detachment | null | undefined): d is Detachment => d != null).length === 0) && <span className="sm-text subdued">NONE</span>}
                                         </div>
                                     </div>
                                     <div className="text-right" style={{ alignSelf: 'end' }}>
@@ -1131,8 +1133,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                 <h3 className="section-title">TRACK OPERATIONS</h3>
                                 <div className="month-panel-grid mt-15" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px', alignItems: 'start' }}>
                                     {Array.from({ length: displayMonthCount }, (_, i) => i + 1).map(mIdx => {
-                                        const monthTracks = (campaign?.tracks || []).filter((t: TrackDetail) => (t.monthIndex || 1) === mIdx)
-                                            .sort((a: TrackDetail, b: TrackDetail) => a.sequenceOrder - b.sequenceOrder);
+                                        const monthTracks = (campaign?.tracks || []).filter((t): t is CampaignTrack => t != null).filter((t: CampaignTrack) => (t.monthIndex || 1) === mIdx)
+                                            .sort((a: CampaignTrack, b: CampaignTrack) => (a.sequenceOrder || 0) - (b.sequenceOrder || 0));
                                         return (
                                             <div
                                                 key={mIdx}
@@ -1168,7 +1170,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     </button>}
                                                 </h4>
                                                 <div className="track-container flex flex-column flex-gap-10" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                    {monthTracks.map((track: TrackDetail) => (
+                                                    {monthTracks.map((track: CampaignTrack) => (
                                                         <EditableTrackCard
                                                             key={track.id}
                                                             track={track}
@@ -1197,25 +1199,25 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             <div className="dashboard-section tactical-panel">
                                 <h3 className="section-title">PARTICIPATING DETACHMENTS</h3>
                                 <div className="detachment-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                                    {campaign?.participatingDetachments?.map((det: Detachment) => (
+                                    {(campaign?.participatingDetachments || []).filter((d): d is Detachment => d != null).map((det: Detachment) => (
                                         <div key={det.id} className="asset-card" style={{ position: 'relative' }}>
                                             <div
                                                 style={{ cursor: 'pointer' }}
                                                 onClick={() => onSelectDetachment({
                                                     id: `camp-det-${det.id}`,
-                                                    label: det.name,
+                                                    label: det.name || 'UNKNOWN DETACHMENT',
                                                     type: 'DETACHMENT',
                                                     metadata: { detachmentId: det.id, commandId: det.mercenaryCommandId, campaignId: campaign?.id, managerView: true }
                                                 })}
                                             >
                                                 <div className="asset-type">{det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}</div>
                                                 <div className="asset-label" style={{ marginBottom: '10px', borderBottom: '1px solid var(--accent-dim)', paddingBottom: '5px', display: 'flex', justifyContent: 'space-between' }}>
-                                                    <span>{det.name}</span>
+                                                    <span>{det.name || 'UNKNOWN DETACHMENT'}</span>
                                                     {det.campaignRating != null && <span style={{ color: 'var(--terminal-amber)', fontSize: '0.8rem' }}>RATING: {det.campaignRating}</span>}
                                                 </div>
                                                 <DetachmentReadinessSummary
-                                                    units={det.units || []}
-                                                    pilots={det.pilots || []}
+                                                    units={(det.units || []).filter((u): u is CombatUnit => u != null)}
+                                                    pilots={(det.pilots || []).filter((p): p is Pilot => p != null)}
                                                 />
                                             </div>
                                             {campaign.isManager && <button type="button" className="mode-btn" style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 5px', fontSize: '0.6rem', color: 'var(--terminal-alert)' }} onClick={() => handleRemoveDetachment(det.id)}>EJECT</button>}
@@ -1279,12 +1281,12 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             asSize: procureAssetData.asSize || 0,
                             bv: procureAssetData.bv || 0,
                             pv: procureAssetData.pv || 0,
-                            status: (metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[])?.[0] || 'OPERATIONAL',
+                            status: (metaData?.publicCampaignMetadata?.unitStatuses?.[0] as UnitStatus) || 'OPERATIONAL',
                             detachmentId: procureTargetDetachment.id
                         } as CombatUnit}
-                        unitTypes={metaData?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES}
-                        unitStatuses={metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES}
-                        techBases={metaData?.publicCampaignMetadata?.techBases || FALLBACK_TECH}
+                        unitTypes={(metaData?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES) as UnitType[]}
+                        unitStatuses={(metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES) as UnitStatus[]}
+                        techBases={(metaData?.publicCampaignMetadata?.techBases || FALLBACK_TECH) as TechBase[]}
                         onSave={handleProcureSave}
                         onCancel={handleProcureCancel}
                         overridePrice={procureAssetData.overridePrice}
@@ -1328,10 +1330,10 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             }
 
             {
-                showMonthlyExpensesEditor !== null && campaign && campaign.participatingDetachments && (
+                showMonthlyExpensesEditor !== null && campaign && (campaign.participatingDetachments || []).filter((d): d is Detachment => d != null).length > 0 && (
                     <MonthlyExpensesEditor
                         campaignDetails={campaign}
-                        detachments={campaign.participatingDetachments}
+                        detachments={(campaign.participatingDetachments || []).filter((d): d is Detachment => d != null)}
                         currentMonthIndex={showMonthlyExpensesEditor}
                         onClose={() => {
                             setShowMonthlyExpensesEditor(null);
@@ -1350,9 +1352,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             {
                 showAarForTrack && campaign && (
                     <AfterActionReportEditor
-                        campaign={campaign}
-                        track={showAarForTrack}
-                        metaData={metaData}
+                        campaign={campaign as any}
+                        track={showAarForTrack as any}
+                        metaData={metaData as any}
                         onClose={async () => {
                             await refetchCampaign();
                             if (onRefresh) await onRefresh();
@@ -1362,7 +1364,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             await refetchCampaign();
                             if (onRefresh) await onRefresh();
                         }}
-                        userCommands={userCommands}
+                        userCommands={userCommands as any}
                     />
                 )
             }

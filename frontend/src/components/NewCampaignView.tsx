@@ -1,10 +1,10 @@
 import React from 'react';
 import { CampaignGenerator } from './CampaignGenerator';
-import { UpdateCampaignData } from '../types/graphql.d';
+import { UpdateCampaignMutation } from '../types/generated';
 
 interface NewCampaignViewProps {
     user: { name: string; id: string } | null;
-    onSaveSuccess: (newCampaign: UpdateCampaignData['updateCampaign']) => void;
+    onSaveSuccess: (newCampaign: UpdateCampaignMutation['updateCampaign']) => void;
 }
 
 export const NewCampaignView: React.FC<NewCampaignViewProps> = ({ user, onSaveSuccess }) => {

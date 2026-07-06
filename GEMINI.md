@@ -23,28 +23,6 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 - Kubernetes manifests for OVHcloud deployment
 - Docker Compose for local development
 
-## Refactoring Progress
-
-### ✅ Completed Frontend Refactoring (2025-05-22)
-
-#### 1. Skill Thresholds Extraction
-- **File Created**: `frontend/src/constants/pilotThresholds.ts`
-- **Contains**: `gunneryThresholds`, `pilotingThresholds`, `edgeTokensThresholds`, `edgeAbilityThresholds` arrays + `getActiveThreshold()` helper
-- **Benefit**: Centralized threshold definitions, improved testability
-
-#### 2. Pilot Calculation Logic Extraction
-- **File Created**: `frontend/src/util/pilotCalculations.ts`
-- **Contains**: `recalcDerived()` function (calculates totalSpEarned, maps SP→skills, asSkill, handicap)
-- **Benefit**: Separated calculation logic from UI, reduced component complexity
-- **Status**: Both extractions verified via TypeScript compilation (no errors)
-
-### 📋 Pending Refactoring Tasks
-- [x] Analyze pricing logic in `CombatUnitEditor.tsx` (2025-05-22) - ✅ Analysis complete, pricingUtils.ts functions verified
-- [x] Replace inline pricing calculations in `CombatUnitEditor.tsx` with pricingUtils.ts imports
-- [x] Extract financial calculations from `AfterActionReportEditor.tsx`
-- [ ] Backend service decomposition (CampaignService, MercenaryCommandService)
-- [ ] Unified GraphQL client standardization
-
 ## Key Directories
 - `backend/src/main/java/` - Java backend source
 - `frontend/src/components/` - React UI components
@@ -53,3 +31,7 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 - `frontend/src/services/` - API/GraphQL client services
 - `docs/plans/` - Detailed expansion and migration plans
 - `ssl_cert/` - Kubernetes SSL/TLS certificates
+
+## Environment Notes
+- **Build Environment**
+    - **Local PowerShell Policy** - issue shell commands using the Windows command shim

@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
-import { CampaignDetail, MercenaryCommand, CombatUnit, Pilot, Detachment, UnitType, TechBase } from '../types/global.d';
+import { Campaign, MercenaryCommand, CombatUnit, Pilot, Detachment, GetCampaignMetadataQuery } from '../types/generated';
 import { TerminalOverlayProps } from './TerminalOverlay';
-import { MetadataDataFull } from '../types/graphql.d';
 
 interface ProcureAssetData extends Partial<CombatUnit> {
     overridePrice?: number;
@@ -12,11 +11,11 @@ interface HirePilotData extends Partial<Pilot> {
 }
 
 interface UseHscActionHandlerProps {
-    campaign: CampaignDetail;
+    campaign: Campaign;
     userCommands?: MercenaryCommand[];
     setOverlay: (overlay: TerminalOverlayProps | null) => void;
     onActionComplete?: () => void; // Callback for when an editor saves
-    metaData?: MetadataDataFull;
+    metaData?: GetCampaignMetadataQuery;
 }
 
 interface ExtendedDetachment extends Detachment {
@@ -41,6 +40,7 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
             }
 
             const myDetachmentsInCampaign = (campaign.participatingDetachments || [])
+                .filter((det): det is NonNullable<typeof det> => det != null)
                 .filter(det => (userCommands || []).some(cmd => cmd.id === det.mercenaryCommandId))
                 .map(det => {
                     const cmd = (userCommands || []).find(c => c.id === det.mercenaryCommandId);
@@ -109,8 +109,8 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
                     bv: parseInt(params.get('bv') || '0'),
                     pv: parseInt(params.get('pv') || '0'),
                     asSize: parseInt(params.get('sz') || '0'),
-                    type: (params.get('type') as UnitType) || 'BM',
-                    techBase: (params.get('tech') as TechBase) || 'Inner Sphere',
+                    type: params.get('type') || 'BM',
+                    techBase: params.get('tech') || 'Inner Sphere',
                     tonnage: parseInt(params.get('tons') || '0'),
                     overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
                 };

@@ -11,7 +11,7 @@ import { CampaignTheaterView } from './CampaignTheaterView';
 import { MercenaryRegistryView } from './MercenaryRegistryView';
 import { PublicCampaignTheaterView } from './PublicCampaignTheaterView';
 import { Sidebar } from './Sidebar';
-import { Detachment, UserAccount } from '../types/global.d';
+import { Campaign, UserProfile, GetMyCommandsQuery, GetManagedCampaignsQuery } from '../types/generated';
 import { MercenaryRegistryBackground } from './MercenaryRegistryBackground';
 import { MyDeploymentsList } from './MyDeploymentsList';
 import { TerminalOverlay } from './TerminalOverlay';
@@ -22,7 +22,6 @@ import {
     LOGIN_WITH_TOKEN,
     DELETE_COMMAND // This was already correct
 } from '../types/operations';
-import { GetMyCommandsData, ManagedCampaignsData } from '../types/graphql.d';
 
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard' | 'intel-hub' | 'my-deployments';
 
@@ -35,14 +34,14 @@ const SHORT_WARNING_PERIOD_MS = 30 * 1000; // Last 30 seconds before logout, che
 const LAST_ACTIVITY_KEY = 'hsc_last_activity';
 
 interface MainDashboardProps {
-    user: UserAccount | null;
+    user: UserProfile | null;
     onLogout: () => void;
     onRefreshProfile?: () => void;
 }
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, onRefreshProfile }) => {
     const [activeTab, setActiveTab] = useState<TabType>('intel-hub');
-    const [commands, setCommands] = useState<GetMyCommandsData['myCommands']>([]);
+    const [commands, setCommands] = useState<GetMyCommandsQuery['myCommands']>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
@@ -217,13 +216,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         setEditName(user?.displayName || user?.name || '');
     }, [user]);
 
-    const { loading, error, data, refetch } = useQuery<GetMyCommandsData>(GET_MY_COMMANDS, {
+    const { loading, error, data, refetch } = useQuery<GetMyCommandsQuery>(GET_MY_COMMANDS, {
         skip: !user,
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 
-    const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<ManagedCampaignsData>(GET_MANAGED_CAMPAIGNS, {
+    const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<GetManagedCampaignsQuery>(GET_MANAGED_CAMPAIGNS, {
         variables: { status: campaignFilter },
         skip: !user,
         fetchPolicy: 'cache-and-network',
@@ -235,7 +234,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     useEffect(() => {
         if (!loading && !loadingManaged && !initialJumpPerformed.current && data && managedData) {
             const myCmds = data.myCommands || [];
-            const hasDeployments = myCmds.some(cmd => cmd.detachments?.some((det: any) => det.campaignId));
+            const hasDeployments = myCmds.filter((cmd): cmd is NonNullable<typeof cmd> => cmd != null).some(cmd => cmd.detachments?.some((det) => det != null && det.campaignId));
             const hasCommands = myCmds.length > 0;
             const hasManaged = (managedData?.managedCampaigns?.length ?? 0) > 0;
 
@@ -282,7 +281,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         if (data?.myCommands) {
             setCommands([...data.myCommands]); // Force a fresh reference
             if (data.myCommands.length > 0 && !selectedCommandId) {
-                setSelectedCommandId(data.myCommands[0].id);
+                const firstCmd = data.myCommands[0];
+                if (firstCmd != null) {
+                    setSelectedCommandId(firstCmd.id);
+                }
             }
         }
     }, [data, selectedCommandId]);
@@ -292,10 +294,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         const deploymentNodes: TreeItem[] = [];
 
         // Aggregate all detachments for the "Current Deployments" view
-        commands.forEach(cmd => {
-            if (cmd.detachments) {
-                cmd.detachments.forEach((det: Detachment) => {
-                    if (det.campaignId) {
+        (commands || []).forEach(cmd => {
+            if (cmd != null && cmd.detachments) {
+                cmd.detachments.forEach((det) => {
+                    if (det != null && det.campaignId) {
                         deploymentNodes.push({
                             id: `deployment-${det.id}`,
                             label: `${cmd.name} - ${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
@@ -308,7 +310,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         });
 
         const hasDeployments = deploymentNodes.length > 0;
-        const hasCommands = commands.length > 0;
+        const hasCommands = (commands || []).length > 0;
         const hasManaged = (managedData?.managedCampaigns?.length ?? 0) > 0;
         const isLoaded = !loading && !loadingManaged;
 
@@ -331,11 +333,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 label: 'MERCENARY COMMANDS',
                 type: 'ROOT' as NodeType,
                 initiallyExpanded: expandCommands,
-                children: commands.map(cmd => ({
+                children: (commands || []).filter((cmd): cmd is NonNullable<typeof cmd> => cmd != null).map(cmd => ({
                     id: cmd.id,
                     label: cmd.name || 'UNNAMED UNIT',
                     type: 'COMMAND' as NodeType,
-                    children: cmd.detachments?.map((det: Detachment) => ({
+                    children: cmd.detachments?.filter((det): det is NonNullable<typeof det> => det != null).map((det) => ({
                         id: `cmd-det-${det.id}`,
                         label: `${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
                         type: 'DETACHMENT' as NodeType,
@@ -348,11 +350,11 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 label: 'MANAGED CAMPAIGNS',
                 type: 'ROOT' as NodeType,
                 initiallyExpanded: expandManaged,
-                children: managedData?.managedCampaigns.map(camp => ({
+                children: (managedData?.managedCampaigns || []).filter((camp): camp is NonNullable<typeof camp> => camp != null).map(camp => ({
                     id: camp.id,
-                    label: camp.name,
+                    label: camp.name || 'Unnamed Campaign',
                     type: 'CAMPAIGN' as NodeType,
-                    children: camp.participatingDetachments?.map((det: Detachment) => ({
+                    children: (camp.participatingDetachments || []).filter((det): det is NonNullable<typeof det> => det != null).map((det) => ({
                         id: `camp-det-${det.id}`,
                         label: `${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
                         type: 'DETACHMENT' as NodeType,
@@ -548,7 +550,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     };
 
     const renderTabContent = () => {
-        if (loading && commands.length === 0) {
+        if (loading && (commands || []).length === 0) {
             return <div className="loading-intel">SYNCHRONIZING WITH MERCENARY REGISTRY...</div>;
         }
 
@@ -562,13 +564,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         if (isCreatingCommand) {
             return (
                 <CreateCommandForm
-                    user={user}
+                    user={{ name: user?.name || '', displayName: user?.displayName || undefined }}
                     onCancel={() => setIsCreatingCommand(false)}
                     onSuccess={(newCmd) => {
                         setIsCreatingCommand(false);
                         fetchCommands();
-                        setSelectedCommandId(newCmd.id);
-                        setSelectedNodeId(newCmd.id);
+                        if (newCmd) {
+                            setSelectedCommandId(newCmd.id);
+                            setSelectedNodeId(newCmd.id);
+                        }
                         setActiveTab('commands');
                     }}
                 />
@@ -593,7 +597,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             case 'my-campaigns':
                 return (
                     <CampaignTheaterView
-                        managedData={managedData}
+                        managedData={managedData as { managedCampaigns: Campaign[] } | undefined}
                         loadingManaged={loadingManaged}
                         selectedCampaignId={selectedCampaignId}
                         campaignFilter={campaignFilter}
@@ -604,7 +608,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         onSelectDetachment={handleTreeSelect}
                         onRefresh={handleManualRefresh}
                         onSyncChange={setIsChildSyncing}
-                        userCommands={commands}
+                        userCommands={(commands || []).filter((cmd): cmd is NonNullable<typeof cmd> => cmd != null)}
                     />
                 );
             case 'create-campaign':
@@ -623,7 +627,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                             <h1 className="terminal-text">NEW CAMPAIGN ENLISTMENT</h1>
                         </header>
                         <CampaignGenerator
-                            user={user}
+                            user={{ name: user?.name || '' }}
                             onSaveSuccess={(newCampaign) => {
                                 fetchCommands();
                                 refetchManaged();
@@ -637,7 +641,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             case 'commands':
                 return (
                     <MercenaryRegistryView
-                        commands={commands}
+                        commands={(commands || []).filter((cmd): cmd is NonNullable<typeof cmd> => cmd != null)}
                         selectedCommandId={selectedCommandId}
                         onSelectCommand={setSelectedCommandId}
                         onDeleteCommand={handleDeleteCommand}
@@ -683,7 +687,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             case 'my-deployments':
                 return (
                     <MyDeploymentsList
-                        commands={commands}
+                        commands={(commands || []).filter((cmd): cmd is NonNullable<typeof cmd> => cmd != null)}
                         onSelectDetachment={handleTreeSelect}
                     />
                 );
@@ -728,7 +732,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                 treeData={treeData}
                 onSelect={handleTreeSelect}
                 selectedId={getSelectedNodeId()}
-                user={user}
+                user={{ name: user?.name || '', id: user?.id || '', displayName: user?.displayName || undefined, role: user?.role || undefined }}
                 onLogout={onLogout}
                 syncing={loading || loadingManaged || isChildSyncing}
                 onManualRefresh={handleManualRefresh}

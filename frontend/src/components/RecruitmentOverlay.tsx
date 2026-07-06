@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CampaignInvite, CreateInviteVars } from '../types/global.d';
+import { CampaignInvite, CreateInviteMutation } from '../types/generated';
 import { CREATE_INVITE, DELETE_INVITE } from '../types/operations';
-import { CreateInviteData } from '../types/graphql.d';
+import { CreateInviteMutationVariables } from '../types/generated';
 import { RecruitmentBackground } from './RecruitmentBackground';
 
 interface RecruitmentOverlayProps {
@@ -14,7 +14,7 @@ interface RecruitmentOverlayProps {
 }
 
 export const RecruitmentOverlay: React.FC<RecruitmentOverlayProps> = ({ campaignId, invites, onClose, onRefresh }) => {
-    const [createInvite] = useMutation<CreateInviteData, CreateInviteVars>(CREATE_INVITE);
+    const [createInvite] = useMutation<CreateInviteMutation, CreateInviteMutationVariables>(CREATE_INVITE);
     const [deleteInvite] = useMutation(DELETE_INVITE);
     const [activeToken, setActiveToken] = useState<string | null>(null);
     const [recipientName, setRecipientName] = useState('');
@@ -37,7 +37,7 @@ export const RecruitmentOverlay: React.FC<RecruitmentOverlayProps> = ({ campaign
         try {
             const { data } = await createInvite({ variables: { campaignId, recipientName } });
             if (data?.createInvite) {
-                setActiveToken(data.createInvite.token);
+                setActiveToken(data.createInvite.token ?? null);
                 setCopied(false); // Reset copied state for new token
                 onRefresh();
             }
@@ -125,8 +125,8 @@ export const RecruitmentOverlay: React.FC<RecruitmentOverlayProps> = ({ campaign
                             <div className="restricted-text subdued text-center p-20">NO ACTIVE INVITATIONS FOUND</div>
                         ) : (
                             invites.map((invite) => {
-                                const expiresAt = new Date(invite.expiresAt);
-                                const diff = expiresAt.getTime() - now.getTime();
+                                const expiresAtDate = invite.expiresAt ? new Date(invite.expiresAt) : null;
+                                const diff = expiresAtDate ? expiresAtDate.getTime() - now.getTime() : -1;
                                 const isExpired = diff <= 0;
                                 const isUsed = invite.used;
 

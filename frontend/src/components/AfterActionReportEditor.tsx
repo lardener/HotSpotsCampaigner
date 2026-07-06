@@ -5,7 +5,8 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { PilotEditor } from './PilotEditor'; // This import is for the component, not the type
-import { CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus, Detachment, Contract, MercenaryCommand } from '../types/global.d';
+import { CombatUnit, Pilot, Detachment, Contract, MercenaryCommand } from '../types/generated';
+import { DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus } from '../types/helpers';
 import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
@@ -48,7 +49,7 @@ export const aarReducer = (state: AarDataState, action: AarAction): AarDataState
             const nextUnits: Record<string, { status: string; ammo: NumericInput }> = {};
             const nextPilots: Record<string, { injuries: number; healed: number }> = {};
 
-            campaign.participatingDetachments?.forEach((det) => {
+            campaign.participatingDetachments?.filter((det): det is Detachment => det != null).forEach((det) => {
                 // Merge existing local state with incoming prop data to preserve user input
                 nextAars[det.id] = state.detachmentAars[det.id] || {
                     selectedContractId: campaign.contracts?.[0]?.id || '',
@@ -58,13 +59,13 @@ export const aarReducer = (state: AarDataState, action: AarAction): AarDataState
                     customAward: 0
                 };
 
-                det.units?.forEach((u) => {
+                det.units?.filter((u): u is CombatUnit => u != null).forEach((u) => {
                     nextUnits[u.id] = state.unitStates[u.id] || {
                         status: u.status || unitStatuses[0],
                         ammo: 0
                     };
                 });
-                det.pilots?.forEach((p) => {
+                det.pilots?.filter((p): p is Pilot => p != null).forEach((p) => {
                     nextPilots[p.id] = state.pilotStates[p.id] || {
                         injuries: p.wounds || 0,
                         healed: 0
@@ -237,7 +238,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     const getDetachmentTerms = (detId: string) => {
         const detAar = state.detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1.0, salvageValue: 0, customAward: 0 };
-        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.filter((c): c is Contract => c != null).find(c => c.id === detAar.selectedContractId) || campaign;
 
         return {
             support: parseSupportTerms(contract.supportTerms || ''),
@@ -253,7 +254,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
         const noticeKey = `${detId}-award`;
         // Resolve contract based on the current selection in the reducer state
-        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.filter((c): c is Contract => c != null).find(c => c.id === detAar.selectedContractId) || campaign;
 
         const financials = calculateAwardFinancials(campaign, {
             ...detAar,
@@ -271,7 +272,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         });
         setLoadingStates(prev => ({ ...prev, [noticeKey]: true }));
 
-        const description = `AAR AWARD: ${track.trackName} (PAY x${financials.outcomeMultiplier} [LVL ${financials.selectedLevel}], SALVAGE ${financials.salvageCoverage * 100}%)`;
+        const description = `AAR AWARD: ${track.trackName ?? 'UNKNOWN'} (PAY x${financials.outcomeMultiplier} [LVL ${financials.selectedLevel}], SALVAGE ${financials.salvageCoverage * 100}%)`;
 
         dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId, patch: { salvageValue: 0, customAward: 0 } });
 
@@ -325,7 +326,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         if (!detAar) return;
 
         const noticeKey = `${unit.id}-logistics`;
-        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.filter((c): c is Contract => c != null).find(c => c.id === detAar.selectedContractId) || campaign;
         const terms = {
             support: parseSupportTerms(contract.supportTerms || ''),
             ...detAar
@@ -344,11 +345,11 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             if (terms.support.type === 'BATTLE') {
                 // Battle terms pay out a percentage of unit value
                 finalAmount = Math.round(baseReplacementValue * terms.support.pct);
-                description = `AAR REPLACEMENT: ${unit.model} ${unit.variant} - ${track.trackName} (BATTLE ${terms.support.pct * 100}%)`;
+                description = `AAR REPLACEMENT: ${unit.model} ${unit.variant} - ${track.trackName ?? 'UNKNOWN'} (BATTLE ${terms.support.pct * 100}%)`;
             } else {
                 // Straight or None terms pay 0 for destroyed units
                 finalAmount = 0;
-                description = `AAR ASSET LOSS: ${unit.model} ${unit.variant} - ${track.trackName} (NO REPLACEMENT)`;
+                description = `AAR ASSET LOSS: ${unit.model} ${unit.variant} - ${track.trackName ?? 'UNKNOWN'} (NO REPLACEMENT)`;
             }
         } else {
             const repairCost = Math.ceil(baseRepairCost);
@@ -361,15 +362,15 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             if (terms.support.type === 'BATTLE') {
                 // Battle terms cover 100% of logistics
                 finalAmount = 0;
-                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (BATTLE COVERED 100%)`;
+                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName ?? 'UNKNOWN'} (BATTLE COVERED 100%)`;
             } else if (terms.support.type === 'STRAIGHT') {
                 // Straight terms cover a specific percentage
                 finalAmount = Math.ceil(totalRawCost * (1 - terms.support.pct)) * -1;
-                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (STRAIGHT ${terms.support.pct * 100}%)`;
+                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName ?? 'UNKNOWN'} (STRAIGHT ${terms.support.pct * 100}%)`;
             } else {
                 // None covers 0%
                 finalAmount = Math.ceil(totalRawCost) * -1;
-                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName} (NO COVERAGE)`;
+                description = `AAR LOGISTICS: ${unit.model} ${unit.variant} - ${track.trackName ?? 'UNKNOWN'} (NO COVERAGE)`;
             }
         }
 
@@ -420,7 +421,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         if (!detAar || !cmdId) return;
 
         const noticeKey = `${pilot.id}-medical`;
-        const contract = campaign.contracts?.find(c => c.id === detAar.selectedContractId) || campaign;
+        const contract = campaign.contracts?.filter((c): c is Contract => c != null).find(c => c.id === detAar.selectedContractId) || campaign;
         const terms = {
             support: parseSupportTerms(contract.supportTerms || ''),
             ...detAar
@@ -526,7 +527,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     return (
         <TerminalOverlay
-            title={`AFTER ACTION REPORT: ${track.trackName.toUpperCase()}`}
+            title={`AFTER ACTION REPORT: ${(track.trackName ?? 'UNKNOWN').toUpperCase()}`}
             message="OPERATIONAL DEBRIEFING & LOGISTICS RECONCILIATION"
             onConfirm={handleFinalize}
             onCancel={onClose}
@@ -592,13 +593,13 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                     )}
                 </div>
 
-                {campaign.participatingDetachments?.filter((det: Detachment) => {
+                {campaign.participatingDetachments?.filter((det): det is Detachment => det != null).filter((det) => {
                     if (campaign.isManager) return true;
                     return userCommands?.some(cmd => cmd.id === det.mercenaryCommandId);
-                }).map((det: Detachment) => (
+                }).map((det) => (
                     <div key={det.id} className="dashboard-section mb-20" style={{ border: '1px solid var(--accent-dim)', padding: '15px', backgroundColor: 'transparent' }}>
                         <div className="flex-between mb-15" style={{ borderBottom: '1px solid var(--accent-dim)', paddingBottom: '8px' }}>
-                            <h4 className="terminal-text" style={{ margin: 0 }}>{det.name.toUpperCase()}</h4>
+                            <h4 className="terminal-text" style={{ margin: 0 }}>{det.name?.toUpperCase() ?? 'DETACHMENT'}</h4>
                             <span className="restricted-text sm-text">{det.mercenaryCommandName}</span>
                         </div>
 
@@ -615,8 +616,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                             onChange={(e) => dispatch({ type: 'UPDATE_DETACHMENT_AAR', detId: det.id, patch: { selectedContractId: e.target.value } })}
                                             title="Select contract for this detachment"
                                         >
-                                            {campaign.contracts?.map((c: Contract) => (
-                                                <option key={c.id} value={c.id}>{c.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({c.employerCategory})</option>
+                                            {campaign.contracts?.filter((c): c is Contract => c != null).map((c) => (
+                                                <option key={c.id ?? ''} value={c.id ?? ''}>{c.primaryContract ? 'PRIMARY' : 'OPPOSITION'} ({c.employerCategory ?? 'UNKNOWN'})</option>
                                             ))}
                                         </select>
                                     </div>
@@ -706,7 +707,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                 <button
                                     className="mode-btn theme-green sm-text"
                                     style={{ padding: '4px 15px' }}
-                                    onClick={() => handleAwardToDetachment(det.id, det.mercenaryCommandId)}
+                                    onClick={() => handleAwardToDetachment(det.id, det.mercenaryCommandId ?? null)}
                                     disabled={
                                         loadingStates[`${det.id}-award`] ||
                                         isInputInvalid(state.detachmentAars[det.id]?.salvageValue) ||
@@ -735,8 +736,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </thead>
                                     <tbody>
                                         {[...(det.units || [])]
-                                            .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
-                                            .map((u: CombatUnit) => {
+                                            .filter((u): u is CombatUnit => u != null)
+                                            .sort((a, b) => (a.model ?? '').localeCompare(b.model ?? '') || (a.variant ?? '').localeCompare(b.variant ?? ''))
+                                            .map((u) => {
                                                 const uState = state.unitStates[u.id] || { status: u.status || unitStatuses[0], ammo: 0 };
                                                 const ammoTons = parseNumericInput(uState.ammo);
                                                 const terms = getDetachmentTerms(det.id);
@@ -826,7 +828,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         <td className="text-right">
                                                             <button
                                                                 className="mode-btn sm-text"
-                                                                onClick={() => handleProcessUnit(det.id, det.mercenaryCommandId, u)}
+                                                                onClick={() => handleProcessUnit(det.id, det.mercenaryCommandId ?? null, u)}
                                                                 disabled={loadingStates[unitNoticeKey] || isInputInvalid(uState.ammo) || uState.ammo === '-'}
                                                                 title="Commit unit logistics"
                                                             >
@@ -839,16 +841,18 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </tbody>
                                 </table>
                                 {[...(det.units || [])]
-                                    .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
-                                    .map((u: CombatUnit) => {
+                                    .filter((u): u is CombatUnit => u != null)
+                                    .sort((a, b) => (a.model ?? '').localeCompare(b.model ?? '') || (a.variant ?? '').localeCompare(b.variant ?? ''))
+                                    .map((u) => {
                                         const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
                                         return notices[`${u.id}-logistics`] && !isTrulyDestroyed && (
                                             <div key={`notice-${u.id}`} className="restricted-text theme-green xs-text mt-5 text-center">{u.model}: {notices[`${u.id}-logistics`]}</div>
                                         );
                                     })}
                                 {[...(det.units || [])]
-                                    .sort((a, b) => a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || ''))
-                                    .map((u: CombatUnit) => {
+                                    .filter((u): u is CombatUnit => u != null)
+                                    .sort((a, b) => (a.model ?? '').localeCompare(b.model ?? '') || (a.variant ?? '').localeCompare(b.variant ?? ''))
+                                    .map((u) => {
                                         const isTrulyDestroyed = (state.unitStates[u.id]?.status || u.status) === unitStatuses[5];
                                         return errorStates[`${u.id}-logistics`] && !isTrulyDestroyed && (
                                             <div key={`error-${u.id}`} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>{u.model}: {errorStates[`${u.id}-logistics`]}</div>
@@ -870,8 +874,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </thead>
                                     <tbody> {/* Use pilot.id for key */}
                                         {[...(det.pilots || [])]
-                                            .sort((a, b) => a.name.localeCompare(b.name))
-                                            .map((p: Pilot) => {
+                                            .filter((p): p is Pilot => p != null)
+                                            .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+                                            .map((p) => {
                                                 const pState = state.pilotStates[p.id] || { injuries: p.wounds || 0, healed: 0 };
                                                 const terms = getDetachmentTerms(det.id);
                                                 const financials = calculatePilotFinancials(pState, terms, injuryHealCost, state.pricingRule);
@@ -923,7 +928,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                                         <td className="text-right">
                                                             <button
                                                                 className="mode-btn sm-text"
-                                                                onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId, p)} // The actual ledger entry amount is calculated inside handleProcessPilot
+                                                                onClick={() => handleProcessPilot(det.id, det.mercenaryCommandId ?? null, p)} // The actual ledger entry amount is calculated inside handleProcessPilot
                                                                 disabled={loadingStates[noticeKey]}
                                                                 title="Commit pilot healing"
                                                             >
@@ -936,15 +941,17 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                                     </tbody>
                                 </table>
                                 {[...(det.pilots || [])]
-                                    .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map((p: Pilot) => notices[`${p.id}-medical`] && (
+                                    .filter((p): p is Pilot => p != null)
+                                    .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+                                    .map((p) => notices[`${p.id}-medical`] && (
                                         <div key={p.id} className="restricted-text theme-green xs-text mt-5 text-center">
                                             {p.name}: {notices[`${p.id}-medical`]}
                                         </div>
                                     ))}
                                 {[...(det.pilots || [])]
-                                    .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map((p: Pilot) => errorStates[`${p.id}-medical`] && (
+                                    .filter((p): p is Pilot => p != null)
+                                    .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+                                    .map((p) => errorStates[`${p.id}-medical`] && (
                                         <div key={p.id} className="restricted-text xs-text mt-5 text-center blink-slow" style={{ color: 'var(--terminal-alert)' }}>
                                             {p.name}: {errorStates[`${p.id}-medical`]}
                                         </div>

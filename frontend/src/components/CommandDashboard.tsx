@@ -6,9 +6,10 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
-import { CombatUnit, Pilot, Detachment, CommandUpdateInput } from '../types/global.d';
+import { CombatUnit, Pilot, Detachment, LedgerEntry } from '../types/generated';
+import { UnitDossierData, UnitType, UnitStatus, TechBase } from '../types/helpers';
+import { CommandUpdateInput } from '../types/generated';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
-import { UnitDossierData } from '../types/graphql.d';
 import { CommandDashboardBackground } from './CommandDashboardBackground';
 import {
     GET_UNIT_DOSSIER,
@@ -87,9 +88,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     }, [loading, isSyncing, onSyncChange]);
 
 
-    const unitStatuses = data?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES;
-    const unitTypes = data?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES;
-    const techBases = data?.publicCampaignMetadata?.techBases || FALLBACK_TECH;
+    const unitStatuses = (data?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES).filter((x): x is UnitStatus => x !== null);
+    const unitTypes = (data?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES).filter((x): x is UnitType => x !== null);
+    const techBases = (data?.publicCampaignMetadata?.techBases || FALLBACK_TECH).filter((x): x is TechBase => x !== null);
 
     const [joinCampaign] = useMutation(JOIN_CAMPAIGN);
 
@@ -104,9 +105,9 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     const { assetType, assetId, detachmentId } = variables;
                     const getCommand = { ...existing.getCommand };
                     if (assetType === 'UNIT') {
-                        getCommand.units = (getCommand.units || []).map((u: CombatUnit) => u.id === assetId ? { ...u, detachmentId } : u);
+                        getCommand.units = (getCommand.units || []).filter((u): u is NonNullable<typeof u> => u != null).map((u: CombatUnit) => u.id === assetId ? { ...u, detachmentId: detachmentId ?? null } : u);
                     } else {
-                        getCommand.pilots = (getCommand.pilots || []).map((p: Pilot) => p.id === assetId ? { ...p, detachmentId } : p);
+                        getCommand.pilots = (getCommand.pilots || []).filter((p): p is NonNullable<typeof p> => p != null).map((p: Pilot) => p.id === assetId ? { ...p, detachmentId: detachmentId ?? null } : p);
                     }
                     cache.writeQuery({ query: GET_UNIT_DOSSIER, variables: queryVars, data: { ...existing, getCommand } });
                 }
@@ -387,31 +388,34 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     // Filter rosters for the focused detachment
     const filteredUnits = useMemo(() => {
         if (!command) return [];
+        const units = (command.units || []).filter((u: CombatUnit | null): u is CombatUnit => u != null);
         const list = selectedDetachmentId
-            ? (command.units || []).filter(u => u.detachmentId === selectedDetachmentId)
-            : (command.units || []);
+            ? units.filter((u: CombatUnit) => u.detachmentId === selectedDetachmentId)
+            : units;
         return [...list].sort((a, b) =>
-            a.model.localeCompare(b.model) || (a.variant || '').localeCompare(b.variant || '')
+            (a.model || '').localeCompare(b.model || '') || (a.variant || '').localeCompare(b.variant || '')
         );
     }, [command, selectedDetachmentId]);
 
     const filteredPilots = useMemo(() => {
         if (!command) return [];
+        const pilots = (command.pilots || []).filter((p: Pilot | null): p is Pilot => p != null);
         const list = selectedDetachmentId
-            ? (command.pilots || []).filter(p => p.detachmentId === selectedDetachmentId)
-            : (command.pilots || []);
-        return [...list].sort((a, b) => a.name.localeCompare(b.name));
+            ? pilots.filter((p: Pilot) => p.detachmentId === selectedDetachmentId)
+            : pilots;
+        return [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }, [command, selectedDetachmentId]);
 
     const filteredLedger = useMemo(() => {
         if (!command) return [];
+        const entries = (command.allLedgerEntries || []).filter((e: LedgerEntry | null): e is LedgerEntry => e != null);
         return selectedDetachmentId
-            ? (command.allLedgerEntries || []).filter(e => e.detachmentId === selectedDetachmentId)
-            : (command.allLedgerEntries || []);
+            ? entries.filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
+            : entries;
     }, [command, selectedDetachmentId]);
 
     const sortedLedger = useMemo(() => {
-        return [...filteredLedger].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        return [...filteredLedger].sort((a, b) => new Date(b.timestamp || '').getTime() - new Date(a.timestamp || '').getTime());
     }, [filteredLedger]);
 
     const totalPages = Math.max(1, Math.ceil(sortedLedger.length / entriesPerPage));
@@ -428,7 +432,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
 
-    const detachments: Detachment[] = command.detachments || [];
+    const detachments: Detachment[] = (command.detachments || []).filter((d): d is NonNullable<typeof d> => d != null);
 
     return (
         <div key={commandId} className="container unit-profile theme-amber" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: '100%' }}>
@@ -441,7 +445,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 <input
                                     className="table-input terminal-text"
                                     style={{ fontSize: '2rem', height: 'auto', width: 'auto' }}
-                                    defaultValue={command.name}
+                                    defaultValue={command.name || ''}
                                     autoFocus
                                     onBlur={(e) => { handleHeaderUpdate('NAME', e.target.value); setIsEditingName(false); }}
                                     onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
@@ -477,7 +481,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     id="header-co"
                                     className="table-input"
                                     style={{ border: 'none' }}
-                                    value={command.commandingOfficer} // Use value for controlled input
+                                    value={command.commandingOfficer || ''} // Use value for controlled input
                                     autoFocus
                                     onChange={(e) => handleHeaderUpdate('CO', e.target.value, false)} // Debounce update
                                     onBlur={() => setIsEditingCO(false)} // Save on blur
@@ -544,7 +548,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     ))}
 
                                 {selectedDetachmentId && (() => {
-                                    const currentDet = command.detachments?.find((d: Detachment) => d.id === selectedDetachmentId);
+                                    const filteredDetachments = (command.detachments || []).filter((d): d is Detachment => d != null);
+                                    const currentDet = filteredDetachments.find((d: Detachment) => d.id === selectedDetachmentId);
 
                                     if (currentDet?.campaignId) {
                                         return (
@@ -597,7 +602,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                     units={filteredUnits}
                                     pilots={filteredPilots}
                                     compact
-                                    campaignRating={selectedDetachmentId ? (command.detachments?.find((d: Detachment) => d.id === selectedDetachmentId)?.campaignRating ?? undefined) : undefined}
+                                    campaignRating={selectedDetachmentId ? (() => {
+                                        const filteredDetachments = (command.detachments || []).filter((d): d is Detachment => d != null);
+                                        return filteredDetachments.find((d: Detachment) => d.id === selectedDetachmentId)?.campaignRating ?? undefined;
+                                    })() : undefined}
                                 />
                             </div>
                         </div>
@@ -742,8 +750,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <LedgerEntryForm
                                 commandId={commandId}
                                 detachmentId={selectedDetachmentId}
-                                campaignId={command.detachments?.find(d => d.id === selectedDetachmentId)?.campaignId}
-                                initialCampaignName={command.detachments?.find(d => d.id === selectedDetachmentId)?.campaignName || ''}
+                                campaignId={command.detachments?.filter((d: Detachment | null): d is Detachment => d != null).find((d: Detachment) => d.id === selectedDetachmentId)?.campaignId}
+                                initialCampaignName={command.detachments?.filter((d: Detachment | null): d is Detachment => d != null).find((d: Detachment) => d.id === selectedDetachmentId)?.campaignName || ''}
                                 onEntryAdded={() => refetch()}
                             />
                         </div>
@@ -763,7 +771,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                                 {paginatedLedger.length > 0 ? (
                                     paginatedLedger.map(entry => (
                                         <tr key={entry.id}>
-                                            <td>{new Date(entry.timestamp).toLocaleDateString()}</td>
+                                            <td>{new Date(entry.timestamp || '').toLocaleDateString()}</td>
                                             <td>{entry.description}</td>
                                             <td className="text-right" style={{ color: (entry.amount || 0) >= 0 ? 'var(--terminal-green)' : 'var(--terminal-alert)' }}>
                                                 {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
@@ -834,7 +842,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     mode={pilotEditorMode}
                     onSave={handlePilotEditorSave}
                     onCancel={handlePilotEditorCancel}
-                    availableSP={command.totalSupportPoints}
+                    availableSP={command.totalSupportPoints ?? undefined}
                 />
             )}
 
@@ -849,7 +857,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                     unitTypes={unitTypes}
                     unitStatuses={unitStatuses}
                     techBases={techBases}
-                    availableSP={command.totalSupportPoints}
+                    availableSP={command.totalSupportPoints ?? undefined}
                 />
             )}
 

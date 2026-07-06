@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { aarReducer, AarDataState, AarAction } from '../components/AfterActionReportEditor';
 import { calculatePilotFinancials, calculateAwardFinancials, calculateUnitFinancials } from '../util/financialUtils';
-import { CampaignDetail, CombatUnit, TrackDetail, UnitStatus } from '../types/global';
+import { CombatUnit, CampaignTrack as TrackDetail } from '../types/generated';
+import { CampaignDetail, UnitStatus } from '../types/helpers';
 
 describe('AfterActionReportEditor Financial Helpers', () => {
     const mockCampaign = {
@@ -11,6 +12,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
     describe('calculateAwardFinancials', () => {
         it('should calculate standard successful award correctly', () => {
             const terms = {
+                id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0,
                 payRate: 1.0,
@@ -31,6 +33,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
         it('should apply multipliers (bonus, rate, level) and round pay correctly', () => {
             const terms = {
+                id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.5, // 150% bonus
                 payRate: 0.8,          // 80% contract rate
@@ -51,6 +54,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             const noPayCampaign = { combatPay: 0 } as CampaignDetail;
 
             const termsDown = {
+                id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1, payRate: 1, selectedLevel: 1, customAward: 0,
                 salvageValue: 333,
@@ -59,6 +63,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             expect(calculateAwardFinancials(noPayCampaign, termsDown).salvageAward).toBe(83);
 
             const termsUp = {
+                id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1, payRate: 1, selectedLevel: 1, customAward: 0,
                 salvageValue: 333,
@@ -69,6 +74,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
         it('should include custom awards in the total (positive and negative)', () => {
             const terms = {
+                id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0, payRate: 1.0, selectedLevel: 1, salvageValue: 0, salvageCoverage: 0,
                 customAward: 500
@@ -81,6 +87,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
 
         it('should handle missing combat pay by defaulting to 0', () => {
             const result = calculateAwardFinancials({} as CampaignDetail, {
+                id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0, payRate: 1.0, selectedLevel: 1, salvageValue: 100, salvageCoverage: 1.0, customAward: 0
             });
@@ -224,6 +231,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             const userModifiedState: AarDataState = {
                 detachmentAars: {
                     'det-1': {
+                        id: 'det-1',
                         selectedContractId: 'custom-contract',
                         selectedLevel: 3,
                         outcomeMultiplier: 1.5,

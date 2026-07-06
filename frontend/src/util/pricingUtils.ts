@@ -1,4 +1,5 @@
-import { CombatUnit, PublicCampaignMetadataWithRules } from '../types/global.d';
+import { CombatUnit } from '../types/generated';
+import { PublicCampaignMetadataWithRules } from '../types/helpers';
 
 export function getTechTax(techBase: string, metadata?: PublicCampaignMetadataWithRules): number {
     if (techBase === 'Clan') return metadata?.clanTechModifier ?? 2.0;

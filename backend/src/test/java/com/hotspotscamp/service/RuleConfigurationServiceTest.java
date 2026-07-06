@@ -12,6 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.hotspotscamp.dto.ruleConfiguration.ContractStepEntry;
+import com.hotspotscamp.dto.ruleConfiguration.ContractStepsTableConfig;
+
 @ExtendWith(MockitoExtension.class)
 class RuleConfigurationServiceTest {
 
@@ -21,9 +24,9 @@ class RuleConfigurationServiceTest {
     @Test
     void getResolvedStepsTable_ShouldReturnCorrectMappings() {
         // Arrange
-        RuleConfigurationService.ContractStepEntry entry = new RuleConfigurationService.ContractStepEntry(
+        ContractStepEntry entry = new ContractStepEntry(
                 7, "100%", "None", "None", "None", "House");
-        RuleConfigurationService.ContractStepsTableConfig config = new RuleConfigurationService.ContractStepsTableConfig(
+        ContractStepsTableConfig config = new ContractStepsTableConfig(
                 2, 6, List.of(entry));
 
         ReflectionTestUtils.setField(ruleConfigurationService, "contractStepsTableConfig", config);
