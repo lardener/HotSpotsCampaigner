@@ -273,7 +273,7 @@ export const GET_METADATA = gql`
   }
 `;
 
-export const PREVIEW_CAMPAIGN_RAW = `
+export const PREVIEW_CAMPAIGN = gql`
   query PreviewCampaign($input: CampaignCreateInput!) {
     publicPreviewCampaign(input: $input) {
       campaign {
@@ -334,8 +334,6 @@ export const PREVIEW_CAMPAIGN_RAW = `
     }
   }
 `;
-
-export const PREVIEW_CAMPAIGN = gql(PREVIEW_CAMPAIGN_RAW);
 
 export const GENERATE_TRACKS = gql`
   query GenerateTracks($mission: String!, $commandRights: String!, $oppCommandRights: String!, $count: Int!, $existing: [ProposedTrackInput]) {

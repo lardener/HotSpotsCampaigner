@@ -628,13 +628,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         </header>
                         <CampaignGenerator
                             user={{ name: user?.name || '' }}
-                            onSaveSuccess={(newCampaign) => {
-                                fetchCommands();
-                                refetchManaged();
+                        onSaveSuccess={(newCampaign) => {
+                            fetchCommands();
+                            refetchManaged();
+                            if (newCampaign?.id) {
                                 setSelectedCampaignId(newCampaign.id);
                                 setSelectedNodeId(newCampaign.id);
-                                setActiveTab('my-campaigns');
-                            }}
+                            }
+                            setActiveTab('my-campaigns');
+                        }}
                         />
                     </div>
                 );

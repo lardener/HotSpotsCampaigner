@@ -5,13 +5,13 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { TacticalMarkdown } from './TacticalMarkdown';
 import { CombatUnitEditor } from './CombatUnitEditor';
 import { PilotEditor } from './PilotEditor'; // This import is for the component, not the type
-import { CombatUnit, Pilot, Detachment, Contract, MercenaryCommand } from '../types/generated';
-import { DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus } from '../types/helpers';
+import { CombatUnit, Pilot, Detachment, Contract, MercenaryCommand, Campaign, CampaignTrack } from '../types/generated';
+import { DetachmentAarState, NumericInput, UnitStatus, UnitType, TechBase } from '../types/helpers';
 import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
 import { calculatePilotFinancials, calculateAwardFinancials, calculateUnitFinancials } from '../util/financialUtils';
-import { MetadataDataMinimal, AddLedgerEntryData, UpdateUnitData, UpdatePilotData, UpdateTrackData, DeleteUnitData } from '../types/graphql.d';
+import { AddLedgerEntryMutation, UpdateUnitMutation, UpdatePilotMutation, UpdateTrackMutation, DeleteUnitMutation, GetCampaignMetadataQuery } from '../types/generated';
 import {
     GET_METADATA,
     UPDATE_UNIT,
@@ -33,7 +33,7 @@ export interface AarDataState {
 }
 
 export type AarAction =
-    | { type: 'SYNC_PROPS'; campaign: CampaignDetail; track: TrackDetail; unitStatuses: string[] }
+    | { type: 'SYNC_PROPS'; campaign: Campaign; track: CampaignTrack; unitStatuses: string[] }
     | { type: 'UPDATE_DETACHMENT_AAR'; detId: string; patch: Partial<DetachmentAarState> }
     | { type: 'UPDATE_UNIT_STATE'; unitId: string; patch: Partial<{ status: string; ammo: NumericInput }> }
     | { type: 'UPDATE_PILOT_STATE'; pilotId: string; patch: Partial<{ injuries: number; healed: number }> }
@@ -118,7 +118,7 @@ export const aarReducer = (state: AarDataState, action: AarAction): AarDataState
     }
 };
 
-const useAarState = (campaign: CampaignDetail, track: TrackDetail, unitStatuses: string[]) => {
+const useAarState = (campaign: Campaign, track: CampaignTrack, unitStatuses: string[]) => {
     const [state, dispatch] = useReducer(aarReducer, {
         detachmentAars: {},
         unitStates: {},
@@ -141,18 +141,18 @@ interface SupportTerms {
 }
 
 interface AfterActionReportEditorProps {
-    campaign: CampaignDetail;
-    track: TrackDetail;
-    metaData?: MetadataDataMinimal;
+    campaign: Campaign;
+    track: CampaignTrack;
+    metaData?: GetCampaignMetadataQuery;
     onClose: () => void | Promise<void>;
     onLedgerEntryAdded?: () => void | Promise<void>;
     userCommands?: MercenaryCommand[];
 }
 
 export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded, userCommands }) => {
-    const [addLedgerEntry] = useMutation<AddLedgerEntryData>(ADD_LEDGER_ENTRY);
-    const [updateUnit] = useMutation<UpdateUnitData>(UPDATE_UNIT);
-    const [updatePilot] = useMutation<UpdatePilotData>(UPDATE_PILOT);
+    const [addLedgerEntry] = useMutation<AddLedgerEntryMutation>(ADD_LEDGER_ENTRY);
+    const [updateUnit] = useMutation<UpdateUnitMutation>(UPDATE_UNIT);
+    const [updatePilot] = useMutation<UpdatePilotMutation>(UPDATE_PILOT);
     const [deletePilot] = useMutation(DELETE_PILOT, {
         update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deletePilot && variables?.pilotId) {
@@ -161,8 +161,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         }
     });
-    const [updateTrack] = useMutation<UpdateTrackData>(UPDATE_TRACK);
-    const [deleteUnit] = useMutation<DeleteUnitData>(DELETE_UNIT, {
+    const [updateTrack] = useMutation<UpdateTrackMutation>(UPDATE_TRACK);
+    const [deleteUnit] = useMutation<DeleteUnitMutation>(DELETE_UNIT, {
         update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
@@ -170,7 +170,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         }
     });
-    const { loading: metadataLoading, data: queryMetaData } = useQuery<MetadataDataMinimal>(GET_METADATA, {
+    const { loading: metadataLoading, data: queryMetaData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA, {
         skip: !!propMetaData
     });
 
@@ -1000,9 +1000,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                         status: (metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[])?.[0] || 'OPERATIONAL',
                         detachmentId: procureTargetDetachment.id
                     } as CombatUnit}
-                    unitTypes={metaData?.publicCampaignMetadata?.unitTypes || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
-                    unitStatuses={metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES}
-                    techBases={metaData?.publicCampaignMetadata?.techBases || ['Inner Sphere', 'Clan', 'Mixed']}
+                    unitTypes={(metaData?.publicCampaignMetadata?.unitTypes as UnitType[]) || ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']}
+                    unitStatuses={(metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[]) || FALLBACK_STATUSES}
+                    techBases={(metaData?.publicCampaignMetadata?.techBases as TechBase[]) || ['Inner Sphere', 'Clan', 'Mixed']}
                     onSave={handleProcureSave}
                     onCancel={handleProcureCancel}
                     overridePrice={procureAssetData.overridePrice}

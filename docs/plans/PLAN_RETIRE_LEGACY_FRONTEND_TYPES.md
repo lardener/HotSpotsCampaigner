@@ -157,9 +157,9 @@ These files were written before the GraphQL codegen migration. The new source of
 
 - [x] `App.tsx` (global.d: `UserAccount`, graphql.d: `UserProfileData`) ✓ MIGRATED
 - [x] `ActiveCampaignsList.tsx` (graphql.d: `ActiveCampaignsData`) ✓ MIGRATED
-- [ ] `AfterActionReportEditor.tsx` (global.d: `CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus, Detachment, Contract, MercenaryCommand`, graphql.d: `MetadataDataMinimal, AddLedgerEntryData, UpdateUnitData, UpdatePilotData, UpdateTrackData, DeleteUnitData`)
-- [ ] `CampaignGenerator.tsx` (global.d: `CampaignCreateInput, ContractPreview, ProposedTrack, Proposal, ResolvedStepValues`, graphql.d: `MetadataDataFull, PreviewData, GenerateTracksData, CreateCampaignData, UpdateCampaignData`)
-- [ ] `CampaignTheaterView.tsx` (global.d: multiple, graphql.d: `MetadataDataFull, CampaignDetailsData`)
+- [x] `AfterActionReportEditor.tsx` (global.d: `CombatUnit, Pilot, DetachmentAarState, CampaignDetail, TrackDetail, NumericInput, UnitStatus, Detachment, Contract, MercenaryCommand`, graphql.d: `MetadataDataMinimal, AddLedgerEntryData, UpdateUnitData, UpdatePilotData, UpdateTrackData, DeleteUnitData`) ✓ MIGRATED
+- [x] `CampaignGenerator.tsx` (global.d: `CampaignCreateInput, ContractPreview, ProposedTrack, Proposal, ResolvedStepValues`, graphql.d: `MetadataDataFull, PreviewData, GenerateTracksData, CreateCampaignData, UpdateCampaignData`) ✓ MIGRATED
+- [x] `CampaignTheaterView.tsx` (global.d: multiple, graphql.d: `MetadataDataFull, CampaignDetailsData`) ✓ MIGRATED
 - [x] `CombatUnitEditor.tsx` (global.d: `CombatUnit, CombatUnitUpdateInput, UnitType, UnitStatus, TechBase`, graphql.d: `MetadataDataFull`) ✓ MIGRATED
 - [x] `CommandDashboard.tsx` (global.d: `CombatUnit, Pilot, Detachment, CommandUpdateInput`, graphql.d: `UnitDossierData`) ✓ MIGRATED
 - [x] `CreateCommandForm.tsx` (global.d: `CommandUpdateInput`, graphql.d: `EstablishCommandData`) ✓ MIGRATED
@@ -177,7 +177,7 @@ These files were written before the GraphQL codegen migration. The new source of
 - [x] `PublicCampaignTheaterView.tsx` (graphql.d: `CampaignDetailsData`) ✓ MIGRATED
 - [x] `RecruitmentOverlay.tsx` (graphql.d: `CreateInviteData`) ✓ MIGRATED
 - [x] `useHscActionHandler.tsx` (graphql.d: `MetadataDataFull`, global.d: `CampaignDetail, MercenaryCommand, CombatUnit, Pilot, Detachment, UnitType, TechBase`) ✓ MIGRATED
-- [ ] `cache.ts` (global.d: `Command, Detachment, CampaignDetail`) [FILE NOT FOUND - SKIP]
+- [x] `cache.ts` (global.d: `Command, Detachment, CampaignDetail`) ✓ MIGRATED
 - [x] `contractUtils.ts` (global.d: `NumericInput`) ✓ MIGRATED
 - [x] `financialUtils.ts` (global.d: `CombatUnit, CampaignDetail, DetachmentAarState, UnitStatus`) ✓ MIGRATED
 - [x] `pilotCalculations.ts` (global.d: `Pilot`) ✓ MIGRATED

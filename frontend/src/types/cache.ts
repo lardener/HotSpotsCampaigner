@@ -1,10 +1,10 @@
 import { InMemoryCache, TypePolicies } from '@apollo/client';
-import { Command, Detachment, CampaignDetail } from './global.d';
+import { MercenaryCommand as Command, Detachment, Campaign as CampaignDetail } from './generated';
 
 /**
  * Apollo Cache Configuration
  * 
- * Uses the consolidated types from global.d.ts to define merge policies 
+ * Uses the consolidated types from generated.ts to define merge policies 
  * for Tactical Data Models. This ensures that when units, pilots, or 
  * ledger entries are updated, the cache is correctly synchronized.
  */

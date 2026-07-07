@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
-import { CampaignCreateInput, ContractPreview, ProposedTrack, Proposal, ResolvedStepValues } from '../types/global.d';
-import { MetadataDataFull, PreviewData, GenerateTracksData, CreateCampaignData, UpdateCampaignData } from '../types/graphql.d';
+import { CampaignCreateInput, ContractPreview, Proposal, ResolvedStepValues } from '../types/campaign';
+import { GetCampaignMetadataQuery, PreviewCampaignQuery, ProposedTrack, GenerateTracksQuery, CreateCampaignMutation, UpdateCampaignMutation } from '../types/generated';
 import {
     GET_METADATA,
     PREVIEW_CAMPAIGN,
@@ -12,7 +12,7 @@ import { GeneratorBackground } from './GeneratorBackground';
 
 interface Props {
     user?: { name: string };
-    onSaveSuccess?: (newCampaign: UpdateCampaignData['updateCampaign']) => void;
+    onSaveSuccess?: (newCampaign: UpdateCampaignMutation['updateCampaign']) => void;
 }
 
 export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
@@ -27,18 +27,22 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<MetadataDataFull>(GET_METADATA);
+    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA);
 
     useEffect(() => {
         if (metadataData?.publicCampaignMetadata) {
-            setPrimaryMissions(metadataData.publicCampaignMetadata.missions.primary);
-            setOpponentMissions(metadataData.publicCampaignMetadata.missions.opponent);
-            setTrackTypes(metadataData.publicCampaignMetadata.trackTypes);
+            setPrimaryMissions((metadataData.publicCampaignMetadata.missions?.primary as string[]) ?? []);
+            setOpponentMissions((metadataData.publicCampaignMetadata.missions?.opponent as string[]) ?? []);
+            setTrackTypes((metadataData.publicCampaignMetadata.trackTypes as string[]) ?? []);
 
             const steps: Record<number, ResolvedStepValues> = {};
-            metadataData.publicCampaignMetadata.resolvedSteps.forEach((entry) => {
-                steps[entry.step] = entry.values;
-            });
+            if (metadataData.publicCampaignMetadata.resolvedSteps) {
+                metadataData.publicCampaignMetadata.resolvedSteps.forEach((entry) => {
+                    if (entry && entry.step != null && entry.values) {
+                        steps[entry.step] = entry.values as ResolvedStepValues;
+                    }
+                });
+            }
             setResolvedSteps(steps);
         }
     }, [metadataData]);
@@ -64,10 +68,10 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         return val;
     };
 
-    const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<PreviewData>(PREVIEW_CAMPAIGN, {
+    const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<PreviewCampaignQuery>(PREVIEW_CAMPAIGN, {
         fetchPolicy: 'network-only'
     });
-    const [getTracks] = useLazyQuery<GenerateTracksData>(GENERATE_TRACKS);
+    const [getTracks] = useLazyQuery<GenerateTracksQuery>(GENERATE_TRACKS);
 
     useEffect(() => {
         if (previewData?.publicPreviewCampaign && Object.keys(resolvedSteps).length > 0) {
@@ -124,7 +128,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         }
     }, [proposal?.campaign.trackCount, getTracks]);
 
-    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignData, { input: CampaignCreateInput }>(CREATE_CAMPAIGN);
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignMutation, { input: CampaignCreateInput }>(CREATE_CAMPAIGN);
 
     const handlePreview = () => {
         setSaved(false);
@@ -385,7 +389,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`} className="restricted-text sm-text">TRACK {idx + 1}</label> {/* Added title to select */}
                                     <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
-                                        <select id={`track-${idx}`} value={t.name} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
+                                        <select id={`track-${idx}`} value={t.name ?? ''} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
                                             {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                         </select>
                                     </div>

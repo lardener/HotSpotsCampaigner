@@ -1,4 +1,4 @@
-import { UnitStatus, UnitType, TechBase } from '../types/global.d';
+import { UnitStatus, UnitType, TechBase } from '../types/helpers';
 export const UNIT_STATUS_OPTIONS: UnitStatus[] = [
     'OPERATIONAL',
     'ARMOR DAMAGE',
