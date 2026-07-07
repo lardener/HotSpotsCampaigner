@@ -227,8 +227,8 @@ public class MercenaryCommandService {
                     command.setNew(false);
                     return commandRepository.save(command)
                             .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
-                            .switchIfEmpty(Mono.fromRunnable(() ->
-                                    log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
+                            .switchIfEmpty(Mono.fromRunnable(()
+                                    -> log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
                             .doOnNext(commandSink::tryEmitNext);
                 }))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));
@@ -345,7 +345,6 @@ public class MercenaryCommandService {
                             log.trace("[TRACE] Updating campaign details for campaign: id={}", camp.getId());
 
                             String oldStatus = camp.getStatus();
-                            Integer oldLengthInMonths = camp.getLengthInMonths();
                             campaignMapper.updateCampaignFromDto(input, camp);
                             log.trace("[TRACE] Updated campaign details for campaign: id={}", camp.getId());
 

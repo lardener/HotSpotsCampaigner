@@ -23,12 +23,6 @@ import com.hotspotscamp.dto.GeneratedTrack;
 import com.hotspotscamp.dto.ruleConfiguration.EmployerEntry;
 import com.hotspotscamp.dto.ruleConfiguration.EmployerTableConfig;
 import com.hotspotscamp.entity.Campaign;
-import com.hotspotscamp.repository.CampaignFactionRepository;
-import com.hotspotscamp.repository.CampaignInviteRepository;
-import com.hotspotscamp.repository.CampaignRepository;
-import com.hotspotscamp.repository.CampaignTrackRepository;
-import com.hotspotscamp.repository.ContractRepository;
-import com.hotspotscamp.repository.DetachmentRepository;
 
 import reactor.core.publisher.Mono;
 
@@ -37,23 +31,8 @@ class CampaignServiceTest {
 
     @InjectMocks
     private CampaignService campaignService;
-
-    @Mock
-    private ContractRepository contractRepository;
-    @Mock
-    private CampaignTrackRepository campaignTrackRepository;
-    @Mock
-    private CampaignRepository campaignRepository;
-    @Mock
-    private CampaignFactionRepository campaignFactionRepository;
-    @Mock
-    private CampaignInviteRepository campaignInviteRepository;
-    @Mock
-    private DetachmentRepository detachmentRepository;
     @Mock
     private UserService userService;
-    @Mock
-    private InviteService inviteService;
     @Mock
     private RuleConfigurationService configService;
     @Mock
