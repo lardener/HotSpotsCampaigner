@@ -27,7 +27,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
 @Service
-
 public class LedgerService {
 
     private static final Logger log = LoggerFactory.getLogger(LedgerService.class);
@@ -59,7 +58,8 @@ public class LedgerService {
     /**
      * * Creates and saves a ledger entry.
      */
-    public Mono<LedgerEntry> createEntry(@NonNull UUID commandId, UUID detachmentId, UUID campaignId, String campaignName, LedgerEntryInput input) {
+    public Mono<LedgerEntry> createEntry(@NonNull UUID commandId, UUID detachmentId, UUID campaignId,
+            String campaignName, LedgerEntryInput input) {
         LedgerEntry entry = LedgerEntry.builder()
                 .id(UUID.randomUUID())
                 .commandId(commandId)
@@ -81,61 +81,85 @@ public class LedgerService {
     }
 
     @Transactional
-    public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntryInput input, String userId) {
-        log.trace("[TRACE] Starting addLedgerEntry: cmdId={}, detId={}", commandId, detachmentId);
-        return userService.resolveOrCreateUser(userId).flatMap(user
-                -> isAuthorizedForCommand(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
+    public Mono<LedgerEntry> addLedgerEntry(@NonNull UUID commandId, UUID detachmentId, LedgerEntryInput input,
+            String userId) {
+        log.debug("Starting addLedgerEntry: cmdId={}, detId={}", commandId, detachmentId);
+        return userService.resolveOrCreateUser(userId).flatMap(
+                user -> isAuthorizedForCommand(commandId, userId).<LedgerEntry>flatMap(isAuthorized -> {
                     if (!isAuthorized) {
-                        return Mono.<LedgerEntry>error(new RuntimeException("Access Denied: You are not the owner or the campaign manager."));
+                        return Mono.<LedgerEntry>error(new RuntimeException(
+                                "Access Denied: You are not the owner or the campaign manager."));
                     }
-
-                    // Resolve campaign ID and name if missing but detachment is provided to ensure rating attribution
-                    Mono<UUID> campaignIdMono = Mono.justOrEmpty(input.campaignId());
-                    if (input.campaignId() == null && detachmentId != null) {
-                        campaignIdMono = detachmentRepository.findById(detachmentId)
-                                .map(det -> det.getCampaignId())
-                                .filter(Objects::nonNull);
-                    }
+                    log.debug("User {} is authorized for command {}", userId, commandId);
+                    // Resolve campaign ID and name if missing but detachment is provided to ensure
+                    // rating attribution
+                    Mono<UUID> campaignIdMono = Mono.justOrEmpty(input.campaignId())
+                            .switchIfEmpty(detachmentId != null
+                                    ? detachmentRepository.findById(detachmentId)
+                                            .flatMap(det -> Mono.justOrEmpty(det.getCampaignId()))
+                                    : Mono.empty());
+                    log.debug("Resolved campaign ID: {}", campaignIdMono);
 
                     return campaignIdMono.flatMap(resolvedCampaignId -> {
                         Mono<String> campaignNameMono = Mono.justOrEmpty(input.campaignName());
                         if (input.campaignName() == null || input.campaignName().isBlank()) {
                             campaignNameMono = getCampaignName(resolvedCampaignId);
                         }
+                        log.debug("Resolved campaign name: {}", campaignNameMono);
 
-                        return campaignNameMono.defaultIfEmpty("").flatMap(resolvedCampaignName -> {
-                            LedgerEntry entry = LedgerEntry.builder()
-                                    .id(UUID.randomUUID()).commandId(commandId).detachmentId(detachmentId)
-                                    .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
-                                    .campaignId(resolvedCampaignId)
-                                    .campaignName(resolvedCampaignName.isBlank() ? null : resolvedCampaignName)
-                                    .monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
-                                    .isNew(true).build();
-                            return ledgerEntryRepository.save(Objects.requireNonNull(entry))
-                                    .flatMap(saved -> syncTotalSupportPoints(commandId)
-                                    .then(syncReputation(commandId))
-                                    .thenReturn(saved));
-                        });
+                        return campaignNameMono.defaultIfEmpty("")
+                                .flatMap(resolvedCampaignName -> {
+                                    log.debug("Saving ledger entry for campaign {} for command {}", resolvedCampaignId,
+                                            commandId);
+                                    LedgerEntry entry = LedgerEntry.builder()
+                                            .id(UUID.randomUUID())
+                                            .commandId(commandId)
+                                            .detachmentId(detachmentId)
+                                            .amount(input.amount())
+                                            .description(input.description())
+                                            .reputationChange(input.reputationChange())
+                                            .campaignId(resolvedCampaignId)
+                                            .campaignName(resolvedCampaignName.isBlank() ? null : resolvedCampaignName)
+                                            .monthIndex(input.monthIndex())
+                                            .timestamp(LocalDateTime.now())
+                                            .isNew(true)
+                                            .build();
+                                    return ledgerEntryRepository.save(Objects.requireNonNull(entry))
+                                            .flatMap(saved -> syncTotalSupportPoints(commandId)
+                                                    .then(syncReputation(commandId))
+                                                    .onErrorResume(syncErr -> {
+                                                        log.warn("[WARN] Post-save sync failed for command {}: {}",
+                                                                commandId, syncErr.getMessage());
+                                                        return Mono.empty();
+                                                    })
+                                                    .thenReturn(saved));
+                                });
                     }).switchIfEmpty(Mono.defer(() -> {
                         // Fallback if no campaign ID can be resolved (e.g. general command entry)
+                        log.debug("Saving ledger entry without campaign for command {}", commandId);
                         LedgerEntry entry = LedgerEntry.builder()
                                 .id(UUID.randomUUID()).commandId(commandId).detachmentId(detachmentId)
-                                .amount(input.amount()).description(input.description()).reputationChange(input.reputationChange())
-                                .campaignName(input.campaignName())
-                                .monthIndex(input.monthIndex()).timestamp(LocalDateTime.now())
-                                .isNew(true).build();
+                                .amount(input.amount()).description(input.description())
+                                .reputationChange(input.reputationChange()).campaignName(input.campaignName())
+                                .monthIndex(input.monthIndex()).timestamp(LocalDateTime.now()).isNew(true).build();
                         return ledgerEntryRepository.save(Objects.requireNonNull(entry))
                                 .flatMap(saved -> syncTotalSupportPoints(commandId)
-                                .then(syncReputation(commandId))
-                                .thenReturn(saved));
+                                        .then(syncReputation(commandId))
+                                        .onErrorResume(syncErr -> {
+                                            log.warn("[WARN] Post-save sync failed for command {}: {}", commandId,
+                                                    syncErr.getMessage());
+                                            return Mono.empty();
+                                        })
+                                        .thenReturn(saved));
                     }));
                 }))
-                .doOnTerminate(() -> log.trace("[TRACE] Finished addLedgerEntry"));
+                .doOnTerminate(() -> log.debug("Finished addLedgerEntry"));
     }
 
     private Mono<Boolean> isAuthorizedForCommand(@NonNull UUID commandId, String userId) {
         return commandRepository.findById(commandId)
-                .flatMap(cmd -> userService.resolveOrCreateUser(userId).map(user -> cmd.getOwnerId().equals(user.getId().toString())));
+                .flatMap(cmd -> userService.resolveOrCreateUser(userId)
+                        .map(user -> cmd.getOwnerId().equals(user.getId().toString())));
     }
 
     @Transactional
@@ -145,20 +169,22 @@ public class LedgerService {
                 + "WHERE command_id = :id";
 
         return SqlUtils.bindUuid(databaseClient.sql(sql), "id", commandId)
-                .map((row, metadata) -> row.get(
-                "total", Number.class))
+                .map((row, metadata) -> row.get("total", Number.class))
                 .one()
                 .map(total -> total != null ? total.intValue() : 0)
                 .flatMap(totalSp -> commandRepository.findById(commandId)
-                .flatMap(command -> {
-                    command.setTotalSupportPoints(totalSp);
-                    command.setNew(false);
-                    return commandRepository.save(command)
-                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
-                            .switchIfEmpty(Mono.error(new RuntimeException(
-                                    "Failed to sync SP: Command state lost.")))
-                            .doOnNext(commandSink::tryEmitNext);
-                }))
+                        .flatMap(command -> {
+                            command.setTotalSupportPoints(totalSp);
+                            command.setNew(false);
+                            return commandRepository.save(command)
+                                    .onErrorResume(DuplicateKeyException.class,
+                                            e -> commandRepository.findById(
+                                                    commandId))
+                                    .switchIfEmpty(Mono.fromRunnable(() -> log.warn(
+                                            "[WARN] syncTotalSupportPoints: save returned empty for command {}",
+                                            commandId)))
+                                    .doOnNext(commandSink::tryEmitNext);
+                        }))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));
     }
 
@@ -170,33 +196,31 @@ public class LedgerService {
                 + "WHERE command_id = :id";
 
         return SqlUtils.bindUuid(databaseClient.sql(sql), "id", commandId)
-                .map((row, metadata) -> row.get(
-                "total", Number.class))
+                .map((row, metadata) -> row.get("total", Number.class))
                 .one()
                 .map(total -> Math.max(0, total != null ? total.intValue() : 0))
                 .flatMap(totalRep -> commandRepository.findById(commandId)
-                .flatMap(command -> {
-                    command.setReputation(totalRep);
-                    command.setNew(false);
-                    return commandRepository.save(command)
-                            .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
-                            .doOnNext(commandSink::tryEmitNext);
-                }))
+                        .flatMap(command -> {
+                            command.setReputation(totalRep);
+                            command.setNew(false);
+                            return commandRepository.save(command)
+                                    .onErrorResume(DuplicateKeyException.class,
+                                            e -> commandRepository.findById(
+                                                    commandId))
+                                    .doOnNext(commandSink::tryEmitNext);
+                        }))
                 .doOnTerminate(() -> log.trace(
-                "[TRACE] Finished syncReputation"));
+                        "[TRACE] Finished syncReputation"));
     }
 
     public Mono<String> getCampaignName(@NonNull UUID campaignId) {
-        log.trace(
-                "[TRACE] Starting getCampaignName: id={}", campaignId);
+        log.debug("Starting getCampaignName: id={}", campaignId);
         return campaignRepository.findById(campaignId).map(Campaign::getName)
-                .doOnTerminate(() -> log.trace(
-                "[TRACE] Finished getCampaignName"));
+                .doOnTerminate(() -> log.debug("Finished getCampaignName"));
     }
 
     public Mono<Integer> getDetachmentRating(@NonNull UUID detachmentId, UUID campaignId) {
-        log.trace(
-                "[TRACE] Starting getDetachmentRating: id={}, campaignId={}", detachmentId, campaignId);
+        log.debug("Starting getDetachmentRating: id={}, campaignId={}", detachmentId, campaignId);
         if (campaignId == null) {
             return Mono.just(0); // Return 0 rating if no campaign is associated
         }
@@ -217,6 +241,6 @@ public class LedgerService {
         return commandSink.asFlux()
                 .filter(cmd -> cmd.getId().equals(commandId))
                 .doOnTerminate(() -> log.trace(
-                "[TRACE] Finished getCommandUpdates: commandId={}", commandId));
+                        "[TRACE] Finished getCommandUpdates: commandId={}", commandId));
     }
 }

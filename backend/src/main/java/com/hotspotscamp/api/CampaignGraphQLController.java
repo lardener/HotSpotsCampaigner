@@ -57,11 +57,11 @@ public class CampaignGraphQLController {
 
     @QueryMapping
     public Flux<Campaign> managedCampaigns(@Argument String status, Principal principal) {
-        log.trace("[TRACE] Entering managedCampaigns: status={}", status);
-        log.info("[GQL] managedCampaigns query received. Principal: {}", principal != null ? principal.getName() : "NULL");
+        log.debug("[GQL] managedCampaigns query received. Principal: {}, Status: {}",
+                principal != null ? principal.getName() : "NULL", status);
         String identity = principal != null ? principal.getName() : null;
         if (identity == null || "anonymousUser".equals(identity)) {
-            log.trace("[TRACE] Exiting managedCampaigns (anonymous)");
+            log.debug("[GQL] Exiting managedCampaigns (anonymous)");
             return Flux.empty();
         }
         return userService.resolveOrCreateUser(identity)
@@ -72,7 +72,7 @@ public class CampaignGraphQLController {
                     }
                     return campaignService.findAllByManagerId(internalId);
                 })
-                .doOnTerminate(() -> log.trace("[TRACE] Exiting managedCampaigns"));
+                .doOnTerminate(() -> log.debug("[GQL] Exiting managedCampaigns"));
     }
 
     @QueryMapping
@@ -194,7 +194,8 @@ public class CampaignGraphQLController {
             return Mono.just(false);
         }
         return userService.resolveOrCreateUser(principal.getName())
-                .flatMap(user -> commandService.isParticipantInCampaign(campaign.getId(), user.getId().toString(), principal.getName()))
+                .flatMap(user -> commandService.isParticipantInCampaign(campaign.getId(), user.getId().toString(),
+                        principal.getName()))
                 .defaultIfEmpty(false);
     }
 
@@ -285,7 +286,8 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, @Argument String recipientName, Principal principal) {
+    public Mono<CampaignInvite> createInvite(@Argument UUID campaignId, @Argument String recipientName,
+            Principal principal) {
         log.trace("[TRACE] Entering createInvite: campaignId={}, recipient={}", campaignId, recipientName);
         if (campaignId == null) {
             return Mono.error(new IllegalArgumentException("Campaign ID is required"));
@@ -318,7 +320,8 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument TrackUpdateInput input, Principal principal) {
+    public Mono<CampaignTrack> updateTrack(@Argument @NonNull UUID id, @Argument TrackUpdateInput input,
+            Principal principal) {
         log.trace("[TRACE] Entering updateTrack: id={}", id);
         if (principal == null) {
             return Mono.error(new RuntimeException("Unauthorized"));
@@ -338,7 +341,8 @@ public class CampaignGraphQLController {
     }
 
     @MutationMapping
-    public Flux<CampaignTrack> reorderTracks(@Argument UUID campaignId, @Argument List<UUID> trackIds, Principal principal) {
+    public Flux<CampaignTrack> reorderTracks(@Argument UUID campaignId, @Argument List<UUID> trackIds,
+            Principal principal) {
         log.trace("[TRACE] Entering reorderTracks: campaignId={}", campaignId);
         if (principal == null) {
             return Flux.error(new RuntimeException("Unauthorized"));

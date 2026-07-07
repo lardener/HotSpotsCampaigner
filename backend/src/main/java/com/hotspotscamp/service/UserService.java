@@ -43,14 +43,14 @@ public class UserService {
             return Mono.empty();
         }
 
-        log.info("[AUTH] Attempting to resolve identity: {}", identity);
+        log.debug("[AUTH] Attempting to resolve identity: {}", identity);
         return userRepository.findByExternalId(identity)
-                .doOnNext(u -> log.info("[AUTH] Found User via External ID: {} (UUID: {})", identity, u.getId()))
+                .doOnNext(u -> log.debug("[AUTH] Found User via External ID: {} (UUID: {})", identity, u.getId()))
                 .switchIfEmpty(Mono.defer(() -> {
                     if (!identity.contains("-") || identity.length() != 36) {
                         return Mono.empty();
                     }
-                    log.info("[AUTH] Identity not found in external_id, checking internal UUIDs for: {}", identity);
+                    log.debug("[AUTH] Identity not found in external_id, checking internal UUIDs for: {}", identity);
                     try {
                         return userRepository.findById(Objects.requireNonNull(UUID.fromString(identity)));
                     } catch (IllegalArgumentException e) {
@@ -77,7 +77,8 @@ public class UserService {
 
                     return userRepository.save(Objects.requireNonNull(newUser))
                             .onErrorResume(DuplicateKeyException.class, e -> {
-                                log.info("[AUTH] Concurrent registration detected for {}. Falling back to lookup.", identity);
+                                log.info("[AUTH] Concurrent registration detected for {}. Falling back to lookup.",
+                                        identity);
                                 return userRepository.findByExternalId(identity);
                             });
                 }));

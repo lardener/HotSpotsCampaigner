@@ -182,12 +182,12 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             }
 
             if (savedUnit) {
-                if (isTransaction && cost > 0 && (detachmentId || formData.detachmentId)) {
+                if (isTransaction && cost > 0) {
                     try {
                         await addLedgerEntry({
                             variables: {
                                 commandId,
-                                detachmentId: detachmentId || formData.detachmentId,
+                                detachmentId: detachmentId || formData.detachmentId || null,
                                 input: {
                                     amount: -cost,
                                     description: mode === 'create'

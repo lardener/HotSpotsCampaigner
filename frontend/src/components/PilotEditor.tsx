@@ -117,29 +117,25 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         return currentTotal - pilotOriginalTotalSp;
     }, [mode, pilotOriginalTotalSp, formData.totalSpEarned]);
 
+    const hasSkillsDiffError = useMemo(() => {
+        return Math.abs((formData.gunnery ?? 0) - (formData.piloting ?? 0)) > 2;
+    }, [formData.gunnery, formData.piloting]);
+
     const handleInputChange = (field: keyof Pilot, value: any) => {
         const isNumeric = ['gunnery', 'piloting', 'asSkill', 'wounds', 'handicap', 'totalSpEarned', 'gunnerySpEarned', 'pilotingSpEarned', 'edgeTokensSpEarned', 'edgeAbilitySpEarned'].includes(field);
         setFormData(prev => {
             const next = { ...prev, [field]: isNumeric ? parseInt(value) || 0 : value } as Pilot;
             const updated = recalcDerived(next);
-
-            // Enforce gunnery/piloting distance constraint after recomputation
-            if (Math.abs((updated.gunnery ?? 0) - (updated.piloting ?? 0)) > 2) {
-                setOverlay({
-                    title: 'VALIDATION ERROR',
-                    message: 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.',
-                    variant: 'alert',
-                    onConfirm: () => setOverlay(null)
-                });
-                return prev;
-            }
-
             return updated;
         });
     };
 
     const handleSave = async (isTraining: boolean = false) => {
         // Validation
+        if (hasSkillsDiffError) {
+            return;
+        }
+
         if (!(formData.name ?? '').trim()) {
             setOverlay({
                 title: "VALIDATION ERROR",
@@ -245,12 +241,12 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     }
                 });
 
-                if (result.data?.hirePilot && detachmentId) {
+                if (result.data?.hirePilot) {
                     try {
                         await addLedgerEntry({
                             variables: {
                                 commandId,
-                                detachmentId,
+                                detachmentId: detachmentId || null,
                                 input: {
                                     amount: -hiringPrice,
                                     description: `PILOT HIRE: ${formData.name}`.trim()
@@ -326,9 +322,10 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         <button
                             className={`mode-btn ${availableSP !== undefined && availableSP < hiringPrice ? 'theme-amber' : 'theme-blue'}`}
                             onClick={() => handleSave()}
-                            disabled={isSaving}
+                            disabled={isSaving || hasSkillsDiffError}
                             style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                             title={
+                                hasSkillsDiffError ? 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.' :
                                 availableSP !== undefined && availableSP < hiringPrice ? `INSUFFICIENT FUNDS: ${availableSP} SP AVAILABLE` : `Hire pilot for ${hiringPrice} SP and record transaction`
                             }
                         >
@@ -340,9 +337,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             <button
                                 className="mode-btn theme-blue"
                                 onClick={() => handleSave(true)}
-                                disabled={isSaving || (trainingCost > 0 && availableSP !== undefined && availableSP < trainingCost)}
+                                disabled={isSaving || (trainingCost > 0 && availableSP !== undefined && availableSP < trainingCost) || hasSkillsDiffError}
                                 style={{ padding: '2px 8px', fontSize: '0.8rem' }}
-                                title={trainingCost > 0 ? `Commit training for ${trainingCost} SP` : `Process training adjustment/refund for ${Math.abs(trainingCost)} SP`}
+                                title={hasSkillsDiffError ? 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.' : trainingCost > 0 ? `Commit training for ${trainingCost} SP` : `Process training adjustment/refund for ${Math.abs(trainingCost)} SP`}
                             >
                                 {isSaving ? '...' : (trainingCost > 0 ? `TRAIN: ${trainingCost}` : `REFUND: ${Math.abs(trainingCost)}`)}
                             </button>
@@ -350,9 +347,9 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         <button
                             className="mode-btn theme-green"
                             onClick={() => handleSave(false)}
-                            disabled={isSaving}
+                            disabled={isSaving || hasSkillsDiffError}
                             style={{ padding: '2px 8px', fontSize: '0.8rem' }}
-                            title="Confirm and save"
+                            title={hasSkillsDiffError ? 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.' : 'Confirm and save'}
                         >
                             {isSaving ? '>> PROCESSING...' : (mode === 'create' ? '✓ HIRE' : '✓ SAVE')}
                         </button>
@@ -370,6 +367,11 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 
                 <div className="pilot-editor-scroll-area" style={{ border: '1px solid var(--terminal-border)', margin: '0 10px 8px 10px', padding: '10px 15px', backgroundColor: 'rgba(0, 0, 0, 0.4)', maxHeight: 'calc(100vh - 150px)', overflowY: 'auto' }}>
                     <div className="pilot-card-body">
+                        {hasSkillsDiffError && (
+                            <div className="validation-error-banner mb-10" style={{ color: 'var(--terminal-red, #ff3333)', fontWeight: 'bold', fontSize: '0.85rem', border: '1px solid var(--terminal-red, #ff3333)', padding: '8px 12px', backgroundColor: 'rgba(255, 51, 51, 0.15)', textAlign: 'center', borderRadius: '4px' }}>
+                                GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.
+                            </div>
+                        )}
                         <h3 className="zone-header" style={{ margin: '0 0 5px 0' }}>PERSONNEL DATA</h3>
                         <div className="flex-col flex-gap-5 mb-10">
                             <div className="input-group flex items-center">

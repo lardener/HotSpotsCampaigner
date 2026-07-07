@@ -227,7 +227,8 @@ public class MercenaryCommandService {
                     command.setNew(false);
                     return commandRepository.save(command)
                             .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
-                            .switchIfEmpty(Mono.error(new RuntimeException("Failed to sync SP: Command state lost.")))
+                            .switchIfEmpty(Mono.fromRunnable(() ->
+                                    log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
                             .doOnNext(commandSink::tryEmitNext);
                 }))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));

@@ -88,7 +88,11 @@ public class DetachmentService {
                                         SqlUtils.bindUuid(databaseClient.sql("UPDATE pilots SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
                                         SqlUtils.bindUuid(databaseClient.sql("UPDATE ledger_entries SET detachment_id = NULL WHERE detachment_id = :id"), "id", detachmentId).then(),
                                         detachmentRepository.deleteById(detachmentId)
-                                ).then(syncTotalSupportPoints(commandId)).then();
+                                ).then(syncTotalSupportPoints(commandId)
+                                        .onErrorResume(syncErr -> {
+                                            log.warn("[WARN] Post-delete sync failed for command {}: {}", commandId, syncErr.getMessage());
+                                            return Mono.empty();
+                                        })).then();
                             });
                 }).doOnTerminate(() -> log.trace("[TRACE] Finished deleteDetachment"));
     }
@@ -142,7 +146,8 @@ public class DetachmentService {
                     command.setNew(false);
                     return commandRepository.save(command)
                             .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
-                            .switchIfEmpty(Mono.error(new RuntimeException("Failed to sync SP: Command state lost.")))
+                            .switchIfEmpty(Mono.fromRunnable(() ->
+                                    log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
                             .doOnNext(commandSink::tryEmitNext);
                 }))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));
