@@ -110,9 +110,6 @@ type Mutation {
     # Market Operations
     importUnitsToMarket(campaignId: ID!, url: String!, marketType: MarketType!, factionId: ID): String!
     saveMarketMarkdown(campaignId: ID!, marketType: MarketType!, markdown: String!, factionId: ID): Boolean!
-    purchaseFromMarket(input: MarketPurchaseInput!): PurchaseResult!
-    scrapperDraw(campaignId: ID!, commandId: ID!, detachmentId: ID!): PurchaseResult!
-    hireFromMarket(input: MarketHireInput!): PurchaseResult!
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
