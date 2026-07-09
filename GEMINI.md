@@ -32,6 +32,11 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 - `docs/plans/` - Detailed expansion and migration plans
 - `ssl_cert/` - Kubernetes SSL/TLS certificates
 
+## General Utilities
+- `TypeUtils` - Java Utility class for safe type conversions.
+
 ## Environment Notes
 - **Build Environment**
     - **Local PowerShell Policy** - issue shell commands using the Windows command shim
+  **Plans**
+      **Progress Checklist** - all plans should have a checklist so that progress can me recorded between sessions.

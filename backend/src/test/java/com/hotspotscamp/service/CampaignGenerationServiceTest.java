@@ -3,11 +3,9 @@ package com.hotspotscamp.service;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -87,9 +85,4 @@ class CampaignGenerationServiceTest {
         assertEquals(5, proposal.campaign().getTrackCount());
     }
 
-    @Test
-    void rollDice_ShouldProduceCorrectRange() {
-        int roll = generationService.rollDice(2, 6, new Random());
-        assertTrue(roll >= 2 && roll <= 12);
-    }
 }

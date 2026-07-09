@@ -3,7 +3,6 @@ package com.hotspotscamp.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 import java.util.function.IntSupplier;
 
@@ -23,6 +22,7 @@ import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.repository.CampaignRepository;
 import com.hotspotscamp.repository.CampaignTrackRepository;
 import com.hotspotscamp.repository.ContractRepository;
+import com.hotspotscamp.util.DiceUtils;
 
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Flux;
@@ -103,11 +103,10 @@ public class TrackManagementService {
                                     return Mono.<CampaignTrack>empty();
                                 }
 
-                                Random rand = new Random();
-                                track.setTrackName(generationService.rollTrackType(primary.getMissionType(), rand));
-                                track.setComplications(generationService.rollComplication(Objects.requireNonNullElse(primary.getCommandRights(), "Independent"), rand));
+                                track.setTrackName(generationService.rollTrackType(primary.getMissionType()));
+                                track.setComplications(generationService.rollComplication(Objects.requireNonNullElse(primary.getCommandRights(), "Independent")));
                                 String oppRights = (opposition != null && opposition.getCommandRights() != null) ? opposition.getCommandRights() : "Independent";
-                                track.setOppositionComplications(generationService.rollComplication(oppRights, rand));
+                                track.setOppositionComplications(generationService.rollComplication(oppRights));
                                 track.setNew(false);
                                 return campaignTrackRepository.save(track);
                             });
@@ -115,7 +114,6 @@ public class TrackManagementService {
     }
 
     public IntSupplier getMonthSupplier(List<IntensityTableEntry> table, int length, int trackCount) {
-        Random rand = new Random();
         IntensityTableEntry lengthEntry = table.stream().filter(e -> e.campaignLength() == length).findFirst().orElse(null);
 
         if (lengthEntry == null) {
@@ -130,7 +128,7 @@ public class TrackManagementService {
         }
 
         IntensityTracksConfig config = lengthEntry.tracks();
-        int roll = generationService.rollDice(config.diceCount(), config.diceSides(), rand);
+        int roll = DiceUtils.roll(config.diceCount(), config.diceSides());
         IntensityTrackCountEntry countEntry = config.tracks().stream().filter(e -> e.count() == trackCount).findFirst().orElse(null);
 
         if (countEntry == null) {
@@ -196,7 +194,7 @@ public class TrackManagementService {
 
                     // 2. Roll-based determination
                     if (rule.primaryAttackerRolls() != null && !rule.primaryAttackerRolls().isEmpty()) {
-                        int roll = generationService.rollDice(config.diceCount(), config.diceSides(), new Random());
+                        int roll = DiceUtils.roll(config.diceCount(), config.diceSides());
                         return rule.primaryAttackerRolls().contains(roll);
                     }
                     return false;

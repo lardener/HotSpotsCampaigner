@@ -15,6 +15,7 @@ type Query {
     publicActiveCampaigns(page: Int, size: Int): [Campaign]
     publicCampaignMetadata: CampaignMetadata
     publicPreviewCampaign(input: CampaignCreateInput!): CampaignProposal
+    campaignMarket(campaignId: ID!): CampaignMarket
 }
 
 type CampaignMetadata {
@@ -105,6 +106,13 @@ type Mutation {
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
     joinCampaign(token: String!, detachmentId: ID!): Boolean
     updateUserProfile(displayName: String): UserProfile
+
+    # Market Operations
+    importUnitsToMarket(campaignId: ID!, url: String!, marketType: MarketType!, factionId: ID): String!
+    saveMarketMarkdown(campaignId: ID!, marketType: MarketType!, markdown: String!, factionId: ID): Boolean!
+    purchaseFromMarket(input: MarketPurchaseInput!): PurchaseResult!
+    scrapperDraw(campaignId: ID!, commandId: ID!, detachmentId: ID!): PurchaseResult!
+    hireFromMarket(input: MarketHireInput!): PurchaseResult!
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
@@ -557,4 +565,61 @@ type Campaign {
     replaceCommandAbilityCost: Int
     isManager: Boolean
     isParticipant: Boolean
+}
+
+enum MarketType {
+    FREE
+    EMPLOYER
+    SCRAPPERS
+}
+
+type CampaignMarket {
+    id: ID!
+    campaignId: ID!
+    freeMarketMarkdown: String
+    scrapperMarketMarkdown: String
+    scrapperFee: Int!
+    employerMarkets: [EmployerMarket!]!
+}
+
+type EmployerMarket {
+    factionId: ID!
+    markdown: String
+}
+
+type PurchaseResult {
+    success: Boolean!
+    unitId: ID
+    remainingCBills: Int!
+    message: String
+}
+
+input MarketPurchaseInput {
+    unitName: String!
+    model: String!
+    bv: Int!
+    pv: Int!
+    techBase: String!
+    condition: Int!
+    price: Int!
+    marketType: MarketType!
+    factionId: ID
+    campaignId: ID!
+    commandId: ID!
+    detachmentId: ID!
+}
+
+input MarketHireInput {
+    name: String!
+    unitType: String!
+    wounds: Int!
+    gunnerySpEarned: Int!
+    pilotingSpEarned: Int!
+    edgeTokensSpEarned: Int!
+    edgeAbilitySpEarned: Int!
+    edgeAbilities: String!
+    price: Int!
+    campaignId: ID!
+    commandId: ID!
+    detachmentId: ID!
 }

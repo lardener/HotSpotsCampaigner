@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -12,8 +11,6 @@ import org.springframework.stereotype.Service;
 import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignProposal;
 import com.hotspotscamp.dto.GeneratedTrack;
-import com.hotspotscamp.entity.Campaign;
-import com.hotspotscamp.entity.Contract;
 import com.hotspotscamp.dto.ruleConfiguration.ComplicationRule;
 import com.hotspotscamp.dto.ruleConfiguration.ComplicationsTableConfig;
 import com.hotspotscamp.dto.ruleConfiguration.ContractTableConfigV2;
@@ -27,6 +24,9 @@ import com.hotspotscamp.dto.ruleConfiguration.SystemEntry;
 import com.hotspotscamp.dto.ruleConfiguration.SystemTableConfig;
 import com.hotspotscamp.dto.ruleConfiguration.TrackCountTableConfig;
 import com.hotspotscamp.dto.ruleConfiguration.TrackTableConfig;
+import com.hotspotscamp.entity.Campaign;
+import com.hotspotscamp.entity.Contract;
+import com.hotspotscamp.util.DiceUtils;
 import com.hotspotscamp.util.TypeUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,6 @@ public class CampaignGenerationService {
     private final RuleConfigurationService configService;
 
     public CampaignProposal generateProposal(CampaignCreateInput input) {
-        Random rand = new Random();
         boolean employerProvided = input.employer() != null && !input.employer().isEmpty();
         boolean opponentProvided = input.opponent() != null && !input.opponent().isEmpty();
 
@@ -48,24 +47,24 @@ public class CampaignGenerationService {
         String empMission, oppMission;
         if (input.mission() == null || input.mission().isEmpty()) {
             MissionTableConfig missionTable = configService.getMissionTableData();
-            int roll = rollDice(missionTable.diceCount(), missionTable.diceSides(), rand);
+            int roll = DiceUtils.roll(missionTable.diceCount(), missionTable.diceSides());
             empMission = "Unknown Mission";
             oppMission = "Unknown Opponent Mission";
             for (var entry : missionTable.entries()) {
                 if (roll >= entry.minRoll() && roll <= entry.maxRoll()) {
-                    empMission = resolveFromSubTable(entry.primary(), rand);
-                    oppMission = resolveFromSubTable(entry.opponent(), rand);
+                    empMission = resolveFromSubTable(entry.primary());
+                    oppMission = resolveFromSubTable(entry.opponent());
                     break;
                 }
             }
         } else {
             empMission = input.mission();
-            oppMission = input.oppMission() != null ? input.oppMission() : getOpposingMissionType(empMission, rand);
+            oppMission = input.oppMission() != null ? input.oppMission() : getOpposingMissionType(empMission);
         }
 
         Integer inputTracks = TypeUtils.asInt(input.trackCount(), null);
-        int finalTracksCount = Math.max(1, inputTracks != null ? inputTracks : rollTrackCount(empMission, rand));
-        String finalSystemName = (input.systemName() != null && !input.systemName().isEmpty()) ? input.systemName() : rollSystemName(rand);
+        int finalTracksCount = Math.max(1, inputTracks != null ? inputTracks : rollTrackCount(empMission));
+        String finalSystemName = (input.systemName() != null && !input.systemName().isEmpty()) ? input.systemName() : rollSystemName();
 
         Integer calculatedLength = input.lengthInMonths();
         if (calculatedLength == null) {
@@ -81,7 +80,7 @@ public class CampaignGenerationService {
 
         Contract primaryContract = generateContract(finalEmp, empMission, input.employerCategory(),
                 input.payRate(), input.salvageTerms(), input.supportTerms(), input.transportTerms(), input.commandRights(),
-                input.payStep(), input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, rand, employerProvided);
+                input.payStep(), input.salvageStep(), input.supportStep(), input.transportStep(), input.commandStep(), finalTracksCount, true, finalSystemName, employerProvided);
 
         Campaign campaign = Campaign.builder()
                 .name(input.name() != null && !input.name().isBlank() ? input.name() : finalSystemName.toUpperCase() + ": OP " + empMission.toUpperCase() + " [" + finalEmp + "]")
@@ -128,7 +127,7 @@ public class CampaignGenerationService {
         Contract oppositionContract = generateContract(finalOpp, oppMission, input.opponentCategory(),
                 input.oppPayRate(), input.oppSalvageTerms(), input.oppSupportTerms(), input.oppTransportTerms(), input.oppCommandRights(),
                 input.oppPayStep(), input.oppSalvageStep(), input.oppSupportStep(), input.oppTransportStep(), input.oppCommandStep(),
-                finalTracksCount, false, finalSystemName, rand, opponentProvided);
+                finalTracksCount, false, finalSystemName, opponentProvided);
 
         List<GeneratedTrack> tracksList = (input.tracks() != null && !input.tracks().isEmpty()) ? input.tracks()
                 : generateTracks(empMission, primaryContract.getCommandRights(), oppositionContract.getCommandRights(), finalTracksCount, null);
@@ -168,34 +167,34 @@ public class CampaignGenerationService {
     private Contract generateContract(String faction, String type, String category,
             Double payRate, String salvage, String support, String transport, String rights,
             Integer payStepIn, Integer salvageStepIn, Integer supportStepIn, Integer transportStepIn, Integer commandStepIn,
-            int tracks, boolean isPrimary, String system, Random rand, boolean isUserProvided) {
+            int tracks, boolean isPrimary, String system, boolean isUserProvided) {
         String employerCategory;
         int payStep, salvageStep, supportStep, transportStep, rightsStep;
 
         if (category != null) {
             employerCategory = faction + ": " + category;
-            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", category, type, rand);
-            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", category, type, rand);
-            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", category, type, rand);
-            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", category, type, rand);
-            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", category, type, rand);
+            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", category, type);
+            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", category, type);
+            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", category, type);
+            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", category, type);
+            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", category, type);
         } else if (isUserProvided) {
             employerCategory = faction;
             String lookupType = "Minor Power";
-            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", lookupType, type, rand);
-            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", lookupType, type, rand);
-            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", lookupType, type, rand);
-            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", lookupType, type, rand);
-            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", lookupType, type, rand);
+            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", lookupType, type);
+            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", lookupType, type);
+            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", lookupType, type);
+            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", lookupType, type);
+            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", lookupType, type);
         } else {
-            String empType = rollEmployerType(rand);
-            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", empType, type, rand);
-            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", empType, type, rand);
-            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", empType, type, rand);
-            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", empType, type, rand);
-            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", empType, type, rand);
+            String empType = rollEmployerType();
+            payStep = payStepIn != null ? payStepIn : calculateFinalStep("payRateTable", empType, type);
+            salvageStep = salvageStepIn != null ? salvageStepIn : calculateFinalStep("salvageTable", empType, type);
+            supportStep = supportStepIn != null ? supportStepIn : calculateFinalStep("supportTable", empType, type);
+            transportStep = transportStepIn != null ? transportStepIn : calculateFinalStep("transportationTable", empType, type);
+            rightsStep = commandStepIn != null ? commandStepIn : calculateFinalStep("commandRightsTable", empType, type);
 
-            String finalOrgName = empType.contains(" (") ? empType.substring(0, empType.indexOf(" (")) : getPlausibleOrganization(faction, empType, system, rand);
+            String finalOrgName = empType.contains(" (") ? empType.substring(0, empType.indexOf(" (")) : getPlausibleOrganization(faction, empType, system);
             String finalCategory = empType.contains(" (") ? empType.substring(empType.indexOf(" (") + 2, empType.length() - 1) : empType;
             employerCategory = finalOrgName + ": " + finalCategory;
         }
@@ -212,24 +211,23 @@ public class CampaignGenerationService {
     }
 
     public List<GeneratedTrack> generateTracks(String missionType, String commandRights, String oppCommandRights, int count, List<GeneratedTrack> existing) {
-        Random rand = new Random();
         List<GeneratedTrack> tracksList = (existing != null) ? new ArrayList<>(existing) : new ArrayList<>();
         for (int i = tracksList.size(); i < count; i++) {
-            tracksList.add(new GeneratedTrack(rollTrackType(missionType, rand), rollComplication(commandRights, rand), rollComplication(oppCommandRights, rand)));
+            tracksList.add(new GeneratedTrack(rollTrackType(missionType), rollComplication(commandRights), rollComplication(oppCommandRights)));
         }
         return tracksList;
     }
 
-    public String rollComplication(String commandRights, Random rand) {
+    public String rollComplication(String commandRights) {
         ComplicationsTableConfig config = configService.getComplicationsTableConfig();
         ComplicationRule rule = config.rules().getOrDefault(commandRights, config.rules().get("Independent"));
-        int roll = rollDice(rule.diceCount(), rule.diceSides(), rand) + rule.modifier();
+        int roll = DiceUtils.roll(rule.diceCount(), rule.diceSides()) + rule.modifier();
         return config.entries().stream().filter(e -> roll >= e.minRoll() && roll <= e.maxRoll()).map(RollEntry::value).findFirst().orElse("None");
     }
 
-    public String rollTrackType(String missionType, Random rand) {
+    public String rollTrackType(String missionType) {
         TrackTableConfig config = configService.getTrackTableData();
-        int roll = rollDice(config.diceCount(), config.diceSides(), rand);
+        int roll = DiceUtils.roll(config.diceCount(), config.diceSides());
         var group = config.groups().stream().filter(g -> g.missions().stream().anyMatch(m -> missionMatches(missionType, m))).findFirst()
                 .orElseGet(() -> config.groups().stream().filter(g -> g.missions().contains("Default")).findFirst().orElse(config.groups().get(0)));
         for (var entry : group.entries()) {
@@ -240,17 +238,9 @@ public class CampaignGenerationService {
         return group.entries().get(0).value();
     }
 
-    public int rollDice(int count, int sides, Random rand) {
-        int sum = 0;
-        for (int i = 0; i < count; i++) {
-            sum += (rand.nextInt(sides) + 1);
-        }
-        return sum;
-    }
-
-    private int rollTrackCount(String missionType, Random rand) {
+    private int rollTrackCount(String missionType) {
         TrackCountTableConfig config = configService.getTrackCountTableData();
-        int roll = rollDice(config.diceCount(), config.diceSides(), rand);
+        int roll = DiceUtils.roll(config.diceCount(), config.diceSides());
         var group = config.groups().stream().filter(g -> g.missions().stream().anyMatch(m -> missionMatches(missionType, m))).findFirst().orElse(config.groups().get(0));
         for (var entry : group.entries()) {
             if (roll >= entry.minRoll() && roll <= entry.maxRoll()) {
@@ -260,25 +250,25 @@ public class CampaignGenerationService {
         return 1;
     }
 
-    private String rollSystemName(Random rand) {
+    private String rollSystemName() {
         SystemTableConfig config = configService.getSystemTableConfig();
-        int gRoll = rollDice(Objects.requireNonNullElse(config.groupDiceCount(), 2), Objects.requireNonNullElse(config.groupDiceSides(), 6), rand);
-        int eRoll = rollDice(Objects.requireNonNullElse(config.entryDiceCount(), 2), Objects.requireNonNullElse(config.entryDiceSides(), 6), rand);
+        int gRoll = DiceUtils.roll(Objects.requireNonNullElse(config.groupDiceCount(), 2), Objects.requireNonNullElse(config.groupDiceSides(), 6));
+        int eRoll = DiceUtils.roll(Objects.requireNonNullElse(config.entryDiceCount(), 2), Objects.requireNonNullElse(config.entryDiceSides(), 6));
         return config.groups().stream().filter(g -> g.roll() == gRoll).flatMap(g -> g.entries().stream()).filter(e -> e.roll() == eRoll).map(SystemEntry::name).findFirst().orElse("Unknown");
     }
 
-    private String rollEmployerType(Random rand) {
+    private String rollEmployerType() {
         EmployerTableConfig config = configService.getEmployerTableConfig();
-        int roll = rollDice(config.diceCount(), config.diceSides(), rand);
+        int roll = DiceUtils.roll(config.diceCount(), config.diceSides());
         return config.entries().stream().filter(e -> e.roll() == roll).map(EmployerEntry::type).findFirst().orElse("Other");
     }
 
-    private int calculateFinalStep(String tableKey, String empType, String missionType, Random rand) {
+    private int calculateFinalStep(String tableKey, String empType, String missionType) {
         ContractTableConfigV2 config = configService.getContractTables().get(tableKey);
         if (config == null) {
             return 7;
         }
-        int roll = rollDice(config.diceCount(), config.diceSides(), rand);
+        int roll = DiceUtils.roll(config.diceCount(), config.diceSides());
         int initialStep = config.rollToStep().stream().filter(r -> roll >= r.minRoll() && roll <= r.maxRoll()).map(RollToStepEntry::step).findFirst().orElse(6);
         int empMod = config.employerModifiers().entrySet().stream().filter(e -> empType.toLowerCase().contains(e.getKey().toLowerCase())).map(Map.Entry::getValue).findFirst().orElse(0);
         int missionMod = config.missionModifiers().entrySet().stream().filter(e -> missionMatches(missionType, e.getKey())).map(Map.Entry::getValue).findFirst().orElse(0);
@@ -322,13 +312,9 @@ public class CampaignGenerationService {
     }
 
     private Double parsePayRate(String raw) {
-        try {
-            String clean = raw.replace("%", "").trim();
-            double val = Double.parseDouble(clean);
-            return raw.contains("%") ? val / 100.0 : val;
-        } catch (NumberFormatException e) {
-            return 1.0;
-        }
+        String clean = raw == null ? "" : raw.replace("%", "").trim();
+        double val = TypeUtils.asDouble(clean, 1.0);
+        return raw != null && raw.contains("%") ? val / 100.0 : val;
     }
 
     private boolean missionMatches(String missionType, String target) {
@@ -339,17 +325,17 @@ public class CampaignGenerationService {
         return mt.equals(t) || mt.contains(t) || t.contains(mt);
     }
 
-    private String getOpposingMissionType(String employerMission, Random rand) {
+    private String getOpposingMissionType(String employerMission) {
         for (var entry : configService.getMissionTableData().entries()) {
             if (entry.primary().entries().stream().anyMatch(se -> missionMatches(employerMission, se.value()))) {
-                return resolveFromSubTable(entry.opponent(), rand);
+                return resolveFromSubTable(entry.opponent());
             }
         }
         return "Garrison";
     }
 
-    private String resolveFromSubTable(SubTable sub, Random rand) {
-        int roll = rollDice(sub.diceCount(), sub.diceSides(), rand);
+    private String resolveFromSubTable(SubTable sub) {
+        int roll = DiceUtils.roll(sub.diceCount(), sub.diceSides());
         for (var entry : sub.entries()) {
             if (roll >= entry.minRoll() && roll <= entry.maxRoll()) {
                 return entry.value();
@@ -363,24 +349,23 @@ public class CampaignGenerationService {
         if (factions == null || factions.isEmpty()) {
             return "Unknown Faction";
         }
-        Random rand = new Random();
         String selected;
         do {
-            selected = factions.get(rand.nextInt(factions.size()));
+            selected = factions.get(DiceUtils.randomInt(0, factions.size() - 1));
         } while (selected.equals(exclude) && factions.size() > 1);
         return selected;
     }
 
-    private String getPlausibleOrganization(String faction, String empType, String system, Random rand) {
+    private String getPlausibleOrganization(String faction, String empType, String system) {
         List<String> factionOrgs = configService.getFactionOrganizations().entrySet().stream()
                 .filter(e -> faction.toLowerCase().contains(e.getKey().toLowerCase()))
                 .map(Map.Entry::getValue).findFirst().orElse(List.of(faction));
-        String baseOrg = factionOrgs.get(rand.nextInt(factionOrgs.size()));
+        String baseOrg = factionOrgs.get(DiceUtils.randomInt(0, factionOrgs.size() - 1));
         if ("Corporate".equalsIgnoreCase(empType)) {
-            return baseOrg + " " + configService.getCorporateSuffixes().get(rand.nextInt(configService.getCorporateSuffixes().size()));
+            return baseOrg + " " + configService.getCorporateSuffixes().get(DiceUtils.randomInt(0, configService.getCorporateSuffixes().size() - 1));
         }
         if ("Noble".equalsIgnoreCase(empType)) {
-            return configService.getNoblePrefixes().get(rand.nextInt(configService.getNoblePrefixes().size())) + " of " + system;
+            return configService.getNoblePrefixes().get(DiceUtils.randomInt(0, configService.getNoblePrefixes().size() - 1)) + " of " + system;
         }
         if (empType.toLowerCase().contains("government")) {
             return system + " Planetary Council (" + baseOrg + ")";

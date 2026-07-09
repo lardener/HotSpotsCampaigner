@@ -164,6 +164,18 @@ public class SchemaGenerator {
         sql.append("    CONSTRAINT fk_command_owner FOREIGN KEY (owner_id) REFERENCES app_users(id)\n");
         sql.append(");\n\n");
 
+        sql.append("-- Create campaign_markets table (CampaignMarkets.java)\n");
+        sql.append("CREATE TABLE campaign_markets (\n");
+        sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");
+        sql.append("    `campaign_id` VARCHAR(36) NOT NULL UNIQUE,\n");
+        sql.append("    `free_market_markdown` TEXT,\n");
+        sql.append("    `scrapper_market_markdown` TEXT,\n");
+        sql.append("    `scrapper_pool_markdown` TEXT,\n");
+        sql.append("    `scrapper_fee` INT NOT NULL DEFAULT 50000,\n");
+        sql.append("    `employer_markets_json` JSON,\n");
+        sql.append("    CONSTRAINT fk_market_campaign FOREIGN KEY (campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE\n");
+        sql.append(");\n\n");
+
         sql.append("-- Create detachments table (Detachment.java)\n");
         sql.append("CREATE TABLE detachments (\n");
         sql.append("    `id` VARCHAR(36) NOT NULL PRIMARY KEY,\n");

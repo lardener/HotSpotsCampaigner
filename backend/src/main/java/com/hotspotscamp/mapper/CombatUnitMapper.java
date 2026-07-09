@@ -18,4 +18,17 @@ public interface CombatUnitMapper {
 
     @Mapping(target = "detachmentId", ignore = true)
     void updateCombatUnitFromDto(CombatUnitUpdateInput dto, @MappingTarget CombatUnit entity);
+
+    default String mapConditionToStatus(Integer condition) {
+        if (condition == null) {
+            return "OPERATIONAL";
+        }
+        if (condition <= 0) {
+            return "DESTROYED";
+        }
+        if (condition <= 50) {
+            return "CRIPPLED";
+        }
+        return "OPERATIONAL";
+    }
 }
