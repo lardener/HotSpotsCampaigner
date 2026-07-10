@@ -24,22 +24,24 @@ import {
     TrackUpdateInput,
     MercenaryCommand,
     CampaignTrack,
+} from '../types/generated';
+import {
     GetCampaignMetadataQuery,
     GetCampaignDetailsQuery,
     UpdateCampaignMutation,
     RerollTrackMutation
-} from '../types/generated';
+} from '../types/operations';
+import {
+    GetCampaignMetadataDocument as GET_METADATA,
+    GetCampaignDetailsDocument as GET_CAMPAIGN_DETAILS,
+    UpdateCampaignDocument as UPDATE_CAMPAIGN,
+    UpdateTrackDocument as UPDATE_TRACK,
+    AssignDetachmentToCampaignDocument as ASSIGN_DETACHMENT,
+    RerollTrackDocument as REROLL_TRACK,
+    ReorderTracksDocument as REORDER_TRACKS
+} from '../types/operations';
 import { UnitType, UnitStatus, TechBase } from '../types/helpers';
 import { AfterActionReportEditor } from './AfterActionReportEditor';
-import {
-    GET_METADATA,
-    GET_CAMPAIGN_DETAILS,
-    UPDATE_CAMPAIGN,
-    UPDATE_TRACK,
-    ASSIGN_DETACHMENT,
-    REROLL_TRACK,
-    REORDER_TRACKS
-} from '../types/operations';
 import { useHscActionHandler } from './useHscActionHandler';
 import { CampaignTheaterBackground } from './CampaignTheaterBackground';
 
@@ -58,7 +60,7 @@ interface CampaignTheaterViewProps {
     userCommands?: MercenaryCommand[];
 }
 
-interface TheaterCampaign extends Campaign {
+interface TheaterCampaign extends Omit<Campaign, 'isManager' | 'isParticipant'> {
     isManager?: boolean;
     isParticipant?: boolean;
 }
@@ -150,7 +152,7 @@ const useTheaterCampaignSync = (
         [campaign]
     );
 
-    const campaignInvites = (campaignQueryData?.getCampaign?.campaignInvites || []).filter((i): i is any => i != null);
+    const campaignInvites = (campaignQueryData?.getCampaign?.campaignInvites || []).filter((i): i is any => i != null) as any[];
 
     useEffect(() => {
         onSyncChange?.(queryLoading || isSyncing);
@@ -174,31 +176,31 @@ const useTheaterCampaignSync = (
 
         // Always reset repair and activity costs to defaults before applying campaign values.
         // This prevents data bleeding between campaigns when switching theaters.
-        setArmorMult(campaign.armorMultiplier ?? metaData?.publicCampaignMetadata?.armorMultiplier ?? 0.5);
-        setInternalMult(campaign.internalMultiplier ?? metaData?.publicCampaignMetadata?.internalMultiplier ?? 2.0);
-        setCrippledMult(campaign.crippledMultiplier ?? metaData?.publicCampaignMetadata?.crippledMultiplier ?? 3.0);
-        setDestroyedMult(campaign.destroyedMultiplier ?? metaData?.publicCampaignMetadata?.destroyedMultiplier ?? 5.0);
-        setNonMechMod(campaign.nonMechModifier ?? metaData?.publicCampaignMetadata?.nonMechModifier ?? 0.5);
-        setMixedTechTax(campaign.mixedTechModifier ?? metaData?.publicCampaignMetadata?.mixedTechModifier ?? 1.5);
-        setClanTechTax(campaign.clanTechModifier ?? metaData?.publicCampaignMetadata?.clanTechModifier ?? 2.0);
+        setArmorMult(campaign.armorMultiplier ?? (metaData?.publicCampaignMetadata as any)?.armorMultiplier ?? 0.5);
+        setInternalMult(campaign.internalMultiplier ?? (metaData?.publicCampaignMetadata as any)?.internalMultiplier ?? 2.0);
+        setCrippledMult(campaign.crippledMultiplier ?? (metaData?.publicCampaignMetadata as any)?.crippledMultiplier ?? 3.0);
+        setDestroyedMult(campaign.destroyedMultiplier ?? (metaData?.publicCampaignMetadata as any)?.destroyedMultiplier ?? 5.0);
+        setNonMechMod(campaign.nonMechModifier ?? (metaData?.publicCampaignMetadata as any)?.nonMechModifier ?? 0.5);
+        setMixedTechTax(campaign.mixedTechModifier ?? (metaData?.publicCampaignMetadata as any)?.mixedTechModifier ?? 1.5);
+        setClanTechTax(campaign.clanTechModifier ?? (metaData?.publicCampaignMetadata as any)?.clanTechModifier ?? 2.0);
 
-        setOmnimechMod(campaign.omnimechReconfigureModifier ?? metaData?.publicCampaignMetadata?.omnimechReconfigureModifier ?? 0.5);
-        setPurchaseMult(campaign.pvPurchaseUnitMultiplier ?? metaData?.publicCampaignMetadata?.pvPurchaseUnitMultiplier ?? 40);
-        setSellMult(campaign.pvSellUnitMultiplier ?? metaData?.publicCampaignMetadata?.pvSellUnitMultiplier ?? 20);
-        setRearmTon(campaign.rearmCostPerTon ?? metaData?.publicCampaignMetadata?.rearmCostPerTon ?? 10);
-        setRearmAS(campaign.rearmCostPerTonAlphaStrike ?? metaData?.publicCampaignMetadata?.rearmCostPerTonAlphaStrike ?? 20);
-        setHireMW(campaign.hireMechWarriorCost ?? metaData?.publicCampaignMetadata?.hireMechWarriorCost ?? 100);
-        setHirePilot(campaign.hireNamedPilotCost ?? metaData?.publicCampaignMetadata?.hireNamedPilotCost ?? 150);
-        setHireBA(campaign.hireBattleArmorCost ?? metaData?.publicCampaignMetadata?.hireBattleArmorCost ?? 20);
-        setHealWound(campaign.healMechWarriorPerWoundBoxCost ?? metaData?.publicCampaignMetadata?.healMechWarriorPerWoundBoxCost ?? 30);
-        setHealMonth(campaign.healMechWarriorPerMonthLimit ?? metaData?.publicCampaignMetadata?.healMechWarriorPerMonthLimit ?? 2);
-        setHealBA(campaign.healBattleArmorCost ?? metaData?.publicCampaignMetadata?.healBattleArmorCost ?? 10);
-        setTrainCmd(campaign.trainFormationCommanderCost ?? metaData?.publicCampaignMetadata?.trainFormationCommanderCost ?? 500);
-        setTrainForm(campaign.changeFormationTrainingCost ?? metaData?.publicCampaignMetadata?.changeFormationTrainingCost ?? 250);
-        setAbility1(campaign.learnCommandAbility1Cost ?? metaData?.publicCampaignMetadata?.learnCommandAbility1Cost ?? 250);
-        setAbility2(campaign.learnCommandAbility2Cost ?? metaData?.publicCampaignMetadata?.learnCommandAbility2Cost ?? 500);
-        setAbility3(campaign.learnCommandAbility3Cost ?? metaData?.publicCampaignMetadata?.learnCommandAbility3Cost ?? 750);
-        setReplaceAbility(campaign.replaceCommandAbilityCost ?? metaData?.publicCampaignMetadata?.replaceCommandAbilityCost ?? 250);
+        setOmnimechMod(campaign.omnimechReconfigureModifier ?? (metaData?.publicCampaignMetadata as any)?.omnimechReconfigureModifier ?? 0.5);
+        setPurchaseMult(campaign.pvPurchaseUnitMultiplier ?? (metaData?.publicCampaignMetadata as any)?.pvPurchaseUnitMultiplier ?? 40);
+        setSellMult(campaign.pvSellUnitMultiplier ?? (metaData?.publicCampaignMetadata as any)?.pvSellUnitMultiplier ?? 20);
+        setRearmTon(campaign.rearmCostPerTon ?? (metaData?.publicCampaignMetadata as any)?.rearmCostPerTon ?? 10);
+        setRearmAS(campaign.rearmCostPerTonAlphaStrike ?? (metaData?.publicCampaignMetadata as any)?.rearmCostPerTonAlphaStrike ?? 20);
+        setHireMW(campaign.hireMechWarriorCost ?? (metaData?.publicCampaignMetadata as any)?.hireMechWarriorCost ?? 100);
+        setHirePilot(campaign.hireNamedPilotCost ?? (metaData?.publicCampaignMetadata as any)?.hireNamedPilotCost ?? 150);
+        setHireBA(campaign.hireBattleArmorCost ?? (metaData?.publicCampaignMetadata as any)?.hireBattleArmorCost ?? 20);
+        setHealWound(campaign.healMechWarriorPerWoundBoxCost ?? (metaData?.publicCampaignMetadata as any)?.healMechWarriorPerWoundBoxCost ?? 30);
+        setHealMonth(campaign.healMechWarriorPerMonthLimit ?? (metaData?.publicCampaignMetadata as any)?.healMechWarriorPerMonthLimit ?? 2);
+        setHealBA(campaign.healBattleArmorCost ?? (metaData?.publicCampaignMetadata as any)?.healBattleArmorCost ?? 10);
+        setTrainCmd(campaign.trainFormationCommanderCost ?? (metaData?.publicCampaignMetadata as any)?.trainFormationCommanderCost ?? 500);
+        setTrainForm(campaign.changeFormationTrainingCost ?? (metaData?.publicCampaignMetadata as any)?.changeFormationTrainingCost ?? 250);
+        setAbility1(campaign.learnCommandAbility1Cost ?? (metaData?.publicCampaignMetadata as any)?.learnCommandAbility1Cost ?? 250);
+        setAbility2(campaign.learnCommandAbility2Cost ?? (metaData?.publicCampaignMetadata as any)?.learnCommandAbility2Cost ?? 500);
+        setAbility3(campaign.learnCommandAbility3Cost ?? (metaData?.publicCampaignMetadata as any)?.learnCommandAbility3Cost ?? 750);
+        setReplaceAbility(campaign.replaceCommandAbilityCost ?? (metaData?.publicCampaignMetadata as any)?.replaceCommandAbilityCost ?? 250);
     }, [campaign, selectedCampaignId, metaData]);
 
     const handleUpdate = (field: string, value: string | number) => {
@@ -216,7 +218,7 @@ const useTheaterCampaignSync = (
                 const parsed = parseInt(value as string) || 0;
                 valToUse = (field === 'trackCount' || field === 'lengthInMonths') ? Math.max(1, parsed) : Math.max(0, parsed);
             }
-            const input = { [field]: valToUse } as CampaignUpdateInput;
+            const input = { [field]: valToUse } as unknown as CampaignUpdateInput;
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
             if (onRefresh) await onRefresh();
@@ -233,7 +235,7 @@ const useTheaterCampaignSync = (
         saveTimeoutRef.current[key] = setTimeout(async () => {
             if (selectedCampaignId !== targetId) return;
             setIsSyncing(true);
-            const input = { [field]: parseFloat(value as string) || 0 } as CampaignUpdateInput;
+            const input = { [field]: parseFloat(value as string) || 0 } as unknown as CampaignUpdateInput;
 
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
@@ -252,7 +254,7 @@ const useTheaterCampaignSync = (
             setIsSyncing(true);
             const isFloat = field === 'omnimechReconfigureModifier';
             const val = isFloat ? parseFloat(value as string) : parseInt(value as string);
-            const input = { [field]: isNaN(val) ? 0 : val } as CampaignUpdateInput;
+            const input = { [field]: isNaN(val) ? 0 : val } as unknown as CampaignUpdateInput;
 
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
@@ -276,7 +278,7 @@ const useTheaterCampaignSync = (
         await updateCampaign({
             variables: {
                 id: selectedCampaignId,
-                input: { status: newStatus }
+                input: { status: newStatus } as unknown as CampaignUpdateInput
             }
         });
         await refetchCampaign();
@@ -402,7 +404,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         metaData,
         selectedCampaignId,
         loading,
-        updateCampaign,
+        updateCampaign as any,
         rerollTrack,
         refetchCampaign,
         onSyncChange,
@@ -465,9 +467,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         showProcureEditor, procureAssetData, procureTargetDetachment, handleProcureSave, handleProcureCancel,
         showHireEditor, hirePilotData, hireTargetDetachment, handleHireSave, handleHireCancel,
     } = useHscActionHandler({
-        campaign,
+        campaign: campaign as any,
         userCommands,
-        setOverlay: (o) => {
+        setOverlay: (o: any) => {
             if (o === null) setOverlay(prev => ({ ...prev, isOpen: false }));
             else setOverlay({ ...o, isOpen: true });
         },
@@ -485,7 +487,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         saveTimeoutRef.current[key] = setTimeout(async () => {
             setIsSyncing(true);
             const valToUse = field === 'monthIndex' ? parseInt(value) : value;
-            const input = { [field]: valToUse } as TrackUpdateInput;
+            const input = { [field]: valToUse } as unknown as TrackUpdateInput;
             await updateTrack({ variables: { id: trackId, input } });
             await refetchCampaign();
             if (onRefresh) await onRefresh();
@@ -530,7 +532,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         // 5. Sync to backend
         setIsSyncing(true);
         try {
-            await updateTrack({ variables: { id: draggedTrackId, input: { monthIndex: targetMonth } } });
+            await updateTrack({ variables: { id: draggedTrackId, input: { monthIndex: targetMonth } as unknown as TrackUpdateInput } });
             await reorderTracks({ variables: { campaignId: campaign.id, trackIds: orderedIds } });
             await refetchCampaign();
             if (onRefresh) await onRefresh();
@@ -1174,7 +1176,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                         <EditableTrackCard
                                                             key={track.id}
                                                             track={track}
-                                                            campaign={campaign}
+                                                            campaign={campaign as any}
                                                             metaData={metaData}
                                                             handleTrackUpdate={campaign.isManager ? handleTrackUpdate : () => { }}
                                                             handleReroll={campaign.isManager ? handleReroll : async () => { }}

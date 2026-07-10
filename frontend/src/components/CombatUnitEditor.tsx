@@ -13,8 +13,8 @@ import { TerminalOverlay } from './TerminalOverlay';
 import { CombatUnit, CombatUnitUpdateInput } from '../types/generated';
 import { UnitType, UnitStatus, TechBase } from '../types/helpers';
 import { calculateReconfigureCost, calculatePurchasePrice } from '../util/pricingUtils';
-import { ADD_COMBAT_UNIT as ADD_UNIT, UPDATE_UNIT, IMPORT_ASSETS, GET_METADATA, ADD_LEDGER_ENTRY } from '../types/operations';
-import { GetCampaignMetadataQuery } from '../types/generated';
+import { AddCombatUnitDocument as ADD_UNIT, UpdateUnitDocument, ImportAssetsDocument, GetCampaignMetadataDocument, AddLedgerEntryDocument } from '../types/operations';
+import { GetCampaignMetadataQuery } from '../types/operations';
 import { CombatUnitBackground } from './CombatUnitBackground';
 
 interface CombatUnitEditorProps {
@@ -97,22 +97,22 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
     const { getFloatingProps } = useInteractions([dismiss, role]);
 
     const [addUnit] = useMutation(ADD_UNIT);
-    const [updateUnit] = useMutation(UPDATE_UNIT);
-    const [importAssets] = useMutation(IMPORT_ASSETS);
-    const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY);
-    const { data: metadataData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA);
+    const [updateUnit] = useMutation(UpdateUnitDocument);
+    const [importAssets] = useMutation(ImportAssetsDocument);
+    const [addLedgerEntry] = useMutation(AddLedgerEntryDocument);
+    const { data: metadataData } = useQuery<GetCampaignMetadataQuery>(GetCampaignMetadataDocument);
 
     const purchasePrice = useMemo(() => {
         if (overridePrice !== undefined) {
             return overridePrice;
         }
-        return calculatePurchasePrice(formData.bv || 0, formData.pv || 0, formData.techBase || 'Inner Sphere', pricingRule, overridePrice, metadataData?.publicCampaignMetadata ?? undefined);
+        return calculatePurchasePrice(formData.bv || 0, formData.pv || 0, formData.techBase || 'Inner Sphere', pricingRule, overridePrice, metadataData?.publicCampaignMetadata as any);
     }, [formData, metadataData, pricingRule, overridePrice]);
 
     const reconfigureCost = useMemo(() => {
         if (mode !== 'edit' || !unit || !formData.detachmentId) return 0;
         if (formData.bv === unit.bv && formData.pv === unit.pv) return 0;
-        return calculateReconfigureCost(mode, unit, formData.bv || 0, formData.pv || 0, formData.tonnage || 0, formData.asSize || 0, formData.techBase || 'Inner Sphere', formData.detachmentId, pricingRule, metadataData?.publicCampaignMetadata ?? undefined);
+        return calculateReconfigureCost(mode, unit, formData.bv || 0, formData.pv || 0, formData.tonnage || 0, formData.asSize || 0, formData.techBase || 'Inner Sphere', formData.detachmentId, pricingRule, metadataData?.publicCampaignMetadata as any);
     }, [mode, unit, formData.detachmentId, formData.bv, formData.pv, formData.tonnage, formData.asSize, formData.techBase, pricingRule, metadataData]);
 
     const handleInputChange = (field: keyof CombatUnit, value: any) => {
@@ -193,7 +193,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                                     description: mode === 'create'
                                         ? `UNIT PURCHASE: ${formData.model} ${formData.variant}`.trim()
                                         : `OMNIMECH RECONFIGURE: ${formData.model} ${formData.variant}`.trim()
-                                }
+                                } as any
                             }
                         });
                     } catch (ledgerErr) {

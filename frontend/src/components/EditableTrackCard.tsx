@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CampaignDetail, TrackDetail } from '../types/helpers';
-import { GetCampaignMetadataQuery } from '../types/generated';
+import { GetCampaignMetadataQuery } from '../types/operations';
 
 interface EditableTrackCardProps {
     track: TrackDetail;

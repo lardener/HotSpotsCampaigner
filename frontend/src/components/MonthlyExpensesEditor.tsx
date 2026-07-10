@@ -3,7 +3,7 @@ import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { Detachment } from '../types/generated';
 import { CampaignDetailSummary, NumericInput } from '../types/helpers';
-import { ADD_LEDGER_ENTRY } from '../types/operations';
+import { AddLedgerEntryDocument as ADD_LEDGER_ENTRY } from '../types/operations';
 import { parseMultiplier, parseNumericInput, isInputInvalid } from '../util/contractUtils'; // This was already correct
 
 interface MonthlyExpensesEditorProps {
@@ -142,7 +142,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                         campaignId: campaignDetails.id,
                         campaignName: campaignDetails.name,
                         monthIndex: currentMonthIndex,
-                    }
+                    } as any
                 }
             });
             onLedgerEntryAdded();

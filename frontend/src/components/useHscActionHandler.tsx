@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Campaign, MercenaryCommand, CombatUnit, Pilot, Detachment, GetCampaignMetadataQuery } from '../types/generated';
+import { Campaign, MercenaryCommand, CombatUnit, Pilot, Detachment } from '../types/generated';
+import { GetCampaignMetadataQuery } from '../types/operations';
 import { TerminalOverlayProps } from './TerminalOverlay';
 
 interface ProcureAssetData extends Partial<CombatUnit> {

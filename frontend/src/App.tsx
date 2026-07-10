@@ -5,8 +5,9 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { ApolloProvider } from '@apollo/client/react';
 import { createClient } from 'graphql-ws';
 import { MainDashboard } from './components/MainDashboard';
-import { GET_USER_PROFILE } from './types/operations';
-import { UserProfile, GetUserProfileQuery } from './types/generated';
+import { GetUserProfileDocument } from './types/operations';
+import { UserProfile } from './types/generated';
+import { GetUserProfileQuery } from './types/operations';
 import './styles/index.css';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || '';
@@ -72,7 +73,7 @@ export function App() {
   }, []);
 
   const fetchProfile = () => {
-    client.query<GetUserProfileQuery>({ query: GET_USER_PROFILE, fetchPolicy: 'network-only' })
+    client.query<GetUserProfileQuery>({ query: GetUserProfileDocument, fetchPolicy: 'network-only' })
       .then(result => {
         const profile = result.data?.userProfile;
         if (profile) {

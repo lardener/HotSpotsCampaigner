@@ -11,15 +11,15 @@ import { useHscActionHandler } from './useHscActionHandler';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules';
 import { parseMultiplier, parseSupportTerms, parseNumericInput, isInputInvalid } from '../util/contractUtils';
 import { calculatePilotFinancials, calculateAwardFinancials, calculateUnitFinancials } from '../util/financialUtils';
-import { AddLedgerEntryMutation, UpdateUnitMutation, UpdatePilotMutation, UpdateTrackMutation, DeleteUnitMutation, GetCampaignMetadataQuery } from '../types/generated';
+import { AddLedgerEntryMutation, UpdateUnitMutation, UpdatePilotMutation, UpdateTrackMutation, DeleteUnitMutation, GetCampaignMetadataQuery } from '../types/operations';
 import {
-    GET_METADATA,
-    UPDATE_UNIT,
-    UPDATE_PILOT,
-    DELETE_PILOT,
-    UPDATE_TRACK,
-    DELETE_UNIT,
-    ADD_LEDGER_ENTRY
+    GetCampaignMetadataDocument,
+    UpdateUnitDocument,
+    UpdatePilotDocument,
+    DeletePilotDocument,
+    UpdateTrackDocument,
+    DeleteUnitDocument,
+    AddLedgerEntryDocument
 } from '../types/operations';
 import { AarBackground } from './AarBackground';
 
@@ -150,10 +150,10 @@ interface AfterActionReportEditorProps {
 }
 
 export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = ({ campaign, track, metaData: propMetaData, onClose, onLedgerEntryAdded, userCommands }) => {
-    const [addLedgerEntry] = useMutation<AddLedgerEntryMutation>(ADD_LEDGER_ENTRY);
-    const [updateUnit] = useMutation<UpdateUnitMutation>(UPDATE_UNIT);
-    const [updatePilot] = useMutation<UpdatePilotMutation>(UPDATE_PILOT);
-    const [deletePilot] = useMutation(DELETE_PILOT, {
+    const [addLedgerEntry] = useMutation<AddLedgerEntryMutation>(AddLedgerEntryDocument);
+    const [updateUnit] = useMutation<UpdateUnitMutation>(UpdateUnitDocument);
+    const [updatePilot] = useMutation<UpdatePilotMutation>(UpdatePilotDocument);
+    const [deletePilot] = useMutation(DeletePilotDocument, {
         update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deletePilot && variables?.pilotId) {
                 cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
@@ -161,8 +161,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         }
     });
-    const [updateTrack] = useMutation<UpdateTrackMutation>(UPDATE_TRACK);
-    const [deleteUnit] = useMutation<DeleteUnitMutation>(DELETE_UNIT, {
+    const [updateTrack] = useMutation<UpdateTrackMutation>(UpdateTrackDocument);
+    const [deleteUnit] = useMutation<DeleteUnitMutation>(DeleteUnitDocument, {
         update(cache: ApolloCache, { data }, { variables }) {
             if (data?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
@@ -170,7 +170,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
             }
         }
     });
-    const { loading: metadataLoading, data: queryMetaData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA, {
+    const { loading: metadataLoading, data: queryMetaData } = useQuery<GetCampaignMetadataQuery>(GetCampaignMetadataDocument, {
         skip: !!propMetaData
     });
 
@@ -232,9 +232,9 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     const repairRules = campaign || metaData?.publicCampaignMetadata;
 
-    const ammoCostPerTon = campaign.rearmCostPerTon ?? metaData?.publicCampaignMetadata?.rearmCostPerTon ?? 10;
-    const injuryHealCost = campaign.healMechWarriorPerWoundBoxCost ?? metaData?.publicCampaignMetadata?.healMechWarriorPerWoundBoxCost ?? 30;
-    const healMonthLimit = campaign.healMechWarriorPerMonthLimit ?? metaData?.publicCampaignMetadata?.healMechWarriorPerMonthLimit ?? 2;
+    const ammoCostPerTon = campaign.rearmCostPerTon ?? (metaData?.publicCampaignMetadata as any)?.rearmCostPerTon ?? 10;
+    const injuryHealCost = campaign.healMechWarriorPerWoundBoxCost ?? (metaData?.publicCampaignMetadata as any)?.healMechWarriorPerWoundBoxCost ?? 30;
+    const healMonthLimit = campaign.healMechWarriorPerMonthLimit ?? (metaData?.publicCampaignMetadata as any)?.healMechWarriorPerMonthLimit ?? 2;
 
     const getDetachmentTerms = (detId: string) => {
         const detAar = state.detachmentAars[detId] || { selectedContractId: '', selectedLevel: 1, outcomeMultiplier: 1.0, salvageValue: 0, customAward: 0 };

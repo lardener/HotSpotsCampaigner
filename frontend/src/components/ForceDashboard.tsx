@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DndContext, useDraggable, useDroppable, DragEndEvent } from '@dnd-kit/core';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { CombatUnit, Pilot, GetForceDataQuery } from '../types/generated';
-import { GET_FORCE_DATA, ASSIGN_ASSET } from '../types/operations';
+import { CombatUnit, Pilot } from '../types/generated';
+import { GetForceDataQuery } from '../types/operations';
+import { GetForceDataDocument, AssignAssetDocument } from '../types/operations';
 import { UnitStatus, UnitType, TechBase } from '../types/helpers';
 import { PilotEditor } from './PilotEditor';
 import { CombatUnitEditor } from './CombatUnitEditor';
@@ -72,7 +73,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
     const [showCombatUnitEditor, setShowCombatUnitEditor] = useState(false);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
 
-    const { loading, error, data, refetch } = useQuery<GetForceDataQuery>(GET_FORCE_DATA, {
+    const { loading, error, data, refetch } = useQuery<GetForceDataQuery>(GetForceDataDocument, {
         variables: { commandId },
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
@@ -86,7 +87,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
 
     useEffect(() => {
         if (data?.getCommand) {
-            const rawUnits = data.getCommand.units?.filter((u): u is NonNullable<typeof u> => u != null) || [];
+            const rawUnits = (data.getCommand.units?.filter((u): u is NonNullable<typeof u> => u != null) || []) as CombatUnit[];
             const rawPilots = data.getCommand.pilots?.filter((p): p is NonNullable<typeof p> => p != null) || [];
             const rawDetachments = data.getCommand.detachments?.filter((d): d is NonNullable<typeof d> => d != null) || [];
             setUnits(sortUnits(rawUnits));
@@ -101,7 +102,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
     const unitTypes = (data?.publicCampaignMetadata?.unitTypes?.filter((t): t is string => t != null) || FALLBACK_TYPES) as UnitType[];
     const techBases = (data?.publicCampaignMetadata?.techBases?.filter((t): t is string => t != null) || FALLBACK_TECH) as TechBase[];
 
-    const [assignAsset] = useMutation(ASSIGN_ASSET);
+    const [assignAsset] = useMutation(AssignAssetDocument);
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;

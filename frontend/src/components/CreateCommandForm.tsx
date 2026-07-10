@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CommandUpdateInput, EstablishCommandMutation } from '../types/generated';
-import { ESTABLISH_COMMAND } from '../types/operations';
+import { CommandUpdateInput } from '../types/generated';
+import { EstablishCommandMutation } from '../types/operations';
+import { EstablishCommandDocument } from '../types/operations';
 
 // Props for the CreateCommandForm component
 interface CreateCommandFormProps {
@@ -17,7 +18,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({ user, onCa
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [establishCommand] = useMutation<EstablishCommandMutation, { input: CommandUpdateInput }>(ESTABLISH_COMMAND);
+    const [establishCommand] = useMutation<EstablishCommandMutation, { input: CommandUpdateInput }>(EstablishCommandDocument);
 
     const handleSubmit = async () => {
         if (isSubmitting) return;

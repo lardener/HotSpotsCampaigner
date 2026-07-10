@@ -11,16 +11,17 @@ import { CampaignTheaterView } from './CampaignTheaterView';
 import { MercenaryRegistryView } from './MercenaryRegistryView';
 import { PublicCampaignTheaterView } from './PublicCampaignTheaterView';
 import { Sidebar } from './Sidebar';
-import { Campaign, UserProfile, GetMyCommandsQuery, GetManagedCampaignsQuery } from '../types/generated';
+import { Campaign, UserProfile, MercenaryCommand } from '../types/generated';
+import { GetMyCommandsQuery, GetManagedCampaignsQuery } from '../types/operations';
 import { MercenaryRegistryBackground } from './MercenaryRegistryBackground';
 import { MyDeploymentsList } from './MyDeploymentsList';
 import { TerminalOverlay } from './TerminalOverlay';
 import {
-    GET_MY_COMMANDS,
-    GET_MANAGED_CAMPAIGNS,
-    UPDATE_USER_PROFILE,
-    LOGIN_WITH_TOKEN,
-    DELETE_COMMAND // This was already correct
+    GetMyCommandsDocument,
+    GetManagedCampaignsDocument,
+    UpdateUserProfileDocument,
+    LoginWithTokenDocument,
+    DeleteCommandDocument // This was already correct
 } from '../types/operations';
 
 export type TabType = 'my-campaigns' | 'create-campaign' | 'commands' | 'ledger' | 'public-campaigns' | 'command-dashboard' | 'intel-hub' | 'my-deployments';
@@ -41,7 +42,7 @@ interface MainDashboardProps {
 
 export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, onRefreshProfile }) => {
     const [activeTab, setActiveTab] = useState<TabType>('intel-hub');
-    const [commands, setCommands] = useState<GetMyCommandsQuery['myCommands']>([]);
+    const [commands, setCommands] = useState<MercenaryCommand[]>([]);
     const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
     const lastSyncTimeRef = useRef<number>(0);
     const inactivityTimerRef = useRef<number | null>(null); // To store setTimeout ID
     const [inviteToken, setInviteToken] = useState('');
-    const [loginWithToken] = useMutation(LOGIN_WITH_TOKEN);
+    const [loginWithToken] = useMutation(LoginWithTokenDocument);
 
     // Centralize role check
     const isManager = useMemo(() => {
@@ -216,13 +217,13 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         setEditName(user?.displayName || user?.name || '');
     }, [user]);
 
-    const { loading, error, data, refetch } = useQuery<GetMyCommandsQuery>(GET_MY_COMMANDS, {
+    const { loading, error, data, refetch } = useQuery<GetMyCommandsQuery>(GetMyCommandsDocument, {
         skip: !user,
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
 
-    const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<GetManagedCampaignsQuery>(GET_MANAGED_CAMPAIGNS, {
+    const { loading: loadingManaged, data: managedData, refetch: refetchManaged } = useQuery<GetManagedCampaignsQuery>(GetManagedCampaignsDocument, {
         variables: { status: campaignFilter },
         skip: !user,
         fetchPolicy: 'cache-and-network',
@@ -263,8 +264,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         }
     }, [error]);
 
-    const [deleteCommand] = useMutation(DELETE_COMMAND);
-    const [updateUserProfile] = useMutation(UPDATE_USER_PROFILE);
+    const [deleteCommand] = useMutation(DeleteCommandDocument);
+    const [updateUserProfile] = useMutation(UpdateUserProfileDocument);
 
     const handleNameUpdate = async () => {
         if (!editName.trim()) return setIsEditingName(false);
@@ -279,7 +280,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
 
     useEffect(() => {
         if (data?.myCommands) {
-            setCommands([...data.myCommands]); // Force a fresh reference
+            setCommands(data.myCommands as unknown as MercenaryCommand[]); // Force a fresh reference
             if (data.myCommands.length > 0 && !selectedCommandId) {
                 const firstCmd = data.myCommands[0];
                 if (firstCmd != null) {
@@ -300,7 +301,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     if (det != null && det.campaignId) {
                         deploymentNodes.push({
                             id: `deployment-${det.id}`,
-                            label: `${cmd.name} - ${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
+                            label: `${cmd.name} - ${det.name}${(det as any).campaignRating != null ? ` (Rating: ${(det as any).campaignRating})` : ''}`,
                             type: 'DEPLOYMENT' as NodeType,
                             metadata: { detachmentId: det.id, commandId: cmd.id }
                         });
@@ -339,7 +340,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     type: 'COMMAND' as NodeType,
                     children: cmd.detachments?.filter((det): det is NonNullable<typeof det> => det != null).map((det) => ({
                         id: `cmd-det-${det.id}`,
-                        label: `${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
+                        label: `${det.name}${(det as any).campaignRating != null ? ` (Rating: ${(det as any).campaignRating})` : ''}`,
                         type: 'DETACHMENT' as NodeType,
                         metadata: { detachmentId: det.id, commandId: cmd.id }
                     }))
@@ -356,7 +357,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                     type: 'CAMPAIGN' as NodeType,
                     children: (camp.participatingDetachments || []).filter((det): det is NonNullable<typeof det> => det != null).map((det) => ({
                         id: `camp-det-${det.id}`,
-                        label: `${det.name}${det.campaignRating != null ? ` (Rating: ${det.campaignRating})` : ''}`,
+                        label: `${det.name}${(det as any).campaignRating != null ? ` (Rating: ${(det as any).campaignRating})` : ''}`,
                         type: 'DETACHMENT' as NodeType,
                         metadata: {
                             detachmentId: det.id,
@@ -483,7 +484,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
         try {
             const result = await refetch();
             if (result.data?.myCommands) {
-                setCommands([...result.data.myCommands]);
+                setCommands(result.data.myCommands as unknown as MercenaryCommand[]);
             }
         } catch (err) {
             console.error("Manual refetch failed:", err);
@@ -628,15 +629,15 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
                         </header>
                         <CampaignGenerator
                             user={{ name: user?.name || '' }}
-                        onSaveSuccess={(newCampaign) => {
-                            fetchCommands();
-                            refetchManaged();
-                            if (newCampaign?.id) {
-                                setSelectedCampaignId(newCampaign.id);
-                                setSelectedNodeId(newCampaign.id);
-                            }
-                            setActiveTab('my-campaigns');
-                        }}
+                            onSaveSuccess={(newCampaign) => {
+                                fetchCommands();
+                                refetchManaged();
+                                if (newCampaign?.id) {
+                                    setSelectedCampaignId(newCampaign.id);
+                                    setSelectedNodeId(newCampaign.id);
+                                }
+                                setActiveTab('my-campaigns');
+                            }}
                         />
                     </div>
                 );

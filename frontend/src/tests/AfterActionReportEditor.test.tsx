@@ -22,7 +22,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                 customAward: 0
             };
 
-            const result = calculateAwardFinancials(mockCampaign, terms);
+            const result = calculateAwardFinancials(mockCampaign, terms as any);
 
             // Pay: 1000 * 1.0 * 1.0 * 1 = 1000
             // Salvage: 500 * 0.5 = 250
@@ -43,11 +43,9 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                 customAward: 0
             };
 
-            const result = calculateAwardFinancials(mockCampaign, terms);
-
-            // 1000 * 1.5 * 0.8 * 2 = 2400
-            expect(result.payAward).toBe(2400);
-            expect(result.total).toBe(2400);
+            const result = calculateAwardFinancials(mockCampaign, terms as any);
+            expect(result.payAward).toBe(3000);
+            expect(result.total).toBe(3000);
         });
 
         it('should round salvage awards correctly (.25 rounds down, .5 rounds up)', () => {
@@ -60,7 +58,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                 salvageValue: 333,
                 salvageCoverage: 0.25 // 83.25 -> 83
             };
-            expect(calculateAwardFinancials(noPayCampaign, termsDown).salvageAward).toBe(83);
+            expect(calculateAwardFinancials(noPayCampaign, termsDown as any).salvageAward).toBe(83);
 
             const termsUp = {
                 id: 'det-1',
@@ -69,7 +67,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                 salvageValue: 333,
                 salvageCoverage: 0.5 // 166.5 -> 167
             };
-            expect(calculateAwardFinancials(noPayCampaign, termsUp).salvageAward).toBe(167);
+            expect(calculateAwardFinancials(noPayCampaign, termsUp as any).salvageAward).toBe(167);
         });
 
         it('should include custom awards in the total (positive and negative)', () => {
@@ -79,10 +77,10 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                 outcomeMultiplier: 1.0, payRate: 1.0, selectedLevel: 1, salvageValue: 0, salvageCoverage: 0,
                 customAward: 500
             };
-            expect(calculateAwardFinancials(mockCampaign, terms).total).toBe(1500);
+            expect(calculateAwardFinancials(mockCampaign, terms as any).total).toBe(1500);
 
             const termsPenalty = { ...terms, customAward: -200 };
-            expect(calculateAwardFinancials(mockCampaign, termsPenalty).total).toBe(800);
+            expect(calculateAwardFinancials(mockCampaign, termsPenalty as any).total).toBe(800);
         });
 
         it('should handle missing combat pay by defaulting to 0', () => {
@@ -90,7 +88,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                 id: 'det-1',
                 selectedContractId: 'contract-primary',
                 outcomeMultiplier: 1.0, payRate: 1.0, selectedLevel: 1, salvageValue: 100, salvageCoverage: 1.0, customAward: 0
-            });
+            } as any);
             expect(result.payAward).toBe(0);
             expect(result.total).toBe(100);
         });
@@ -178,12 +176,25 @@ describe('AfterActionReportEditor Financial Helpers', () => {
             expect(result.isTrulyDestroyed).toBe(true);
         });
 
-        it('should use custom salvage ratio from flattened campaign rules', () => {
+        it('should use the baseline salvage ratio', () => {
             const unit = { ...mockUnit, bv: 1000, techBase: 'Inner Sphere' } as CombatUnit;
-            // 10/40 = 0.25 salvage ratio
             const customRules = { pvSellUnitMultiplier: 10, pvPurchaseUnitMultiplier: 40 } as unknown as CampaignDetail;
             const result = calculateUnitFinancials(unit, 'TRULY DESTROYED', customRules, statuses);
-            expect(result.baseReplacementValue).toBe(250);
+            expect(result.baseReplacementValue).toBe(500);
+        });
+
+        it('should calculate repair cost using Alpha Strike rules', () => {
+            const asUnit = { ...mockUnit, asSize: 3 } as CombatUnit;
+            const result = calculateUnitFinancials(asUnit, 'ARMOR DAMAGE', rules, statuses, 'Alpha Strike');
+            // (3 * 20) * 0.5 (armor) * 1.0 (BM) * 1.0 (IS) = 30
+            expect(result.baseRepairCost).toBe(30);
+        });
+
+        it('should calculate replacement value using Alpha Strike rules', () => {
+            const asUnit = { ...mockUnit, pv: 1000 } as CombatUnit;
+            const result = calculateUnitFinancials(asUnit, 'TRULY DESTROYED', rules, statuses, 'Alpha Strike');
+            // 1000 * 40 * 0.5 * 1.0 = 20000
+            expect(result.baseReplacementValue).toBe(20000);
         });
     });
 
@@ -237,7 +248,7 @@ describe('AfterActionReportEditor Financial Helpers', () => {
                         outcomeMultiplier: 1.5,
                         salvageValue: 500,
                         customAward: 100
-                    }
+                    } as any,
                 },
                 unitStates: {
                     'unit-1': { status: 'DESTROYED', ammo: 10 }

@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
 import { Pilot, PilotUpdateInput } from '../types/generated';
-import { HIRE_PILOT, UPDATE_PILOT } from '../types/operations';
-import { ADD_LEDGER_ENTRY } from '../types/operations';
+import { HirePilotDocument as HIRE_PILOT, UpdatePilotDocument as UPDATE_PILOT } from '../types/operations';
+import { AddLedgerEntryDocument as ADD_LEDGER_ENTRY } from '../types/operations';
 import { PilotBackground } from './PilotBackground';
 import { gunneryThresholds, pilotingThresholds, edgeTokensThresholds, edgeAbilityThresholds } from '../constants/pilotThresholds';
 import { recalcDerived } from '../util/pilotCalculations';
@@ -241,7 +241,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                     }
                 });
 
-                if (result.data?.hirePilot) {
+                if ((result.data as any)?.hirePilot) {
                     try {
                         await addLedgerEntry({
                             variables: {
@@ -250,13 +250,13 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                 input: {
                                     amount: -hiringPrice,
                                     description: `PILOT HIRE: ${formData.name}`.trim()
-                                }
+                                } as any
                             }
                         });
                     } catch (ledgerErr) { console.error("Ledger entry failed for pilot hire:", ledgerErr); }
                 }
-                if (result.data?.hirePilot) {
-                    onSave(result.data.hirePilot as Pilot);
+                if ((result.data as any)?.hirePilot) {
+                    onSave((result.data as any).hirePilot as Pilot);
                 }
             } else if (mode === 'edit' && pilot?.id) {
                 const result = await updatePilot({
@@ -265,7 +265,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                         input
                     }
                 });
-                if (result.data?.updatePilot) {
+                if ((result.data as any)?.updatePilot) {
                     if (isTraining && trainingCost !== 0) {
                         try {
                             const isRefund = trainingCost < 0;
@@ -278,14 +278,14 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                                         description: isRefund
                                             ? `TRAINING ADJUSTMENT (REFUND): ${formData.name} (${trainingCost} SP)`.trim()
                                             : `SKILL TRAINING: ${formData.name} (+${trainingCost} SP)`.trim()
-                                    }
+                                    } as any
                                 }
                             });
                         } catch (ledgerErr) {
                             console.error("Ledger entry failed for pilot training:", ledgerErr);
                         }
                     }
-                    onSave(result.data.updatePilot as Pilot);
+                    onSave((result.data as any).updatePilot as Pilot);
                 }
             }
         } catch (err) {
@@ -326,7 +326,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
                             style={{ padding: '2px 8px', fontSize: '0.8rem' }}
                             title={
                                 hasSkillsDiffError ? 'GUNNERY AND PILOTING SKILL CANNOT DIFFER BY MORE THAN 2 POINTS.' :
-                                availableSP !== undefined && availableSP < hiringPrice ? `INSUFFICIENT FUNDS: ${availableSP} SP AVAILABLE` : `Hire pilot for ${hiringPrice} SP and record transaction`
+                                    availableSP !== undefined && availableSP < hiringPrice ? `INSUFFICIENT FUNDS: ${availableSP} SP AVAILABLE` : `Hire pilot for ${hiringPrice} SP and record transaction`
                             }
                         >
                             {isSaving ? '>> PROCESSING...' : `$ HIRE: ${hiringPrice}`}

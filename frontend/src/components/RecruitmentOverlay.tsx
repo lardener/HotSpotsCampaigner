@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { TerminalOverlay } from './TerminalOverlay';
-import { CampaignInvite, CreateInviteMutation } from '../types/generated';
-import { CREATE_INVITE, DELETE_INVITE } from '../types/operations';
-import { CreateInviteMutationVariables } from '../types/generated';
+import { CampaignInvite } from '../types/generated';
+import { CreateInviteDocument as CREATE_INVITE, DeleteInviteDocument as DELETE_INVITE, CreateInviteMutation, CreateInviteMutationVariables } from '../types/operations';
 import { RecruitmentBackground } from './RecruitmentBackground';
 
 interface RecruitmentOverlayProps {

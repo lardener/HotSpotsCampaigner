@@ -10,7 +10,8 @@
  * All domain types that exist in generated.ts should be imported from there directly.
  */
 
-import type { Campaign, CampaignMetadata, CombatUnit, Detachment, Pilot, ResolvedStepValues as GeneratedResolvedStepValues, GetMyCommandsQuery, GetManagedCampaignsQuery, GetCampaignMetadataQuery, GetUnitDossierQuery, Query } from './generated';
+import type { Campaign, CampaignMetadata, CombatUnit, Detachment, Pilot, ResolvedStepValues as GeneratedResolvedStepValues, Query } from './generated';
+import type { GetMyCommandsQuery, GetManagedCampaignsQuery, GetCampaignMetadataQuery, GetUnitDossierQuery } from './operations';
 
 // ==================== UI Input Helpers ====================
 
@@ -87,7 +88,7 @@ export type Proposal = import('./generated').CampaignProposal;
 /**
  * Detachment state for After Action Report editing.
  */
-export interface DetachmentAarState extends Detachment {
+export interface DetachmentAarState extends Omit<Detachment, 'units' | 'pilots'> {
     units?: CombatUnit[];
     pilots?: Pilot[];
     selectedContractId?: string;

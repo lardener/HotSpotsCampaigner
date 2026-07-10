@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LedgerEntryForm } from './LedgerEntryForm';
 import { useQuery } from '@apollo/client/react';
-import { GET_LEDGER_DATA } from '../types/operations';
-import { GetLedgerDataQuery } from '../types/generated';
+import { GetLedgerDataDocument } from '../types/operations';
+import { GetLedgerDataQuery } from '../types/operations';
 import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerDashboardProps {
@@ -12,7 +12,7 @@ interface LedgerDashboardProps {
 
 export const LedgerDashboard: React.FC<LedgerDashboardProps> = ({ commandId, detachmentId }) => {
     const [selectedDetachmentId, setSelectedDetachmentId] = useState<string>('');
-    const { loading, data, refetch } = useQuery<GetLedgerDataQuery>(GET_LEDGER_DATA, {
+    const { loading, data, refetch } = useQuery<GetLedgerDataQuery>(GetLedgerDataDocument, {
         variables: { commandId },
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true

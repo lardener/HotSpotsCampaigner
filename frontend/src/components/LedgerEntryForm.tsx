@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client/react'; // Keep this import style
 import { NumericInput } from '../types/helpers';
 import { parseNumericInput, isInputInvalid } from '../util/contractUtils';
-import { ADD_LEDGER_ENTRY, GET_UNIT_DOSSIER, GET_LEDGER_DATA } from '../types/operations';
+import { AddLedgerEntryDocument as ADD_LEDGER_ENTRY, GetUnitDossierDocument as GET_UNIT_DOSSIER, GetLedgerDataDocument as GET_LEDGER_DATA } from '../types/operations';
 import { LedgerBackground } from './LedgerBackground';
 
 interface LedgerEntryFormProps {

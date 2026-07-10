@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { GET_ACTIVE_CAMPAIGNS } from '../types/operations';
-import { GetActiveCampaignsQuery } from '../types/generated';
+import { GetActiveCampaignsDocument } from '../types/operations';
+import { GetActiveCampaignsQuery } from '../types/operations';
+import { Campaign } from '../types/generated';
 import { ActiveCampaignsBackground } from './ActiveCampaignsBackground';
 
 interface ActiveCampaignsListProps {
@@ -9,14 +10,14 @@ interface ActiveCampaignsListProps {
 }
 
 export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSelectCampaign }) => {
-    const { loading, error, data } = useQuery<GetActiveCampaignsQuery>(GET_ACTIVE_CAMPAIGNS, {
+    const { loading, error, data } = useQuery<GetActiveCampaignsQuery>(GetActiveCampaignsDocument, {
         variables: { page: 0, size: 10 },
         fetchPolicy: 'cache-and-network',
         notifyOnNetworkStatusChange: true
     });
     const [searchTerm, setSearchTerm] = useState('');
 
-    const campaigns = data?.publicActiveCampaigns || [];
+    const campaigns = (data?.publicActiveCampaigns || []) as Campaign[];
 
     const filteredCampaigns = useMemo(() => {
         const terms = searchTerm.toLowerCase().split(/\s+/).filter(t => t.length > 0);
@@ -35,7 +36,7 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
 
                 const inDetachments = c.participatingDetachments?.some(det =>
                     det != null && (det.name?.toLowerCase().includes(term) ||
-                    det.mercenaryCommandName?.toLowerCase().includes(term))
+                        det.mercenaryCommandName?.toLowerCase().includes(term))
                 );
 
                 return inCampaignFields || inDetachments;

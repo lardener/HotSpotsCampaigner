@@ -4,7 +4,7 @@ import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { MockLink } from '@apollo/client/testing'; // This was already correct
 import { LedgerEntryForm } from '../components/LedgerEntryForm';
-import { ADD_LEDGER_ENTRY } from '../types/operations';
+import { AddLedgerEntryDocument as ADD_LEDGER_ENTRY } from '../types/operations';
 
 describe('LedgerEntryForm', () => {
     beforeEach(() => {

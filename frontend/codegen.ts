@@ -2,13 +2,23 @@ import { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {
     schema: '../schema.graphqls',
-    documents: ['src/**/*.{ts,tsx}'],
+    documents: ['src/**/*.{ts,tsx}', '!src/types/generated.ts', 'src/gql/**/*.ts'],
     generates: {
         'src/types/generated.ts': {
-            plugins: ['typescript', 'typescript-operations', 'typed-document-node'],
+            plugins: ['typescript'],
             config: {
-                avoidOptionals: false,
+                avoidOptionals: true,
                 strictScalars: true,
+                scalars: {
+                    DateTime: 'string',
+                    ID: 'string',
+                },
+            },
+        },
+        'src/types/operations.ts': {
+            plugins: ['typescript-operations', 'typed-document-node'],
+            config: {
+                avoidOptionals: true,
                 scalars: {
                     DateTime: 'string',
                     ID: 'string',

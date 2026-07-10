@@ -1,6 +1,6 @@
 import React from 'react';
 import { CampaignGenerator } from './CampaignGenerator';
-import { UpdateCampaignMutation } from '../types/generated';
+import { UpdateCampaignMutation } from '../types/operations';
 
 interface NewCampaignViewProps {
     user: { name: string; id: string } | null;

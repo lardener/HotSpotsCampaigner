@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
 import { CampaignCreateInput, ContractPreview, Proposal, ResolvedStepValues } from '../types/campaign';
-import { GetCampaignMetadataQuery, PreviewCampaignQuery, ProposedTrack, GenerateTracksQuery, CreateCampaignMutation, UpdateCampaignMutation } from '../types/generated';
+import { ProposedTrack } from '../types/generated';
+import { GetCampaignMetadataQuery, GenerateTracksQuery, CreateCampaignMutation, UpdateCampaignMutation } from '../types/operations';
 import {
-    GET_METADATA,
-    PREVIEW_CAMPAIGN,
-    GENERATE_TRACKS,
-    CREATE_CAMPAIGN
+    GetCampaignMetadataDocument,
+    // PreviewCampaignDocument,
+    GenerateTracksDocument,
+    CreateCampaignDocument
 } from '../types/operations';
 import { GeneratorBackground } from './GeneratorBackground';
 
@@ -21,13 +22,13 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [resolvedSteps, setResolvedSteps] = useState<Record<number, ResolvedStepValues>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
 
-    const [previewError, setPreviewError] = useState<string | null>(null);
+    const [previewError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [proposal, setProposal] = useState<Proposal | null>(null);
     const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<GetCampaignMetadataQuery>(GET_METADATA);
+    const { loading: metadataLoading, error: metadataError, data: metadataData } = useQuery<GetCampaignMetadataQuery>(GetCampaignMetadataDocument);
 
     useEffect(() => {
         if (metadataData?.publicCampaignMetadata) {
@@ -68,11 +69,14 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         return val;
     };
 
-    const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<PreviewCampaignQuery>(PREVIEW_CAMPAIGN, {
-        fetchPolicy: 'network-only'
-    });
-    const [getTracks] = useLazyQuery<GenerateTracksQuery>(GENERATE_TRACKS);
+    const [getTracks] = useLazyQuery<GenerateTracksQuery>(GenerateTracksDocument);
 
+    const addNotice = (key: string, msg: string) => {
+        console.log(`[${key}] ${msg}`);
+        // In a real implementation, this would use a global notification system
+    };
+
+    /*
     useEffect(() => {
         if (previewData?.publicPreviewCampaign && Object.keys(resolvedSteps).length > 0) {
             const prop = JSON.parse(JSON.stringify(previewData.publicPreviewCampaign)) as Proposal;
@@ -98,6 +102,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
             setProposal(prop);
         }
     }, [previewData, resolvedSteps, metadataData]);
+    */
 
     // Monitor track count changes to fetch additional tracks if needed
     useEffect(() => {
@@ -128,20 +133,37 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         }
     }, [proposal?.campaign.trackCount, getTracks]);
 
-    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignMutation, { input: CampaignCreateInput }>(CREATE_CAMPAIGN);
+    const handleGenerateContracts = async () => {
+        if (proposal && proposal.campaign) {
+            const targetCount = proposal.campaign.trackCount || 1;
+            const primary = proposal.contracts[0];
+            const opposition = proposal.contracts[1];
 
-    const handlePreview = () => {
-        setSaved(false);
-        setPreviewError(null);
-        setIsNameManuallyEdited(false);
-        getPreview({ variables: { input: {} } });
+            if (!primary) return;
+
+            try {
+                await getTracks({
+                    variables: {
+                        mission: primary.missionType || 'Standard',
+                        commandRights: primary.commandRights || 'None',
+                        oppCommandRights: opposition?.commandRights || 'Independent',
+                        count: targetCount,
+                        existing: proposal.tracks.map(t => ({
+                            name: t.name,
+                            complication: t.complication,
+                            oppositionComplication: t.oppositionComplication
+                        }))
+                    }
+                });
+                addNotice('contracts', 'CONTRACT OFFERS GENERATED. REVIEW AND SELECT TRACKS.');
+            } catch (err) {
+                console.error("Failed to generate tracks:", err);
+                setSaveError("COULD NOT GENERATE CONTRACTS. VERIFY SYSTEM STABILITY.");
+            }
+        }
     };
 
-    useEffect(() => {
-        if (!metadataLoading && Object.keys(resolvedSteps).length > 0 && !proposal) {
-            handlePreview();
-        }
-    }, [metadataLoading, resolvedSteps, proposal, handlePreview]);
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignMutation, { input: CampaignCreateInput }>(CreateCampaignDocument);
 
     const getSaveParams = (): CampaignCreateInput => {
         if (!proposal || !proposal.contracts[0] || !proposal.contracts[1]) {
@@ -326,17 +348,16 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
 
             <div style={{ marginTop: '20px' }}>
                 <button type="button"
-                    onClick={handlePreview}
-                    disabled={previewLoading || metadataLoading}
+                    onClick={handleGenerateContracts}
+                    disabled={metadataLoading}
                     className="mode-btn theme-red"
                     style={{ backgroundColor: 'var(--terminal-red)', color: 'black', opacity: 1 }}
                 >
-                    {previewLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
+                    {metadataLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
                 </button>
             </div>
             {metadataError && <div className="error-message" style={{ marginTop: '12px' }}>{metadataError.message}</div>}
             {previewError && <div className="error-message" style={{ marginTop: '12px' }}>{previewError}</div>}
-            {previewErrorStatus && <div className="error-message" style={{ marginTop: '12px' }}>{previewErrorStatus.message}</div>}
 
             {proposal && (
                 <div className="proposal-view" style={{ marginTop: '30px' }}>

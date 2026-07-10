@@ -12,15 +12,15 @@ import { CommandUpdateInput } from '../types/generated';
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES, UNIT_TYPES as FALLBACK_TYPES, TECH_BASES as FALLBACK_TECH } from './Rules';
 import { CommandDashboardBackground } from './CommandDashboardBackground';
 import {
-    GET_UNIT_DOSSIER,
-    UPDATE_COMMAND,
-    CREATE_DETACHMENT,
-    ASSIGN_ASSET,
-    DELETE_DETACHMENT,
-    ASSIGN_DETACHMENT,
-    JOIN_CAMPAIGN,
-    DELETE_UNIT,
-    DELETE_PILOT
+    GetUnitDossierDocument as GET_UNIT_DOSSIER,
+    UpdateCommandDocument as UPDATE_COMMAND,
+    CreateDetachmentDocument as CREATE_DETACHMENT,
+    AssignAssetDocument as ASSIGN_ASSET,
+    DeleteDetachmentDocument as DELETE_DETACHMENT,
+    AssignDetachmentToCampaignDocument as ASSIGN_DETACHMENT,
+    JoinCampaignDocument as JOIN_CAMPAIGN,
+    DeleteUnitDocument as DELETE_UNIT,
+    DeletePilotDocument as DELETE_PILOT
 } from '../types/operations';
 
 interface CommandDashboardProps {
@@ -98,7 +98,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
     const [assignDetachment] = useMutation(ASSIGN_DETACHMENT);
     const [assignAsset] = useMutation(ASSIGN_ASSET, {
         update(cache: ApolloCache, { data: result }, { variables }) {
-            if (result?.assignAsset && variables) {
+            if ((result as any)?.assignAsset && variables) {
                 const queryVars = { commandId };
                 const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: queryVars });
                 if (existing?.getCommand) {
@@ -117,7 +117,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const [deleteDetachment] = useMutation(DELETE_DETACHMENT, {
         update(cache: ApolloCache, { data: result }, { variables }) {
-            if (result?.deleteDetachment && variables?.detachmentId) {
+            if ((result as any)?.deleteDetachment && variables?.detachmentId) {
                 cache.evict({ id: cache.identify({ __typename: 'Detachment', id: variables.detachmentId }) });
                 cache.gc();
             }
@@ -126,7 +126,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const [deleteUnit] = useMutation(DELETE_UNIT, {
         update(cache: ApolloCache, { data: result }, { variables }) {
-            if (result?.deleteUnit && variables?.unitId) {
+            if ((result as any)?.deleteUnit && variables?.unitId) {
                 cache.evict({ id: cache.identify({ __typename: 'CombatUnit', id: variables.unitId }) });
                 cache.gc();
             }
@@ -135,7 +135,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const [deletePilot] = useMutation(DELETE_PILOT, {
         update(cache: ApolloCache, { data: result }, { variables }) {
-            if (result?.deletePilot && variables?.pilotId) {
+            if ((result as any)?.deletePilot && variables?.pilotId) {
                 cache.evict({ id: cache.identify({ __typename: 'Pilot', id: variables.pilotId }) });
                 cache.gc();
             }
@@ -144,7 +144,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const [createDetachment] = useMutation(CREATE_DETACHMENT, {
         update(cache: ApolloCache, { data: createData }) {
-            if (!createData?.createDetachment) return;
+            if (!(createData as any)?.createDetachment) return;
             const existing = cache.readQuery<UnitDossierData>({ query: GET_UNIT_DOSSIER, variables: { commandId } });
             if (existing?.getCommand) {
                 cache.writeQuery({
@@ -154,7 +154,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                         ...existing,
                         getCommand: {
                             ...existing.getCommand,
-                            detachments: [...(existing.getCommand.detachments || []), createData.createDetachment]
+                            detachments: [...(existing.getCommand.detachments || []), (createData as any).createDetachment]
                         }
                     }
                 });
@@ -186,7 +186,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
         const execute = () => {
             setIsSyncing(true);
-            const input: CommandUpdateInput = {};
+            const input = {} as CommandUpdateInput;
             if (field === 'NAME') input.name = value;
             if (field === 'CO') input.commandingOfficer = value;
 
@@ -194,14 +194,14 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
             updateCommand({
                 variables: { id: commandId, input },
-                optimisticResponse: current ? {
+                optimisticResponse: current ? ({
                     updateCommand: {
                         ...current,
                         ...input,
                         commandingOfficer: input.commandingOfficer ?? current.commandingOfficer,
-                        __typename: 'MercenaryCommand'
                     }
-                } : undefined
+                } as any) : undefined
+
             })
                 .then(() => {
                     markSaved();
@@ -408,7 +408,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     const filteredLedger = useMemo(() => {
         if (!command) return [];
-        const entries = (command.allLedgerEntries || []).filter((e: LedgerEntry | null): e is LedgerEntry => e != null);
+        const entries = (command.allLedgerEntries || []).filter((e: any): e is LedgerEntry => e != null);
         return selectedDetachmentId
             ? entries.filter((e: LedgerEntry) => e.detachmentId === selectedDetachmentId)
             : entries;
@@ -432,7 +432,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
 
     if (!command) return <div className="error-message">COMMAND NOT FOUND.</div>;
 
-    const detachments: Detachment[] = (command.detachments || []).filter((d): d is NonNullable<typeof d> => d != null);
+    const detachments: Detachment[] = (command.detachments || []).filter((d): d is any => d != null) as Detachment[];
 
     return (
         <div key={commandId} className="container unit-profile theme-amber" style={{ position: 'relative', overflow: 'hidden', background: 'transparent', minHeight: '100%' }}>
@@ -750,8 +750,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
                             <LedgerEntryForm
                                 commandId={commandId}
                                 detachmentId={selectedDetachmentId}
-                                campaignId={command.detachments?.filter((d: Detachment | null): d is Detachment => d != null).find((d: Detachment) => d.id === selectedDetachmentId)?.campaignId}
-                                initialCampaignName={command.detachments?.filter((d: Detachment | null): d is Detachment => d != null).find((d: Detachment) => d.id === selectedDetachmentId)?.campaignName || ''}
+                                campaignId={command.detachments?.filter((d: any): d is Detachment => d != null).find((d: Detachment) => d.id === selectedDetachmentId)?.campaignId}
+                                initialCampaignName={command.detachments?.filter((d: any): d is Detachment => d != null).find((d: Detachment) => d.id === selectedDetachmentId)?.campaignName || ''}
                                 onEntryAdded={() => refetch()}
                             />
                         </div>
