@@ -5,7 +5,8 @@ type Query {
     getCampaign(id: ID!): Campaign
     managedCampaigns(status: String): [Campaign]
     previewCampaign(input: CampaignCreateInput!): CampaignProposal
-    campaignMetadata: CampaignMetadata
+    campaignMetadata: CampaignMetadata    
+    campaignMarket(campaignId: ID!): CampaignMarket    
     participatingCampaigns(commandId: ID!): [Campaign]
     generateTracks(mission: String!, commandRights: String!, oppCommandRights: String!, count: Int!, existing: [ProposedTrackInput]): [ProposedTrack]
     commandAssets(commandId: ID!): CommandAssetsResponse
@@ -105,6 +106,10 @@ type Mutation {
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
     joinCampaign(token: String!, detachmentId: ID!): Boolean
     updateUserProfile(displayName: String): UserProfile
+    
+    # Market Operations
+    importUnitsToMarket(campaignId: ID!, url: String!, marketType: MarketType!, factionId: ID): String!
+    saveMarketMarkdown(campaignId: ID!, marketType: MarketType!, markdown: String!, factionId: ID): Boolean!
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
@@ -557,4 +562,61 @@ type Campaign {
     replaceCommandAbilityCost: Int
     isManager: Boolean
     isParticipant: Boolean
+}
+
+enum MarketType {
+    FREE
+    EMPLOYER
+    SCRAPPERS
+}
+
+type CampaignMarket {
+    id: ID!
+    campaignId: ID!
+    freeMarketMarkdown: String
+    scrapperMarketMarkdown: String
+    scrapperFee: Int!
+    employerMarkets: [EmployerMarket!]!
+}
+
+type EmployerMarket {
+    factionId: ID!
+    markdown: String
+}
+
+type PurchaseResult {
+    success: Boolean!
+    unitId: ID
+    remainingCBills: Int!
+    message: String
+}
+
+input MarketPurchaseInput {
+    unitName: String!
+    model: String!
+    bv: Int!
+    pv: Int!
+    techBase: String!
+    condition: Int!
+    price: Int!
+    marketType: MarketType!
+    factionId: ID
+    campaignId: ID!
+    commandId: ID!
+    detachmentId: ID!
+}
+
+input MarketHireInput {
+    name: String!
+    unitType: String!
+    wounds: Int!
+    gunnerySpEarned: Int!
+    pilotingSpEarned: Int!
+    edgeTokensSpEarned: Int!
+    edgeAbilitySpEarned: Int!
+    edgeAbilities: String!
+    price: Int!
+    campaignId: ID!
+    commandId: ID!
+    detachmentId: ID!
 }

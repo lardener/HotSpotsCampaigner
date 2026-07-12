@@ -109,7 +109,7 @@ public class MarketService {
     @Transactional
     public Mono<CampaignMarket> saveMarketMarkdown(UUID campaignId, MarketType marketType, String markdown) {
         return marketRepository.findByCampaignId(campaignId)
-                .defaultIfEmpty(CampaignMarket.builder().campaignId(campaignId).build())
+                .defaultIfEmpty(CampaignMarket.builder().id(UUID.randomUUID()).campaignId(campaignId).isNew(true).build())
                 .map(market -> updateMarketField(market, marketType, markdown))
                 .flatMap(marketRepository::save);
     }

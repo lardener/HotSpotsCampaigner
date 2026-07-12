@@ -151,6 +151,16 @@ export type CampaignInvite = {
   used: Maybe<Scalars['Boolean']['output']>;
 };
 
+export type CampaignMarket = {
+  __typename?: 'CampaignMarket';
+  campaignId: Scalars['ID']['output'];
+  employerMarkets: Array<EmployerMarket>;
+  freeMarketMarkdown: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  scrapperFee: Scalars['Int']['output'];
+  scrapperMarketMarkdown: Maybe<Scalars['String']['output']>;
+};
+
 export type CampaignMetadata = {
   __typename?: 'CampaignMetadata';
   armorMultiplier: Maybe<Scalars['Float']['output']>;
@@ -376,6 +386,12 @@ export type Detachment = {
   units: Maybe<Array<Maybe<CombatUnit>>>;
 };
 
+export type EmployerMarket = {
+  __typename?: 'EmployerMarket';
+  factionId: Scalars['ID']['output'];
+  markdown: Maybe<Scalars['String']['output']>;
+};
+
 export type FactionReputation = {
   __typename?: 'FactionReputation';
   campaignFactionId: Scalars['ID']['output'];
@@ -407,6 +423,42 @@ export type LedgerEntryInput = {
   monthIndex: InputMaybe<Scalars['Int']['input']>;
   reputationChange: InputMaybe<Scalars['Int']['input']>;
 };
+
+export type MarketHireInput = {
+  campaignId: Scalars['ID']['input'];
+  commandId: Scalars['ID']['input'];
+  detachmentId: Scalars['ID']['input'];
+  edgeAbilities: Scalars['String']['input'];
+  edgeAbilitySpEarned: Scalars['Int']['input'];
+  edgeTokensSpEarned: Scalars['Int']['input'];
+  gunnerySpEarned: Scalars['Int']['input'];
+  name: Scalars['String']['input'];
+  pilotingSpEarned: Scalars['Int']['input'];
+  price: Scalars['Int']['input'];
+  unitType: Scalars['String']['input'];
+  wounds: Scalars['Int']['input'];
+};
+
+export type MarketPurchaseInput = {
+  bv: Scalars['Int']['input'];
+  campaignId: Scalars['ID']['input'];
+  commandId: Scalars['ID']['input'];
+  condition: Scalars['Int']['input'];
+  detachmentId: Scalars['ID']['input'];
+  factionId: InputMaybe<Scalars['ID']['input']>;
+  marketType: MarketType;
+  model: Scalars['String']['input'];
+  price: Scalars['Int']['input'];
+  pv: Scalars['Int']['input'];
+  techBase: Scalars['String']['input'];
+  unitName: Scalars['String']['input'];
+};
+
+export enum MarketType {
+  Employer = 'EMPLOYER',
+  Free = 'FREE',
+  Scrappers = 'SCRAPPERS'
+}
 
 export type MercenaryCommand = {
   __typename?: 'MercenaryCommand';
@@ -447,10 +499,12 @@ export type Mutation = {
   establishCommand: Maybe<MercenaryCommand>;
   hirePilot: Maybe<Pilot>;
   importCombatUnitsFromLink: Maybe<Array<Maybe<CombatUnit>>>;
+  importUnitsToMarket: Scalars['String']['output'];
   joinCampaign: Maybe<Scalars['Boolean']['output']>;
   loginWithToken: Maybe<Scalars['Boolean']['output']>;
   reorderTracks: Array<CampaignTrack>;
   rerollTrack: Maybe<CampaignTrack>;
+  saveMarketMarkdown: Scalars['Boolean']['output'];
   updateCampaign: Maybe<Campaign>;
   updateCombatUnit: Maybe<CombatUnit>;
   updateCommand: Maybe<MercenaryCommand>;
@@ -555,6 +609,14 @@ export type MutationImportCombatUnitsFromLinkArgs = {
 };
 
 
+export type MutationImportUnitsToMarketArgs = {
+  campaignId: Scalars['ID']['input'];
+  factionId: InputMaybe<Scalars['ID']['input']>;
+  marketType: MarketType;
+  url: Scalars['String']['input'];
+};
+
+
 export type MutationJoinCampaignArgs = {
   detachmentId: Scalars['ID']['input'];
   token: Scalars['String']['input'];
@@ -574,6 +636,14 @@ export type MutationReorderTracksArgs = {
 
 export type MutationRerollTrackArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type MutationSaveMarketMarkdownArgs = {
+  campaignId: Scalars['ID']['input'];
+  factionId: InputMaybe<Scalars['ID']['input']>;
+  markdown: Scalars['String']['input'];
+  marketType: MarketType;
 };
 
 
@@ -664,9 +734,18 @@ export type ProposedTrackInput = {
   oppositionComplication: InputMaybe<Scalars['String']['input']>;
 };
 
+export type PurchaseResult = {
+  __typename?: 'PurchaseResult';
+  message: Maybe<Scalars['String']['output']>;
+  remainingCBills: Scalars['Int']['output'];
+  success: Scalars['Boolean']['output'];
+  unitId: Maybe<Scalars['ID']['output']>;
+};
+
 export type Query = {
   __typename?: 'Query';
   activeCampaigns: Maybe<Array<Maybe<Campaign>>>;
+  campaignMarket: Maybe<CampaignMarket>;
   campaignMetadata: Maybe<CampaignMetadata>;
   commandAssets: Maybe<CommandAssetsResponse>;
   generateTracks: Maybe<Array<Maybe<ProposedTrack>>>;
@@ -686,6 +765,11 @@ export type Query = {
 export type QueryActiveCampaignsArgs = {
   page: InputMaybe<Scalars['Int']['input']>;
   size: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryCampaignMarketArgs = {
+  campaignId: Scalars['ID']['input'];
 };
 
 

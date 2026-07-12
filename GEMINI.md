@@ -38,5 +38,12 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 ## Environment Notes
 - **Build Environment**
     - **Local PowerShell Policy** - issue shell commands using the Windows command shim
-  **Plans**
-      **Progress Checklist** - all plans should have a checklist so that progress can me recorded between sessions.
+- **Plans**
+    - **Progress Checklist** - all plans should have a checklist so that progress can me recorded between sessions.
+- **Generated Files**
+    - **GraphQL CodeGen** 
+        * Using `codegen.ts`
+        * Reading `gql/operations.ts`
+        * `typescript` goes into `types/generated.ts`
+        * `typescript-operations` and `typed-document-node` go into `types/operations.ts`
+    

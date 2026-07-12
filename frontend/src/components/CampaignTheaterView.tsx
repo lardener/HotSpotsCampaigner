@@ -8,6 +8,7 @@ import { TacticalMarkdown } from './TacticalMarkdown';
 import { MonthlyExpensesEditor } from './MonthlyExpensesEditor';
 import { DetachmentReadinessSummary } from './DetachmentReadinessSummary';
 import { RecruitmentOverlay } from './RecruitmentOverlay';
+import { MarketDashboard } from './MarketDashboard';
 import { TerminalOverlay } from './TerminalOverlay'; // Import the shared TerminalOverlay
 import {
     UNIT_STATUS_OPTIONS as FALLBACK_STATUSES,
@@ -368,6 +369,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null); // Stores month index
     const [showAarForTrack, setShowAarForTrack] = useState<CampaignTrack | null>(null);
     const [showRecruitment, setShowRecruitment] = useState(false);
+    const [showMarket, setShowMarket] = useState(false);
     const [overlay, setOverlay] = useState<{ // Use TerminalOverlayProps
         isOpen: boolean;
         title: string;
@@ -761,6 +763,15 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                                                     onClick={() => setShowRecruitment(true)}
                                                     title="Open recruitment management"
                                                 >[ RECRUITING ]</button>
+                                            </div>}
+                                            {campaign.isManager && <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                                <button
+                                                    type="button"
+                                                    className="mode-btn theme-amber"
+                                                    style={{ height: '24px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    onClick={() => setShowMarket(true)}
+                                                    title="Open unit market"
+                                                >[ THEATER MARKET ]</button>
                                             </div>}
                                         </div>
                                     </div>
@@ -1261,6 +1272,18 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         invites={campaignInvites}
                         onClose={() => setShowRecruitment(false)}
                         onRefresh={() => refetchCampaign()}
+                    />
+                )
+            }
+
+            {
+                showMarket && campaign && (
+                    <MarketDashboard
+                        campaignId={campaign.id}
+                        onClose={() => setShowMarket(false)}
+                        onRefresh={() => refetchCampaign()}
+                        campaign={campaign}
+                        setOverlay={setOverlay}
                     />
                 )
             }

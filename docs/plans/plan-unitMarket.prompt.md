@@ -32,8 +32,8 @@ Each campaign has up to **3 market slots**:
 | Slot | Description |
 |------|-------------|
 | **FREE MARKET** | Generic units available to all players, not tied to any employer |
-| **EMPLOYER_A MARKET** | Units offered by Employer A (one per campaign faction) |
-| **EMPLOYER_B MARKET** | Units offered by Employer B |
+| **PRIMARY EMPLOYER MARKET** | Units offered by Employer A (one per campaign faction) |
+| **OPPOSITION EMPLOYER MARKET** | Units offered by Employer B |
 | **SCRAPPERS MARKET** | Random-unit draw — a special section with a "pay X, get random" hsc:// link |
 
 The market content is stored as markdown text in the campaign metadata (or a lightweight `campaign_markets` table with one row per campaign).

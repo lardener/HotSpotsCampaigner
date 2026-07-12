@@ -174,6 +174,28 @@ export const UPDATE_USER_PROFILE = gql`
 
 // ==================== Campaign Operations ====================
 
+export const GET_CAMPAIGN_MARKET = gql`
+    query GetCampaignMarket($campaignId: ID!) {
+        campaignMarket(campaignId: $campaignId) {
+            id
+            campaignId
+            freeMarketMarkdown
+            scrapperMarketMarkdown
+            scrapperFee
+            employerMarkets {
+                factionId
+                markdown
+            }
+        }
+    }
+`;
+
+export const SAVE_MARKET_MARKDOWN = gql`
+    mutation SaveMarketMarkdown($campaignId: ID!, $marketType: MarketType!, $markdown: String!, $factionId: ID) {
+        saveMarketMarkdown(campaignId: $campaignId, marketType: $marketType, markdown: $markdown, factionId: $factionId)
+    }
+`;
+
 export const GET_ACTIVE_CAMPAIGNS = gql`
   query GetActiveCampaigns($page: Int, $size: Int) {
   publicActiveCampaigns(page: $page, size: $size) {
