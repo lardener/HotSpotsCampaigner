@@ -345,6 +345,7 @@ public class MercenaryCommandService {
                             log.trace("[TRACE] Updating campaign details for campaign: id={}", camp.getId());
 
                             String oldStatus = camp.getStatus();
+                            Integer oldTrackCount = camp.getTrackCount();
                             campaignMapper.updateCampaignFromDto(input, camp);
                             log.trace("[TRACE] Updated campaign details for campaign: id={}", camp.getId());
 
@@ -495,7 +496,7 @@ public class MercenaryCommandService {
                                         return factionUpdate.then(contractUpdate).then(chain).flatMap(c -> {
                                             if (input.trackCount() != null) {
                                                 int targetTracks = Math.max(1, input.trackCount());
-                                                if (targetTracks != Objects.requireNonNullElse(c.getTrackCount(), 0)) {
+                                                if (targetTracks != Objects.requireNonNullElse(oldTrackCount, 0)) {
                                                     return campaignService.reconcileTracks(c, targetTracks);
                                                 }
                                             }

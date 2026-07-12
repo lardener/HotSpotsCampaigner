@@ -99,11 +99,13 @@ export function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+      await fetch(apiBaseUrl ? `${apiBaseUrl}/api/logout` : '/api/logout', { method: 'POST', credentials: 'include' });
     } catch (err) {
       console.error("Logout sequence failed:", err);
+    } finally {
+      setUser(null);
+      window.location.replace('/');
     }
-    window.location.href = '/';
   };
 
   if (loading) {

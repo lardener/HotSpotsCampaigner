@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react';
-import { CampaignCreateInput, ContractPreview, Proposal, ResolvedStepValues } from '../types/campaign';
-import { ProposedTrack } from '../types/generated';
-import { GetCampaignMetadataQuery, GenerateTracksQuery, CreateCampaignMutation, UpdateCampaignMutation } from '../types/operations';
+import { CampaignCreateInput, ContractPreview, Proposal, ResolvedStepValues, ProposedTrack } from '../types/campaign';
+import {
+    GetCampaignMetadataQuery,
+    GenerateTracksQuery,
+    CreateCampaignMutation,
+    UpdateCampaignMutation,
+    GenerateCampaignQuery
+} from '../types/operations';
 import {
     GetCampaignMetadataDocument,
-    // PreviewCampaignDocument,
     GenerateTracksDocument,
-    CreateCampaignDocument
+    CreateCampaignDocument,
+    GenerateCampaignDocument
 } from '../types/operations';
 import { GeneratorBackground } from './GeneratorBackground';
+
 
 interface Props {
     user?: { name: string };
@@ -22,7 +28,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     const [resolvedSteps, setResolvedSteps] = useState<Record<number, ResolvedStepValues>>({});
     const [trackTypes, setTrackTypes] = useState<string[]>([]);
 
-    const [previewError] = useState<string | null>(null);
+    const [previewError, setPreviewError] = useState<string | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [proposal, setProposal] = useState<Proposal | null>(null);
     const [isNameManuallyEdited, setIsNameManuallyEdited] = useState(false);
@@ -69,14 +75,11 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         return val;
     };
 
+    const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] = useLazyQuery<GenerateCampaignQuery>(GenerateCampaignDocument, {
+        fetchPolicy: 'network-only'
+    });
     const [getTracks] = useLazyQuery<GenerateTracksQuery>(GenerateTracksDocument);
 
-    const addNotice = (key: string, msg: string) => {
-        console.log(`[${key}] ${msg}`);
-        // In a real implementation, this would use a global notification system
-    };
-
-    /*
     useEffect(() => {
         if (previewData?.publicPreviewCampaign && Object.keys(resolvedSteps).length > 0) {
             const prop = JSON.parse(JSON.stringify(previewData.publicPreviewCampaign)) as Proposal;
@@ -102,7 +105,6 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
             setProposal(prop);
         }
     }, [previewData, resolvedSteps, metadataData]);
-    */
 
     // Monitor track count changes to fetch additional tracks if needed
     useEffect(() => {
@@ -133,37 +135,20 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
         }
     }, [proposal?.campaign.trackCount, getTracks]);
 
-    const handleGenerateContracts = async () => {
-        if (proposal && proposal.campaign) {
-            const targetCount = proposal.campaign.trackCount || 1;
-            const primary = proposal.contracts[0];
-            const opposition = proposal.contracts[1];
+    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignMutation, { input: CampaignCreateInput }>(CreateCampaignDocument);
 
-            if (!primary) return;
-
-            try {
-                await getTracks({
-                    variables: {
-                        mission: primary.missionType || 'Standard',
-                        commandRights: primary.commandRights || 'None',
-                        oppCommandRights: opposition?.commandRights || 'Independent',
-                        count: targetCount,
-                        existing: proposal.tracks.map(t => ({
-                            name: t.name,
-                            complication: t.complication,
-                            oppositionComplication: t.oppositionComplication
-                        }))
-                    }
-                });
-                addNotice('contracts', 'CONTRACT OFFERS GENERATED. REVIEW AND SELECT TRACKS.');
-            } catch (err) {
-                console.error("Failed to generate tracks:", err);
-                setSaveError("COULD NOT GENERATE CONTRACTS. VERIFY SYSTEM STABILITY.");
-            }
-        }
+    const handlePreview = () => {
+        setSaved(false);
+        setPreviewError(null);
+        setIsNameManuallyEdited(false);
+        getPreview({ variables: { input: {} } });
     };
 
-    const [createCampaign, { loading: saveLoading }] = useMutation<CreateCampaignMutation, { input: CampaignCreateInput }>(CreateCampaignDocument);
+    useEffect(() => {
+        if (!metadataLoading && Object.keys(resolvedSteps).length > 0 && !proposal) {
+            handlePreview();
+        }
+    }, [metadataLoading, resolvedSteps, proposal, handlePreview]);
 
     const getSaveParams = (): CampaignCreateInput => {
         if (!proposal || !proposal.contracts[0] || !proposal.contracts[1]) {
@@ -264,7 +249,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                 }
             }
 
-            const updatedCampaign = { ...prev.campaign, [field]: updatedVal };
+            const updatedCampaign = { ...prev.campaign, [field]: updatedVal as any };
 
             if (field === 'trackCount' && !isNaN(updatedVal as number)) {
                 updatedCampaign.lengthInMonths = updatedVal as number;
@@ -348,16 +333,17 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
 
             <div style={{ marginTop: '20px' }}>
                 <button type="button"
-                    onClick={handleGenerateContracts}
-                    disabled={metadataLoading}
+                    onClick={handlePreview}
+                    disabled={previewLoading || metadataLoading}
                     className="mode-btn theme-red"
                     style={{ backgroundColor: 'var(--terminal-red)', color: 'black', opacity: 1 }}
                 >
-                    {metadataLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
+                    {previewLoading ? 'ANALYZING INTEL...' : 'GENERATE CONTRACT OFFERS'}
                 </button>
             </div>
             {metadataError && <div className="error-message" style={{ marginTop: '12px' }}>{metadataError.message}</div>}
             {previewError && <div className="error-message" style={{ marginTop: '12px' }}>{previewError}</div>}
+            {previewErrorStatus && <div className="error-message" style={{ marginTop: '12px' }}>{previewErrorStatus.message}</div>}
 
             {proposal && (
                 <div className="proposal-view" style={{ marginTop: '30px' }}>
@@ -410,7 +396,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
                                 <div key={idx} className="mb-5">
                                     <label htmlFor={`track-${idx}`} className="restricted-text sm-text">TRACK {idx + 1}</label> {/* Added title to select */}
                                     <div className="status-bar theme-red cursor-pointer" style={{ padding: '0 5px' }}>
-                                        <select id={`track-${idx}`} value={t.name ?? ''} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
+                                        <select id={`track-${idx}`} value={t.name} onChange={(e) => updateProposalTrack(idx, e.target.value)} className="table-input" style={{ border: 'none' }} title={`Select track type for track ${idx + 1}`}>
                                             {trackTypes.map(track => <option key={track} value={track}>{track}</option>)}
                                         </select>
                                     </div>
