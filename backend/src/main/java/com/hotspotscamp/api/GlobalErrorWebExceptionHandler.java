@@ -1,9 +1,9 @@
 package com.hotspotscamp.api;
 
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.boot.autoconfigure.web.WebProperties;
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
@@ -52,10 +52,20 @@ public class GlobalErrorWebExceptionHandler extends AbstractErrorWebExceptionHan
                 ErrorAttributeOptions.defaults());
 
         int status = (int) errorPropertiesMap.getOrDefault("status", 500);
+        // Safe error envelope: never leak stack traces or internal details to clients.
+        Map<String, Object> safeBody = new java.util.LinkedHashMap<>();
+        safeBody.put("status", status);
+        safeBody.put("error", errorPropertiesMap.getOrDefault("error", "Error"));
+        // Only expose a generic message for 5xx; surface client-facing messages for 4xx.
+        if (status >= 500) {
+            safeBody.put("message", "An unexpected error occurred. Please try again later.");
+        } else {
+            safeBody.put("message", errorPropertiesMap.getOrDefault("message", "Request failed"));
+        }
 
         return ServerResponse.status(status)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromValue(errorPropertiesMap))
+                .body(BodyInserters.fromValue(safeBody))
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting renderErrorResponse"));
     }
 }

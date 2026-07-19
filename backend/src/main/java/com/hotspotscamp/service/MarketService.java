@@ -9,7 +9,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.dto.CampaignMetadata;
 import com.hotspotscamp.entity.CampaignMarket;
@@ -37,13 +37,13 @@ public class MarketService {
     private final CampaignRepository campaignRepository;
     private final CampaignService campaignService;
     private final PilotGeneratorService pilotGenerator;
+    private final TransactionalOperator transactionalOperator;
 
     // ----- IMPORT -----
     /**
      * Import units from a MUL/Mordel URL into markdown for a given market slot.
      * The scraped units are formatted as a markdown table with hsc:// links.
      */
-    @Transactional
     public Mono<String> importUnitsToMarkdown(UUID campaignId, String url, MarketType marketType, RuleSet ruleSet) {
         log.info("[START] importUnitsToMarkdown: campaignId={}, url={}, marketType={}, ruleSet={}", campaignId, url, marketType, ruleSet);
         return campaignRepository.findById(campaignId)
@@ -62,6 +62,7 @@ public class MarketService {
                             return saveMarkdownField(campaignId, marketType, markdown, null);
                         })
                 )
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnSuccess(m -> log.info("[END] importUnitsToMarkdown: Successfully imported units to markdown for campaignId={}", campaignId))
                 .doOnError(e -> log.error("[ERROR] importUnitsToMarkdown: Failed to import units to markdown for campaignId={}: {}", campaignId, e.getMessage()));
     }
@@ -116,7 +117,6 @@ public class MarketService {
     /**
      * Save market markdown after the campaign manager edits it.
      */
-    @Transactional
     public Mono<CampaignMarket> saveMarketMarkdown(UUID campaignId, MarketType marketType, String markdown, UUID factionId) {
         log.info("[START] saveMarketMarkdown: campaignId={}, marketType={}, factionId={}", campaignId, marketType, factionId);
         return marketRepository.findByCampaignId(campaignId)
@@ -133,6 +133,7 @@ public class MarketService {
                     return updateMarketField(newMarket, marketType, markdown, factionId);
                 }))
                 .flatMap(marketRepository::save)
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnSuccess(m -> log.info("[END] saveMarketMarkdown: Successfully saved markdown for campaignId={}, marketType={}, market={}", campaignId, marketType, m))
                 .doOnError(e -> log.error("[ERROR] saveMarketMarkdown: Failed to save markdown for campaignId={}, marketType={}: {}", campaignId, marketType, e.getMessage()));
     }

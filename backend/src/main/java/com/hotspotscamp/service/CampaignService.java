@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.dto.ActiveCampaignSummary;
 import com.hotspotscamp.dto.CampaignCreateInput;
@@ -54,6 +54,7 @@ public class CampaignService {
     private final RuleConfigurationService configService;
     private final CampaignGenerationService generationService;
     private final TrackManagementService trackManagementService;
+    private final TransactionalOperator transactionalOperator;
 
     // --- Metadata and Summaries ---
     public CampaignMetadata getCampaignMetadata() {
@@ -165,12 +166,11 @@ public class CampaignService {
     }
 
     // --- Operational Track Management ---
-    @Transactional
     public Mono<Campaign> reconcileTracks(Campaign camp, int newCount) {
-        return trackManagementService.reconcileTracks(camp, newCount);
+        return trackManagementService.reconcileTracks(camp, newCount)
+                .transformDeferred(transactionalOperator::transactional);
     }
 
-    @Transactional
     public Mono<Campaign> generateDoblessCampaign(String managerId, CampaignCreateInput input) {
         return userService.resolveOrCreateUser(managerId).flatMap(user -> {
             if (!"ROLE_AUTHENTICATED".equals(user.getRole())) {
@@ -210,6 +210,7 @@ public class CampaignService {
                                 });
                     });
         })
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished generateDoblessCampaign"));
     }
 
@@ -218,15 +219,14 @@ public class CampaignService {
         return campaignInviteRepository.findAllByCampaignId(campaignId).doOnTerminate(() -> log.trace("[TRACE] Finished getCampaignInvites"));
     }
 
-    @Transactional
     public Mono<CampaignInvite> createInvite(@NonNull UUID campaignId, String recipientName, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> campaignRepository.findById(campaignId)
                 .flatMap(camp -> camp.getManagerId().equals(user.getId().toString())
                 ? inviteService.generateInvite(campaignId, recipientName)
-                : Mono.error(new RuntimeException("Access Denied"))));
+                : Mono.error(new RuntimeException("Access Denied"))))
+                .transformDeferred(transactionalOperator::transactional);
     }
 
-    @Transactional
     public Mono<Boolean> joinCampaign(String token, @NonNull UUID detachmentId) {
         return inviteService.validateAndConsumeInvite(token)
                 .flatMap(invite -> detachmentRepository.findById(detachmentId)
@@ -234,20 +234,21 @@ public class CampaignService {
                     det.setNew(false);
                     det.setCampaignId(invite.getCampaignId());
                     return detachmentRepository.save(det).thenReturn(true);
-                }));
+                }))
+                .transformDeferred(transactionalOperator::transactional);
     }
 
-    @Transactional
     public Mono<Boolean> deleteInvite(@NonNull UUID inviteId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> campaignInviteRepository.findById(inviteId)
                 .flatMap(invite -> campaignRepository.findById(Objects.requireNonNull(invite.getCampaignId()))
                 .flatMap(camp -> camp.getManagerId().equals(user.getId().toString())
                 ? campaignInviteRepository.delete(invite).thenReturn(true)
-                : Mono.error(new RuntimeException("Access Denied")))));
+                : Mono.error(new RuntimeException("Access Denied")))))
+                .transformDeferred(transactionalOperator::transactional);
     }
 
-    @Transactional
     public Mono<CampaignTrack> rerollTrack(@NonNull UUID trackId, String managerId) {
-        return trackManagementService.rerollTrack(trackId, managerId, userService);
+        return trackManagementService.rerollTrack(trackId, managerId, userService)
+                .transformDeferred(transactionalOperator::transactional);
     }
 }

@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.dto.CampaignUpdateInput;
 import com.hotspotscamp.dto.CommandUpdateInput;
@@ -70,6 +70,7 @@ public class MercenaryCommandService {
     private final CommandMapper commandMapper;
     private final CampaignMapper campaignMapper;
     private final TrackMapper trackMapper;
+    private final TransactionalOperator transactionalOperator;
 
     public MercenaryCommandService(
             Sinks.Many<MercenaryCommand> commandSink,
@@ -89,7 +90,8 @@ public class MercenaryCommandService {
             LedgerService ledgerService,
             CommandMapper commandMapper,
             CampaignMapper campaignMapper,
-            TrackMapper trackMapper) {
+            TrackMapper trackMapper,
+            TransactionalOperator transactionalOperator) {
         this.commandSink = commandSink;
         this.commandRepository = commandRepository;
         this.detachmentRepository = detachmentRepository;
@@ -108,6 +110,7 @@ public class MercenaryCommandService {
         this.commandMapper = commandMapper;
         this.campaignMapper = campaignMapper;
         this.trackMapper = trackMapper;
+        this.transactionalOperator = transactionalOperator;
     }
 
     /**
@@ -124,7 +127,6 @@ public class MercenaryCommandService {
      * Deletes a mercenary command. If it has active campaign participations
      * (detachments), requires the force flag.
      */
-    @Transactional
     public Mono<Void> deleteCommand(@NonNull UUID commandId, String userId, boolean force) {
         log.trace("[TRACE] Starting deleteCommand: id={}, user={}, force={}", commandId, userId, force);
         return userService.resolveOrCreateUser(userId)
@@ -143,10 +145,10 @@ public class MercenaryCommandService {
                                 return commandRepository.delete(cmd);
                             });
                 }))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deleteCommand: id={}", commandId));
     }
 
-    @Transactional
     public Mono<MercenaryCommand> updateCommandDetails(@NonNull UUID commandId, CommandUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateCommandDetails: id={}", commandId);
         return commandRepository.findById(commandId)
@@ -164,6 +166,7 @@ public class MercenaryCommandService {
                         return Mono.<MercenaryCommand>error(new RuntimeException("Registry update failed: Persistence conflict.")); // Explicitly type Mono.error
                     });
         }))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateCommandDetails: id={}", commandId));
     }
 
@@ -171,7 +174,6 @@ public class MercenaryCommandService {
      * Establishes a new mercenary command. Modeled on the initial setup of the
      * Mercenary Force Record Sheet.
      */
-    @Transactional
     public Mono<MercenaryCommand> createCommand(MercenaryCommand command, String userId) {
         log.trace("[TRACE] Starting createCommand for user: {}", userId);
         return userService.resolveOrCreateUser(userId).<MercenaryCommand>flatMap(user -> {
@@ -203,6 +205,7 @@ public class MercenaryCommandService {
                         .thenReturn(savedCmd);
             });
         })
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished createCommand"));
     }
 
@@ -211,7 +214,6 @@ public class MercenaryCommandService {
      * summing all ledger entries across all its detachments. This ensures the
      * Command state matches the "MERCENARY CONTRACT RECORD SHEET" history.
      */
-    @Transactional
     public Mono<MercenaryCommand> syncTotalSupportPoints(@NonNull UUID commandId) {
         log.trace("[TRACE] Starting syncTotalSupportPoints: commandId={}", commandId);
         String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
@@ -231,6 +233,7 @@ public class MercenaryCommandService {
                                     -> log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
                             .doOnNext(commandSink::tryEmitNext);
                 }))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));
     }
 
@@ -257,7 +260,6 @@ public class MercenaryCommandService {
      * Assigns a unit or pilot to a detachment. Ensures the asset is not already
      * assigned elsewhere.
      */
-    @Transactional
     public Mono<Void> assignAssetToDetachment(String assetType, @NonNull UUID assetId, UUID detachmentId, String userId) {
         log.trace("[TRACE] Starting assignAssetToDetachment: type={}, assetId={}, detId={}", assetType, assetId, detachmentId);
         String table = assetType.equalsIgnoreCase("UNIT") ? "combat_units" : "pilots";
@@ -293,6 +295,7 @@ public class MercenaryCommandService {
                     spec = SqlUtils.bindUuid(spec, "detId", detachmentId);
                     return spec.fetch().rowsUpdated().then();
                 })))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished assignAssetToDetachment"));
     }
 
@@ -329,7 +332,6 @@ public class MercenaryCommandService {
                 .doOnTerminate(() -> log.trace("[TRACE] Finished getCommandById"));
     }
 
-    @Transactional
     public Mono<Campaign> updateCampaignDetails(@NonNull UUID campaignId, CampaignUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateCampaignDetails: id={}", campaignId);
         return userService.resolveOrCreateUser(userId).<Campaign>flatMap(user
@@ -509,6 +511,7 @@ public class MercenaryCommandService {
                                     });
                         })
         )
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateCampaignDetails"))
                 .doOnError(Exception.class, e -> log.error("[ERROR] Error occurred while updating campaign details for {}", campaignId, e));
     }
@@ -517,7 +520,6 @@ public class MercenaryCommandService {
      * Administrative update for an individual track. Enforces that only the
      * theater manager can modify track assignments or details.
      */
-    @Transactional
     public Mono<CampaignTrack> updateTrack(@NonNull UUID trackId, TrackUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateTrack: trackId={}", trackId);
         return campaignTrackRepository.findById(trackId)
@@ -551,6 +553,7 @@ public class MercenaryCommandService {
                         return campaignTrackRepository.save(track);
                     });
         })))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateTrack"));
     }
 
@@ -560,7 +563,6 @@ public class MercenaryCommandService {
      * monthIndex is automatically synchronized to maintain a
      * 1-operation-per-month linear timeline.
      */
-    @Transactional
     public Flux<CampaignTrack> reorderTracks(@NonNull UUID campaignId, List<UUID> trackIds, String userId) {
         log.trace("[TRACE] Starting reorderTracks: campaignId={}", campaignId);
         return userService.resolveOrCreateUser(userId).flatMapMany(user
@@ -585,10 +587,10 @@ public class MercenaryCommandService {
                             );
                         })
         )
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished reorderTracks"));
     }
 
-    @Transactional
     public Mono<Void> assignDetachmentToCampaign(@NonNull UUID detachmentId, UUID campaignId, String userId) {
         log.trace("[TRACE] Starting assignDetachmentToCampaign: detId={}, campId={}", detachmentId, campaignId);
         return detachmentRepository.findById(detachmentId)
@@ -601,6 +603,7 @@ public class MercenaryCommandService {
                             .then(commandRepository.findById(Objects.requireNonNull(det.getMercenaryCommandId())))
                             .doOnNext(commandSink::tryEmitNext);
                 }).then()
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished assignDetachmentToCampaign"));
     }
 
@@ -658,7 +661,6 @@ public class MercenaryCommandService {
      * Scrapes an external link to import mechs. Currently supports: Master Unit
      * List (MUL).
      */
-    @Transactional
     public Flux<CombatUnit> importAssetsFromLink(@NonNull UUID commandId, UUID detachmentId, String link, String userId) {
         log.trace("[TRACE] Starting importAssetsFromLink: cmdId={}, link={}", commandId, link);
         return userService.resolveOrCreateUser(userId).<CombatUnit>flatMapMany(user
@@ -679,6 +681,7 @@ public class MercenaryCommandService {
                             });
                 })
         )
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished importAssetsFromLink"));
     }
 
@@ -686,7 +689,6 @@ public class MercenaryCommandService {
      * Calculates and applies rearm costs for a specific unit based on its
      * tonnage and the campaign's logistical rules.
      */
-    @Transactional
     public Mono<Void> automatedRearmUnit(@NonNull UUID unitId, String userId) {
         log.trace("[TRACE] Starting automatedRearmUnit: unitId={}", unitId);
         return combatUnitRepository.findById(unitId)
@@ -716,7 +718,8 @@ public class MercenaryCommandService {
                                 LedgerEntryInput input = new LedgerEntryInput(-totalCost, "Automated Rearm: " + unit.getModel() + " (" + unit.getTonnage() + "T)", 0, camp.getId(), camp.getName(), null);
                                 return ledgerService.addLedgerEntry(unit.getCommandId(), unit.getDetachmentId(), input, userId).then();
                             });
-                });
+                })
+                .transformDeferred(transactionalOperator::transactional);
     }
 
 }

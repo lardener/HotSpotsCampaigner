@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.dto.CombatUnitUpdateInput;
 import com.hotspotscamp.dto.PilotUpdateInput;
@@ -36,6 +36,7 @@ public class AssetService {
     private final Sinks.Many<MercenaryCommand> commandSink;
     private final CombatUnitMapper combatUnitMapper;
     private final PilotMapper pilotMapper;
+    private final TransactionalOperator transactionalOperator;
 
     public AssetService(
             CombatUnitRepository combatUnitRepository,
@@ -44,7 +45,8 @@ public class AssetService {
             UserService userService,
             Sinks.Many<MercenaryCommand> commandSink,
             CombatUnitMapper combatUnitMapper,
-            PilotMapper pilotMapper) {
+            PilotMapper pilotMapper,
+            TransactionalOperator transactionalOperator) {
         this.combatUnitRepository = combatUnitRepository;
         this.pilotRepository = pilotRepository;
         this.commandRepository = commandRepository;
@@ -52,12 +54,12 @@ public class AssetService {
         this.commandSink = commandSink;
         this.combatUnitMapper = combatUnitMapper;
         this.pilotMapper = pilotMapper;
+        this.transactionalOperator = transactionalOperator;
     }
 
     /**
      * Deletes a combat unit.
      */
-    @Transactional
     public Mono<Void> deleteCombatUnit(@NonNull UUID unitId, String userId) {
         log.trace("[TRACE] Starting deleteCombatUnit: unitId={}", unitId);
         return combatUnitRepository.findById(unitId)
@@ -76,13 +78,13 @@ public class AssetService {
                         return combatUnitRepository.delete(unit);
                     }));
                 })
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deleteCombatUnit"));
     }
 
     /**
      * Deletes a pilot.
      */
-    @Transactional
     public Mono<Void> deletePilot(@NonNull UUID pilotId, String userId) {
         log.trace("[TRACE] Starting deletePilot: pilotId={}", pilotId);
         return pilotRepository.findById(pilotId)
@@ -101,13 +103,13 @@ public class AssetService {
                         return pilotRepository.delete(pilot);
                     }));
                 })
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deletePilot"));
     }
 
     /**
      * Updates a combat unit.
      */
-    @Transactional
     public Mono<CombatUnit> updateCombatUnit(@NonNull UUID unitId, CombatUnitUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updateCombatUnit: id={}", unitId);
         return combatUnitRepository.findById(unitId)
@@ -132,13 +134,13 @@ public class AssetService {
                                 .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
                     }));
                 })
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateCombatUnit"));
     }
 
     /**
      * Updates a pilot.
      */
-    @Transactional
     public Mono<Pilot> updatePilot(@NonNull UUID pilotId, PilotUpdateInput input, String userId) {
         log.trace("[TRACE] Starting updatePilot: id={}", pilotId);
         return pilotRepository.findById(pilotId)
@@ -163,13 +165,13 @@ public class AssetService {
                                 .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
                     }));
                 })
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updatePilot"));
     }
 
     /**
      * Adds a combat unit to a command.
      */
-    @Transactional
     public Mono<CombatUnit> addCombatUnit(@NonNull UUID commandId, CombatUnitUpdateInput input, String userId) {
         log.trace("[TRACE] Starting addCombatUnit: commandId={}", commandId);
         return userService.resolveOrCreateUser(userId).flatMap(user
@@ -201,13 +203,13 @@ public class AssetService {
                                     .thenReturn(u));
                         })
         )
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished addCombatUnit"));
     }
 
     /**
      * Hires a pilot.
      */
-    @Transactional
     public Mono<Pilot> hirePilot(@NonNull UUID commandId, PilotUpdateInput input, String userId) {
         log.trace("[TRACE] Starting hirePilot: commandId={}", commandId);
         return userService.resolveOrCreateUser(userId).flatMap(user
@@ -245,6 +247,7 @@ public class AssetService {
                                     .thenReturn(p));
                         })
         )
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished hirePilot"));
     }
 }

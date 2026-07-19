@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.entity.Detachment;
 import com.hotspotscamp.entity.MercenaryCommand;
@@ -31,25 +31,27 @@ public class DetachmentService {
     private final UserService userService;
     private final DatabaseClient databaseClient;
     private final Sinks.Many<MercenaryCommand> commandSink;
+    private final TransactionalOperator transactionalOperator;
 
     public DetachmentService(
             DetachmentRepository detachmentRepository,
             MercenaryCommandRepository commandRepository,
             UserService userService,
             DatabaseClient databaseClient,
-            Sinks.Many<MercenaryCommand> commandSink) {
+            Sinks.Many<MercenaryCommand> commandSink,
+            TransactionalOperator transactionalOperator) {
         this.detachmentRepository = detachmentRepository;
         this.commandRepository = commandRepository;
         this.userService = userService;
         this.databaseClient = databaseClient;
         this.commandSink = commandSink;
+        this.transactionalOperator = transactionalOperator;
     }
 
     /**
      * Creates a new detachment for a command assigned to a specific campaign
      * theater.
      */
-    @Transactional
     public Mono<Detachment> createDetachment(@NonNull UUID commandId, UUID campaignId, String name, String userId) {
         log.trace("[TRACE] Starting createDetachment: command={}, campaign={}", commandId, campaignId);
         return commandRepository.findById(commandId)
@@ -65,13 +67,13 @@ public class DetachmentService {
             return detachmentRepository.save(det)
                     .onErrorResume(DuplicateKeyException.class, e -> detachmentRepository.findById(Objects.requireNonNull(det.getId())));
         }))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished createDetachment"));
     }
 
     /**
      * Deletes a detachment and returns all assets to the command pool.
      */
-    @Transactional
     public Mono<Void> deleteDetachment(@NonNull UUID detachmentId, String userId) {
         log.trace("[TRACE] Starting deleteDetachment: id={}", detachmentId);
         return detachmentRepository.findById(detachmentId)
@@ -94,7 +96,9 @@ public class DetachmentService {
                                             return Mono.empty();
                                         })).then();
                             });
-                }).doOnTerminate(() -> log.trace("[TRACE] Finished deleteDetachment"));
+                })
+                .transformDeferred(transactionalOperator::transactional)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished deleteDetachment"));
     }
 
     /**
@@ -130,7 +134,6 @@ public class DetachmentService {
      * Recalculates and updates the Command's total Support Points (SP) by
      * summing all ledger entries across all its detachments.
      */
-    @Transactional
     public Mono<MercenaryCommand> syncTotalSupportPoints(@NonNull UUID commandId) {
         log.trace("[TRACE] Starting syncTotalSupportPoints: commandId={}", commandId);
         String sql = "SELECT COALESCE(SUM(amount), 0) as total FROM ledger_entries "
@@ -146,10 +149,11 @@ public class DetachmentService {
                     command.setNew(false);
                     return commandRepository.save(command)
                             .onErrorResume(DuplicateKeyException.class, e -> commandRepository.findById(commandId))
-                            .switchIfEmpty(Mono.fromRunnable(() ->
-                                    log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
+                            .switchIfEmpty(Mono.fromRunnable(()
+                                    -> log.warn("[WARN] syncTotalSupportPoints: save returned empty for command {}", commandId)))
                             .doOnNext(commandSink::tryEmitNext);
                 }))
+                .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished syncTotalSupportPoints"));
     }
 

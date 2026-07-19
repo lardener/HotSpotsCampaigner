@@ -70,12 +70,14 @@ class CampaignE2ETest {
 
     @BeforeAll
     void initSchema() {
-        // Initialize schema from the root schema.sql file once for the entire class
+        // Initialize schema from the Flyway migration (single source of truth) once for the class
         try {
-            // Try both potential paths for schema.sql depending on test execution context
-            FileSystemResource schemaResource = new FileSystemResource("../schema.sql");
+            // Try both potential paths for the migration depending on test execution context
+            FileSystemResource schemaResource = new FileSystemResource(
+                    "src/main/resources/db/migration/V1__init_schema.sql");
             if (!schemaResource.exists()) {
-                schemaResource = new FileSystemResource("schema.sql");
+                schemaResource = new FileSystemResource(
+                        "../backend/src/main/resources/db/migration/V1__init_schema.sql");
             }
             new ResourceDatabasePopulator(schemaResource).populate(connectionFactory).block();
         } catch (Exception e) {

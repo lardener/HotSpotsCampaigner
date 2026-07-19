@@ -16,11 +16,39 @@ spec:
       labels:
         app: backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend-container
           image: vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-backend:1.0.3
           ports:
             - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          # TCP probes: backend exposes /actuator/health only after the
+          # Observability plan is implemented. Until then, probe the app port.
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
           env:
             - name: GOOGLE_CLIENT_ID
               valueFrom:
@@ -99,3 +127,15 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
+---
+# PodDisruptionBudget keeps at least one backend pod available during drains
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+  namespace: battletech-campaigner
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: backend

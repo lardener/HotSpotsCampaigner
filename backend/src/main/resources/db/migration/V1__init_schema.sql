@@ -1,26 +1,10 @@
 -- HotSpots Campaigner Database Schema
--- Generated for MySQL / R2DBC Compatibility
-
-USE BT_Campaigner;
-
-SET FOREIGN_KEY_CHECKS = 0;
-
-SET SESSION group_concat_max_len = 1000000;
--- Dynamic drop of all tables in the current schema to ensure a clean slate
-SET @tables = NULL;
-SELECT GROUP_CONCAT('`', table_name, '`') INTO @tables
-  FROM information_schema.tables
-  WHERE table_schema = DATABASE();
-
-SET @tables = IF(@tables IS NOT NULL, CONCAT('DROP TABLE IF EXISTS ', @tables), 'SELECT "No tables to drop"');
-PREPARE stmt FROM @tables;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-SET FOREIGN_KEY_CHECKS = 1;
+-- Versioned Flyway migration (V1). Replaces the old destructive schema.sql
+-- which dropped every table on each init. Flyway guarantees this runs once.
+-- Generated for MySQL / R2DBC Compatibility.
 
 -- Create app_users table (User.java)
-CREATE TABLE app_users (
+CREATE TABLE IF NOT EXISTS app_users (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `external_id` VARCHAR(64) NOT NULL UNIQUE,
     `display_name` VARCHAR(255),
@@ -29,7 +13,7 @@ CREATE TABLE app_users (
 );
 
 -- Create campaigns table (Campaign.java)
-CREATE TABLE campaigns (
+CREATE TABLE IF NOT EXISTS campaigns (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
     `manager_id` VARCHAR(36) NOT NULL,
@@ -80,7 +64,7 @@ CREATE TABLE campaigns (
 );
 
 -- Create campaign_factions table (CampaignFaction.java)
-CREATE TABLE campaign_factions (
+CREATE TABLE IF NOT EXISTS campaign_factions (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `faction_name` VARCHAR(255),
@@ -90,7 +74,7 @@ CREATE TABLE campaign_factions (
 );
 
 -- Create campaign_invites table (CampaignInvite.java)
-CREATE TABLE campaign_invites (
+CREATE TABLE IF NOT EXISTS campaign_invites (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `token` VARCHAR(64) NOT NULL UNIQUE,
@@ -101,7 +85,7 @@ CREATE TABLE campaign_invites (
 );
 
 -- Create campaign_tracks table (CampaignTrack.java)
-CREATE TABLE campaign_tracks (
+CREATE TABLE IF NOT EXISTS campaign_tracks (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `track_name` VARCHAR(255),
@@ -118,7 +102,7 @@ CREATE TABLE campaign_tracks (
 );
 
 -- Create contracts table (Contract.java)
-CREATE TABLE contracts (
+CREATE TABLE IF NOT EXISTS contracts (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     campaign_id VARCHAR(36) NOT NULL,
     `employer_faction_id` VARCHAR(36),
@@ -141,7 +125,7 @@ CREATE TABLE contracts (
 );
 
 -- Create campaign_markets table (CampaignMarket.java)
-CREATE TABLE campaign_markets (
+CREATE TABLE IF NOT EXISTS campaign_markets (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `campaign_id` VARCHAR(36) NOT NULL UNIQUE,
     `free_market_markdown` TEXT,
@@ -153,7 +137,7 @@ CREATE TABLE campaign_markets (
 );
 
 -- Create mercenary_commands table (MercenaryCommand.java)
-CREATE TABLE mercenary_commands (
+CREATE TABLE IF NOT EXISTS mercenary_commands (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `name` VARCHAR(255),
     `owner_id` VARCHAR(36) NOT NULL,
@@ -164,7 +148,7 @@ CREATE TABLE mercenary_commands (
 );
 
 -- Create detachments table (Detachment.java)
-CREATE TABLE detachments (
+CREATE TABLE IF NOT EXISTS detachments (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `mercenary_command_id` VARCHAR(36) NOT NULL,
     `campaign_id` VARCHAR(36),
@@ -175,7 +159,7 @@ CREATE TABLE detachments (
 );
 
 -- Track which contract a detachment is working under for a specific month
-CREATE TABLE detachment_contract_assignments (
+CREATE TABLE IF NOT EXISTS detachment_contract_assignments (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     detachment_id VARCHAR(36) NOT NULL,
     contract_id VARCHAR(36) NOT NULL,
@@ -186,7 +170,7 @@ CREATE TABLE detachment_contract_assignments (
 );
 
 -- Create ledger_entries table (LedgerEntry.java)
-CREATE TABLE ledger_entries (
+CREATE TABLE IF NOT EXISTS ledger_entries (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
     `campaign_id` VARCHAR(36),
@@ -202,7 +186,7 @@ CREATE TABLE ledger_entries (
 );
 
 -- Create combat_units table (CombatUnit.java)
-CREATE TABLE combat_units (
+CREATE TABLE IF NOT EXISTS combat_units (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
@@ -220,7 +204,7 @@ CREATE TABLE combat_units (
 );
 
 -- Create pilots table (Pilot.java)
-CREATE TABLE pilots (
+CREATE TABLE IF NOT EXISTS pilots (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `command_id` VARCHAR(36) NOT NULL,
     `detachment_id` VARCHAR(36),
@@ -244,7 +228,7 @@ CREATE TABLE pilots (
 );
 
 -- Create faction_reputations table (FactionReputation.java)
-CREATE TABLE faction_reputations (
+CREATE TABLE IF NOT EXISTS faction_reputations (
     `id` VARCHAR(36) NOT NULL PRIMARY KEY,
     `campaign_faction_id` VARCHAR(36) NOT NULL,
     `mercenary_command_id` VARCHAR(36) NOT NULL,
@@ -253,4 +237,3 @@ CREATE TABLE faction_reputations (
     CONSTRAINT fk_reputation_faction FOREIGN KEY (campaign_faction_id) REFERENCES campaign_factions(id) ON DELETE CASCADE,
     CONSTRAINT fk_reputation_command FOREIGN KEY (mercenary_command_id) REFERENCES mercenary_commands(id) ON DELETE CASCADE
 );
-

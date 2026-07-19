@@ -13,10 +13,15 @@ RUN npm run build
 
 # Runtime stage
 FROM node:24.16.0-alpine
+# Run as a non-root user for container hardening
+RUN addgroup -S -g 10001 appgroup && adduser -S -u 10001 -G appgroup appuser
 WORKDIR /app
 RUN npm install -g serve
 
 COPY --from=builder /build/dist ./dist
+# Allow the non-root user to read the static assets
+RUN chown -R appuser:appgroup /app
+USER 10001
 
 EXPOSE 3000
 CMD ["serve", "-s", "dist", "-l", "3000"]

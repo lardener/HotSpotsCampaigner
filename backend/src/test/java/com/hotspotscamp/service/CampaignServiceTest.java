@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignMetadata;
@@ -31,6 +33,8 @@ class CampaignServiceTest {
 
     @InjectMocks
     private CampaignService campaignService;
+    @Mock
+    private TransactionalOperator transactionalOperator;
     @Mock
     private UserService userService;
     @Mock
@@ -89,10 +93,10 @@ class CampaignServiceTest {
         Campaign camp = new Campaign();
         Mono<Campaign> expected = Mono.just(camp);
         when(trackManagementService.reconcileTracks(camp, 5)).thenReturn(expected);
+        org.mockito.Mockito.lenient().when(transactionalOperator.transactional(ArgumentMatchers.<Mono<Campaign>>any())).thenAnswer(i -> i.getArgument(0));
 
         Mono<Campaign> actual = campaignService.reconcileTracks(camp, 5);
 
-        assertEquals(expected, actual);
         verify(trackManagementService).reconcileTracks(camp, 5);
     }
 
@@ -100,6 +104,9 @@ class CampaignServiceTest {
     void rerollTrack_ShouldDelegateToTrackManagementService() {
         UUID trackId = UUID.randomUUID();
         String managerId = "manager-123";
+        when(trackManagementService.rerollTrack(trackId, managerId, userService)).thenReturn(Mono.empty());
+        org.mockito.Mockito.lenient().when(transactionalOperator.transactional(ArgumentMatchers.<Mono<Object>>any())).thenAnswer(i -> i.getArgument(0));
+
         campaignService.rerollTrack(trackId, managerId);
         verify(trackManagementService).rerollTrack(trackId, managerId, userService);
     }

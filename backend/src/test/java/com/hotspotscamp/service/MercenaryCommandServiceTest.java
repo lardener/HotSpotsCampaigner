@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.r2dbc.core.RowsFetchSpec;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 import com.hotspotscamp.entity.MercenaryCommand;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
@@ -21,16 +22,22 @@ import com.hotspotscamp.repository.MercenaryCommandRepository;
 import io.r2dbc.spi.Row;
 import io.r2dbc.spi.RowMetadata;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class MercenaryCommandServiceTest {
+
     @Mock
     private MercenaryCommandRepository commandRepository;
     @Mock
     private DatabaseClient databaseClient;
     @Mock
     private RowsFetchSpec<Number> rowsFetchSpec;
+    @Mock
+    private TransactionalOperator transactionalOperator;
+    @Mock
+    private Sinks.Many<MercenaryCommand> commandSink;
 
     @InjectMocks
     private MercenaryCommandService commandService;
@@ -45,6 +52,8 @@ class MercenaryCommandServiceTest {
 
         when(commandRepository.findById(cmdId)).thenReturn(Mono.just(command));
         when(commandRepository.save(any())).thenAnswer(i -> Mono.just(i.getArgument(0)));
+        // Pass-through for the reactive transaction operator wrapping
+        org.mockito.Mockito.lenient().when(transactionalOperator.transactional(ArgumentMatchers.<Mono<MercenaryCommand>>any())).thenAnswer(i -> i.getArgument(0));
         // Mock the DatabaseClient SQL path used in syncTotalSupportPoints
         DatabaseClient.GenericExecuteSpec spec = mock(DatabaseClient.GenericExecuteSpec.class);
         when(databaseClient.sql(ArgumentMatchers.<String>any())).thenReturn(spec);

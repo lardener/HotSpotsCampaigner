@@ -159,6 +159,51 @@ cd frontend
 npm test
 ```
 
+## Database Migrations
+
+The database schema is managed with **Flyway** (versioned SQL migrations), not the
+old destructive `schema.sql` init script. Migrations run automatically at
+application startup against the configured MySQL database.
+
+### How it works
+- Migrations live in `backend/src/main/resources/db/migration/` and follow the
+  Flyway naming convention: `V<version>__<description>.sql` (e.g.
+  `V1__init_schema.sql`).
+- On startup, Flyway applies any pending migrations in version order and records
+  them in a `flyway_schema_history` table. Each migration runs **exactly once**.
+- Configuration is in `backend/src/main/resources/application.yml` under the
+  `spring.flyway` key (`enabled`, `locations`, and `baseline-on-migrate`).
+
+### First run on an existing database
+The production database already has the schema from the old `schema.sql`. To
+avoid re-creating (and dropping) that data, Flyway is configured with
+`baseline-on-migrate: true` (baseline version `0`). The first boot records the
+existing schema as already-applied at V1 and only applies *newer* migrations
+going forward. **No data is lost.**
+
+### Adding a schema change
+1. Create a new migration file, e.g. `V2__add_unit_notes.sql`, with the
+   `CREATE`/`ALTER` statements. Use `IF NOT EXISTS` where reasonable.
+2. Never edit an already-applied migration — add a new, higher-versioned one.
+3. Run the backend (or `mvn test`) to apply it. Flyway validates checksums, so
+   changing an applied file will fail fast.
+
+### Regenerating the V1 migration (optional)
+`backend/src/main/java/com/hotspotscamp/SchemaGenerator.java` is a standalone
+utility (`main` method) that regenerates `V1__init_schema.sql` from the entity
+definitions. It is **non-destructive** (uses `CREATE TABLE IF NOT EXISTS`) and
+is only a convenience — the migration file in `db/migration/` is the single
+source of truth. Run it with:
+```bash
+cd backend
+mvn -q compile exec:java -Dexec.mainClass=com.hotspotscamp.SchemaGenerator
+```
+
+### Local Docker note
+`docker-compose.yml` no longer mounts a schema file into the MySQL container's
+initdb. The schema is created entirely by Flyway when the backend starts, so
+the database container only needs the data volume.
+
 ## Project Structure
 
 ```
@@ -298,4 +343,28 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 **Build**: Maven (backend), npm (frontend)
 ## License
 
-(Add your license here)
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0) — the
+latest version of the GPL. You should have received a copy of the license with this
+project; if not, it is available at <https://www.gnu.org/licenses/gpl-3.0.html>.
+
+```
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <https://www.gnu.org/licenses/>.
+```

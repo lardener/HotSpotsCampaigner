@@ -55,9 +55,12 @@ class CampaignLifecycleIntegrationTest {
 
     @BeforeAll
     void initializeDatabase() throws Exception {
-        Path schemaPath = Path.of("..", "schema.sql");
+        Path schemaPath = Path.of("src/main/resources/db/migration/V1__init_schema.sql");
         if (!Files.exists(schemaPath)) {
-            throw new IllegalStateException("Expected schema.sql at: " + schemaPath.toAbsolutePath());
+            schemaPath = Path.of("../backend/src/main/resources/db/migration/V1__init_schema.sql");
+        }
+        if (!Files.exists(schemaPath)) {
+            throw new IllegalStateException("Expected V1 migration at: " + schemaPath.toAbsolutePath());
         }
 
         String schemaSql = Files.readString(schemaPath);
