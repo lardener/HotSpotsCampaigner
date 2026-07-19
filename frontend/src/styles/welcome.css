@@ -1,28 +1,28 @@
 .welcome-container {
-    text-align: left;
-    border-left: 4px solid var(--bt-orange);
-    padding: 2rem;
-    background: rgba(31, 40, 51, 0.6);
-    backdrop-filter: blur(5px);
+  text-align: left;
+  border-left: 4px solid var(--bt-orange);
+  padding: 2rem;
+  background: rgba(31, 40, 51, 0.6);
+  backdrop-filter: blur(5px);
 }
 
 .welcome-title {
-    font-size: 3rem;
-    font-weight: 900;
-    margin: 0;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: -1px;
-    line-height: 0.9;
+  font-size: 3rem;
+  font-weight: 900;
+  margin: 0;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+  line-height: 0.9;
 }
 
 .welcome-subtitle {
-    color: var(--bt-orange);
-    font-weight: 700;
-    text-transform: uppercase;
-    margin-top: 0.5rem;
-    display: block;
-    letter-spacing: 4px;
-    font-size: 0.9rem;
-    opacity: 0.8;
+  color: var(--bt-orange);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 0.5rem;
+  display: block;
+  letter-spacing: 4px;
+  font-size: 0.9rem;
+  opacity: 0.8;
 }

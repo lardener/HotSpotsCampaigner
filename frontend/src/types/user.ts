@@ -20,15 +20,15 @@
  */
 
 export interface UserAccount {
-    __typename?: string;
-    id: string;
-    name: string;
-    email: string;
-    displayName: string | null;
-    role: string;
+  __typename?: string
+  id: string
+  name: string
+  email: string
+  displayName: string | null
+  role: string
 }
 
 export interface Profile {
-    email: string;
-    name: string;
+  email: string
+  name: string
 }

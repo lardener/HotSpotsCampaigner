@@ -15,250 +15,332 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
-import { TacticalMarkdown } from './TacticalMarkdown';
-import { useHscActionHandler } from './useHscActionHandler';
-import { GetCampaignMarketDocument, SaveMarketMarkdownDocument, GetCampaignMetadataDocument } from '../types/operations';
-import { MarketLinkGenerator } from './MarketLinkGenerator';
-import { MercenaryCommand, CombatUnit, Pilot } from '../types/generated';
-import { CombatUnitEditor } from './CombatUnitEditor';
-import { PilotEditor } from './PilotEditor';
-import { UnitType, UnitStatus, TechBase } from '../types/helpers';
+import React, { useState, useEffect, useRef } from 'react'
+import { useQuery, useMutation } from '@apollo/client/react'
+import { TacticalMarkdown } from './TacticalMarkdown'
+import { useHscActionHandler } from './useHscActionHandler'
 import {
-    UNIT_STATUS_OPTIONS as FALLBACK_STATUSES,
-    UNIT_TYPES as FALLBACK_TYPES,
-    TECH_BASES as FALLBACK_TECH
-} from './Rules';
+  GetCampaignMarketDocument,
+  SaveMarketMarkdownDocument,
+  GetCampaignMetadataDocument,
+} from '../types/operations'
+import { MarketLinkGenerator } from './MarketLinkGenerator'
+import { MercenaryCommand, CombatUnit, Pilot } from '../types/generated'
+import { CombatUnitEditor } from './CombatUnitEditor'
+import { PilotEditor } from './PilotEditor'
+import { UnitType, UnitStatus, TechBase } from '../types/helpers'
+import {
+  UNIT_STATUS_OPTIONS as FALLBACK_STATUSES,
+  UNIT_TYPES as FALLBACK_TYPES,
+  TECH_BASES as FALLBACK_TECH,
+} from './Rules'
 
-type MarketType = 'FREE' | 'PRIMARY_EMPLOYER' | 'OPPOSITION_EMPLOYER' | 'SCRAPPERS';
+type MarketType = 'FREE' | 'PRIMARY_EMPLOYER' | 'OPPOSITION_EMPLOYER' | 'SCRAPPERS'
 
 interface MarketViewProps {
-    campaignId: string;
-    marketType: MarketType;
-    campaign: any;
-    setOverlay: (overlay: any) => void;
-    userCommands?: MercenaryCommand[];
+  campaignId: string
+  marketType: MarketType
+  campaign: any
+  setOverlay: (overlay: any) => void
+  userCommands?: MercenaryCommand[]
 }
 
-export const MarketView: React.FC<MarketViewProps> = ({ campaignId, marketType, campaign, setOverlay, userCommands }) => {
-    const {
-        handleHscAction,
-        showProcureEditor, procureAssetData, procureTargetDetachment, handleProcureSave, handleProcureCancel,
-        showHireEditor, hirePilotData, hireTargetDetachment, handleHireSave, handleHireCancel,
-    } = useHscActionHandler({
-        campaign,
-        userCommands,
-        setOverlay,
-        onActionComplete: () => refetch()
-    });
-    const [isEditing, setIsEditing] = useState(false);
-    const [markdown, setMarkdown] = useState('');
-    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+export const MarketView: React.FC<MarketViewProps> = ({
+  campaignId,
+  marketType,
+  campaign,
+  setOverlay,
+  userCommands,
+}) => {
+  const {
+    handleHscAction,
+    showProcureEditor,
+    procureAssetData,
+    procureTargetDetachment,
+    handleProcureSave,
+    handleProcureCancel,
+    showHireEditor,
+    hirePilotData,
+    hireTargetDetachment,
+    handleHireSave,
+    handleHireCancel,
+  } = useHscActionHandler({
+    campaign,
+    userCommands,
+    setOverlay,
+    onActionComplete: () => refetch(),
+  })
+  const [isEditing, setIsEditing] = useState(false)
+  const [markdown, setMarkdown] = useState('')
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    const { data, loading, refetch } = useQuery(GetCampaignMarketDocument, {
-        variables: { campaignId },
-        fetchPolicy: 'cache-and-network'
-    });
+  const { data, loading, refetch } = useQuery(GetCampaignMarketDocument, {
+    variables: { campaignId },
+    fetchPolicy: 'cache-and-network',
+  })
 
-    const { data: metaData } = useQuery(GetCampaignMetadataDocument);
+  const { data: metaData } = useQuery(GetCampaignMetadataDocument)
 
-    const [saveMarkdown] = useMutation(SaveMarketMarkdownDocument);
+  const [saveMarkdown] = useMutation(SaveMarketMarkdownDocument)
 
-    useEffect(() => {
-        // Always refetch when campaignId or marketType changes to ensure fresh data
-        refetch();
-    }, [campaignId, marketType, refetch]);
+  useEffect(() => {
+    // Always refetch when campaignId or marketType changes to ensure fresh data
+    refetch()
+  }, [campaignId, marketType, refetch])
 
-    useEffect(() => {
-        if (data) {
-            const market = data.campaignMarket;
-            //console.log('DEBUG: Market Data:', market);
-            if (marketType === 'FREE') {
-                setMarkdown(market?.freeMarketMarkdown || '# Free Market\nNo units currently available.');
-            } else if (marketType === 'SCRAPPERS') {
-                setMarkdown(market?.scrapperMarketMarkdown || '# Scrappers\' Yard\nWelcome to the scrap heap.');
-            } else if (marketType === 'PRIMARY_EMPLOYER') {
-                const employerName = campaign.primaryEmployer;
-                const employerMarket = market?.employerMarkets?.find((m: any) => m.factionId === employerName);
-                setMarkdown(employerMarket?.markdown || `# ${employerName || 'Primary Employer'}\nNo employer listings available.`);
-            } else if (marketType === 'OPPOSITION_EMPLOYER') {
-                const employerName = campaign.secondaryEmployer;
-                const employerMarket = market?.employerMarkets?.find((m: any) => m.factionId === employerName);
-                setMarkdown(employerMarket?.markdown || `# ${employerName || 'Opposition Employer'}\nNo employer listings available.`);
-            }
-        }
-    }, [data, marketType, campaign]);
+  useEffect(() => {
+    if (data) {
+      const market = data.campaignMarket
+      //console.log('DEBUG: Market Data:', market);
+      if (marketType === 'FREE') {
+        setMarkdown(market?.freeMarketMarkdown || '# Free Market\nNo units currently available.')
+      } else if (marketType === 'SCRAPPERS') {
+        setMarkdown(
+          market?.scrapperMarketMarkdown || "# Scrappers' Yard\nWelcome to the scrap heap.",
+        )
+      } else if (marketType === 'PRIMARY_EMPLOYER') {
+        const employerName = campaign.primaryEmployer
+        const employerMarket = market?.employerMarkets?.find(
+          (m: any) => m.factionId === employerName,
+        )
+        setMarkdown(
+          employerMarket?.markdown ||
+            `# ${employerName || 'Primary Employer'}\nNo employer listings available.`,
+        )
+      } else if (marketType === 'OPPOSITION_EMPLOYER') {
+        const employerName = campaign.secondaryEmployer
+        const employerMarket = market?.employerMarkets?.find(
+          (m: any) => m.factionId === employerName,
+        )
+        setMarkdown(
+          employerMarket?.markdown ||
+            `# ${employerName || 'Opposition Employer'}\nNo employer listings available.`,
+        )
+      }
+    }
+  }, [data, marketType, campaign])
 
-    const handleSave = async (value?: string) => {
-        const markdownToSave = value ?? markdown;
-        try {
-            // For employer markets, find the CampaignFaction UUID by matching the employer name
-            let factionId: string | null = null;
-            if (marketType === 'PRIMARY_EMPLOYER' && campaign.primaryEmployer) {
-                const faction = (campaign.factions || []).find((f: any) => f.factionName === campaign.primaryEmployer);
-                factionId = faction?.id || null;
-            } else if (marketType === 'OPPOSITION_EMPLOYER' && campaign.secondaryEmployer) {
-                const faction = (campaign.factions || []).find((f: any) => f.factionName === campaign.secondaryEmployer);
-                factionId = faction?.id || null;
-            }
+  const handleSave = async (value?: string) => {
+    const markdownToSave = value ?? markdown
+    try {
+      // For employer markets, find the CampaignFaction UUID by matching the employer name
+      let factionId: string | null = null
+      if (marketType === 'PRIMARY_EMPLOYER' && campaign.primaryEmployer) {
+        const faction = (campaign.factions || []).find(
+          (f: any) => f.factionName === campaign.primaryEmployer,
+        )
+        factionId = faction?.id || null
+      } else if (marketType === 'OPPOSITION_EMPLOYER' && campaign.secondaryEmployer) {
+        const faction = (campaign.factions || []).find(
+          (f: any) => f.factionName === campaign.secondaryEmployer,
+        )
+        factionId = faction?.id || null
+      }
 
-            await saveMarkdown({
-                variables: {
-                    campaignId,
-                    marketType: marketType.toUpperCase() as any,
-                    markdown: markdownToSave,
-                    factionId
-                }
-            });
-            if (!value) {
-                setIsEditing(false);
-            }
-        } catch (e) {
-            console.error('Failed to save market markdown:', e);
-        }
-    };
+      await saveMarkdown({
+        variables: {
+          campaignId,
+          marketType: marketType.toUpperCase() as any,
+          markdown: markdownToSave,
+          factionId,
+        },
+      })
+      if (!value) {
+        setIsEditing(false)
+      }
+    } catch (e) {
+      console.error('Failed to save market markdown:', e)
+    }
+  }
 
-    // Cleanup effect to save any pending changes when the component unmounts or marketType changes
-    useEffect(() => {
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-            // Save current markdown state if in editing mode
-            // This is crucial for preserving unsaved changes when switching tabs or closing the dashboard.
-            if (isEditing && markdown.length > 0) {
-                handleSave(markdown);
-            }
-        };
-    }, [isEditing, markdown, campaignId, marketType, saveMarkdown, handleSave]);
+  // Cleanup effect to save any pending changes when the component unmounts or marketType changes
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+      // Save current markdown state if in editing mode
+      // This is crucial for preserving unsaved changes when switching tabs or closing the dashboard.
+      if (isEditing && markdown.length > 0) {
+        handleSave(markdown)
+      }
+    }
+  }, [isEditing, markdown, campaignId, marketType, saveMarkdown, handleSave])
 
-    const handleMarkdownChange = (value: string) => {
-        setMarkdown(value);
+  const handleMarkdownChange = (value: string) => {
+    setMarkdown(value)
 
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
 
-        saveTimeoutRef.current = setTimeout(() => {
-            handleSave(value);
-        }, 5000);
-    };
+    saveTimeoutRef.current = setTimeout(() => {
+      handleSave(value)
+    }, 5000)
+  }
 
-    if (loading) return <div className="restricted-text" style={{ color: 'var(--terminal-amber)' }}>[ LOADING MARKET DATA... ]</div>;
-
+  if (loading)
     return (
-        <div className="market-view" style={{
-            display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', maxWidth: '800px', margin: '0 auto'
-        }}>
-            <div className="view-header" style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--terminal-amber)', paddingBottom: '10px'
-            }}>
-                <h3 className="restricted-text" style={{ margin: 0, fontSize: '1rem', color: 'var(--terminal-amber)' }}>
-                    {marketType === 'FREE' ? '[ FREE MARKET ]' : marketType === 'PRIMARY_EMPLOYER' ? `[ ${campaign.primaryEmployer?.toUpperCase() || 'PRIMARY EMPLOYER'} MARKET ]` : marketType === 'OPPOSITION_EMPLOYER' ? `[ ${campaign.secondaryEmployer?.toUpperCase() || 'OPPOSITION EMPLOYER'} MARKET ]` : '[ SCRAPPERS\' YARD ]'}
-                </h3>
-                <button
-                    className="mode-btn theme-amber"
-                    onClick={() => {
-                        if (isEditing) {
-                            handleSave();
-                        } else {
-                            setIsEditing(true);
-                        }
-                    }}
-                    style={{ fontSize: '0.6rem' }}
-                >
-                    {isEditing ? '[ CLOSE ]' : '[ EDIT ]'}
-                </button>
-            </div>
+      <div className="restricted-text" style={{ color: 'var(--terminal-amber)' }}>
+        [ LOADING MARKET DATA... ]
+      </div>
+    )
 
-            {isEditing ? (
-                <div className="edit-mode" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <textarea
-                        className="table-input"
-                        style={{
-                            width: '100%', minHeight: '400px', fontFamily: 'monospace',
-                            backgroundColor: 'rgba(0,0,0,0.5)', color: 'var(--terminal-amber)',
-                            border: '1px solid var(--terminal-amber)', padding: '10px', fontSize: '0.8rem'
-                        }}
-                        value={markdown}
-                        onChange={(e) => handleMarkdownChange(e.target.value)}
-                        onBlur={() => handleSave()}
-                    />
-                    <MarketLinkGenerator campaignId={campaignId} />
-                </div>
-            ) : (
-                <div className="view-mode" style={{
-                    backgroundColor: 'rgba(0,0,0,0.3)', padding: '20px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px'
-                }}>
-                    <TacticalMarkdown
-                        content={markdown}
-                        onAction={handleHscAction}
-                    />
-                </div>
-            )}
+  return (
+    <div
+      className="market-view"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px',
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto',
+      }}
+    >
+      <div
+        className="view-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid var(--terminal-amber)',
+          paddingBottom: '10px',
+        }}
+      >
+        <h3
+          className="restricted-text"
+          style={{ margin: 0, fontSize: '1rem', color: 'var(--terminal-amber)' }}
+        >
+          {marketType === 'FREE'
+            ? '[ FREE MARKET ]'
+            : marketType === 'PRIMARY_EMPLOYER'
+              ? `[ ${campaign.primaryEmployer?.toUpperCase() || 'PRIMARY EMPLOYER'} MARKET ]`
+              : marketType === 'OPPOSITION_EMPLOYER'
+                ? `[ ${campaign.secondaryEmployer?.toUpperCase() || 'OPPOSITION EMPLOYER'} MARKET ]`
+                : "[ SCRAPPERS' YARD ]"}
+        </h3>
+        <button
+          className="mode-btn theme-amber"
+          onClick={() => {
+            if (isEditing) {
+              handleSave()
+            } else {
+              setIsEditing(true)
+            }
+          }}
+          style={{ fontSize: '0.6rem' }}
+        >
+          {isEditing ? '[ CLOSE ]' : '[ EDIT ]'}
+        </button>
+      </div>
 
-            {showProcureEditor && procureTargetDetachment && (
-                <CombatUnitEditor
-                    mode="create"
-                    commandId={procureTargetDetachment.mercenaryCommandId || ''}
-                    detachmentId={procureTargetDetachment.id}
-                    availableSP={procureTargetDetachment.totalSupportPoints}
-                    unit={{
-                        ...procureAssetData,
-                        id: '',
-                        type: (procureAssetData?.type as UnitType) || 'BM',
-                        model: procureAssetData?.model || 'NEW UNIT',
-                        variant: procureAssetData?.variant || '',
-                        techBase: (procureAssetData?.techBase as TechBase) || 'Inner Sphere',
-                        tonnage: procureAssetData?.tonnage || 0,
-                        asSize: procureAssetData?.asSize || 0,
-                        bv: procureAssetData?.bv || 0,
-                        pv: procureAssetData?.pv || 0,
-                        status: (metaData?.publicCampaignMetadata?.unitStatuses?.[0] as UnitStatus) || 'OPERATIONAL',
-                        detachmentId: procureTargetDetachment.id
-                    } as CombatUnit}
-                    unitTypes={(metaData?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES) as UnitType[]}
-                    unitStatuses={(metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES) as UnitStatus[]}
-                    techBases={(metaData?.publicCampaignMetadata?.techBases || FALLBACK_TECH) as TechBase[]}
-                    onSave={handleProcureSave}
-                    onCancel={handleProcureCancel}
-                    overridePrice={procureAssetData?.overridePrice}
-                />
-            )}
-
-            {showHireEditor && hireTargetDetachment && (
-                <PilotEditor
-                    mode="create"
-                    commandId={hireTargetDetachment.mercenaryCommandId || ''}
-                    detachmentId={hireTargetDetachment.id}
-                    availableSP={hireTargetDetachment.totalSupportPoints}
-                    pilot={{
-                        ...hirePilotData,
-                        id: '',
-                        name: hirePilotData?.name || 'NEW PILOT',
-                        gunnery: 4,
-                        piloting: 5,
-                        asSkill: 4,
-                        edgeTokensSkill: null,
-                        edgeAbilitySkill: null,
-                        edgeAbilities: hirePilotData?.edgeAbilities ?? null,
-                        unitType: hirePilotData?.unitType || 'BM',
-                        wounds: hirePilotData?.wounds || 0,
-                        handicap: 0,
-                        totalSpEarned: hirePilotData?.totalSpEarned || 0,
-                        gunnerySpEarned: hirePilotData?.gunnerySpEarned || 0,
-                        pilotingSpEarned: hirePilotData?.pilotingSpEarned || 0,
-                        edgeTokensSpEarned: hirePilotData?.edgeTokensSpEarned || 0,
-                        edgeAbilitySpEarned: hirePilotData?.edgeAbilitySpEarned || 0,
-                        detachmentId: hireTargetDetachment.id
-                    } as Pilot}
-                    onSave={handleHireSave}
-                    onCancel={handleHireCancel}
-                    overridePrice={hirePilotData?.overridePrice}
-                    campaignHireCost={campaign.hireNamedPilotCost ?? undefined}
-                />
-            )}
+      {isEditing ? (
+        <div
+          className="edit-mode"
+          style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+        >
+          <textarea
+            className="table-input"
+            style={{
+              width: '100%',
+              minHeight: '400px',
+              fontFamily: 'monospace',
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              color: 'var(--terminal-amber)',
+              border: '1px solid var(--terminal-amber)',
+              padding: '10px',
+              fontSize: '0.8rem',
+            }}
+            value={markdown}
+            onChange={(e) => handleMarkdownChange(e.target.value)}
+            onBlur={() => handleSave()}
+          />
+          <MarketLinkGenerator campaignId={campaignId} />
         </div>
-    );
-};
+      ) : (
+        <div
+          className="view-mode"
+          style={{
+            backgroundColor: 'rgba(0,0,0,0.3)',
+            padding: '20px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '4px',
+          }}
+        >
+          <TacticalMarkdown content={markdown} onAction={handleHscAction} />
+        </div>
+      )}
+
+      {showProcureEditor && procureTargetDetachment && (
+        <CombatUnitEditor
+          mode="create"
+          commandId={procureTargetDetachment.mercenaryCommandId || ''}
+          detachmentId={procureTargetDetachment.id}
+          availableSP={procureTargetDetachment.totalSupportPoints}
+          unit={
+            {
+              ...procureAssetData,
+              id: '',
+              type: (procureAssetData?.type as UnitType) || 'BM',
+              model: procureAssetData?.model || 'NEW UNIT',
+              variant: procureAssetData?.variant || '',
+              techBase: (procureAssetData?.techBase as TechBase) || 'Inner Sphere',
+              tonnage: procureAssetData?.tonnage || 0,
+              asSize: procureAssetData?.asSize || 0,
+              bv: procureAssetData?.bv || 0,
+              pv: procureAssetData?.pv || 0,
+              status:
+                (metaData?.publicCampaignMetadata?.unitStatuses?.[0] as UnitStatus) ||
+                'OPERATIONAL',
+              detachmentId: procureTargetDetachment.id,
+            } as CombatUnit
+          }
+          unitTypes={(metaData?.publicCampaignMetadata?.unitTypes || FALLBACK_TYPES) as UnitType[]}
+          unitStatuses={
+            (metaData?.publicCampaignMetadata?.unitStatuses || FALLBACK_STATUSES) as UnitStatus[]
+          }
+          techBases={(metaData?.publicCampaignMetadata?.techBases || FALLBACK_TECH) as TechBase[]}
+          onSave={handleProcureSave}
+          onCancel={handleProcureCancel}
+          overridePrice={procureAssetData?.overridePrice}
+        />
+      )}
+
+      {showHireEditor && hireTargetDetachment && (
+        <PilotEditor
+          mode="create"
+          commandId={hireTargetDetachment.mercenaryCommandId || ''}
+          detachmentId={hireTargetDetachment.id}
+          availableSP={hireTargetDetachment.totalSupportPoints}
+          pilot={
+            {
+              ...hirePilotData,
+              id: '',
+              name: hirePilotData?.name || 'NEW PILOT',
+              gunnery: 4,
+              piloting: 5,
+              asSkill: 4,
+              edgeTokensSkill: null,
+              edgeAbilitySkill: null,
+              edgeAbilities: hirePilotData?.edgeAbilities ?? null,
+              unitType: hirePilotData?.unitType || 'BM',
+              wounds: hirePilotData?.wounds || 0,
+              handicap: 0,
+              totalSpEarned: hirePilotData?.totalSpEarned || 0,
+              gunnerySpEarned: hirePilotData?.gunnerySpEarned || 0,
+              pilotingSpEarned: hirePilotData?.pilotingSpEarned || 0,
+              edgeTokensSpEarned: hirePilotData?.edgeTokensSpEarned || 0,
+              edgeAbilitySpEarned: hirePilotData?.edgeAbilitySpEarned || 0,
+              detachmentId: hireTargetDetachment.id,
+            } as Pilot
+          }
+          onSave={handleHireSave}
+          onCancel={handleHireCancel}
+          overridePrice={hirePilotData?.overridePrice}
+          campaignHireCost={campaign.hireNamedPilotCost ?? undefined}
+        />
+      )}
+    </div>
+  )
+}

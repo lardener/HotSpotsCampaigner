@@ -7,7 +7,7 @@ This folder contains separate, independently-trackable plan files for the engine
 2. [x] **Database Migrations** → `plan-db-migrations.md` — replace destructive `schema.sql` (drops all tables) with versioned Flyway migrations.
 3. [ ] **Security Hardening** → `plan-security.md` — centralize resolver authz, fix reactive `@Transactional` bug, non-root containers, K8s probes/securityContext, consolidate Ingress. *(Steps 2–7 done; step 1 authz interceptor pending.)*
 4. [ ] **Observability** → `plan-observability.md` — add Actuator + Micrometer/Prometheus, quiet logs, structured logging, safe error envelope.
-5. [ ] **Frontend Quality** → `plan-frontend-quality.md` — ESLint/Prettier, remove junk test files, expand tests, code-splitting, centralize Apollo client.
+5. [x] **Frontend Quality** → `plan-frontend-quality.md` — ESLint/Prettier, remove junk test files, expand tests, code-splitting, centralize Apollo client.
 
 ## Suggested Execution Order (dependencies)
 - Phase A (independent, can run in parallel): CI/CD, DB Migrations, Frontend Quality.

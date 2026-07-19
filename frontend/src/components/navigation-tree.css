@@ -1,160 +1,160 @@
 /* Custom Scrollbar Styles for Webkit (Chrome, Safari) */
 .sidebar-content-scroll::-webkit-scrollbar {
-    width: 8px;
-    /* width of the scrollbar */
+  width: 8px;
+  /* width of the scrollbar */
 }
 
 .sidebar-content-scroll::-webkit-scrollbar-track {
-    background: var(--terminal-bg);
-    /* color of the track */
-    border-radius: 10px;
+  background: var(--terminal-bg);
+  /* color of the track */
+  border-radius: 10px;
 }
 
 .sidebar-content-scroll::-webkit-scrollbar-thumb {
-    background-color: var(--terminal-amber);
-    /* color of the scroll thumb */
-    border-radius: 10px;
-    /* roundness of the scroll thumb */
-    border: 2px solid var(--terminal-bg);
-    /* creates padding around scroll thumb */
+  background-color: var(--terminal-amber);
+  /* color of the scroll thumb */
+  border-radius: 10px;
+  /* roundness of the scroll thumb */
+  border: 2px solid var(--terminal-bg);
+  /* creates padding around scroll thumb */
 }
 
 /* Custom Scrollbar Styles for Firefox */
 .sidebar-content-scroll {
-    scrollbar-width: thin;
-    /* "auto" or "thin" */
-    scrollbar-color: var(--terminal-amber) var(--terminal-bg);
-    /* thumb and track color */
+  scrollbar-width: thin;
+  /* "auto" or "thin" */
+  scrollbar-color: var(--terminal-amber) var(--terminal-bg);
+  /* thumb and track color */
 }
 
 .nav-header {
-    padding: 16px;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    color: var(--terminal-green-dim);
+  padding: 16px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--terminal-green-dim);
 }
 
 .children-container {
-    margin-left: 18px;
-    border-left: 1px solid rgba(51, 255, 51, 0.15);
-    transition: all 0.2s ease;
-    position: relative;
+  margin-left: 18px;
+  border-left: 1px solid rgba(51, 255, 51, 0.15);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 .tree-node {
-    display: flex;
-    align-items: center;
-    height: 30px;
-    cursor: pointer;
-    font-size: 13px;
-    padding-left: 8px;
-    position: relative;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  cursor: pointer;
+  font-size: 13px;
+  padding-left: 8px;
+  position: relative;
 }
 
 .tree-node:hover:not(.root-node) {
-    background-color: rgba(51, 255, 51, 0.05);
-    color: var(--terminal-green);
+  background-color: rgba(51, 255, 51, 0.05);
+  color: var(--terminal-green);
 }
 
 .tree-node:hover .node-dot {
-    background-color: var(--terminal-green);
+  background-color: var(--terminal-green);
 }
 
 .tree-node.selected {
-    background-color: rgba(51, 255, 51, 0.1);
-    color: var(--terminal-green);
-    box-shadow: inset 2px 0 0 0 var(--terminal-green);
-    font-weight: 500;
+  background-color: rgba(51, 255, 51, 0.1);
+  color: var(--terminal-green);
+  box-shadow: inset 2px 0 0 0 var(--terminal-green);
+  font-weight: 500;
 }
 
 .root-node {
-    color: var(--terminal-green-dim);
-    text-transform: uppercase;
-    font-size: 10px;
-    font-weight: 800;
-    padding-top: 16px;
-    padding-bottom: 4px;
-    cursor: default;
-    letter-spacing: 0.1em;
-    border-left: none !important;
+  color: var(--terminal-green-dim);
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 800;
+  padding-top: 16px;
+  padding-bottom: 4px;
+  cursor: default;
+  letter-spacing: 0.1em;
+  border-left: none !important;
 }
 
 /* Tactical Type Colors */
 .label.type-command {
-    color: var(--terminal-amber);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+  color: var(--terminal-amber);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .label.type-detachment {
-    color: var(--terminal-green);
-    font-size: 0.95em;
+  color: var(--terminal-green);
+  font-size: 0.95em;
 }
 
 .label.type-campaign {
-    color: var(--terminal-blue);
-    font-weight: 600;
+  color: var(--terminal-blue);
+  font-weight: 600;
 }
 
 .label.type-deployment {
-    color: #88ff88;
-    font-style: italic;
+  color: #88ff88;
+  font-style: italic;
 }
 
 .label.type-intel {
-    color: var(--terminal-amber-dim);
+  color: var(--terminal-amber-dim);
 }
 
 .selected .label {
-    color: var(--terminal-green) !important;
-    text-shadow: 0 0 8px rgba(51, 255, 51, 0.5);
+  color: var(--terminal-green) !important;
+  text-shadow: 0 0 8px rgba(51, 255, 51, 0.5);
 }
 
 .tree-node:not(.root-node)::before {
-    content: "";
-    width: 14px;
-    height: 1px;
-    background-color: rgba(51, 255, 51, 0.15);
-    position: absolute;
-    left: -18px;
-    display: block;
-    top: 50%;
+  content: '';
+  width: 14px;
+  height: 1px;
+  background-color: rgba(51, 255, 51, 0.15);
+  position: absolute;
+  left: -18px;
+  display: block;
+  top: 50%;
 }
 
 .toggle-arrow {
-    font-size: 7px;
-    margin-right: 6px;
-    transition: transform 0.2s;
-    width: 12px;
-    text-align: center;
-    color: var(--terminal-amber);
-    opacity: 0.6;
+  font-size: 7px;
+  margin-right: 6px;
+  transition: transform 0.2s;
+  width: 12px;
+  text-align: center;
+  color: var(--terminal-amber);
+  opacity: 0.6;
 }
 
 .toggle-arrow.open {
-    transform: rotate(90deg);
+  transform: rotate(90deg);
 }
 
 .toggle-spacer {
-    width: 12px;
-    margin-right: 6px;
+  width: 12px;
+  margin-right: 6px;
 }
 
 .node-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 8px;
-    color: inherit;
-    opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  color: inherit;
+  opacity: 0.7;
 }
 
 .node-dot {
-    width: 4px;
-    height: 4px;
-    background-color: var(--terminal-green-dim);
-    border-radius: 50%;
-    border: 1px solid rgba(51, 255, 51, 0.3);
+  width: 4px;
+  height: 4px;
+  background-color: var(--terminal-green-dim);
+  border-radius: 50%;
+  border: 1px solid rgba(51, 255, 51, 0.3);
 }

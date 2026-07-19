@@ -15,10 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import '../styles/welcome.css';
+import '../styles/welcome.css'
 
 interface WelcomeProps {
-  userName: string;
+  userName: string
 }
 
 export function Welcome({ userName }: WelcomeProps) {
@@ -26,5 +26,5 @@ export function Welcome({ userName }: WelcomeProps) {
     <div className="welcome-container" title={`Welcome ${userName} to the Mercenary Life`}>
       <h1>Welcome {userName} to the Mercenary Life</h1>
     </div>
-  );
+  )
 }

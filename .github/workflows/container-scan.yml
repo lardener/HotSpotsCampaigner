@@ -1,0 +1,65 @@
+name: Container Build & Scan
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "backend/**"
+            - "frontend/**"
+            - "Dockerfile.backend"
+            - "Dockerfile.frontend"
+            - "schema.graphqls"
+            - ".github/workflows/container-scan.yml"
+    pull_request:
+        paths:
+            - "backend/**"
+            - "frontend/**"
+            - "Dockerfile.backend"
+            - "Dockerfile.frontend"
+            - "schema.graphqls"
+            - ".github/workflows/container-scan.yml"
+
+jobs:
+    scan:
+        name: Build images and scan with Trivy
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            security-events: write
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build backend image
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: Dockerfile.backend
+                  push: false
+                  load: true
+                  tags: hotspotscampaigner-backend:scan
+
+            - name: Build frontend image (K8s config: empty VITE_API_BASE_URL -> /api fallback)
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: Dockerfile.frontend
+                  push: false
+                  load: true
+                  build-args: |
+                      VITE_API_BASE_URL=
+                  tags: hotspotscampaigner-frontend:scan
+
+            - name: Run Trivy vulnerability scanner
+              uses: aquasecurity/trivy-action@0.28.0
+              with:
+                  scan-type: image
+                  image-ref: hotspotscampaigner-backend:scan,hotspotscampaigner-frontend:scan
+                  format: table
+                  exit-code: "1"
+                  ignore-unfixed: true
+                  vuln-type: os,library
+                  severity: HIGH,CRITICAL

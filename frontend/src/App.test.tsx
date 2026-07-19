@@ -15,47 +15,47 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { App } from './App';
+import { render, screen, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { App } from './App'
 
 const { mockQuery } = vi.hoisted(() => {
-  return { mockQuery: vi.fn() };
-});
+  return { mockQuery: vi.fn() }
+})
 
 // Subclass ApolloClient inside mock to override only the query method
 vi.mock('@apollo/client', async (importOriginal) => {
-  const original = await importOriginal<any>();
+  const original = await importOriginal<any>()
   class MockApolloClient extends original.ApolloClient {
     constructor(...args: any[]) {
-      super(...args);
-      this.query = mockQuery as any;
+      super(...args)
+      this.query = mockQuery as any
     }
   }
   return {
     ...original,
-    ApolloClient: MockApolloClient
-  };
-});
+    ApolloClient: MockApolloClient,
+  }
+})
 
 describe('App Component', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    vi.clearAllMocks()
+  })
 
   it('shows loading state initially', () => {
-    mockQuery.mockReturnValue(new Promise(() => { })); // Never resolves
-    render(<App />);
-    expect(screen.getByText('INITIALIZING NEURAL LINK...')).toBeInTheDocument();
-  });
+    mockQuery.mockReturnValue(new Promise(() => {})) // Never resolves
+    render(<App />)
+    expect(screen.getByText('INITIALIZING NEURAL LINK...')).toBeInTheDocument()
+  })
 
   it('renders login when unauthenticated', async () => {
-    mockQuery.mockRejectedValue(new Error('Authentication required'));
+    mockQuery.mockRejectedValue(new Error('Authentication required'))
 
-    render(<App />);
+    render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText('FEDERATED LOGIN')).toBeInTheDocument();
-    });
-  });
-});
+      expect(screen.getByText('FEDERATED LOGIN')).toBeInTheDocument()
+    })
+  })
+})
