@@ -308,10 +308,10 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             <div
                 className="pilot-editor-overlay"
                 onClick={onCancel}
-                style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.97)', zIndex: 9998 }}
+                style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.97)', zIndex: 10000 }}
             />
 
-            <div className="pilot-card-form terminal-overlay-panel" style={{ zIndex: 9999, maxWidth: '850px', width: '95%', position: 'relative', overflow: 'hidden' }}>
+            <div className="pilot-card-form terminal-overlay-panel" style={{ zIndex: 10001, maxWidth: '850px', width: '95%', position: 'relative', overflow: 'hidden' }}>
                 <PilotBackground />
                 <header className="pilot-card-header overlay-header">
                     <h2 className="terminal-text" style={{ margin: 0, display: 'flex', alignItems: 'center' }}>

@@ -145,6 +145,12 @@ public class CampaignService {
         return campaignFactionRepository.findAllByCampaignId(campaignId);
     }
 
+    public Mono<String> getFactionNameById(UUID factionId) {
+        return campaignFactionRepository.findById(factionId)
+                .map(CampaignFaction::getFactionName)
+                .defaultIfEmpty("Unknown");
+    }
+
     public Flux<Contract> getContracts(UUID campaignId) {
         return contractRepository.findAllByCampaignId(campaignId);
     }

@@ -32,6 +32,9 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 - `docs/plans/` - Detailed expansion and migration plans
 - `ssl_cert/` - Kubernetes SSL/TLS certificates
 
+## Design Choices
+- Long text fields should implement auto-save.  That should not cause a re-render of the page.  They should also support markdown rendering and the `hsc://` pseudo-link pattern. (see the README.md Interactive Briefing Example)
+
 ## General Utilities
 - `TypeUtils` - Java Utility class for safe type conversions.
 

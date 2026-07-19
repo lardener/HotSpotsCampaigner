@@ -4,7 +4,9 @@ import { MarketView } from './MarketView';
 import { ScrapperDrawButton } from './ScrapperDrawButton';
 import { TerminalOverlay } from './TerminalOverlay';
 
-export type MarketType = 'FREE' | 'EMPLOYER' | 'SCRAPPERS';
+export type MarketType = 'FREE' | 'PRIMARY_EMPLOYER' | 'OPPOSITION_EMPLOYER' | 'SCRAPPERS';
+
+import { MercenaryCommand } from '../types/generated';
 
 interface MarketDashboardProps {
     campaignId: string;
@@ -12,10 +14,14 @@ interface MarketDashboardProps {
     onRefresh?: () => Promise<any>;
     campaign: any;
     setOverlay: (overlay: any) => void;
+    userCommands?: MercenaryCommand[];
 }
 
-export const MarketDashboard: React.FC<MarketDashboardProps> = ({ campaignId, onClose, campaign, setOverlay }) => {
+export const MarketDashboard: React.FC<MarketDashboardProps> = ({ campaignId, onClose, campaign, setOverlay, userCommands }) => {
     const [activeTab, setActiveTab] = useState<MarketType>('FREE');
+
+    const primaryEmployer: string | undefined = campaign?.primaryEmployer;
+    const secondaryEmployer: string | undefined = campaign?.secondaryEmployer;
 
     return (
         <TerminalOverlay
@@ -25,63 +31,97 @@ export const MarketDashboard: React.FC<MarketDashboardProps> = ({ campaignId, on
             onCancel={onClose}
         >
             <MarketBackground />
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
 
-            <div className="market-container" style={{
-                display: 'flex', flexDirection: 'column', height: '100%',
-                padding: '20px', color: 'var(--terminal-amber)', fontFamily: 'monospace'
-            }}>
-                <div className="market-tabs" style={{
-                    display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid var(--terminal-amber)', paddingBottom: '10px'
+                <div className="market-container" style={{
+                    display: 'flex', flexDirection: 'column', height: '100%',
+                    padding: '20px', color: 'var(--terminal-amber)', fontFamily: 'monospace',
+                    position: 'relative', zIndex: 1
                 }}>
-                    <button
-                        className={`mode-btn ${activeTab === 'FREE' ? 'theme-amber' : ''}`}
-                        onClick={() => setActiveTab('FREE')}
-                        style={{ fontSize: '0.8rem' }}
-                    >[ FREE MARKET ]</button>
-                    <button
-                        className={`mode-btn ${activeTab === 'EMPLOYER' ? 'theme-amber' : ''}`}
-                        onClick={() => setActiveTab('EMPLOYER')}
-                        style={{ fontSize: '0.8rem' }}
-                    >[ EMPLOYER MARKETS ]</button>
-                    <button
-                        className={`mode-btn ${activeTab === 'SCRAPPERS' ? 'theme-amber' : ''}`}
-                        onClick={() => setActiveTab('SCRAPPERS')}
-                        style={{ fontSize: '0.8rem' }}
-                    >[ SCRAPPERS' YARD ]</button>
-                </div>
+                    <div className="market-tabs" style={{
+                        display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid var(--terminal-amber)', paddingBottom: '10px', flexWrap: 'wrap'
+                    }}>
+                        <button
+                            className={`mode-btn ${activeTab === 'FREE' ? 'theme-amber' : ''}`}
+                            onClick={() => setActiveTab('FREE')}
+                            style={{ fontSize: '0.8rem' }}
+                        >[ FREE MARKET ]</button>
 
-                <div className="market-content" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-                    {activeTab === 'FREE' && (
-                        <MarketView
-                            campaignId={campaignId}
-                            marketType="FREE"
-                            campaign={campaign}
-                            setOverlay={setOverlay}
-                        />
-                    )}
-                    {activeTab === 'EMPLOYER' && (
-                        <MarketView
-                            campaignId={campaignId}
-                            marketType="EMPLOYER"
-                            campaign={campaign}
-                            setOverlay={setOverlay}
-                        />
-                    )}
-                    {activeTab === 'SCRAPPERS' && (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px' }}>
+                        {primaryEmployer && (
+                            <button
+                                className={`mode-btn ${activeTab === 'PRIMARY_EMPLOYER' ? 'theme-amber' : ''}`}
+                                onClick={() => setActiveTab('PRIMARY_EMPLOYER')}
+                                style={{ fontSize: '0.8rem' }}
+                            >[ {primaryEmployer.toUpperCase()} ]</button>
+                        )}
+
+                        {secondaryEmployer && (
+                            <button
+                                className={`mode-btn ${activeTab === 'OPPOSITION_EMPLOYER' ? 'theme-amber' : ''}`}
+                                onClick={() => setActiveTab('OPPOSITION_EMPLOYER')}
+                                style={{ fontSize: '0.8rem' }}
+                            >[ {secondaryEmployer.toUpperCase()} ]</button>
+                        )}
+
+                        <button
+                            className={`mode-btn ${activeTab === 'SCRAPPERS' ? 'theme-amber' : ''}`}
+                            onClick={() => setActiveTab('SCRAPPERS')}
+                            style={{ fontSize: '0.8rem' }}
+                        >[ SCRAPPERS' YARD ]</button>
+                    </div>
+
+                    <div className="market-content" style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+                        <div style={{ display: activeTab === 'FREE' ? 'block' : 'none' }}>
                             <MarketView
                                 campaignId={campaignId}
-                                marketType="SCRAPPERS"
+                                marketType="FREE"
                                 campaign={campaign}
                                 setOverlay={setOverlay}
-                            />
-                            <ScrapperDrawButton
-                                campaignId={campaignId}
-                                campaign={campaign}
-                                setOverlay={setOverlay}
+                                userCommands={userCommands}
                             />
                         </div>
-                    )}
+
+                        {primaryEmployer && (
+                            <div style={{ display: activeTab === 'PRIMARY_EMPLOYER' ? 'block' : 'none' }}>
+                                <MarketView
+                                    campaignId={campaignId}
+                                    marketType="PRIMARY_EMPLOYER"
+                                    campaign={campaign}
+                                    setOverlay={setOverlay}
+                                    userCommands={userCommands}
+                                />
+                            </div>
+                        )}
+
+                        {secondaryEmployer && (
+                            <div style={{ display: activeTab === 'OPPOSITION_EMPLOYER' ? 'block' : 'none' }}>
+                                <MarketView
+                                    campaignId={campaignId}
+                                    marketType="OPPOSITION_EMPLOYER"
+                                    campaign={campaign}
+                                    setOverlay={setOverlay}
+                                    userCommands={userCommands}
+                                />
+                            </div>
+                        )}
+
+                        <div style={{ display: activeTab === 'SCRAPPERS' ? 'block' : 'none' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '20px' }}>
+                                <MarketView
+                                    campaignId={campaignId}
+                                    marketType="SCRAPPERS"
+                                    campaign={campaign}
+                                    setOverlay={setOverlay}
+                                    userCommands={userCommands}
+                                />
+                                <ScrapperDrawButton
+                                    campaignId={campaignId}
+                                    campaign={campaign}
+                                    setOverlay={setOverlay}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </TerminalOverlay>

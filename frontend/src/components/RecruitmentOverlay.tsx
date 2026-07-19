@@ -51,7 +51,7 @@ export const RecruitmentOverlay: React.FC<RecruitmentOverlayProps> = ({ campaign
         if (activeToken) {
             navigator.clipboard.writeText(activeToken);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000); // Reset "Copied!" message after 2 seconds
+            setTimeout(() => setCopied(false), 5000); // Reset "Copied!" message after 2 seconds
         }
     };
 

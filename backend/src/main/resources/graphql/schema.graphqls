@@ -5,7 +5,8 @@ type Query {
     getCampaign(id: ID!): Campaign
     managedCampaigns(status: String): [Campaign]
     previewCampaign(input: CampaignCreateInput!): CampaignProposal
-    campaignMetadata: CampaignMetadata
+    campaignMetadata: CampaignMetadata    
+    campaignMarket(campaignId: ID!): CampaignMarket    
     participatingCampaigns(commandId: ID!): [Campaign]
     generateTracks(mission: String!, commandRights: String!, oppCommandRights: String!, count: Int!, existing: [ProposedTrackInput]): [ProposedTrack]
     commandAssets(commandId: ID!): CommandAssetsResponse
@@ -15,7 +16,6 @@ type Query {
     publicActiveCampaigns(page: Int, size: Int): [Campaign]
     publicCampaignMetadata: CampaignMetadata
     publicPreviewCampaign(input: CampaignCreateInput!): CampaignProposal
-    campaignMarket(campaignId: ID!): CampaignMarket
 }
 
 type CampaignMetadata {
@@ -106,10 +106,13 @@ type Mutation {
     assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
     joinCampaign(token: String!, detachmentId: ID!): Boolean
     updateUserProfile(displayName: String): UserProfile
-
+    
     # Market Operations
     importUnitsToMarket(campaignId: ID!, url: String!, marketType: MarketType!, factionId: ID): String!
     saveMarketMarkdown(campaignId: ID!, marketType: MarketType!, markdown: String!, factionId: ID): Boolean!
+    generateUnitMarketLink(url: String!): String!
+    generatePilotMarketLink(url: String!): String!
+    generateRandomPilotLink(campaignId: ID!, weightClass: String!): String!
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
@@ -567,6 +570,8 @@ type Campaign {
 enum MarketType {
     FREE
     EMPLOYER
+    PRIMARY_EMPLOYER
+    OPPOSITION_EMPLOYER
     SCRAPPERS
 }
 

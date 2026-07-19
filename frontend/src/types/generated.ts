@@ -457,6 +457,8 @@ export type MarketPurchaseInput = {
 export enum MarketType {
   Employer = 'EMPLOYER',
   Free = 'FREE',
+  OppositionEmployer = 'OPPOSITION_EMPLOYER',
+  PrimaryEmployer = 'PRIMARY_EMPLOYER',
   Scrappers = 'SCRAPPERS'
 }
 
@@ -497,6 +499,9 @@ export type Mutation = {
   deletePilot: Maybe<Scalars['Boolean']['output']>;
   deleteUnit: Maybe<Scalars['Boolean']['output']>;
   establishCommand: Maybe<MercenaryCommand>;
+  generatePilotMarketLink: Scalars['String']['output'];
+  generateRandomPilotLink: Scalars['String']['output'];
+  generateUnitMarketLink: Scalars['String']['output'];
   hirePilot: Maybe<Pilot>;
   importCombatUnitsFromLink: Maybe<Array<Maybe<CombatUnit>>>;
   importUnitsToMarket: Scalars['String']['output'];
@@ -593,6 +598,22 @@ export type MutationDeleteUnitArgs = {
 
 export type MutationEstablishCommandArgs = {
   input: CommandUpdateInput;
+};
+
+
+export type MutationGeneratePilotMarketLinkArgs = {
+  url: Scalars['String']['input'];
+};
+
+
+export type MutationGenerateRandomPilotLinkArgs = {
+  campaignId: Scalars['ID']['input'];
+  weightClass: Scalars['String']['input'];
+};
+
+
+export type MutationGenerateUnitMarketLinkArgs = {
+  url: Scalars['String']['input'];
 };
 
 

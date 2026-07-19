@@ -211,7 +211,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({ commandId, d
         };
 
         if (immediate) execute();
-        else saveTimeoutRef.current[key] = setTimeout(execute, 1000);
+        else saveTimeoutRef.current[key] = setTimeout(execute, 5000);
     };
 
     const handleHirePilot = async () => {

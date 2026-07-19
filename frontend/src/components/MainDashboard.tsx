@@ -153,7 +153,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({ user, onLogout, on
             setRemainingSeconds(0);
         }
 
-        inactivityTimerRef.current = window.setTimeout(scheduleNextInactivityCheck, Math.max(nextCheckDelay, 1000));
+        inactivityTimerRef.current = window.setTimeout(scheduleNextInactivityCheck, Math.max(nextCheckDelay, 5000));
     }, [user, onLogout]);
 
     const resetActivityTimer = useCallback(() => {

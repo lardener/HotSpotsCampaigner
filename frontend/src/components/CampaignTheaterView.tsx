@@ -224,7 +224,7 @@ const useTheaterCampaignSync = (
             await refetchCampaign();
             if (onRefresh) await onRefresh();
             setIsSyncing(false);
-        }, 1000) as unknown as number;
+        }, 5000) as unknown as number;
     };
 
     const handleRepairRuleUpdate = (field: string, value: string | number) => {
@@ -241,7 +241,7 @@ const useTheaterCampaignSync = (
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
             setIsSyncing(false);
-        }, 1000) as unknown as number;
+        }, 5000) as unknown as number;
     };
 
     const handleActivityCostUpdate = (field: string, value: string | number) => {
@@ -260,7 +260,7 @@ const useTheaterCampaignSync = (
             await updateCampaign({ variables: { id: targetId, input } });
             await refetchCampaign();
             setIsSyncing(false);
-        }, 1000) as unknown as number;
+        }, 5000) as unknown as number;
     };
 
     const handleReroll = async (trackId: string) => {
@@ -494,7 +494,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             await refetchCampaign();
             if (onRefresh) await onRefresh();
             setIsSyncing(false);
-        }, 1000) as unknown as number;
+        }, 5000) as unknown as number;
     };
 
     const handleDrop = async (e: React.DragEvent, targetMonth: number, targetTrackId?: string) => {
@@ -1284,6 +1284,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                         onRefresh={() => refetchCampaign()}
                         campaign={campaign}
                         setOverlay={setOverlay}
+                        userCommands={userCommands}
                     />
                 )
             }

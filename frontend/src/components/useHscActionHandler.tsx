@@ -130,6 +130,18 @@ export const useHscActionHandler = ({ campaign, userCommands, setOverlay, onActi
                     overridePrice: params.get('price') ? parseInt(params.get('price')!) : undefined
                 };
                 selectDetachmentAndOpenEditor(pilot, 'hire');
+            } else if (urlObj.host === 'market' && urlObj.pathname === '/scrappers/draw') {
+                setOverlay({
+                    title: "SCRAP HEAP DRAW",
+                    message: "ACCESSING CAMPAIGN MARKET DATA... ROLLING FOR SALVAGE...",
+                    onConfirm: () => {
+                        setOverlay(null);
+                        // Note: This requires a backend mutation to actually perform the draw.
+                        // For now, we simulate the 'reveal' and redirect to procurement.
+                        console.log("Scrapper draw triggered for campaign:", urlObj.searchParams.get('campaign'));
+                    },
+                    variant: 'info'
+                });
             } else {
                 setOverlay({
                     title: "UNKNOWN ACTION",

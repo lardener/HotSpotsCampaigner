@@ -110,6 +110,9 @@ type Mutation {
     # Market Operations
     importUnitsToMarket(campaignId: ID!, url: String!, marketType: MarketType!, factionId: ID): String!
     saveMarketMarkdown(campaignId: ID!, marketType: MarketType!, markdown: String!, factionId: ID): Boolean!
+    generateUnitMarketLink(url: String!): String!
+    generatePilotMarketLink(url: String!): String!
+    generateRandomPilotLink(campaignId: ID!, weightClass: String!): String!
 
     # Ledger & Detachments
     createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
@@ -567,6 +570,8 @@ type Campaign {
 enum MarketType {
     FREE
     EMPLOYER
+    PRIMARY_EMPLOYER
+    OPPOSITION_EMPLOYER
     SCRAPPERS
 }
 

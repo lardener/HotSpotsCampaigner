@@ -274,14 +274,14 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
             <FloatingOverlay
                 className="terminal-overlay-backdrop theme-amber"
                 lockScroll
-                style={{ zIndex: 9998, display: 'grid', placeItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.97)' }}
+                style={{ zIndex: 10000, display: 'grid', placeItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.97)' }}
             >
                 <FloatingFocusManager context={context}>
                     <div
                         className="mech-card-form terminal-overlay-panel"
                         ref={refs.setFloating}
                         {...getFloatingProps()}
-                        style={{ zIndex: 9999, maxWidth: '900px', width: '95%', position: 'relative', overflow: 'hidden' }}
+                        style={{ zIndex: 10001, maxWidth: '900px', width: '95%', position: 'relative', overflow: 'hidden' }}
                     >
                         <CombatUnitBackground />
                         <header className="mech-card-header overlay-header">
