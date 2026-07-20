@@ -17,9 +17,10 @@ COPY --from=builder /build/target/*.jar app.jar
 RUN chown -R appuser:appgroup /app
 USER 10001
 
-# Environment variables for Google OAuth
-ENV GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-ENV GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+# NOTE: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are runtime secrets supplied by the
+# deployment environment (docker-compose env_file or Kubernetes secrets/configmap),
+# NOT baked into the image. Baking them into ENV leaks secrets and triggers Trivy
+# SecretsUsedInArgOrEnv / UndefinedVar findings.
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
