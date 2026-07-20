@@ -10,5 +10,19 @@ export default defineConfig({
         setupFiles: './src/setupTests.ts',
         include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
         css: false,
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html'],
+            include: ['src/**/*.{ts,tsx}'],
+            exclude: [
+                'src/types/**',
+                'src/gql/**',
+                'src/main.tsx',
+                'src/setupTests.ts',
+                'src/vite-env.d.ts',
+                'src/tests/**',
+                'src/**/*.d.ts',
+            ],
+        },
     },
 });

@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { useEffect } from 'react'
-import { ApolloProvider } from '@apollo/client/react'
 import { MainDashboard } from './components/MainDashboard'
-import { apolloClient, API_BASE_URL } from './services/apollo'
+import { API_BASE_URL } from './services/apollo'
 import { useUserProfile } from './hooks/useUserProfile'
 import './styles/index.css'
 
@@ -89,9 +88,6 @@ export function App() {
   }
 
   return (
-    // 3. Provide the client to your component tree
-    <ApolloProvider client={apolloClient}>
-      <MainDashboard user={user} onLogout={handleLogout} onRefreshProfile={fetchProfile} />
-    </ApolloProvider>
+    <MainDashboard user={user} onLogout={handleLogout} onRefreshProfile={fetchProfile} />
   )
 }

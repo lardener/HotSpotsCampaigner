@@ -3,11 +3,11 @@
 TL;DR: There is currently **no CI/CD** in the repo (no `.github/workflows`, Jenkinsfile, or GitLab CI). Add GitHub Actions to build, test, scan images, and deploy backend/frontend to the OVH Kubernetes cluster. Each workflow is independently runnable so the work can be tracked separately.
 
 **Steps**
-- [ ] Backend CI — `.github/workflows/backend-ci.yml`: checkout → setup JDK 25 (Temurin) → cache Maven → run `mvn -B test`. Tests use Testcontainers (MySQL) and r2dbc-h2, so the runner needs Docker (`actions/setup-java` + `docker` service or a `ubuntu` runner with Docker available). Upload Surefire reports as artifacts. *Depends on: nothing.*
-- [ ] Frontend CI — `.github/workflows/frontend-ci.yml`: checkout → setup Node 24.16 → `npm ci` → `npm run codegen` → `tsc -b` (typecheck) → `npm test` (vitest) → `npm run build`. *Parallel with step 1.*
-- [ ] Image build & scan — `.github/workflows/container-scan.yml`: build `Dockerfile.backend` and `Dockerfile.frontend`, run Trivy (or Grype) image scan, fail the job on HIGH/CRITICAL. *Parallel with steps 1–2.*
-- [ ] Deploy — `.github/workflows/deploy.yml` (manual `workflow_dispatch`): build & push images to `vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-*` and `kubectl apply -f` the `ovhcloud-*.yaml` manifests. Store `ssl_cert/kubeconfig-9j736f.yml` and registry creds as encrypted secrets. *Depends on steps 1–3 (gated on green).*
-- [ ] Docs — add a CI/CD section + branch-protection guidance to `README.md` and `docs/Kubernetes_deployment_instructions.md`. *Parallel.*
+- [x] Backend CI — `.github/workflows/backend-ci.yml`: checkout → setup JDK 25 (Temurin) → cache Maven → run `mvn -B test`. Tests use Testcontainers (MySQL) and r2dbc-h2, so the runner needs Docker (`actions/setup-java` + `docker` service or a `ubuntu` runner with Docker available). Upload Surefire reports as artifacts. *Depends on: nothing.*
+- [x] Frontend CI — `.github/workflows/frontend-ci.yml`: checkout → setup Node 24.16 → `npm ci` → `npm run codegen` → `tsc -b` (typecheck) → `npm test` (vitest) → `npm run build`. *Parallel with step 1.*
+- [x] Image build & scan — `.github/workflows/container-scan.yml`: build `Dockerfile.backend` and `Dockerfile.frontend`, run Trivy (or Grype) image scan, fail the job on HIGH/CRITICAL. *Parallel with steps 1–2.*
+- [x] Deploy — `.github/workflows/deploy.yml` (manual `workflow_dispatch`): build & push images to `vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-*` and `kubectl apply -f` the `ovhcloud-*.yaml` manifests. Store `ssl_cert/kubeconfig-9j736f.yml` and registry creds as encrypted secrets. *Depends on steps 1–3 (gated on green).*
+- [x] Docs — add a CI/CD section + branch-protection guidance to `README.md` and `docs/Kubernetes_deployment_instructions.md`. *Parallel.*
 
 **Relevant files**
 - `backend/pom.xml` — Maven build/test entrypoint (Testcontainers MySQL, reactor-test).

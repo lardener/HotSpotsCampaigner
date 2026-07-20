@@ -19,16 +19,9 @@ import React, { useState } from 'react'
 import { useMutation } from '@apollo/client/react'
 import { gql } from '@apollo/client'
 
-// These mutations will be added to schema.graphqls
 const GENERATE_UNIT_LINK_MUTATION = gql`
   mutation GenerateUnitMarketLink($url: String!) {
     generateUnitMarketLink(url: $url)
-  }
-`
-
-const GENERATE_PILOT_LINK_MUTATION = gql`
-  mutation GeneratePilotMarketLink($url: String!) {
-    generatePilotMarketLink(url: $url)
   }
 `
 
@@ -46,22 +39,16 @@ interface GenerateUnitLinkData {
   generateUnitMarketLink: string
 }
 
-interface GeneratePilotLinkData {
-  generatePilotMarketLink: string
-}
-
 interface GenerateRandomPilotLinkData {
   generateRandomPilotLink: string
 }
 
 export const MarketLinkGenerator: React.FC<MarketLinkGeneratorProps> = ({ campaignId }) => {
   const [unitUrl, setUnitUrl] = useState('')
-  const [pilotUrl, setPilotUrl] = useState('')
   const [generatedLink, setGeneratedLink] = useState('')
   const [weightClass, setWeightClass] = useState('Medium')
 
   const [genUnitLink] = useMutation<GenerateUnitLinkData>(GENERATE_UNIT_LINK_MUTATION)
-  const [genPilotLink] = useMutation<GeneratePilotLinkData>(GENERATE_PILOT_LINK_MUTATION)
   const [genRandomPilotLink] = useMutation<GenerateRandomPilotLinkData>(
     GENERATE_RANDOM_PILOT_LINK_MUTATION,
   )
@@ -74,17 +61,6 @@ export const MarketLinkGenerator: React.FC<MarketLinkGeneratorProps> = ({ campai
       }
     } catch (e) {
       console.error('Error generating unit link:', e)
-    }
-  }
-
-  const handleGeneratePilotLink = async () => {
-    try {
-      const { data } = await genPilotLink({ variables: { url: pilotUrl } })
-      if (data?.generatePilotMarketLink) {
-        setGeneratedLink(data.generatePilotMarketLink)
-      }
-    } catch (e) {
-      console.error('Error generating pilot link:', e)
     }
   }
 
@@ -140,32 +116,6 @@ export const MarketLinkGenerator: React.FC<MarketLinkGeneratorProps> = ({ campai
             className="mode-btn theme-amber"
             style={{ fontSize: '0.6rem' }}
             onClick={handleGenerateUnitLink}
-          >
-            [ GENERATE ]
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-        <label style={{ fontSize: '0.7rem' }}>IMPORT PILOT LINK FROM MUL/MORDEL</label>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <input
-            type="text"
-            value={pilotUrl}
-            onChange={(e) => setPilotUrl(e.target.value)}
-            placeholder="https://..."
-            style={{
-              flex: 1,
-              backgroundColor: 'black',
-              color: 'var(--terminal-amber)',
-              border: '1px solid var(--terminal-amber)',
-              padding: '5px',
-            }}
-          />
-          <button
-            className="mode-btn theme-amber"
-            style={{ fontSize: '0.6rem' }}
-            onClick={handleGeneratePilotLink}
           >
             [ GENERATE ]
           </button>

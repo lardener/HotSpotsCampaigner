@@ -43,7 +43,7 @@ jobs:
                   push: true
                   tags: ${{ env.REGISTRY }}/hotspotscampaigner-backend:${{ env.IMAGE_TAG }}
 
-            - name: Build & push frontend image (K8s config: empty VITE_API_BASE_URL -> /api fallback)
+            - name: "Build & push frontend image (K8s config: empty VITE_API_BASE_URL -> /api fallback)"
               uses: docker/build-push-action@v6
               with:
                   context: .

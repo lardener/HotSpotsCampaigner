@@ -3,7 +3,7 @@
 This folder contains separate, independently-trackable plan files for the engineering upgrades agreed with the user. Each can be implemented and reviewed on its own branch/PR.
 
 ## Areas & Files
-1. [ ] **CI/CD Pipeline** → `plan-cicd.md` — no CI exists today; add GitHub Actions (build/test/scan/deploy).
+1. [x] **CI/CD Pipeline** → `plan-cicd.md` — no CI exists today; add GitHub Actions (build/test/scan/deploy).
 2. [x] **Database Migrations** → `plan-db-migrations.md` — replace destructive `schema.sql` (drops all tables) with versioned Flyway migrations.
 3. [ ] **Security Hardening** → `plan-security.md` — centralize resolver authz, fix reactive `@Transactional` bug, non-root containers, K8s probes/securityContext, consolidate Ingress. *(Steps 2–7 done; step 1 authz interceptor pending.)*
 4. [ ] **Observability** → `plan-observability.md` — add Actuator + Micrometer/Prometheus, quiet logs, structured logging, safe error envelope.

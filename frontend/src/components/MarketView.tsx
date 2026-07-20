@@ -45,6 +45,25 @@ interface MarketViewProps {
   userCommands?: MercenaryCommand[]
 }
 
+// Markdown templates inserted via the utility buttons in edit mode.
+// The mech table format mirrors MarkdownMarketFormatter.parseUnitTable() so it
+// can be consumed by the scrapper random draw.
+const EMPTY_MECH_TABLE = `## Available Units
+
+| Model | Variant | BV [PV] | Tech | Condition | Price | Action |
+|-------|---------|---------|------|-----------|-------|--------|
+| Unknown Model | Unknown Variant | 0 [0] | Inner Sphere | OPERATIONAL | 0 | [Buy](hsc://procure?model=Unknown%20Model&variant=Unknown%20Variant&bv=0&pv=0&sz=0&type=BM&tech=Inner%20Sphere&tons=0&price=0) |`
+
+const GENERIC_MECH_LINK = '[Buy Generic Mech](hsc://procure?model=Generic%20Mech&variant=Standard&bv=1000&pv=20&sz=4&type=BM&tech=Inner%20Sphere&tons=50&price=1000000)'
+
+const EMPTY_PILOT_TABLE = `## Available Pilots
+
+| Name | Unit Type | Gunnery | Piloting | Wounds | Price | Action |
+|------|-----------|---------|----------|--------|-------|--------|
+| New Pilot | BM | 4 | 5 | 0 | 20000 | [Hire](hsc://hire?name=New%20Pilot&unitType=BM&wounds=0&gunnerySpEarned=100&pilotingSpEarned=100&edgeTokensSpEarned=0&edgeAbilitySpEarned=0&edgeAbilities=None&price=20000) |`
+
+const GENERIC_PILOT_LINK = '[Hire Generic Pilot](hsc://hire?name=New%20Pilot&unitType=BM&wounds=0&gunnerySpEarned=100&pilotingSpEarned=100&edgeTokensSpEarned=0&edgeAbilitySpEarned=0&edgeAbilities=None&price=20000)'
+
 export const MarketView: React.FC<MarketViewProps> = ({
   campaignId,
   marketType,
@@ -105,7 +124,7 @@ export const MarketView: React.FC<MarketViewProps> = ({
         )
         setMarkdown(
           employerMarket?.markdown ||
-            `# ${employerName || 'Primary Employer'}\nNo employer listings available.`,
+          `# ${employerName || 'Primary Employer'}\nNo employer listings available.`,
         )
       } else if (marketType === 'OPPOSITION_EMPLOYER') {
         const employerName = campaign.secondaryEmployer
@@ -114,7 +133,7 @@ export const MarketView: React.FC<MarketViewProps> = ({
         )
         setMarkdown(
           employerMarket?.markdown ||
-            `# ${employerName || 'Opposition Employer'}\nNo employer listings available.`,
+          `# ${employerName || 'Opposition Employer'}\nNo employer listings available.`,
         )
       }
     }
@@ -176,6 +195,21 @@ export const MarketView: React.FC<MarketViewProps> = ({
 
     saveTimeoutRef.current = setTimeout(() => {
       handleSave(value)
+    }, 5000)
+  }
+
+  const appendTemplate = (template: string) => {
+    const base = markdown.trim()
+    const next = base.length > 0 ? `${base}\n\n${template}` : template
+    setMarkdown(next)
+
+    // Schedule an autosave that preserves edit mode. Passing no value to
+    // handleSave keeps isEditing true (only an explicit CLOSE flips it).
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      handleSave()
     }, 5000)
   }
 
@@ -256,6 +290,47 @@ export const MarketView: React.FC<MarketViewProps> = ({
             onChange={(e) => handleMarkdownChange(e.target.value)}
             onBlur={() => handleSave()}
           />
+          <div
+            className="market-template-buttons"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '10px',
+            }}
+          >
+            <button
+              type="button"
+              className="mode-btn theme-amber"
+              style={{ fontSize: '0.6rem' }}
+              onClick={() => appendTemplate(EMPTY_MECH_TABLE)}
+            >
+              [ + MECH TABLE ]
+            </button>
+            <button
+              type="button"
+              className="mode-btn theme-amber"
+              style={{ fontSize: '0.6rem' }}
+              onClick={() => appendTemplate(GENERIC_MECH_LINK)}
+            >
+              [ + MECH LINK ]
+            </button>
+            <button
+              type="button"
+              className="mode-btn theme-amber"
+              style={{ fontSize: '0.6rem' }}
+              onClick={() => appendTemplate(EMPTY_PILOT_TABLE)}
+            >
+              [ + PILOT TABLE ]
+            </button>
+            <button
+              type="button"
+              className="mode-btn theme-amber"
+              style={{ fontSize: '0.6rem' }}
+              onClick={() => appendTemplate(GENERIC_PILOT_LINK)}
+            >
+              [ + PILOT LINK ]
+            </button>
+          </div>
           <MarketLinkGenerator campaignId={campaignId} />
         </div>
       ) : (

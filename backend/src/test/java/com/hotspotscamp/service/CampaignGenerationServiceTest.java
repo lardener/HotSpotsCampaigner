@@ -22,13 +22,16 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.hotspotscamp.dto.CampaignCreateInput;
 import com.hotspotscamp.dto.CampaignProposal;
@@ -100,6 +103,24 @@ class CampaignGenerationServiceTest {
         assertNotNull(proposal);
         assertEquals("Op Test", proposal.campaign().getName());
         assertEquals(5, proposal.campaign().getTrackCount());
+    }
+
+    @Test
+    void parsePayRate_parsesPercentAndPlainValues() {
+        assertEquals(1.0, ReflectionTestUtils.invokeMethod(generationService, "parsePayRate", "100%"));
+        assertEquals(0.5, ReflectionTestUtils.invokeMethod(generationService, "parsePayRate", "50%"));
+        assertEquals(1.0, ReflectionTestUtils.invokeMethod(generationService, "parsePayRate", "Full"));
+        assertEquals(1.0, ReflectionTestUtils.invokeMethod(generationService, "parsePayRate", (String) null));
+        assertEquals(2.0, ReflectionTestUtils.invokeMethod(generationService, "parsePayRate", "2"));
+    }
+
+    @Test
+    void missionMatches_exactAndPartialAndNull() {
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(generationService, "missionMatches", "Raid", "Raid"));
+        assertTrue((Boolean) ReflectionTestUtils.invokeMethod(generationService, "missionMatches", "Raid", "Counter Raid"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(generationService, "missionMatches", "Raid", "Defense"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(generationService, "missionMatches", (String) null, "Raid"));
+        assertFalse((Boolean) ReflectionTestUtils.invokeMethod(generationService, "missionMatches", "Raid", (String) null));
     }
 
 }

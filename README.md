@@ -338,9 +338,39 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 ## Technologies
 
 - **Backend**: Spring Boot 3, Spring WebFlux, Spring Security, OAuth2
-- **Frontend**: React 18, TypeScript, Vite, Vitest
+- **Frontend**: React 19, TypeScript, Vite, Vitest
 - **Container**: Docker, Docker Compose
-**Build**: Maven (backend), npm (frontend)
+- **Build**: Maven (backend), npm (frontend)
+
+## CI/CD
+
+The repository uses GitHub Actions (workflows live in `.github/workflows/`):
+
+| Workflow | File | Trigger | Purpose |
+| --- | --- | --- | --- |
+| Backend CI | `backend-ci.yml` | push/PR to `backend/**` | JDK 25 + Maven `test` (Testcontainers MySQL needs Docker-in-runner); uploads Surefire reports. |
+| Frontend CI | `frontend-ci.yml` | push/PR to `frontend/**` | `npm ci` → `codegen` → `lint` → `format:check` → `tsc -b` → `vitest` → `build`. |
+| Container Scan | `container-scan.yml` | push/PR to Dockerfiles | Builds both images and runs Trivy, failing on HIGH/CRITICAL. |
+| Deploy | `deploy.yml` | manual `workflow_dispatch` | Builds & pushes images to the OVH registry (git SHA tag) and `kubectl apply`s the `ovhcloud-*.yaml` manifests. |
+
+### Frontend build-time configuration
+
+The frontend reads `VITE_API_BASE_URL` at **build time** (Vite bakes it into the static bundle). The `Dockerfile.frontend` forwards the build arg via `ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}`:
+
+- **Local (`docker compose`)**: passes `VITE_API_BASE_URL=http://localhost:8080` so the SPA calls the backend directly (no CORS).
+- **Kubernetes (CI `deploy` / `container-scan`)**: builds with an **empty** `VITE_API_BASE_URL`, so the app falls back to the same-origin `/api` prefix, which the ingress routes to the backend. No manual editing of the Dockerfile per target is required.
+
+### Required secrets (for `deploy.yml` and `container-scan.yml`)
+
+- `OVH_REGISTRY_USERNAME` / `OVH_REGISTRY_PASSWORD` — OVH container registry credentials.
+- `KUBE_CONFIG` — contents of `ssl_cert/kubeconfig-*.yml` (do **not** commit the kubeconfig; store it as an encrypted secret).
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — referenced by the backend secret manifest (already applied via `ovhcloud-google-secret.yaml`).
+
+### Branch protection guidance
+
+- Require the `backend-ci` and `frontend-ci` checks to pass before merging to `main`.
+- Keep `deploy.yml` as `workflow_dispatch` only (manual) to avoid accidental production pushes; image tags are the git SHA for traceability.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0) — the

@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "test": "npm run codegen && vitest",
     "test:ui": "vitest --ui",
+    "test:coverage": "npm run codegen && vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",

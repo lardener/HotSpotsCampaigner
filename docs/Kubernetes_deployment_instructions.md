@@ -98,3 +98,33 @@ If the "Federated Login" button redirects back to the home page without logging 
     ```bash
     kubectl logs -l app=backend -n battletech-campaigner
     ```
+
+## CI/CD (GitHub Actions)
+
+Images are built and deployed via the workflows in `.github/workflows/`:
+
+- **`container-scan.yml`** — builds both images and runs Trivy; fails on HIGH/CRITICAL.
+- **`deploy.yml`** — manual `workflow_dispatch`; builds/pushes to `vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-{backend,frontend}:<git-sha>` and applies the `ovhcloud-*.yaml` manifests.
+
+### Frontend API base URL
+
+The frontend is compiled with `VITE_API_BASE_URL` baked in at build time. For Kubernetes the CI builds with an **empty** value, so the SPA uses the same-origin `/api` prefix and relies on the ingress to route to the backend. This is handled automatically by the workflows — there is no need to edit `Dockerfile.frontend` per environment.
+
+### Required secrets
+
+Store these as GitHub Encrypted Secrets (never commit them):
+
+- `OVH_REGISTRY_USERNAME`, `OVH_REGISTRY_PASSWORD` — OVH container registry auth.
+- `KUBE_CONFIG` — the kubeconfig from `ssl_cert/kubeconfig-*.yml`.
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — consumed by `ovhcloud-google-secret.yaml`.
+
+### Deploying
+
+1.  Open the **Actions → Deploy to OVH Kubernetes** workflow.
+2.  Click **Run workflow**, choose the target namespace (default `battletech-campaigner`).
+3.  Wait for the rollout; verify with:
+    ```bash
+    kubectl -n battletech-campaigner get pods
+    kubectl -n battletech-campaigner rollout status deployment/frontend-deployment
+    kubectl -n battletech-campaigner rollout status deployment/backend-deployment
+    ```
