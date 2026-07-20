@@ -21,89 +21,89 @@ import { MercenaryRegistryView } from '../components/MercenaryRegistryView'
 import type { MercenaryCommand } from '../types/generated'
 
 function makeCommand(id: string, name: string): MercenaryCommand {
-    return { id, name } as MercenaryCommand
+  return { id, name } as MercenaryCommand
 }
 
 describe('MercenaryRegistryView', () => {
-    it('renders all commands', () => {
-        const commands = [makeCommand('c1', 'Wolf\'s Dragoons'), makeCommand('c2', 'Gray Death Legion')]
-        render(
-            <MercenaryRegistryView
-                commands={commands}
-                selectedCommandId={null}
-                onSelectCommand={() => { }}
-                onDeleteCommand={() => { }}
-                onEstablishCommand={() => { }}
-                onViewUnitProfile={() => { }}
-            />,
-        )
-        expect(screen.getByText('Wolf\'s Dragoons')).toBeTruthy()
-        expect(screen.getByText('Gray Death Legion')).toBeTruthy()
-    })
+  it('renders all commands', () => {
+    const commands = [makeCommand('c1', "Wolf's Dragoons"), makeCommand('c2', 'Gray Death Legion')]
+    render(
+      <MercenaryRegistryView
+        commands={commands}
+        selectedCommandId={null}
+        onSelectCommand={() => {}}
+        onDeleteCommand={() => {}}
+        onEstablishCommand={() => {}}
+        onViewUnitProfile={() => {}}
+      />,
+    )
+    expect(screen.getByText("Wolf's Dragoons")).toBeTruthy()
+    expect(screen.getByText('Gray Death Legion')).toBeTruthy()
+  })
 
-    it('calls onSelectCommand when a command is clicked', () => {
-        const onSelect = vi.fn()
-        const commands = [makeCommand('c1', 'Wolf\'s Dragoons')]
-        render(
-            <MercenaryRegistryView
-                commands={commands}
-                selectedCommandId={null}
-                onSelectCommand={onSelect}
-                onDeleteCommand={() => { }}
-                onEstablishCommand={() => { }}
-                onViewUnitProfile={() => { }}
-            />,
-        )
-        fireEvent.click(screen.getByText('Wolf\'s Dragoons'))
-        expect(onSelect).toHaveBeenCalledWith('c1')
-    })
+  it('calls onSelectCommand when a command is clicked', () => {
+    const onSelect = vi.fn()
+    const commands = [makeCommand('c1', "Wolf's Dragoons")]
+    render(
+      <MercenaryRegistryView
+        commands={commands}
+        selectedCommandId={null}
+        onSelectCommand={onSelect}
+        onDeleteCommand={() => {}}
+        onEstablishCommand={() => {}}
+        onViewUnitProfile={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByText("Wolf's Dragoons"))
+    expect(onSelect).toHaveBeenCalledWith('c1')
+  })
 
-    it('highlights the selected command', () => {
-        const commands = [makeCommand('c1', 'Wolf\'s Dragoons'), makeCommand('c2', 'Gray Death Legion')]
-        const { container } = render(
-            <MercenaryRegistryView
-                commands={commands}
-                selectedCommandId="c2"
-                onSelectCommand={() => { }}
-                onDeleteCommand={() => { }}
-                onEstablishCommand={() => { }}
-                onViewUnitProfile={() => { }}
-            />,
-        )
-        const selected = container.querySelector('.active-command-panel')
-        expect(selected).toBeTruthy()
-        expect(selected?.textContent).toContain('Gray Death Legion')
-    })
+  it('highlights the selected command', () => {
+    const commands = [makeCommand('c1', "Wolf's Dragoons"), makeCommand('c2', 'Gray Death Legion')]
+    const { container } = render(
+      <MercenaryRegistryView
+        commands={commands}
+        selectedCommandId="c2"
+        onSelectCommand={() => {}}
+        onDeleteCommand={() => {}}
+        onEstablishCommand={() => {}}
+        onViewUnitProfile={() => {}}
+      />,
+    )
+    const selected = container.querySelector('.active-command-panel')
+    expect(selected).toBeTruthy()
+    expect(selected?.textContent).toContain('Gray Death Legion')
+  })
 
-    it('shows unnamed fallback for commands without a name', () => {
-        const commands = [makeCommand('c1', null as any)]
-        render(
-            <MercenaryRegistryView
-                commands={commands}
-                selectedCommandId={null}
-                onSelectCommand={() => { }}
-                onDeleteCommand={() => { }}
-                onEstablishCommand={() => { }}
-                onViewUnitProfile={() => { }}
-            />,
-        )
-        expect(screen.getByText('UNNAMED UNIT')).toBeTruthy()
-    })
+  it('shows unnamed fallback for commands without a name', () => {
+    const commands = [makeCommand('c1', null as any)]
+    render(
+      <MercenaryRegistryView
+        commands={commands}
+        selectedCommandId={null}
+        onSelectCommand={() => {}}
+        onDeleteCommand={() => {}}
+        onEstablishCommand={() => {}}
+        onViewUnitProfile={() => {}}
+      />,
+    )
+    expect(screen.getByText('UNNAMED UNIT')).toBeTruthy()
+  })
 
-    it('calls onEstablishCommand when establish button clicked', () => {
-        const onEstablish = vi.fn()
-        const commands: MercenaryCommand[] = []
-        render(
-            <MercenaryRegistryView
-                commands={commands}
-                selectedCommandId={null}
-                onSelectCommand={() => { }}
-                onDeleteCommand={() => { }}
-                onEstablishCommand={onEstablish}
-                onViewUnitProfile={() => { }}
-            />,
-        )
-        fireEvent.click(screen.getByText(/ESTABLISH NEW MERCENARY COMMAND/i))
-        expect(onEstablish).toHaveBeenCalled()
-    })
+  it('calls onEstablishCommand when establish button clicked', () => {
+    const onEstablish = vi.fn()
+    const commands: MercenaryCommand[] = []
+    render(
+      <MercenaryRegistryView
+        commands={commands}
+        selectedCommandId={null}
+        onSelectCommand={() => {}}
+        onDeleteCommand={() => {}}
+        onEstablishCommand={onEstablish}
+        onViewUnitProfile={() => {}}
+      />,
+    )
+    fireEvent.click(screen.getByText(/ESTABLISH NEW MERCENARY COMMAND/i))
+    expect(onEstablish).toHaveBeenCalled()
+  })
 })

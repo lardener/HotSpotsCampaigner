@@ -20,49 +20,47 @@ import { describe, it, expect, vi } from 'vitest'
 import { TacticalMarkdown } from '../components/TacticalMarkdown'
 
 describe('TacticalMarkdown', () => {
-    it('renders markdown content as HTML', () => {
-        render(<TacticalMarkdown content={'# Heading\n\nsome **bold** text'} onAction={() => { }} />)
-        expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
-        expect(screen.getByText(/some/)).toBeTruthy()
-    })
+  it('renders markdown content as HTML', () => {
+    render(<TacticalMarkdown content={'# Heading\n\nsome **bold** text'} onAction={() => {}} />)
+    expect(screen.getByRole('heading', { level: 1 })).toBeTruthy()
+    expect(screen.getByText(/some/)).toBeTruthy()
+  })
 
-    it('renders tables via remark-gfm', () => {
-        const md = '| A | B |\n| --- | --- |\n| 1 | 2 |'
-        render(<TacticalMarkdown content={md} onAction={() => { }} />)
-        const table = document.querySelector('table')
-        expect(table).toBeTruthy()
-        expect(table?.textContent).toContain('A')
-        expect(table?.textContent).toContain('1')
-    })
+  it('renders tables via remark-gfm', () => {
+    const md = '| A | B |\n| --- | --- |\n| 1 | 2 |'
+    render(<TacticalMarkdown content={md} onAction={() => {}} />)
+    const table = document.querySelector('table')
+    expect(table).toBeTruthy()
+    expect(table?.textContent).toContain('A')
+    expect(table?.textContent).toContain('1')
+  })
 
-    it('intercepts hsc:// links and calls onAction with the url', () => {
-        const onAction = vi.fn()
-        render(
-            <TacticalMarkdown
-                content={'[Procure](hsc://market/procure?model=Atlas)'}
-                onAction={onAction}
-            />,
-        )
-        const link = screen.getByText('Procure')
-        expect(link).toHaveClass('hsc-action-link')
-        fireEvent.click(link)
-        expect(onAction).toHaveBeenCalledWith('hsc://market/procure?model=Atlas')
-    })
+  it('intercepts hsc:// links and calls onAction with the url', () => {
+    const onAction = vi.fn()
+    render(
+      <TacticalMarkdown
+        content={'[Procure](hsc://market/procure?model=Atlas)'}
+        onAction={onAction}
+      />,
+    )
+    const link = screen.getByText('Procure')
+    expect(link).toHaveClass('hsc-action-link')
+    fireEvent.click(link)
+    expect(onAction).toHaveBeenCalledWith('hsc://market/procure?model=Atlas')
+  })
 
-    it('does not trigger onAction for external links', () => {
-        const onAction = vi.fn()
-        render(
-            <TacticalMarkdown content={'[External](https://example.com)'} onAction={onAction} />,
-        )
-        const link = screen.getByText('External')
-        expect(link).not.toHaveClass('hsc-action-link')
-        expect(link.getAttribute('target')).toBe('_blank')
-        fireEvent.click(link)
-        expect(onAction).not.toHaveBeenCalled()
-    })
+  it('does not trigger onAction for external links', () => {
+    const onAction = vi.fn()
+    render(<TacticalMarkdown content={'[External](https://example.com)'} onAction={onAction} />)
+    const link = screen.getByText('External')
+    expect(link).not.toHaveClass('hsc-action-link')
+    expect(link.getAttribute('target')).toBe('_blank')
+    fireEvent.click(link)
+    expect(onAction).not.toHaveBeenCalled()
+  })
 
-    it('renders plain text without links', () => {
-        render(<TacticalMarkdown content={'Just some plain intel.'} onAction={() => { }} />)
-        expect(screen.getByText(/Just some plain intel/)).toBeTruthy()
-    })
+  it('renders plain text without links', () => {
+    render(<TacticalMarkdown content={'Just some plain intel.'} onAction={() => {}} />)
+    expect(screen.getByText(/Just some plain intel/)).toBeTruthy()
+  })
 })

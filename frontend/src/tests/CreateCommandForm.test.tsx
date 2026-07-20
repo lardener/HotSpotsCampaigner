@@ -24,70 +24,70 @@ import { CreateCommandForm } from '../components/CreateCommandForm'
 import { EstablishCommandDocument as ESTABLISH_COMMAND } from '../types/operations'
 
 function renderForm(onSuccess = vi.fn(), onCancel = vi.fn()) {
-    const mocks = [
-        {
-            request: {
-                query: ESTABLISH_COMMAND,
-                variables: {
-                    input: { name: 'New Command', commandingOfficer: 'CO Name' },
-                },
-            },
-            result: {
-                data: { establishCommand: { id: 'cmd-1', name: 'New Command' } },
-            },
+  const mocks = [
+    {
+      request: {
+        query: ESTABLISH_COMMAND,
+        variables: {
+          input: { name: 'New Command', commandingOfficer: 'CO Name' },
         },
-    ]
-    const client = new ApolloClient({
-        link: new MockLink(mocks),
-        cache: new InMemoryCache(),
-    })
-    render(
-        <ApolloProvider client={client}>
-            <CreateCommandForm
-                user={{ name: 'jdoe', displayName: 'CO Name' }}
-                onCancel={onCancel}
-                onSuccess={onSuccess}
-            />
-        </ApolloProvider>,
-    )
+      },
+      result: {
+        data: { establishCommand: { id: 'cmd-1', name: 'New Command' } },
+      },
+    },
+  ]
+  const client = new ApolloClient({
+    link: new MockLink(mocks),
+    cache: new InMemoryCache(),
+  })
+  render(
+    <ApolloProvider client={client}>
+      <CreateCommandForm
+        user={{ name: 'jdoe', displayName: 'CO Name' }}
+        onCancel={onCancel}
+        onSuccess={onSuccess}
+      />
+    </ApolloProvider>,
+  )
 }
 
 describe('CreateCommandForm', () => {
-    beforeEach(() => {
-        vi.restoreAllMocks()
-    })
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
 
-    it('prefills commanding officer from user display name', () => {
-        renderForm()
-        const coInput = screen.getByDisplayValue('CO Name') as HTMLInputElement
-        expect(coInput).toBeTruthy()
-    })
+  it('prefills commanding officer from user display name', () => {
+    renderForm()
+    const coInput = screen.getByDisplayValue('CO Name') as HTMLInputElement
+    expect(coInput).toBeTruthy()
+  })
 
-    it('shows error when command name is empty', async () => {
-        const onSuccess = vi.fn()
-        renderForm(onSuccess)
-        fireEvent.click(screen.getByText(/ESTABLISH/i))
-        await waitFor(() => {
-            expect(screen.getByText(/COMMAND NAME REQUIRED/i)).toBeTruthy()
-        })
-        expect(onSuccess).not.toHaveBeenCalled()
+  it('shows error when command name is empty', async () => {
+    const onSuccess = vi.fn()
+    renderForm(onSuccess)
+    fireEvent.click(screen.getByText(/ESTABLISH/i))
+    await waitFor(() => {
+      expect(screen.getByText(/COMMAND NAME REQUIRED/i)).toBeTruthy()
     })
+    expect(onSuccess).not.toHaveBeenCalled()
+  })
 
-    it('submits successfully with a valid name', async () => {
-        const onSuccess = vi.fn()
-        renderForm(onSuccess)
-        const nameInput = screen.getByPlaceholderText(/command name/i) as HTMLInputElement
-        fireEvent.change(nameInput, { target: { value: 'New Command' } })
-        fireEvent.click(screen.getByText(/ESTABLISH/i))
-        await waitFor(() => {
-            expect(onSuccess).toHaveBeenCalled()
-        })
+  it('submits successfully with a valid name', async () => {
+    const onSuccess = vi.fn()
+    renderForm(onSuccess)
+    const nameInput = screen.getByPlaceholderText(/command name/i) as HTMLInputElement
+    fireEvent.change(nameInput, { target: { value: 'New Command' } })
+    fireEvent.click(screen.getByText(/ESTABLISH/i))
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalled()
     })
+  })
 
-    it('calls onCancel when cancel is clicked', () => {
-        const onCancel = vi.fn()
-        renderForm(vi.fn(), onCancel)
-        fireEvent.click(screen.getByText(/CANCEL/i))
-        expect(onCancel).toHaveBeenCalled()
-    })
+  it('calls onCancel when cancel is clicked', () => {
+    const onCancel = vi.fn()
+    renderForm(vi.fn(), onCancel)
+    fireEvent.click(screen.getByText(/CANCEL/i))
+    expect(onCancel).toHaveBeenCalled()
+  })
 })

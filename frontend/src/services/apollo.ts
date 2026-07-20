@@ -23,34 +23,34 @@ import { createClient } from 'graphql-ws'
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || ''
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
 const wsHost = apiBaseUrl.startsWith('http')
-    ? apiBaseUrl.replace(/^http/, 'ws')
-    : `${wsProtocol}//${window.location.host}${apiBaseUrl || '/api'}`
+  ? apiBaseUrl.replace(/^http/, 'ws')
+  : `${wsProtocol}//${window.location.host}${apiBaseUrl || '/api'}`
 
 export const httpLink = new HttpLink({
-    uri: apiBaseUrl ? `${apiBaseUrl}/graphql` : '/api/graphql',
-    // Critical for OAuth2/Session cookie support
-    credentials: 'include',
+  uri: apiBaseUrl ? `${apiBaseUrl}/graphql` : '/api/graphql',
+  // Critical for OAuth2/Session cookie support
+  credentials: 'include',
 })
 
 const wsLink = new GraphQLWsLink(
-    createClient({
-        url: `${wsHost}/graphql`,
-    }),
+  createClient({
+    url: `${wsHost}/graphql`,
+  }),
 )
 
 // Split link to handle both HTTP and WebSocket transports
 const splitLink = split(
-    ({ query }) => {
-        const definition = getMainDefinition(query)
-        return definition.kind === 'OperationDefinition' && definition.operation === 'subscription'
-    },
-    wsLink,
-    httpLink,
+  ({ query }) => {
+    const definition = getMainDefinition(query)
+    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription'
+  },
+  wsLink,
+  httpLink,
 )
 
 export const apolloClient = new ApolloClient({
-    link: splitLink,
-    cache: new InMemoryCache(),
+  link: splitLink,
+  cache: new InMemoryCache(),
 })
 
 export const API_BASE_URL = apiBaseUrl

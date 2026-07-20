@@ -24,119 +24,119 @@ import { ActiveCampaignsList } from '../components/ActiveCampaignsList'
 import { GetActiveCampaignsDocument as GET_ACTIVE_CAMPAIGNS } from '../types/operations'
 
 const campaigns = [
-    {
-        id: 'c1',
-        name: 'Draconis Reach',
-        systemName: 'Luthien',
-        status: 'ACTIVE',
-        trackCount: 5,
-        primaryEmployer: 'DCMS',
-        secondaryEmployer: 'ISF',
-    },
-    {
-        id: 'c2',
-        name: 'Federated Suns Op',
-        systemName: 'New Avalon',
-        status: 'ACTIVE',
-        trackCount: 3,
-        primaryEmployer: 'AFFS',
-        secondaryEmployer: null,
-    },
+  {
+    id: 'c1',
+    name: 'Draconis Reach',
+    systemName: 'Luthien',
+    status: 'ACTIVE',
+    trackCount: 5,
+    primaryEmployer: 'DCMS',
+    secondaryEmployer: 'ISF',
+  },
+  {
+    id: 'c2',
+    name: 'Federated Suns Op',
+    systemName: 'New Avalon',
+    status: 'ACTIVE',
+    trackCount: 3,
+    primaryEmployer: 'AFFS',
+    secondaryEmployer: null,
+  },
 ]
 
 function renderList() {
-    const mocks = [
-        {
-            request: { query: GET_ACTIVE_CAMPAIGNS, variables: { page: 0, size: 10 } },
-            result: { data: { publicActiveCampaigns: campaigns } },
-        },
-    ]
-    const client = new ApolloClient({
-        link: new MockLink(mocks),
-        cache: new InMemoryCache(),
-    })
-    render(
-        <ApolloProvider client={client}>
-            <ActiveCampaignsList onSelectCampaign={() => { }} />
-        </ApolloProvider>,
-    )
+  const mocks = [
+    {
+      request: { query: GET_ACTIVE_CAMPAIGNS, variables: { page: 0, size: 10 } },
+      result: { data: { publicActiveCampaigns: campaigns } },
+    },
+  ]
+  const client = new ApolloClient({
+    link: new MockLink(mocks),
+    cache: new InMemoryCache(),
+  })
+  render(
+    <ApolloProvider client={client}>
+      <ActiveCampaignsList onSelectCampaign={() => {}} />
+    </ApolloProvider>,
+  )
 }
 
 describe('ActiveCampaignsList', () => {
-    it('shows loading state initially', () => {
-        const mocks = [
-            {
-                request: { query: GET_ACTIVE_CAMPAIGNS, variables: { page: 0, size: 10 } },
-                result: { data: { publicActiveCampaigns: campaigns } },
-            },
-        ]
-        const client = new ApolloClient({
-            link: new MockLink(mocks),
-            cache: new InMemoryCache(),
-        })
-        render(
-            <ApolloProvider client={client}>
-                <ActiveCampaignsList onSelectCampaign={() => { }} />
-            </ApolloProvider>,
-        )
-        expect(screen.getByText(/DECRYPTING THEATER INTEL/i)).toBeTruthy()
+  it('shows loading state initially', () => {
+    const mocks = [
+      {
+        request: { query: GET_ACTIVE_CAMPAIGNS, variables: { page: 0, size: 10 } },
+        result: { data: { publicActiveCampaigns: campaigns } },
+      },
+    ]
+    const client = new ApolloClient({
+      link: new MockLink(mocks),
+      cache: new InMemoryCache(),
     })
+    render(
+      <ApolloProvider client={client}>
+        <ActiveCampaignsList onSelectCampaign={() => {}} />
+      </ApolloProvider>,
+    )
+    expect(screen.getByText(/DECRYPTING THEATER INTEL/i)).toBeTruthy()
+  })
 
-    it('renders campaigns after load', async () => {
-        renderList()
-        await waitFor(() => {
-            expect(screen.getByText('Draconis Reach')).toBeTruthy()
-        })
-        expect(screen.getByText('Federated Suns Op')).toBeTruthy()
+  it('renders campaigns after load', async () => {
+    renderList()
+    await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
+    expect(screen.getByText('Federated Suns Op')).toBeTruthy()
+  })
 
-    it('filters campaigns by search term (name)', async () => {
-        renderList()
-        await waitFor(() => {
-            expect(screen.getByText('Draconis Reach')).toBeTruthy()
-        })
-        const search = screen.getByPlaceholderText(/search/i) as HTMLInputElement
-        fireEvent.change(search, { target: { value: 'Federated' } })
-        await waitFor(() => {
-            expect(screen.queryByText('Draconis Reach')).toBeNull()
-        })
-        expect(screen.getByText('Federated Suns Op')).toBeTruthy()
+  it('filters campaigns by search term (name)', async () => {
+    renderList()
+    await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
+    const search = screen.getByPlaceholderText(/search/i) as HTMLInputElement
+    fireEvent.change(search, { target: { value: 'Federated' } })
+    await waitFor(() => {
+      expect(screen.queryByText('Draconis Reach')).toBeNull()
+    })
+    expect(screen.getByText('Federated Suns Op')).toBeTruthy()
+  })
 
-    it('filters campaigns by system name', async () => {
-        renderList()
-        await waitFor(() => {
-            expect(screen.getByText('Draconis Reach')).toBeTruthy()
-        })
-        const search = screen.getByPlaceholderText(/search/i) as HTMLInputElement
-        fireEvent.change(search, { target: { value: 'Luthien' } })
-        await waitFor(() => {
-            expect(screen.queryByText('Federated Suns Op')).toBeNull()
-        })
-        expect(screen.getByText('Draconis Reach')).toBeTruthy()
+  it('filters campaigns by system name', async () => {
+    renderList()
+    await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
+    const search = screen.getByPlaceholderText(/search/i) as HTMLInputElement
+    fireEvent.change(search, { target: { value: 'Luthien' } })
+    await waitFor(() => {
+      expect(screen.queryByText('Federated Suns Op')).toBeNull()
+    })
+    expect(screen.getByText('Draconis Reach')).toBeTruthy()
+  })
 
-    it('calls onSelectCampaign when a campaign is clicked', async () => {
-        const onSelect = vi.fn()
-        const mocks = [
-            {
-                request: { query: GET_ACTIVE_CAMPAIGNS, variables: { page: 0, size: 10 } },
-                result: { data: { publicActiveCampaigns: campaigns } },
-            },
-        ]
-        const client = new ApolloClient({
-            link: new MockLink(mocks),
-            cache: new InMemoryCache(),
-        })
-        render(
-            <ApolloProvider client={client}>
-                <ActiveCampaignsList onSelectCampaign={onSelect} />
-            </ApolloProvider>,
-        )
-        await waitFor(() => {
-            expect(screen.getByText('Draconis Reach')).toBeTruthy()
-        })
-        fireEvent.click(screen.getByText('Draconis Reach'))
-        expect(onSelect).toHaveBeenCalledWith('c1')
+  it('calls onSelectCampaign when a campaign is clicked', async () => {
+    const onSelect = vi.fn()
+    const mocks = [
+      {
+        request: { query: GET_ACTIVE_CAMPAIGNS, variables: { page: 0, size: 10 } },
+        result: { data: { publicActiveCampaigns: campaigns } },
+      },
+    ]
+    const client = new ApolloClient({
+      link: new MockLink(mocks),
+      cache: new InMemoryCache(),
     })
+    render(
+      <ApolloProvider client={client}>
+        <ActiveCampaignsList onSelectCampaign={onSelect} />
+      </ApolloProvider>,
+    )
+    await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeTruthy()
+    })
+    fireEvent.click(screen.getByText('Draconis Reach'))
+    expect(onSelect).toHaveBeenCalledWith('c1')
+  })
 })

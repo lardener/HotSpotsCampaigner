@@ -21,22 +21,22 @@ import { GetUserProfileDocument, GetUserProfileQuery } from '../types/operations
 import { UserProfile } from '../types/generated'
 
 interface UseUserProfileResult {
-    user: UserProfile | null
-    loading: boolean
-    fetchProfile: () => void
+  user: UserProfile | null
+  loading: boolean
+  fetchProfile: () => void
 }
 
 function mapProfile(
-    profile: GetUserProfileQuery['userProfile'] | undefined | null,
+  profile: GetUserProfileQuery['userProfile'] | undefined | null,
 ): UserProfile | null {
-    if (!profile) return null
-    return {
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        role: profile.role,
-        displayName: profile.displayName,
-    }
+  if (!profile) return null
+  return {
+    id: profile.id,
+    name: profile.name,
+    email: profile.email,
+    role: profile.role,
+    displayName: profile.displayName,
+  }
 }
 
 /**
@@ -44,43 +44,43 @@ function mapProfile(
  * Guest sessions (no active session) resolve to a null user without error.
  */
 export function useUserProfile(): UseUserProfileResult {
-    const client = useApolloClient()
-    const [user, setUser] = useState<UserProfile | null>(null)
-    const [loading, setLoading] = useState(true)
+  const client = useApolloClient()
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
 
-    const { data, error } = useQuery<GetUserProfileQuery>(GetUserProfileDocument, {
+  const { data, error } = useQuery<GetUserProfileQuery>(GetUserProfileDocument, {
+    fetchPolicy: 'network-only',
+  })
+
+  useEffect(() => {
+    if (data) {
+      setUser(mapProfile(data.userProfile))
+      setLoading(false)
+    } else if (error) {
+      // Profile fetch failing is normal for guests; proceed with null user state
+      console.log('[AUTH] Guest access initialized (No active session)')
+      setUser(null)
+      setLoading(false)
+    }
+  }, [data, error])
+
+  const fetchProfile = useCallback(() => {
+    client
+      .query<GetUserProfileQuery>({
+        query: GetUserProfileDocument,
         fetchPolicy: 'network-only',
-    })
+      })
+      .then((result) => {
+        setUser(mapProfile(result.data?.userProfile))
+        setLoading(false)
+      })
+      .catch(() => {
+        // Profile fetch failing is normal for guests; proceed with null user state
+        console.log('[AUTH] Guest access initialized (No active session)')
+        setUser(null)
+        setLoading(false)
+      })
+  }, [client])
 
-    useEffect(() => {
-        if (data) {
-            setUser(mapProfile(data.userProfile))
-            setLoading(false)
-        } else if (error) {
-            // Profile fetch failing is normal for guests; proceed with null user state
-            console.log('[AUTH] Guest access initialized (No active session)')
-            setUser(null)
-            setLoading(false)
-        }
-    }, [data, error])
-
-    const fetchProfile = useCallback(() => {
-        client
-            .query<GetUserProfileQuery>({
-                query: GetUserProfileDocument,
-                fetchPolicy: 'network-only',
-            })
-            .then((result) => {
-                setUser(mapProfile(result.data?.userProfile))
-                setLoading(false)
-            })
-            .catch(() => {
-                // Profile fetch failing is normal for guests; proceed with null user state
-                console.log('[AUTH] Guest access initialized (No active session)')
-                setUser(null)
-                setLoading(false)
-            })
-    }, [client])
-
-    return { user, loading, fetchProfile }
+  return { user, loading, fetchProfile }
 }

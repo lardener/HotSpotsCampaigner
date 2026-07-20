@@ -21,61 +21,59 @@ import { MarketDashboard } from '../components/MarketDashboard'
 import type { Campaign } from '../types/generated'
 
 function makeCampaign(): Campaign {
-    return {
-        id: 'camp-1',
-        primaryEmployer: 'DCMS',
-        secondaryEmployer: 'ISF',
-        participatingDetachments: [
-            { id: 'det-1', mercenaryCommandId: 'cmd-1', name: 'Alpha' } as any,
-        ],
-    } as Campaign
+  return {
+    id: 'camp-1',
+    primaryEmployer: 'DCMS',
+    secondaryEmployer: 'ISF',
+    participatingDetachments: [{ id: 'det-1', mercenaryCommandId: 'cmd-1', name: 'Alpha' } as any],
+  } as Campaign
 }
 
 describe('MarketDashboard', () => {
-    it('renders market tabs and the scrapper draw button', () => {
-        render(
-            <MarketDashboard
-                campaignId="camp-1"
-                onClose={() => { }}
-                campaign={makeCampaign()}
-                setOverlay={() => { }}
-            />,
-        )
-        expect(screen.getByText(/THEATER MARKET/i)).toBeTruthy()
-        expect(screen.getByText(/FREE MARKET/i)).toBeTruthy()
-        expect(screen.getByText(/DCMS/)).toBeTruthy()
-        expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeTruthy()
-    })
+  it('renders market tabs and the scrapper draw button', () => {
+    render(
+      <MarketDashboard
+        campaignId="camp-1"
+        onClose={() => {}}
+        campaign={makeCampaign()}
+        setOverlay={() => {}}
+      />,
+    )
+    expect(screen.getByText(/THEATER MARKET/i)).toBeTruthy()
+    expect(screen.getByText(/FREE MARKET/i)).toBeTruthy()
+    expect(screen.getByText(/DCMS/)).toBeTruthy()
+    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeTruthy()
+  })
 
-    it('switches active tab when clicked', async () => {
-        render(
-            <MarketDashboard
-                campaignId="camp-1"
-                onClose={() => { }}
-                campaign={makeCampaign()}
-                setOverlay={() => { }}
-            />,
-        )
-        const primaryTab = screen.getByText(/DCMS/)
-        fireEvent.click(primaryTab)
-        await waitFor(() => {
-            expect(primaryTab.className).toContain('theme-amber')
-        })
+  it('switches active tab when clicked', async () => {
+    render(
+      <MarketDashboard
+        campaignId="camp-1"
+        onClose={() => {}}
+        campaign={makeCampaign()}
+        setOverlay={() => {}}
+      />,
+    )
+    const primaryTab = screen.getByText(/DCMS/)
+    fireEvent.click(primaryTab)
+    await waitFor(() => {
+      expect(primaryTab.className).toContain('theme-amber')
     })
+  })
 
-    it('calls onClose when close is triggered', () => {
-        const onClose = vi.fn()
-        render(
-            <MarketDashboard
-                campaignId="camp-1"
-                onClose={onClose}
-                campaign={makeCampaign()}
-                setOverlay={() => { }}
-            />,
-        )
-        // The TerminalOverlay cancel button renders with the default label "ABORT"
-        const cancelBtn = screen.getByRole('button', { name: /ABORT/i })
-        fireEvent.click(cancelBtn)
-        expect(onClose).toHaveBeenCalled()
-    })
+  it('calls onClose when close is triggered', () => {
+    const onClose = vi.fn()
+    render(
+      <MarketDashboard
+        campaignId="camp-1"
+        onClose={onClose}
+        campaign={makeCampaign()}
+        setOverlay={() => {}}
+      />,
+    )
+    // The TerminalOverlay cancel button renders with the default label "ABORT"
+    const cancelBtn = screen.getByRole('button', { name: /ABORT/i })
+    fireEvent.click(cancelBtn)
+    expect(onClose).toHaveBeenCalled()
+  })
 })

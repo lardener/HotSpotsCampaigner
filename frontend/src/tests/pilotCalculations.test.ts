@@ -20,68 +20,68 @@ import { recalcDerived } from '../util/pilotCalculations'
 import type { Pilot } from '../types/generated'
 
 function makePilot(): Pilot {
-    return {
-        id: 'p1',
-        gunnerySpEarned: 0,
-        pilotingSpEarned: 0,
-        edgeTokensSpEarned: 0,
-        edgeAbilitySpEarned: 0,
-    } as Pilot
+  return {
+    id: 'p1',
+    gunnerySpEarned: 0,
+    pilotingSpEarned: 0,
+    edgeTokensSpEarned: 0,
+    edgeAbilitySpEarned: 0,
+  } as Pilot
 }
 
 describe('recalcDerived', () => {
-    it('sums total SP from component allocations', () => {
-        const p = makePilot()
-        p.gunnerySpEarned = 300
-        p.pilotingSpEarned = 100
-        p.edgeTokensSpEarned = 60
-        p.edgeAbilitySpEarned = 60
-        recalcDerived(p)
-        expect(p.totalSpEarned).toBe(520)
-    })
+  it('sums total SP from component allocations', () => {
+    const p = makePilot()
+    p.gunnerySpEarned = 300
+    p.pilotingSpEarned = 100
+    p.edgeTokensSpEarned = 60
+    p.edgeAbilitySpEarned = 60
+    recalcDerived(p)
+    expect(p.totalSpEarned).toBe(520)
+  })
 
-    it('treats missing allocations as zero', () => {
-        const p = makePilot()
-        recalcDerived(p)
-        expect(p.totalSpEarned).toBe(0)
-        expect(p.gunnery).toBe(4) // lowest gunnery threshold
-        expect(p.piloting).toBe(5) // lowest piloting threshold
-    })
+  it('treats missing allocations as zero', () => {
+    const p = makePilot()
+    recalcDerived(p)
+    expect(p.totalSpEarned).toBe(0)
+    expect(p.gunnery).toBe(4) // lowest gunnery threshold
+    expect(p.piloting).toBe(5) // lowest piloting threshold
+  })
 
-    it('maps SP to skill levels via thresholds', () => {
-        const p = makePilot()
-        p.gunnerySpEarned = 2200 // max gunnery
-        p.pilotingSpEarned = 1200 // max piloting
-        p.edgeTokensSpEarned = 1100 // max edge tokens
-        p.edgeAbilitySpEarned = 900 // max edge ability
-        recalcDerived(p)
-        expect(p.gunnery).toBe(0)
-        expect(p.piloting).toBe(1)
-        expect(p.edgeTokensSkill).toBe(10)
-        expect(p.edgeAbilitySkill).toBe(5)
-    })
+  it('maps SP to skill levels via thresholds', () => {
+    const p = makePilot()
+    p.gunnerySpEarned = 2200 // max gunnery
+    p.pilotingSpEarned = 1200 // max piloting
+    p.edgeTokensSpEarned = 1100 // max edge tokens
+    p.edgeAbilitySpEarned = 900 // max edge ability
+    recalcDerived(p)
+    expect(p.gunnery).toBe(0)
+    expect(p.piloting).toBe(1)
+    expect(p.edgeTokensSkill).toBe(10)
+    expect(p.edgeAbilitySkill).toBe(5)
+  })
 
-    it('computes asSkill as floor((gunnery + piloting) / 2)', () => {
-        const p = makePilot()
-        p.gunnerySpEarned = 300 // skill 3
-        p.pilotingSpEarned = 100 // skill 4
-        recalcDerived(p)
-        expect(p.asSkill).toBe(Math.floor((3 + 4) / 2)) // 3
-    })
+  it('computes asSkill as floor((gunnery + piloting) / 2)', () => {
+    const p = makePilot()
+    p.gunnerySpEarned = 300 // skill 3
+    p.pilotingSpEarned = 100 // skill 4
+    recalcDerived(p)
+    expect(p.asSkill).toBe(Math.floor((3 + 4) / 2)) // 3
+  })
 
-    it('sums handicaps across all components', () => {
-        const p = makePilot()
-        p.gunnerySpEarned = 300 // handicap 12
-        p.pilotingSpEarned = 100 // handicap 4
-        p.edgeTokensSpEarned = 60 // handicap 2
-        p.edgeAbilitySpEarned = 60 // handicap 2
-        recalcDerived(p)
-        expect(p.handicap).toBe(12 + 4 + 2 + 2)
-    })
+  it('sums handicaps across all components', () => {
+    const p = makePilot()
+    p.gunnerySpEarned = 300 // handicap 12
+    p.pilotingSpEarned = 100 // handicap 4
+    p.edgeTokensSpEarned = 60 // handicap 2
+    p.edgeAbilitySpEarned = 60 // handicap 2
+    recalcDerived(p)
+    expect(p.handicap).toBe(12 + 4 + 2 + 2)
+  })
 
-    it('returns the same mutated pilot instance', () => {
-        const p = makePilot()
-        const result = recalcDerived(p)
-        expect(result).toBe(p)
-    })
+  it('returns the same mutated pilot instance', () => {
+    const p = makePilot()
+    const result = recalcDerived(p)
+    expect(result).toBe(p)
+  })
 })

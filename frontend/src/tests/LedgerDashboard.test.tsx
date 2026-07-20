@@ -24,56 +24,56 @@ import { LedgerDashboard } from '../components/LedgerDashboard'
 import { GetLedgerDataDocument as GET_LEDGER_DATA } from '../types/operations'
 
 const command = {
-    id: 'cmd-1',
-    name: 'Wolf\'s Dragoons',
-    totalSupportPoints: 3000,
-    detachments: [
-        { id: 'det-1', name: 'Alpha Lance', campaignId: 'camp-1', campaignName: 'Draconis Reach' },
-        { id: 'det-2', name: 'Beta Lance', campaignId: 'camp-2', campaignName: 'Federated Suns' },
-    ],
+  id: 'cmd-1',
+  name: "Wolf's Dragoons",
+  totalSupportPoints: 3000,
+  detachments: [
+    { id: 'det-1', name: 'Alpha Lance', campaignId: 'camp-1', campaignName: 'Draconis Reach' },
+    { id: 'det-2', name: 'Beta Lance', campaignId: 'camp-2', campaignName: 'Federated Suns' },
+  ],
 }
 
 function renderDashboard(detachmentId?: string) {
-    const mocks = [
-        {
-            request: { query: GET_LEDGER_DATA, variables: { commandId: 'cmd-1' } },
-            result: { data: { getCommand: command } },
-        },
-    ]
-    const client = new ApolloClient({
-        link: new MockLink(mocks),
-        cache: new InMemoryCache(),
-    })
-    render(
-        <ApolloProvider client={client}>
-            <LedgerDashboard commandId="cmd-1" detachmentId={detachmentId} />
-        </ApolloProvider>,
-    )
+  const mocks = [
+    {
+      request: { query: GET_LEDGER_DATA, variables: { commandId: 'cmd-1' } },
+      result: { data: { getCommand: command } },
+    },
+  ]
+  const client = new ApolloClient({
+    link: new MockLink(mocks),
+    cache: new InMemoryCache(),
+  })
+  render(
+    <ApolloProvider client={client}>
+      <LedgerDashboard commandId="cmd-1" detachmentId={detachmentId} />
+    </ApolloProvider>,
+  )
 }
 
 describe('LedgerDashboard', () => {
-    it('shows loading state initially', () => {
-        renderDashboard()
-        expect(screen.getByText(/ACCESSING SECURE LEDGER/i)).toBeTruthy()
-    })
+  it('shows loading state initially', () => {
+    renderDashboard()
+    expect(screen.getByText(/ACCESSING SECURE LEDGER/i)).toBeTruthy()
+  })
 
-    it('renders ledger with detachment selector', async () => {
-        renderDashboard()
-        await waitFor(() => {
-            expect(screen.getByText(/WARCHEST LEDGER/i)).toBeTruthy()
-        })
-        const select = screen.getByLabelText(/SELECT ACTIVE DETACHMENT/i) as HTMLSelectElement
-        expect(select).toBeTruthy()
-        expect(screen.getByText('Alpha Lance')).toBeTruthy()
-        expect(screen.getByText('Beta Lance')).toBeTruthy()
+  it('renders ledger with detachment selector', async () => {
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByText(/WARCHEST LEDGER/i)).toBeTruthy()
     })
+    const select = screen.getByLabelText(/SELECT ACTIVE DETACHMENT/i) as HTMLSelectElement
+    expect(select).toBeTruthy()
+    expect(screen.getByText('Alpha Lance')).toBeTruthy()
+    expect(screen.getByText('Beta Lance')).toBeTruthy()
+  })
 
-    it('prioritizes detachmentId prop when provided', async () => {
-        renderDashboard('det-2')
-        await waitFor(() => {
-            expect(screen.getByText(/WARCHEST LEDGER/i)).toBeTruthy()
-        })
-        const select = screen.getByLabelText(/SELECT ACTIVE DETACHMENT/i) as HTMLSelectElement
-        expect(select.value).toBe('det-2')
+  it('prioritizes detachmentId prop when provided', async () => {
+    renderDashboard('det-2')
+    await waitFor(() => {
+      expect(screen.getByText(/WARCHEST LEDGER/i)).toBeTruthy()
     })
+    const select = screen.getByLabelText(/SELECT ACTIVE DETACHMENT/i) as HTMLSelectElement
+    expect(select.value).toBe('det-2')
+  })
 })

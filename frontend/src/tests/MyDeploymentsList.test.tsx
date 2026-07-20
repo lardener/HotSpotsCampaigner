@@ -21,45 +21,45 @@ import { MyDeploymentsList } from '../components/MyDeploymentsList'
 import type { MercenaryCommand } from '../types/generated'
 
 function makeCommand(id: string, name: string, detachments: any[]): MercenaryCommand {
-    return {
-        id,
-        name,
-        detachments: detachments as any,
-    } as MercenaryCommand
+  return {
+    id,
+    name,
+    detachments: detachments as any,
+  } as MercenaryCommand
 }
 
 describe('MyDeploymentsList', () => {
-    it('shows placeholder when no deployments', () => {
-        render(<MyDeploymentsList commands={[]} onSelectDetachment={() => { }} />)
-        expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeTruthy()
-    })
+  it('shows placeholder when no deployments', () => {
+    render(<MyDeploymentsList commands={[]} onSelectDetachment={() => {}} />)
+    expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeTruthy()
+  })
 
-    it('renders deployed detachments from commands', () => {
-        const cmd = makeCommand('cmd-1', 'Wolf\'s Dragoons', [
-            { id: 'det-1', name: 'Alpha Lance', campaignId: 'camp-1', campaignName: 'Draconis Reach' },
-            { id: 'det-2', name: 'Beta Lance', campaignId: null },
-        ])
-        render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={() => { }} />)
-        expect(screen.getByText('Alpha Lance')).toBeTruthy()
-        // det-2 has no campaignId, so it should not appear
-        expect(screen.queryByText('Beta Lance')).toBeNull()
-    })
+  it('renders deployed detachments from commands', () => {
+    const cmd = makeCommand('cmd-1', "Wolf's Dragoons", [
+      { id: 'det-1', name: 'Alpha Lance', campaignId: 'camp-1', campaignName: 'Draconis Reach' },
+      { id: 'det-2', name: 'Beta Lance', campaignId: null },
+    ])
+    render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={() => {}} />)
+    expect(screen.getByText('Alpha Lance')).toBeTruthy()
+    // det-2 has no campaignId, so it should not appear
+    expect(screen.queryByText('Beta Lance')).toBeNull()
+  })
 
-    it('calls onSelectDetachment when a deployment is clicked', () => {
-        const onSelect = vi.fn()
-        const cmd = makeCommand('cmd-1', 'Wolf\'s Dragoons', [
-            { id: 'det-1', name: 'Alpha Lance', campaignId: 'camp-1', campaignName: 'Draconis Reach' },
-        ])
-        render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={onSelect} />)
-        fireEvent.click(screen.getByText('Alpha Lance'))
-        expect(onSelect).toHaveBeenCalledWith(
-            expect.objectContaining({ id: 'det-1', type: 'DETACHMENT' }),
-        )
-    })
+  it('calls onSelectDetachment when a deployment is clicked', () => {
+    const onSelect = vi.fn()
+    const cmd = makeCommand('cmd-1', "Wolf's Dragoons", [
+      { id: 'det-1', name: 'Alpha Lance', campaignId: 'camp-1', campaignName: 'Draconis Reach' },
+    ])
+    render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={onSelect} />)
+    fireEvent.click(screen.getByText('Alpha Lance'))
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'det-1', type: 'DETACHMENT' }),
+    )
+  })
 
-    it('handles null detachments gracefully', () => {
-        const cmd = makeCommand('cmd-1', 'Wolf\'s Dragoons', [null, undefined])
-        render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={() => { }} />)
-        expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeTruthy()
-    })
+  it('handles null detachments gracefully', () => {
+    const cmd = makeCommand('cmd-1', "Wolf's Dragoons", [null, undefined])
+    render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={() => {}} />)
+    expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeTruthy()
+  })
 })

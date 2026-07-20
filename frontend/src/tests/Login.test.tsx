@@ -20,26 +20,26 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { Login } from '../components/Login'
 
 describe('Login Component', () => {
-    afterEach(() => {
-        vi.restoreAllMocks()
-    })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
-    it('renders the Google login button', () => {
-        render(<Login />)
-        const button = screen.getByRole('button', { name: /login with google/i })
-        expect(button).toBeInTheDocument()
-        expect(button).toHaveClass('mode-btn')
-        expect(button).toHaveClass('theme-red')
-    })
+  it('renders the Google login button', () => {
+    render(<Login />)
+    const button = screen.getByRole('button', { name: /login with google/i })
+    expect(button).toBeInTheDocument()
+    expect(button).toHaveClass('mode-btn')
+    expect(button).toHaveClass('theme-red')
+  })
 
-    it('redirects to the OAuth2 authorization endpoint on click', () => {
-        const hrefSpy = vi.spyOn(window.Location.prototype, 'href', 'set')
-        render(<Login />)
-        const button = screen.getByRole('button', { name: /login with google/i })
-        fireEvent.click(button)
+  it('redirects to the OAuth2 authorization endpoint on click', () => {
+    const hrefSpy = vi.spyOn(window.Location.prototype, 'href', 'set')
+    render(<Login />)
+    const button = screen.getByRole('button', { name: /login with google/i })
+    fireEvent.click(button)
 
-        expect(hrefSpy).toHaveBeenCalledWith(
-            expect.stringContaining('/login/oauth2/authorization/google'),
-        )
-    })
+    expect(hrefSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/login/oauth2/authorization/google'),
+    )
+  })
 })

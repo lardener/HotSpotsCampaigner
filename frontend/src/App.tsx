@@ -87,7 +87,5 @@ export function App() {
     )
   }
 
-  return (
-    <MainDashboard user={user} onLogout={handleLogout} onRefreshProfile={fetchProfile} />
-  )
+  return <MainDashboard user={user} onLogout={handleLogout} onRefreshProfile={fetchProfile} />
 }

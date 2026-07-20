@@ -24,96 +24,96 @@ import { PublicCampaignTheaterView } from '../components/PublicCampaignTheaterVi
 import { GetCampaignDetailsDocument as GET_PUBLIC_CAMPAIGN_DETAILS } from '../types/operations'
 
 const campaign = {
-    id: 'camp-1',
-    name: 'Draconis Reach',
-    systemName: 'Luthien',
-    description: 'A campaign in the Draconis Combine.',
-    lengthInMonths: 12,
-    trackCount: 5,
-    status: 'ACTIVE',
-    primaryEmployer: 'DCMS',
-    secondaryEmployer: 'ISF',
-    monthlyPay: 500,
-    monthlyMaintenance: 500,
-    transportationCost: 300,
-    combatPay: 500,
-    payRate: 1,
-    payStep: 7,
-    salvageTerms: 'Full',
-    salvageStep: 7,
-    supportTerms: 'Battle',
-    supportStep: 7,
-    transportationTerms: 'Full',
-    transportationStep: 7,
-    commandRights: 'House',
-    commandStep: 7,
-    tracks: [{ id: 't1', monthIndex: 3, trackName: 'Raid' }],
-    participatingDetachments: [],
-    contracts: [],
-    units: [],
-    pilots: [],
+  id: 'camp-1',
+  name: 'Draconis Reach',
+  systemName: 'Luthien',
+  description: 'A campaign in the Draconis Combine.',
+  lengthInMonths: 12,
+  trackCount: 5,
+  status: 'ACTIVE',
+  primaryEmployer: 'DCMS',
+  secondaryEmployer: 'ISF',
+  monthlyPay: 500,
+  monthlyMaintenance: 500,
+  transportationCost: 300,
+  combatPay: 500,
+  payRate: 1,
+  payStep: 7,
+  salvageTerms: 'Full',
+  salvageStep: 7,
+  supportTerms: 'Battle',
+  supportStep: 7,
+  transportationTerms: 'Full',
+  transportationStep: 7,
+  commandRights: 'House',
+  commandStep: 7,
+  tracks: [{ id: 't1', monthIndex: 3, trackName: 'Raid' }],
+  participatingDetachments: [],
+  contracts: [],
+  units: [],
+  pilots: [],
 }
 
 function renderView(onBack = vi.fn()) {
-    const mocks = [
-        {
-            request: { query: GET_PUBLIC_CAMPAIGN_DETAILS, variables: { campaignId: 'camp-1' } },
-            result: { data: { getCampaign: campaign } },
-        },
-    ]
-    const client = new ApolloClient({
-        link: new MockLink(mocks),
-        cache: new InMemoryCache(),
-    })
-    render(
-        <ApolloProvider client={client}>
-            <PublicCampaignTheaterView campaignId="camp-1" onBack={onBack} />
-        </ApolloProvider>,
-    )
+  const mocks = [
+    {
+      request: { query: GET_PUBLIC_CAMPAIGN_DETAILS, variables: { campaignId: 'camp-1' } },
+      result: { data: { getCampaign: campaign } },
+    },
+  ]
+  const client = new ApolloClient({
+    link: new MockLink(mocks),
+    cache: new InMemoryCache(),
+  })
+  render(
+    <ApolloProvider client={client}>
+      <PublicCampaignTheaterView campaignId="camp-1" onBack={onBack} />
+    </ApolloProvider>,
+  )
 }
 
 describe('PublicCampaignTheaterView', () => {
-    it('shows loading state initially', () => {
-        renderView()
-        expect(screen.getByText(/ACCESSING THEATER DATA/i)).toBeTruthy()
-    })
+  it('shows loading state initially', () => {
+    renderView()
+    expect(screen.getByText(/ACCESSING THEATER DATA/i)).toBeTruthy()
+  })
 
-    it('renders campaign details after load', async () => {
-        renderView()
-        await waitFor(() => {
-            expect(screen.getByText('Draconis Reach')).toBeTruthy()
-        })
-        expect(screen.getByText(/LUTHIEN/)).toBeTruthy()
+  it('renders campaign details after load', async () => {
+    renderView()
+    await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
+    expect(screen.getByText(/LUTHIEN/)).toBeTruthy()
+  })
 
-    it('calls onBack when return button clicked', async () => {
-        const onBack = vi.fn()
-        renderView(onBack)
-        await waitFor(() => {
-            expect(screen.getByText('Draconis Reach')).toBeTruthy()
-        })
-        fireEvent.click(screen.getByText(/RETURN/i))
-        expect(onBack).toHaveBeenCalled()
+  it('calls onBack when return button clicked', async () => {
+    const onBack = vi.fn()
+    renderView(onBack)
+    await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
+    fireEvent.click(screen.getByText(/RETURN/i))
+    expect(onBack).toHaveBeenCalled()
+  })
 
-    it('shows not found when campaign missing', async () => {
-        const mocks = [
-            {
-                request: { query: GET_PUBLIC_CAMPAIGN_DETAILS, variables: { campaignId: 'camp-1' } },
-                result: { data: { getCampaign: null } },
-            },
-        ]
-        const client = new ApolloClient({
-            link: new MockLink(mocks),
-            cache: new InMemoryCache(),
-        })
-        render(
-            <ApolloProvider client={client}>
-                <PublicCampaignTheaterView campaignId="camp-1" onBack={() => { }} />
-            </ApolloProvider>,
-        )
-        await waitFor(() => {
-            expect(screen.getByText(/THEATER NOT FOUND/i)).toBeTruthy()
-        })
+  it('shows not found when campaign missing', async () => {
+    const mocks = [
+      {
+        request: { query: GET_PUBLIC_CAMPAIGN_DETAILS, variables: { campaignId: 'camp-1' } },
+        result: { data: { getCampaign: null } },
+      },
+    ]
+    const client = new ApolloClient({
+      link: new MockLink(mocks),
+      cache: new InMemoryCache(),
     })
+    render(
+      <ApolloProvider client={client}>
+        <PublicCampaignTheaterView campaignId="camp-1" onBack={() => {}} />
+      </ApolloProvider>,
+    )
+    await waitFor(() => {
+      expect(screen.getByText(/THEATER NOT FOUND/i)).toBeTruthy()
+    })
+  })
 })

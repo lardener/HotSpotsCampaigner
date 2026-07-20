@@ -54,7 +54,8 @@ const EMPTY_MECH_TABLE = `## Available Units
 |-------|---------|---------|------|-----------|-------|--------|
 | Unknown Model | Unknown Variant | 0 [0] | Inner Sphere | OPERATIONAL | 0 | [Buy](hsc://procure?model=Unknown%20Model&variant=Unknown%20Variant&bv=0&pv=0&sz=0&type=BM&tech=Inner%20Sphere&tons=0&price=0) |`
 
-const GENERIC_MECH_LINK = '[Buy Generic Mech](hsc://procure?model=Generic%20Mech&variant=Standard&bv=1000&pv=20&sz=4&type=BM&tech=Inner%20Sphere&tons=50&price=1000000)'
+const GENERIC_MECH_LINK =
+  '[Buy Generic Mech](hsc://procure?model=Generic%20Mech&variant=Standard&bv=1000&pv=20&sz=4&type=BM&tech=Inner%20Sphere&tons=50&price=1000000)'
 
 const EMPTY_PILOT_TABLE = `## Available Pilots
 
@@ -62,7 +63,8 @@ const EMPTY_PILOT_TABLE = `## Available Pilots
 |------|-----------|---------|----------|--------|-------|--------|
 | New Pilot | BM | 4 | 5 | 0 | 20000 | [Hire](hsc://hire?name=New%20Pilot&unitType=BM&wounds=0&gunnerySpEarned=100&pilotingSpEarned=100&edgeTokensSpEarned=0&edgeAbilitySpEarned=0&edgeAbilities=None&price=20000) |`
 
-const GENERIC_PILOT_LINK = '[Hire Generic Pilot](hsc://hire?name=New%20Pilot&unitType=BM&wounds=0&gunnerySpEarned=100&pilotingSpEarned=100&edgeTokensSpEarned=0&edgeAbilitySpEarned=0&edgeAbilities=None&price=20000)'
+const GENERIC_PILOT_LINK =
+  '[Hire Generic Pilot](hsc://hire?name=New%20Pilot&unitType=BM&wounds=0&gunnerySpEarned=100&pilotingSpEarned=100&edgeTokensSpEarned=0&edgeAbilitySpEarned=0&edgeAbilities=None&price=20000)'
 
 export const MarketView: React.FC<MarketViewProps> = ({
   campaignId,
@@ -124,7 +126,7 @@ export const MarketView: React.FC<MarketViewProps> = ({
         )
         setMarkdown(
           employerMarket?.markdown ||
-          `# ${employerName || 'Primary Employer'}\nNo employer listings available.`,
+            `# ${employerName || 'Primary Employer'}\nNo employer listings available.`,
         )
       } else if (marketType === 'OPPOSITION_EMPLOYER') {
         const employerName = campaign.secondaryEmployer
@@ -133,7 +135,7 @@ export const MarketView: React.FC<MarketViewProps> = ({
         )
         setMarkdown(
           employerMarket?.markdown ||
-          `# ${employerName || 'Opposition Employer'}\nNo employer listings available.`,
+            `# ${employerName || 'Opposition Employer'}\nNo employer listings available.`,
         )
       }
     }

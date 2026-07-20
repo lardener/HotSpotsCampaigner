@@ -21,35 +21,27 @@ import { ScrapperDrawButton } from '../components/ScrapperDrawButton'
 import type { Campaign } from '../types/generated'
 
 function makeCampaign(): Campaign {
-    return {
-        id: 'camp-1',
-        participatingDetachments: [
-            { id: 'det-1', mercenaryCommandId: 'cmd-1', name: 'Alpha' } as any,
-        ],
-    } as Campaign
+  return {
+    id: 'camp-1',
+    participatingDetachments: [{ id: 'det-1', mercenaryCommandId: 'cmd-1', name: 'Alpha' } as any],
+  } as Campaign
 }
 
 describe('ScrapperDrawButton', () => {
-    it('renders the draw button with fee label', () => {
-        render(
-            <ScrapperDrawButton
-                campaignId="camp-1"
-                campaign={makeCampaign()}
-                setOverlay={() => { }}
-            />,
-        )
-        expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeTruthy()
-        expect(screen.getByText(/50,000 C-BILLS/i)).toBeTruthy()
-    })
+  it('renders the draw button with fee label', () => {
+    render(
+      <ScrapperDrawButton campaignId="camp-1" campaign={makeCampaign()} setOverlay={() => {}} />,
+    )
+    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeTruthy()
+    expect(screen.getByText(/50,000 C-BILLS/i)).toBeTruthy()
+  })
 
-    it('opens the scrap heap draw overlay on click', () => {
-        const setOverlay = vi.fn()
-        render(
-            <ScrapperDrawButton campaignId="camp-1" campaign={makeCampaign()} setOverlay={setOverlay} />,
-        )
-        fireEvent.click(screen.getByText(/DRAW FROM THE SCRAP HEAP/i))
-        expect(setOverlay).toHaveBeenCalledWith(
-            expect.objectContaining({ title: 'SCRAP HEAP DRAW' }),
-        )
-    })
+  it('opens the scrap heap draw overlay on click', () => {
+    const setOverlay = vi.fn()
+    render(
+      <ScrapperDrawButton campaignId="camp-1" campaign={makeCampaign()} setOverlay={setOverlay} />,
+    )
+    fireEvent.click(screen.getByText(/DRAW FROM THE SCRAP HEAP/i))
+    expect(setOverlay).toHaveBeenCalledWith(expect.objectContaining({ title: 'SCRAP HEAP DRAW' }))
+  })
 })
