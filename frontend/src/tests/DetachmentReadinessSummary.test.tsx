@@ -36,16 +36,16 @@ describe('DetachmentReadinessSummary', () => {
   it('renders unit type summaries with aggregated totals', () => {
     render(<DetachmentReadinessSummary units={units} pilots={pilots} />)
     // BM: 2 units, 150 tons, 3000 bv, 45 pv, 6 sz
-    expect(screen.getByText('BM')).toBeTruthy()
-    expect(screen.getByText('CV')).toBeTruthy()
-    expect(screen.getByText('2')).toBeTruthy() // BM count
-    expect(screen.getByText('150')).toBeTruthy() // BM tons
+    expect(screen.getByText('BM')).toBeInTheDocument()
+    expect(screen.getByText('CV')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument() // BM count
+    expect(screen.getByText('150')).toBeInTheDocument() // BM tons
   })
 
   it('renders pilot spec summaries', () => {
     render(<DetachmentReadinessSummary units={units} pilots={pilots} />)
-    expect(screen.getByText('BM')).toBeTruthy()
-    expect(screen.getByText('CV')).toBeTruthy()
+    expect(screen.getByText('BM')).toBeInTheDocument()
+    expect(screen.getByText('CV')).toBeInTheDocument()
   })
 
   it('handles empty units and pilots', () => {

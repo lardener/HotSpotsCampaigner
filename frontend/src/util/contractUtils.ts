@@ -50,9 +50,10 @@ export const parseMultiplier = (term: string | undefined | null): number => {
  */
 export const parseSupportTerms = (term: string | undefined | null): SupportTerms => {
   const t = (term || '').toUpperCase().trim()
-  const pct = parseMultiplier(t)
+  let pct = parseMultiplier(t)
 
-  if (t.includes('BATTLE')) return { type: 'BATTLE', pct }
+  if (t.includes('BATTLE'))
+    return { type: 'BATTLE', pct: t.includes('%') || t.includes('/') ? pct : 1 }
   if (t.includes('STRAIGHT')) return { type: 'STRAIGHT', pct }
   if (pct > 0) return { type: 'STRAIGHT', pct } // Fallback for simple percentage strings
   return { type: 'NONE', pct: 0 }

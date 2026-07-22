@@ -32,8 +32,8 @@ describe('ScrapperDrawButton', () => {
     render(
       <ScrapperDrawButton campaignId="camp-1" campaign={makeCampaign()} setOverlay={() => {}} />,
     )
-    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeTruthy()
-    expect(screen.getByText(/50,000 C-BILLS/i)).toBeTruthy()
+    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeInTheDocument()
+    expect(screen.getByText(/50,000 C-BILLS/i)).toBeInTheDocument()
   })
 
   it('opens the scrap heap draw overlay on click', () => {

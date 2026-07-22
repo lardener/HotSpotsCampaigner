@@ -42,10 +42,10 @@ const tree: TreeItem[] = [
 describe('NavigationTree', () => {
   it('renders root and expanded children', () => {
     render(<NavigationTree data={tree} onSelect={() => {}} />)
-    expect(screen.getByText('My Commands')).toBeTruthy()
-    expect(screen.getByText("Wolf's Dragoons")).toBeTruthy()
-    expect(screen.getByText('Alpha Lance')).toBeTruthy()
-    expect(screen.getByText('Beta Lance')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /My Commands/i })).toBeInTheDocument()
+    expect(screen.getByText("Wolf's Dragoons")).toBeInTheDocument()
+    expect(screen.getByText('Alpha Lance')).toBeInTheDocument()
+    expect(screen.getByText('Beta Lance')).toBeInTheDocument()
   })
 
   it('collapses children when toggle arrow clicked', () => {
@@ -62,7 +62,7 @@ describe('NavigationTree', () => {
     expect(screen.queryByText("Wolf's Dragoons")).toBeNull()
     const arrow = screen.getByText('▶')
     fireEvent.click(arrow)
-    expect(screen.getByText("Wolf's Dragoons")).toBeTruthy()
+    expect(screen.getByText("Wolf's Dragoons")).toBeInTheDocument()
   })
 
   it('calls onSelect when a node is clicked', () => {
@@ -77,7 +77,7 @@ describe('NavigationTree', () => {
   it('highlights the selected node', () => {
     render(<NavigationTree data={tree} onSelect={() => {}} selectedId="det-1" />)
     const node = screen.getByText('Alpha Lance').closest('.tree-node')
-    expect(node?.className).toContain('selected')
+    expect(node?.classList).toContain('selected')
   })
 
   it('renders multiple root items', () => {
@@ -86,7 +86,7 @@ describe('NavigationTree', () => {
       { id: 'r2', label: 'Root Two', type: 'ROOT' },
     ]
     render(<NavigationTree data={multiRoot} onSelect={() => {}} />)
-    expect(screen.getByText('Root One')).toBeTruthy()
-    expect(screen.getByText('Root Two')).toBeTruthy()
+    expect(screen.getByText('Root One')).toBeInTheDocument()
+    expect(screen.getByText('Root Two')).toBeInTheDocument()
   })
 })

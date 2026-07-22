@@ -39,10 +39,10 @@ describe('MarketDashboard', () => {
         setOverlay={() => {}}
       />,
     )
-    expect(screen.getByText(/THEATER MARKET/i)).toBeTruthy()
-    expect(screen.getByText(/FREE MARKET/i)).toBeTruthy()
-    expect(screen.getByText(/DCMS/)).toBeTruthy()
-    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeTruthy()
+    expect(screen.getByText(/THEATER MARKET/i)).toBeInTheDocument()
+    expect(screen.getByText(/FREE MARKET/i)).toBeInTheDocument()
+    expect(screen.getByText(/DCMS/)).toBeInTheDocument()
+    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeInTheDocument()
   })
 
   it('switches active tab when clicked', async () => {

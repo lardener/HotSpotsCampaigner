@@ -18,25 +18,9 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { App } from './App'
+import { useUserProfile } from './hooks/useUserProfile'
 
-const { mockQuery } = vi.hoisted(() => {
-  return { mockQuery: vi.fn() }
-})
-
-// Subclass ApolloClient inside mock to override only the query method
-vi.mock('@apollo/client', async (importOriginal) => {
-  const original = await importOriginal<any>()
-  class MockApolloClient extends original.ApolloClient {
-    constructor(...args: any[]) {
-      super(...args)
-      this.query = mockQuery as any
-    }
-  }
-  return {
-    ...original,
-    ApolloClient: MockApolloClient,
-  }
-})
+vi.mock('./hooks/useUserProfile')
 
 describe('App Component', () => {
   beforeEach(() => {
@@ -44,13 +28,21 @@ describe('App Component', () => {
   })
 
   it('shows loading state initially', () => {
-    mockQuery.mockReturnValue(new Promise(() => {})) // Never resolves
+    vi.mocked(useUserProfile).mockReturnValue({
+      user: null,
+      loading: true,
+      fetchProfile: vi.fn(),
+    })
     render(<App />)
     expect(screen.getByText('INITIALIZING NEURAL LINK...')).toBeInTheDocument()
   })
 
   it('renders login when unauthenticated', async () => {
-    mockQuery.mockRejectedValue(new Error('Authentication required'))
+    vi.mocked(useUserProfile).mockReturnValue({
+      user: null,
+      loading: false,
+      fetchProfile: vi.fn(),
+    })
 
     render(<App />)
 

@@ -3,11 +3,7 @@
     "target": "ES2020",
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     /* Bundler mode */
@@ -23,10 +19,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "src",
-    "types/operations.ts"
-  ],
+  "include": ["src", "types/operations.ts"],
   "references": [
     {
       "path": "./tsconfig.node.json"

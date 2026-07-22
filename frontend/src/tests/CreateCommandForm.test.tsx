@@ -60,34 +60,34 @@ describe('CreateCommandForm', () => {
   it('prefills commanding officer from user display name', () => {
     renderForm()
     const coInput = screen.getByDisplayValue('CO Name') as HTMLInputElement
-    expect(coInput).toBeTruthy()
+    expect(coInput).toBeInTheDocument()
   })
 
   it('shows error when command name is empty', async () => {
     const onSuccess = vi.fn()
     renderForm(onSuccess)
-    fireEvent.click(screen.getByText(/ESTABLISH/i))
+    fireEvent.click(screen.getByRole('button', { name: /ESTABLISH/i }))
     await waitFor(() => {
-      expect(screen.getByText(/COMMAND NAME REQUIRED/i)).toBeTruthy()
+      expect(screen.getByText(/COMMAND NAME REQUIRED/i)).toBeInTheDocument()
+      expect(onSuccess).not.toHaveBeenCalled()
     })
-    expect(onSuccess).not.toHaveBeenCalled()
-  })
 
-  it('submits successfully with a valid name', async () => {
-    const onSuccess = vi.fn()
-    renderForm(onSuccess)
-    const nameInput = screen.getByPlaceholderText(/command name/i) as HTMLInputElement
-    fireEvent.change(nameInput, { target: { value: 'New Command' } })
-    fireEvent.click(screen.getByText(/ESTABLISH/i))
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalled()
+    it('submits successfully with a valid name', async () => {
+      const onSuccess = vi.fn()
+      renderForm(onSuccess)
+      const nameInput = screen.getByPlaceholderText(/command name/i) as HTMLInputElement
+      fireEvent.change(nameInput, { target: { value: 'New Command' } })
+      fireEvent.click(screen.getByRole('button', { name: /ESTABLISH/i }))
+      await waitFor(() => {
+        expect(onSuccess).toHaveBeenCalled()
+      })
     })
-  })
 
-  it('calls onCancel when cancel is clicked', () => {
-    const onCancel = vi.fn()
-    renderForm(vi.fn(), onCancel)
-    fireEvent.click(screen.getByText(/CANCEL/i))
-    expect(onCancel).toHaveBeenCalled()
+    it('calls onCancel when cancel is clicked', () => {
+      const onCancel = vi.fn()
+      renderForm(vi.fn(), onCancel)
+      fireEvent.click(screen.getByText(/CANCEL/i))
+      expect(onCancel).toHaveBeenCalled()
+    })
   })
 })

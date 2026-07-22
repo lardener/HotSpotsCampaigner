@@ -31,7 +31,7 @@ function makeCommand(id: string, name: string, detachments: any[]): MercenaryCom
 describe('MyDeploymentsList', () => {
   it('shows placeholder when no deployments', () => {
     render(<MyDeploymentsList commands={[]} onSelectDetachment={() => {}} />)
-    expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeTruthy()
+    expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeInTheDocument()
   })
 
   it('renders deployed detachments from commands', () => {
@@ -40,7 +40,7 @@ describe('MyDeploymentsList', () => {
       { id: 'det-2', name: 'Beta Lance', campaignId: null },
     ])
     render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={() => {}} />)
-    expect(screen.getByText('Alpha Lance')).toBeTruthy()
+    expect(screen.getByText('Alpha Lance')).toBeInTheDocument()
     // det-2 has no campaignId, so it should not appear
     expect(screen.queryByText('Beta Lance')).toBeNull()
   })
@@ -60,6 +60,6 @@ describe('MyDeploymentsList', () => {
   it('handles null detachments gracefully', () => {
     const cmd = makeCommand('cmd-1', "Wolf's Dragoons", [null, undefined])
     render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={() => {}} />)
-    expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeTruthy()
+    expect(screen.getByText(/NO ACTIVE DEPLOYMENTS/i)).toBeInTheDocument()
   })
 })
