@@ -101,7 +101,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
           } as CombatUnit)
         : createDefaultUnit(),
     )
-  }, [unit, detachmentId])
+  }, [unit, detachmentId, createDefaultUnit])
 
   const [importLink, setImportLink] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -542,7 +542,6 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                         placeholder="UNIT MODEL DESIGNATION"
                         title="Unit chassis model"
                         maxLength={50}
-                        autoFocus
                       />
                     </div>
                   </div>

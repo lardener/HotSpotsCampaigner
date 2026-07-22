@@ -64,7 +64,7 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
         return inCampaignFields || inDetachments
       })
     })
-  }, [campaigns, searchTerm])
+  }, [campaigns])
 
   if (loading && !data) return <div className="loading-intel">DECRYPTING THEATER INTEL...</div>
 

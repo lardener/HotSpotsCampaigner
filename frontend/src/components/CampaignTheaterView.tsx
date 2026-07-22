@@ -1069,7 +1069,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             fontSize: '0.9rem',
                           }}
                           defaultValue={campaign?.description ?? undefined}
-                          autoFocus
                           onChange={(e) => handleUpdate('description', e.target.value)}
                           placeholder="Enter operational briefing (Markdown supported)..."
                           title="Exit field to save mission description"

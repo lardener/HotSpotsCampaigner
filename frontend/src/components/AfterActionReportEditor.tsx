@@ -737,7 +737,6 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
                 value={state.afterActionNarrative}
                 onChange={(e) => dispatch({ type: 'SET_NARRATIVE', narrative: e.target.value })}
                 onBlur={handleNarrativeBlur}
-                autoFocus
                 placeholder="Document the engagement history..."
               />
             </div>

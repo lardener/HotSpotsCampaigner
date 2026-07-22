@@ -356,7 +356,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
           detachmentId: detId === '' ? null : detId,
         },
       })
-    } catch (err) {
+    } catch {
       setOverlay({
         title: 'ASSIGNMENT FAILURE',
         message: 'COMMUNICATIONS ERROR: UNABLE TO REASSIGN ASSET.',
@@ -549,7 +549,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                   className="table-input terminal-text"
                   style={{ fontSize: '2rem', height: 'auto', width: 'auto' }}
                   defaultValue={command.name || ''}
-                  autoFocus
                   onBlur={(e) => {
                     handleHeaderUpdate('NAME', e.target.value)
                     setIsEditingName(false)

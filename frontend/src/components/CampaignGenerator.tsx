@@ -80,7 +80,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
       }
       setResolvedSteps(steps)
     }
-  }, [metadataData])
+  }, [metadataData, setPrimaryMissions, setOpponentMissions, setTrackTypes, setResolvedSteps])
 
   const resolveStepValueWithGravity = (step: number, field: keyof ResolvedStepValues): string => {
     if (!resolvedSteps[step]) return '-'
@@ -192,7 +192,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     if (!metadataLoading && Object.keys(resolvedSteps).length > 0 && !proposal) {
       handlePreview()
     }
-  }, [metadataLoading, resolvedSteps, proposal, handlePreview])
+  }, [metadataLoading, resolvedSteps, proposal])
 
   const getSaveParams = (): CampaignCreateInput => {
     if (!proposal || !proposal.contracts[0] || !proposal.contracts[1]) {
