@@ -380,7 +380,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
           refetch() // Refetch command dossier to update ledger and detachments
         },
       })
-    } catch (err) {
+    } catch {
       setOverlay({
         title: 'RECRUITMENT FAILURE',
         message: 'INVALID OR EXPIRED TOKEN. ACCESS DENIED.',

@@ -50,7 +50,7 @@ export const parseMultiplier = (term: string | undefined | null): number => {
  */
 export const parseSupportTerms = (term: string | undefined | null): SupportTerms => {
   const t = (term || '').toUpperCase().trim()
-  let pct = parseMultiplier(t)
+  const pct = parseMultiplier(t)
 
   if (t.includes('BATTLE'))
     return { type: 'BATTLE', pct: t.includes('%') || t.includes('/') ? pct : 1 }
