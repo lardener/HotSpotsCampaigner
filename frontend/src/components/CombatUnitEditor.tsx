@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useMutation, useQuery } from '@apollo/client/react'
 import {
   useFloating,
@@ -67,19 +67,22 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
   detachmentId,
   overridePrice,
 }) => {
-  const createDefaultUnit = (): CombatUnit => ({
-    id: '',
-    model: 'NEW UNIT',
-    type: unitTypes[0] || 'BM',
-    variant: '',
-    techBase: techBases[0] || 'Inner Sphere',
-    tonnage: 0,
-    asSize: 0,
-    bv: 0,
-    pv: 0,
-    status: unitStatuses[0] || 'OPERATIONAL',
-    detachmentId: detachmentId ?? null, // Ensure undefined from props is null
-  })
+  const createDefaultUnit = useCallback(
+    (): CombatUnit => ({
+      id: '',
+      model: 'NEW UNIT',
+      type: unitTypes[0] || 'BM',
+      variant: '',
+      techBase: techBases[0] || 'Inner Sphere',
+      tonnage: 0,
+      asSize: 0,
+      bv: 0,
+      pv: 0,
+      status: unitStatuses[0] || 'OPERATIONAL',
+      detachmentId: detachmentId ?? null, // Ensure undefined from props is null
+    }),
+    [unitTypes, unitStatuses, techBases, detachmentId],
+  )
 
   const [formData, setFormData] = useState<CombatUnit>(() =>
     unit
@@ -462,7 +465,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
                           style={{ border: 'none', width: '30em' }}
                           value={importLink}
                           onChange={(e) => setImportLink(e.target.value)}
-                          placeholder="MASTER UNIT LIST LINK (MUL)..."
+                          placeholder="PASTE UNIT LINK (MUL, MORDEL, MEKBAY)..."
                           title="External data source URL"
                         />
                       </div>

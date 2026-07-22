@@ -42,10 +42,15 @@ class ScraperFactoryTest {
     void getScraper_returnsMatchingScraper() {
         UnitScraper mul = mockScraper("masterunitlist.info");
         UnitScraper mordel = mockScraper("mordel.net");
-        ScraperFactory factory = new ScraperFactory(List.of(mul, mordel));
+        UnitScraper mekbay = mockScraper("mekbay.com");
+        ScraperFactory factory = new ScraperFactory(List.of(mul, mordel, mekbay));
 
         StepVerifier.create(factory.getScraper("https://masterunitlist.info/Unit/Details/123"))
                 .assertNext(s -> assertSame(mul, s))
+                .verifyComplete();
+
+        StepVerifier.create(factory.getScraper("https://mekbay.com/?shareUnit=BMAxman_AXM2R&tab=General"))
+                .assertNext(s -> assertSame(mekbay, s))
                 .verifyComplete();
     }
 
