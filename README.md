@@ -2,6 +2,11 @@
 
 A multi-tenant SaaS platform for managing Battletech Mercenaries campaigns using Chaos Campaign, Hinterlands, Draconis Reach rules.  The goal is not strict rules enforcement.  Rather, the program aims to reduce the congnitive load when dealing with the "bookkeeping" of the campaign.  Common computaitons should be precomputed but give the user the opportunity to override.  Uncommon entries can be managed by direct ledger entries.  The desired end state will allow a player group to complete their bookkeeping for a given track in just a couple of minutes after completing the game, while the game store staff is trying to close up.
 
+## Online
+* Take it for a spit at https://hotspotscampaigner.app/
+* You'll need a google account to login as a campaign manager.
+* If you're just joining someone else's campaign, ask them for an invitation token.
+
 ## Features
 
  ✅ **Unified Identity System**: Support for both Google OAuth2 and "Invite-as-Identity" key-based access.
