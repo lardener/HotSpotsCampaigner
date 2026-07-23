@@ -176,7 +176,7 @@ export const ForceDashboard: React.FC<{ commandId: string; initialMode?: ViewMod
           ),
         )
       }
-      } catch {
+    } catch {
       alert('Assignment failed: Asset may already be deployed.')
     }
   }
