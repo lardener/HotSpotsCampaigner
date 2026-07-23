@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: backend-container
-          image: vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-backend:1.0.3
+          image: vq9701ff.c1.va1.container-registry.ovh.us/library/hotspotscampaigner-backend:1.0.4
           ports:
             - containerPort: 8080
           securityContext:
@@ -107,11 +107,11 @@ spec:
                   key: SERVER_SERVLET_SESSION_COOKIE_SECURE
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: '512Mi'
+              cpu: '250m'
             limits:
-              memory: "1024Mi"
-              cpu: "500m"
+              memory: '1024Mi'
+              cpu: '500m'
 ---
 # Backend Service
 apiVersion: v1
