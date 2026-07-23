@@ -34,9 +34,8 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
   })
   const [searchTerm, setSearchTerm] = useState('')
 
-  const campaigns = (data?.publicActiveCampaigns || []) as Campaign[]
-
   const filteredCampaigns = useMemo(() => {
+    const campaigns = (data?.publicActiveCampaigns || []) as Campaign[]
     const terms = searchTerm
       .toLowerCase()
       .split(/\s+/)
@@ -64,7 +63,7 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
         return inCampaignFields || inDetachments
       })
     })
-  }, [campaigns])
+  }, [data, searchTerm])
 
   if (loading && !data) return <div className="loading-intel">DECRYPTING THEATER INTEL...</div>
 

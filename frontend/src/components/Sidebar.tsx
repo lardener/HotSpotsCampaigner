@@ -200,7 +200,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onChange={(e) => setEditName(e.target.value)}
                     onBlur={onNameUpdate}
                     onKeyDown={(e) => e.key === 'Enter' && onNameUpdate()}
-                    autoFocus
                     style={{ fontSize: '0.8rem', padding: '2px', width: '150px', border: 'none' }}
                     title="Enter to save, click away to cancel"
                   />

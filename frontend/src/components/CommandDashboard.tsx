@@ -604,7 +604,6 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                   className="table-input"
                   style={{ border: 'none' }}
                   value={command.commandingOfficer || ''} // Use value for controlled input
-                  autoFocus
                   onChange={(e) => handleHeaderUpdate('CO', e.target.value, false)} // Debounce update
                   onBlur={() => setIsEditingCO(false)} // Save on blur
                   onKeyDown={(e) => {

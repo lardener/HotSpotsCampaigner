@@ -125,7 +125,6 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                       type={inputType}
                       className="table-input w-100"
                       style={{ border: 'none', padding: '0 5px' }}
-                      autoFocus
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && !loading && onConfirm(inputValue)}

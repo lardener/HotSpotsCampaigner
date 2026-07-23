@@ -121,7 +121,6 @@ export const RecruitmentOverlay: React.FC<RecruitmentOverlayProps> = ({
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && confirmGenerate()}
-              autoFocus
             />
             <button
               className="mode-btn theme-green"

@@ -102,7 +102,6 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({
               placeholder="ENTER COMMAND NAME"
               maxLength={255}
               disabled={isSubmitting}
-              autoFocus
             />
           </div>
         </div>
