@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite",
     "codegen": "graphql-codegen --config codegen.ts",
-    "build": "npm run codegen && tsc -b && vite build",
+    "format:generated": "prettier --write \"src/types/generated.ts\" \"src/types/operations.ts\"",
+    "build": "npm run codegen && npm run format:generated && tsc -b && vite build",
     "preview": "vite preview",
     "test": "npm run codegen && vitest",
     "test:ui": "vitest --ui",
