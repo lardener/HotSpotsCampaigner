@@ -61,7 +61,13 @@ describe('App Component', () => {
 
   it('renders main dashboard when authenticated', async () => {
     vi.mocked(useUserProfile).mockReturnValue({
-      user: { name: 'jdoe', displayName: 'John Doe' },
+      user: {
+        name: 'jdoe',
+        displayName: 'John Doe',
+        email: 'test@test.com',
+        id: 'user-1',
+        role: 'ROLE_AUTHENTICATED',
+      },
       loading: false,
       fetchProfile: vi.fn(),
     })
