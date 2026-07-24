@@ -53,7 +53,16 @@ describe('MyDeploymentsList', () => {
     render(<MyDeploymentsList commands={[cmd]} onSelectDetachment={onSelect} />)
     fireEvent.click(screen.getByText('Alpha Lance'))
     expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'det-1', type: 'DETACHMENT' }),
+      expect.objectContaining({
+        id: 'deployment-det-1',
+        label: "Wolf's Dragoons - Alpha Lance",
+        metadata: {
+          campaignId: 'camp-1',
+          commandId: 'cmd-1',
+          detachmentId: 'det-1',
+        },
+        type: 'DETACHMENT',
+      }),
     )
   })
 

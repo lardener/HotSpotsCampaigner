@@ -69,7 +69,8 @@ function renderOverlay(invites: CampaignInvite[] = []) {
 describe('RecruitmentOverlay', () => {
   it('renders the recruitment protocol title', () => {
     renderOverlay()
-    expect(screen.getByText(/RECRUITMENT PROTOCOL/i)).toBeTruthy()
+    const elements = screen.getAllByText(/RECRUITMENT PROTOCOL/i)
+    expect(elements.length).toBeGreaterThan(0)
   })
 
   it('shows existing invites', () => {

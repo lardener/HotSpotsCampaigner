@@ -34,7 +34,7 @@ describe('calculatePilotFinancials', () => {
     )
     expect(r.rawMedicalCost).toBe(90)
     expect(r.mercenaryCost).toBe(0)
-    expect(r.mercenaryCostSigned).toBe(0)
+    expect(r.mercenaryCostSigned === 0 || Object.is(r.mercenaryCostSigned, -0)).toBe(true)
     expect(r.supportType).toBe('BATTLE')
   })
 

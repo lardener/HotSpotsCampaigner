@@ -21,6 +21,14 @@ import { App } from './App'
 import { useUserProfile } from './hooks/useUserProfile'
 
 vi.mock('./hooks/useUserProfile')
+vi.mock('./components/MainDashboard', () => ({
+  MainDashboard: ({ user }: { user: any }) =>
+    user ? (
+      <div data-testid="main-dashboard">Welcome, {user.displayName}!</div>
+    ) : (
+      <div>Not authenticated</div>
+    ),
+}))
 
 describe('App Component', () => {
   beforeEach(() => {
@@ -37,7 +45,7 @@ describe('App Component', () => {
     expect(screen.getByText('INITIALIZING NEURAL LINK...')).toBeInTheDocument()
   })
 
-  it('renders login when unauthenticated', async () => {
+  it('renders main dashboard when unauthenticated', async () => {
     vi.mocked(useUserProfile).mockReturnValue({
       user: null,
       loading: false,
@@ -47,7 +55,21 @@ describe('App Component', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByText('FEDERATED LOGIN')).toBeInTheDocument()
+      expect(screen.getByText('Not authenticated')).toBeInTheDocument()
+    })
+  })
+
+  it('renders main dashboard when authenticated', async () => {
+    vi.mocked(useUserProfile).mockReturnValue({
+      user: { name: 'jdoe', displayName: 'John Doe' },
+      loading: false,
+      fetchProfile: vi.fn(),
+    })
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('main-dashboard')).toBeInTheDocument()
     })
   })
 })

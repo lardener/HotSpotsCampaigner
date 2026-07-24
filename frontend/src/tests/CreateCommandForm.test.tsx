@@ -29,11 +29,11 @@ function renderForm(onSuccess = vi.fn(), onCancel = vi.fn()) {
       request: {
         query: ESTABLISH_COMMAND,
         variables: {
-          input: { name: 'New Command', commandingOfficer: 'CO Name' },
+          input: { name: 'NEW COMMAND', commandingOfficer: 'CO Name' },
         },
       },
       result: {
-        data: { establishCommand: { id: 'cmd-1', name: 'New Command' } },
+        data: { establishCommand: { id: 'cmd-1', name: 'NEW COMMAND' } },
       },
     },
   ]
@@ -71,23 +71,23 @@ describe('CreateCommandForm', () => {
       expect(screen.getByText(/COMMAND NAME REQUIRED/i)).toBeInTheDocument()
       expect(onSuccess).not.toHaveBeenCalled()
     })
+  })
 
-    it('submits successfully with a valid name', async () => {
-      const onSuccess = vi.fn()
-      renderForm(onSuccess)
-      const nameInput = screen.getByPlaceholderText(/command name/i) as HTMLInputElement
-      fireEvent.change(nameInput, { target: { value: 'New Command' } })
-      fireEvent.click(screen.getByRole('button', { name: /ESTABLISH/i }))
-      await waitFor(() => {
-        expect(onSuccess).toHaveBeenCalled()
-      })
+  it('submits successfully with a valid name', async () => {
+    const onSuccess = vi.fn()
+    renderForm(onSuccess)
+    const nameInput = screen.getByPlaceholderText(/command name/i) as HTMLInputElement
+    fireEvent.change(nameInput, { target: { value: 'New Command' } })
+    fireEvent.click(screen.getByRole('button', { name: /ESTABLISH/i }))
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalled()
     })
+  })
 
-    it('calls onCancel when cancel is clicked', () => {
-      const onCancel = vi.fn()
-      renderForm(vi.fn(), onCancel)
-      fireEvent.click(screen.getByText(/CANCEL/i))
-      expect(onCancel).toHaveBeenCalled()
-    })
+  it('calls onCancel when cancel is clicked', () => {
+    const onCancel = vi.fn()
+    renderForm(vi.fn(), onCancel)
+    fireEvent.click(screen.getByText(/ABORT/i))
+    expect(onCancel).toHaveBeenCalled()
   })
 })

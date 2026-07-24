@@ -35,17 +35,32 @@ describe('DetachmentReadinessSummary', () => {
 
   it('renders unit type summaries with aggregated totals', () => {
     render(<DetachmentReadinessSummary units={units} pilots={pilots} />)
-    // BM: 2 units, 150 tons, 3000 bv, 45 pv, 6 sz
-    expect(screen.getByText('BM')).toBeInTheDocument()
-    expect(screen.getByText('CV')).toBeInTheDocument()
-    expect(screen.getByText('2')).toBeInTheDocument() // BM count
+    // BM and CV appear in both unit types and pilot specs tables
+    const bmElements = screen.getAllByText('BM')
+    expect(bmElements.length).toBe(2) // BM in both tables
+    const cvElements = screen.getAllByText('CV')
+    expect(cvElements.length).toBe(2) // CV in both tables
+    // Qty 2 appears in both tables (BM count and CV count)
+    const qtyElements = screen.getAllByText('2')
+    expect(qtyElements.length).toBe(2)
     expect(screen.getByText('150')).toBeInTheDocument() // BM tons
+    expect(screen.getByText('3000')).toBeInTheDocument() // BM BV
+    expect(screen.getByText('45')).toBeInTheDocument() // BM PV
+    expect(screen.getByText('350')).toBeInTheDocument() // Total tons
+    expect(screen.getByText('4500')).toBeInTheDocument() // Total BV
+    expect(screen.getByText('70')).toBeInTheDocument() // Total PV
   })
 
   it('renders pilot spec summaries', () => {
     render(<DetachmentReadinessSummary units={units} pilots={pilots} />)
-    expect(screen.getByText('BM')).toBeInTheDocument()
-    expect(screen.getByText('CV')).toBeInTheDocument()
+    // BM and CV appear in both tables
+    const bmElements = screen.getAllByText('BM')
+    expect(bmElements.length).toBe(2)
+    const cvElements = screen.getAllByText('CV')
+    expect(cvElements.length).toBe(2)
+    // AS values are averaged and rendered as separate text nodes, use regex
+    expect(screen.getByText(/3\.5/)).toBeInTheDocument() // BM avg AS
+    expect(screen.getByText(/2\.0/)).toBeInTheDocument() // CV avg AS
   })
 
   it('handles empty units and pilots', () => {

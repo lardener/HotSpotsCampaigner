@@ -15,10 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MarketDashboard } from '../components/MarketDashboard'
 import type { Campaign } from '../types/generated'
+
+// Mock MarketView to avoid Apollo dependency issues
+vi.mock('../components/MarketView', () => ({
+  MarketView: () => <div data-testid="mock-market-view">Market View Mock</div>,
+}))
 
 function makeCampaign(): Campaign {
   return {
@@ -30,7 +36,7 @@ function makeCampaign(): Campaign {
 }
 
 describe('MarketDashboard', () => {
-  it('renders market tabs and the scrapper draw button', () => {
+  it('renders market tabs and the scrapper draw button', async () => {
     render(
       <MarketDashboard
         campaignId="camp-1"
@@ -42,7 +48,11 @@ describe('MarketDashboard', () => {
     expect(screen.getByText(/THEATER MARKET/i)).toBeInTheDocument()
     expect(screen.getByText(/FREE MARKET/i)).toBeInTheDocument()
     expect(screen.getByText(/DCMS/)).toBeInTheDocument()
-    expect(screen.getByText(/DRAW FROM THE SCRAP HEAP/i)).toBeInTheDocument()
+    // Click on SCRAPPERS' YARD tab to reveal the draw button
+    fireEvent.click(screen.getByRole('button', { name: /SCRAPPERS/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /DRAW FROM THE SCRAP HEAP/i })).toBeInTheDocument()
+    })
   })
 
   it('switches active tab when clicked', async () => {

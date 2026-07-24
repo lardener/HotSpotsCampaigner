@@ -15,3 +15,4 @@ target/
 .project
 .settings/
 /ssl_cert
+/frontend/coverage

@@ -95,12 +95,12 @@ describe('ActiveCampaignsList', () => {
     await waitFor(() => {
       expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
-    const search = screen.getByPlaceholderText(/search/i) as HTMLInputElement
+    const search = screen.getByPlaceholderText(/filter by name/i) as HTMLInputElement
     fireEvent.change(search, { target: { value: 'Federated' } })
     await waitFor(() => {
+      expect(screen.getByText('Federated Suns Op')).toBeInTheDocument()
       expect(screen.queryByText('Draconis Reach')).toBeNull()
     })
-    expect(screen.getByText('Federated Suns Op')).toBeTruthy()
   })
 
   it('filters campaigns by system name', async () => {
@@ -108,12 +108,12 @@ describe('ActiveCampaignsList', () => {
     await waitFor(() => {
       expect(screen.getByText('Draconis Reach')).toBeTruthy()
     })
-    const search = screen.getByPlaceholderText(/search/i) as HTMLInputElement
+    const search = screen.getByPlaceholderText(/filter by name/i) as HTMLInputElement
     fireEvent.change(search, { target: { value: 'Luthien' } })
     await waitFor(() => {
+      expect(screen.getByText('Draconis Reach')).toBeInTheDocument()
       expect(screen.queryByText('Federated Suns Op')).toBeNull()
     })
-    expect(screen.getByText('Draconis Reach')).toBeTruthy()
   })
 
   it('calls onSelectCampaign when a campaign is clicked', async () => {

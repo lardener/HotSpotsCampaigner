@@ -21,10 +21,13 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { createClient } from 'graphql-ws'
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_GRAPHQL_API_URL || ''
-const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-const wsHost = apiBaseUrl.startsWith('http')
-  ? apiBaseUrl.replace(/^http/, 'ws')
-  : `${wsProtocol}//${window.location.host}${apiBaseUrl || '/api'}`
+const isBrowser = typeof window !== 'undefined'
+const wsProtocol = isBrowser && window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+const wsHost = isBrowser
+  ? apiBaseUrl.startsWith('http')
+    ? apiBaseUrl.replace(/^http/, 'ws')
+    : `${wsProtocol}//${window.location.host}${apiBaseUrl || '/api'}`
+  : ''
 
 export const httpLink = new HttpLink({
   uri: apiBaseUrl ? `${apiBaseUrl}/graphql` : '/api/graphql',

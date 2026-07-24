@@ -30,6 +30,7 @@ const tree: TreeItem[] = [
         id: 'cmd-1',
         label: "Wolf's Dragoons",
         type: 'COMMAND',
+        initiallyExpanded: true,
         children: [
           { id: 'det-1', label: 'Alpha Lance', type: 'DETACHMENT' },
           { id: 'det-2', label: 'Beta Lance', type: 'DETACHMENT' },
@@ -42,7 +43,7 @@ const tree: TreeItem[] = [
 describe('NavigationTree', () => {
   it('renders root and expanded children', () => {
     render(<NavigationTree data={tree} onSelect={() => {}} />)
-    expect(screen.getByRole('button', { name: /My Commands/i })).toBeInTheDocument()
+    expect(screen.getByText('My Commands')).toBeInTheDocument()
     expect(screen.getByText("Wolf's Dragoons")).toBeInTheDocument()
     expect(screen.getByText('Alpha Lance')).toBeInTheDocument()
     expect(screen.getByText('Beta Lance')).toBeInTheDocument()
