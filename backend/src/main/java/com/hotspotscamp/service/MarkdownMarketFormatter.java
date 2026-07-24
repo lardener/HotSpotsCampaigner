@@ -71,13 +71,13 @@ public class MarkdownMarketFormatter {
             String hscLink = buildPurchaseLink(unit, price);
 
             sb.append("| ")
-                    .append(escapePipe(unit.getModel()))
+                    .append(escapePipe(unit.getModel() != null ? unit.getModel() : "Unknown Model"))
                     .append(" | ")
-                    .append(escapePipe(unit.getVariant()))
+                    .append(escapePipe(unit.getVariant() != null ? unit.getVariant() : "Unknown Variant"))
                     .append(" | ")
-                    .append(TypeUtils.asInt(unit.getBv()))
+                    .append(safeInt(unit.getBv()))
                     .append(" [")
-                    .append(TypeUtils.asInt(unit.getPv()))
+                    .append(safeInt(unit.getPv()))
                     .append("] | ")
                     .append(safeString(unit.getTechBase()))
                     .append(" | ")
@@ -97,15 +97,15 @@ public class MarkdownMarketFormatter {
      */
     private String buildPurchaseLink(CombatUnit unit, long price) {
         return String.format(
-                "hsc://procure?model=%s&variant=%s&bv=%d&pv=%d&sz=%d&type=%s&tech=%s&tons=%d&price=%d",
+                "hsc://procure?model=%s&variant=%s&bv=%s&pv=%s&sz=%s&type=%s&tech=%s&tons=%s&price=%d",
                 encodeURIComponent(getDisplayName(unit)),
                 encodeURIComponent(safeString(unit.getVariant())),
-                TypeUtils.asInt(unit.getBv()),
-                TypeUtils.asInt(unit.getPv()),
-                TypeUtils.asInt(unit.getAsSize()),
+                safeInt(unit.getBv()),
+                safeInt(unit.getPv()),
+                safeInt(unit.getAsSize()),
                 encodeURIComponent(safeString(unit.getType())),
                 encodeURIComponent(safeString(unit.getTechBase())),
-                TypeUtils.asInt(unit.getTonnage()),
+                safeInt(unit.getTonnage()),
                 price
         );
     }
@@ -129,6 +129,10 @@ public class MarkdownMarketFormatter {
 
     private String safeString(String val) {
         return val != null ? val : "N/A";
+    }
+
+    private String safeInt(Integer val) {
+        return val != null ? String.valueOf(val) : "N/A";
     }
 
     private String formatCBills(long amount) {
@@ -171,9 +175,14 @@ public class MarkdownMarketFormatter {
             try {
                 String model = columns[1].trim();
                 String variant = columns[2].trim();
-                String[] bvpv = columns[3].split(" ");
-                Integer bv = TypeUtils.asInt(bvpv[0].trim());
-                Integer pv = TypeUtils.asInt(bvpv[1].replace('[', ' ').replace(']', ' ').trim());
+                String bvpvRaw = columns[3].trim(); // e.g., "100 [10]"
+                Integer bv = null;
+                Integer pv = null;
+                if (bvpvRaw.contains("[")) {
+                    String[] bvpv = bvpvRaw.split("\\s+");
+                    bv = TypeUtils.asInt(bvpv[0], null);
+                    pv = TypeUtils.asInt(bvpv[1].replace('[', ' ').replace(']', ' ').trim(), null);
+                }
                 String tech = columns[4].trim();
                 String status = columns[5].trim();
 
