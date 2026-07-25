@@ -15,15 +15,14 @@ COPY schema.graphqls ../schema.graphqls
 COPY frontend .
 RUN npm run build
 
-# Runtime stage
-FROM node:24.16.0-alpine
-# Run as a non-root user for container hardening
-RUN addgroup -S -g 10001 appgroup && adduser -S -u 10001 -G appgroup appuser
+# Runtime stage - using node slim for reduced vulnerabilities
+FROM node:24.16.0-slim
 WORKDIR /app
 RUN npm install -g serve
 
 COPY --from=builder /build/dist ./dist
-# Allow the non-root user to read the static assets
+# Run as a non-root user for container hardening
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m appuser
 RUN chown -R appuser:appgroup /app
 USER 10001
 

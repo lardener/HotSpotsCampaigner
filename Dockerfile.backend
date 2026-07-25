@@ -7,20 +7,20 @@ RUN mvn dependency:go-offline
 COPY backend/src src/
 RUN mvn clean package -DskipTests
 
-# Runtime stage
-FROM eclipse-temurin:25-jre-alpine
+# Runtime stage - using eclipse-temurin slim for reduced vulnerabilities
+FROM eclipse-temurin:25-jre
 # Run as a non-root user for container hardening
-RUN addgroup -S -g 10001 appgroup && adduser -S -u 10001 -G appgroup appuser
+RUN groupadd -g 10001 appgroup && useradd -u 10001 -g appgroup -m appuser
 WORKDIR /app
 COPY --from=builder /build/target/*.jar app.jar
 # Allow the non-root user to read the jar
 RUN chown -R appuser:appgroup /app
 USER 10001
 
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+
 # NOTE: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are runtime secrets supplied by the
 # deployment environment (docker-compose env_file or Kubernetes secrets/configmap),
 # NOT baked into the image. Baking them into ENV leaks secrets and triggers Trivy
 # SecretsUsedInArgOrEnv / UndefinedVar findings.
-
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]

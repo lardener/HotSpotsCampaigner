@@ -1,0 +1,19 @@
+# Trivy vulnerability ignore list
+# Format: CVE-ID or ignore rule
+# See: https://aquasecurity.github.io/trivy/latest/docs/vulnerability/scanning/ignore/
+
+# Alpine base image vulnerabilities - not exploitable in containerized contexts
+# where the vulnerable packages are not actively used or exposed.
+# Our containers run as non-root users with minimal attack surface.
+
+# Ignore vulnerabilities in packages not used at runtime:
+# - busybox: Not used in runtime (we only run Java/Node)
+# - musl libc: Low impact in containerized environments
+# - apk: Package manager not exposed to external access
+
+# Add specific CVEs here after reviewing scan results
+# To ignore all unfixed vulnerabilities, use:
+# "*"
+
+# To ignore specific severity for specific packages:
+# "CVE-2024-XXXX"  # reason for ignoring
