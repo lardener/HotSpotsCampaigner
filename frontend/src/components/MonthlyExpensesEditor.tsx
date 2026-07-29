@@ -209,7 +209,6 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
       message="RECORD FINANCIAL TRANSACTIONS FOR DEPLOYED DETACHMENTS."
       confirmLabel="CLOSE"
       onConfirm={onClose}
-      onCancel={onClose}
       themeClass="theme-blue"
     >
       <div

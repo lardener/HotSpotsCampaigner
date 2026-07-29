@@ -39,12 +39,12 @@ describe('TerminalOverlay', () => {
       <TerminalOverlay
         title="T"
         message="M"
-        cancelLabel="ABORT"
+        cancelLabel="CLOSE"
         onConfirm={() => {}}
         onCancel={onCancel}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'ABORT' }))
+    fireEvent.click(screen.getByRole('button', { name: 'CLOSE' }))
     expect(onCancel).toHaveBeenCalled()
   })
 

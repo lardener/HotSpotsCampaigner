@@ -80,8 +80,8 @@ describe('MarketDashboard', () => {
         setOverlay={() => {}}
       />,
     )
-    // The TerminalOverlay cancel button renders with the default label "ABORT"
-    const cancelBtn = screen.getByRole('button', { name: /ABORT/i })
+    // The TerminalOverlay cancel button renders with the label "CLOSE"
+    const cancelBtn = screen.getByRole('button', { name: /CLOSE/i })
     fireEvent.click(cancelBtn)
     expect(onClose).toHaveBeenCalled()
   })

@@ -780,6 +780,7 @@ export const CombatUnitEditor: React.FC<CombatUnitEditorProps> = ({
           variant={overlay.variant}
           onConfirm={overlay.onConfirm}
           onCancel={() => setOverlay(null)}
+          cancelLabel="CLOSE"
           themeClass="theme-amber"
           showInputField={overlay.showInputField}
           inputPlaceholder={overlay.inputPlaceholder}

@@ -180,7 +180,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
     })
   }
 
-  const handleSave = async (isTraining: boolean = false) => {
+  const handleSave = async (isTraining: boolean = false, charge: boolean = true) => {
     // Validation
     if (hasSkillsDiffError) {
       return
@@ -293,22 +293,22 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
         })
 
         if ((result.data as any)?.hirePilot) {
-          try {
-            await addLedgerEntry({
-              variables: {
-                commandId,
-                detachmentId: detachmentId || null,
-                input: {
-                  amount: -hiringPrice,
-                  description: `PILOT HIRE: ${formData.name}`.trim(),
-                } as any,
-              },
-            })
-          } catch (ledgerErr) {
-            console.error('Ledger entry failed for pilot hire:', ledgerErr)
+          if (charge) {
+            try {
+              await addLedgerEntry({
+                variables: {
+                  commandId,
+                  detachmentId: detachmentId || null,
+                  input: {
+                    amount: -hiringPrice,
+                    description: `PILOT HIRE: ${formData.name}`.trim(),
+                  } as any,
+                },
+              })
+            } catch (ledgerErr) {
+              console.error('Ledger entry failed for pilot hire:', ledgerErr)
+            }
           }
-        }
-        if ((result.data as any)?.hirePilot) {
           onSave((result.data as any).hirePilot as Pilot)
         }
       } else if (mode === 'edit' && pilot?.id) {
@@ -439,7 +439,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
             )}
             <button
               className="mode-btn theme-green"
-              onClick={() => handleSave(false)}
+              onClick={() => handleSave(false, false)}
               disabled={isSaving || hasSkillsDiffError}
               style={{ padding: '2px 8px', fontSize: '0.8rem' }}
               title={
@@ -824,6 +824,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
           variant={overlay.variant}
           onConfirm={overlay.onConfirm}
           onCancel={() => setOverlay(null)}
+          cancelLabel="CLOSE"
           themeClass="theme-amber"
           showInputField={overlay.showInputField}
           inputPlaceholder={overlay.inputPlaceholder}

@@ -2649,6 +2649,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
           variant={overlay.variant}
           onConfirm={overlay.onConfirm}
           onCancel={() => setOverlay((prev) => ({ ...prev, isOpen: false }))}
+          cancelLabel="CLOSE"
           showInputField={overlay.showInputField}
           inputPlaceholder={overlay.inputPlaceholder}
           inputInitialValue={overlay.inputInitialValue}

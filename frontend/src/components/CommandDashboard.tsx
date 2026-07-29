@@ -85,7 +85,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
   const [overlay, setOverlay] = useState<{
     title: string
     message: string
+    confirmLabel?: string
+    cancelLabel?: string
     onConfirm: (val?: string) => void | Promise<void>
+    onCancel?: () => void
     variant?: 'alert' | 'info'
     children?: React.ReactNode
     showInputField?: boolean
@@ -328,6 +331,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
       title: 'CONFIRM ASSET DESTRUCTION',
       message: 'SCRAP THIS ASSET? THIS ACTION IS PERMANENT.',
       variant: 'alert',
+      confirmLabel: 'CONFIRM',
+      cancelLabel: 'ABORT',
       onConfirm: () => {
         deleteUnit({ variables: { unitId: id } })
         setOverlay(null)
@@ -340,6 +345,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
       title: 'PERSONNEL DISCHARGE',
       message: 'DISCHARGE THIS PERSONNEL? THIS ACTION IS PERMANENT.',
       variant: 'alert',
+      confirmLabel: 'CONFIRM',
+      cancelLabel: 'ABORT',
       onConfirm: () => {
         deletePilot({ variables: { pilotId: id } })
         setOverlay(null)
@@ -396,6 +403,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
       title: 'THEATER WITHDRAWAL',
       message: 'ARE YOU SURE YOU WANT TO WITHDRAW? ALL PROGRESS IN THIS THEATER WILL BE SUSPENDED.',
       variant: 'alert',
+      confirmLabel: 'CONFIRM',
+      cancelLabel: 'ABORT',
       onConfirm: async () => {
         setOverlay(null)
         setIsSyncing(true)
@@ -410,6 +419,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
         }
         setIsSyncing(false)
       },
+      onCancel: () => setOverlay(null),
     })
   }
 
@@ -429,7 +439,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
     setOverlay({
       title: 'NEW DETACHMENT AUTHORIZATION',
       message: 'ENTER CALLSIGN FOR NEW OPERATIONAL ELEMENT',
+      confirmLabel: 'CONFIRM',
+      cancelLabel: 'ABORT',
       onConfirm: confirmAction,
+      onCancel: () => setOverlay(null),
       showInputField: true,
       inputPlaceholder: 'DESIGNATION...',
       inputLabel: 'CALLSIGN',
@@ -441,6 +454,8 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
       title: 'DECOMMISSION DETACHMENT',
       message: 'DELETE DETACHMENT? ASSETS WILL RETURN TO HANGAR POOL.',
       variant: 'alert',
+      confirmLabel: 'CONFIRM',
+      cancelLabel: 'ABORT',
       onConfirm: async () => {
         try {
           await deleteDetachment({ variables: { detachmentId: id } })
@@ -451,6 +466,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
           console.error(err)
         }
       },
+      onCancel: () => setOverlay(null),
     })
   }
 
@@ -1149,8 +1165,10 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
           title={overlay.title}
           message={overlay.message}
           variant={overlay.variant}
+          confirmLabel={overlay.confirmLabel || 'CONFIRM'}
+          cancelLabel={overlay.cancelLabel || 'CLOSE'}
           onConfirm={overlay.onConfirm}
-          onCancel={() => setOverlay(null)}
+          onCancel={overlay.onCancel || (() => setOverlay(null))}
           themeClass="theme-amber"
           showInputField={overlay.showInputField}
           inputPlaceholder={overlay.inputPlaceholder}

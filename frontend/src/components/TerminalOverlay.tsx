@@ -48,8 +48,8 @@ export interface TerminalOverlayProps {
 export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
   title,
   message,
-  confirmLabel = 'CONFIRM',
-  cancelLabel = 'ABORT',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
   variant = 'info',
@@ -137,19 +137,21 @@ export const TerminalOverlay: React.FC<TerminalOverlayProps> = ({
                 {children}
               </div>
               <div className="overlay-footer">
-                {onCancel && (
+                {onCancel && cancelLabel && (
                   <button type="button" className="mode-btn" onClick={onCancel} disabled={loading}>
                     {cancelLabel}
                   </button>
                 )}
-                <button
-                  type="button"
-                  className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`}
-                  onClick={() => !loading && onConfirm(showInputField ? inputValue : undefined)}
-                  disabled={loading}
-                >
-                  {confirmLabel}
-                </button>
+                {confirmLabel && (
+                  <button
+                    type="button"
+                    className={`mode-btn ${variant === 'alert' ? 'btn-alert' : 'btn-primary'}`}
+                    onClick={() => !loading && onConfirm(showInputField ? inputValue : undefined)}
+                    disabled={loading}
+                  >
+                    {confirmLabel}
+                  </button>
+                )}
               </div>
             </div>
           </div>

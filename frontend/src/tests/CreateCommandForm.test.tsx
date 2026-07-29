@@ -87,7 +87,7 @@ describe('CreateCommandForm', () => {
   it('calls onCancel when cancel is clicked', () => {
     const onCancel = vi.fn()
     renderForm(vi.fn(), onCancel)
-    fireEvent.click(screen.getByText(/ABORT/i))
+    fireEvent.click(screen.getByText(/CLOSE/i))
     expect(onCancel).toHaveBeenCalled()
   })
 })

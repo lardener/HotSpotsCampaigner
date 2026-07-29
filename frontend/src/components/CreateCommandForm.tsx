@@ -77,6 +77,7 @@ export const CreateCommandForm: React.FC<CreateCommandFormProps> = ({
       title="ESTABLISH NEW MERCENARY COMMAND"
       message="REGISTER YOUR UNIT WITH THE MERCENARY REVIEW AND BONDING COMMISSION."
       confirmLabel={isSubmitting ? 'ESTABLISHING...' : 'ESTABLISH'}
+      cancelLabel="CLOSE"
       onConfirm={handleSubmit}
       onCancel={onCancel}
       themeClass="theme-amber"

@@ -96,6 +96,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const [overlay, setOverlay] = useState<{
     title: string
     message: string
+    confirmLabel?: string
+    cancelLabel?: string
     onConfirm: (val?: string) => void | Promise<void>
     onCancel?: () => void
     variant?: 'alert' | 'info'
@@ -508,6 +510,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         title: 'CONFIRM UNIT DECOMMISSION',
         message: 'ARE YOU SURE YOU WANT TO SCRAP THIS COMMAND? THIS ACTION IS IRREVERSIBLE.',
         variant: 'alert',
+        confirmLabel: 'CONFIRM',
+        cancelLabel: 'ABORT',
         onConfirm: () => {
           setOverlay(null)
           handleDeleteCommand(commandId, true)
@@ -969,6 +973,8 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             title={overlay.title}
             message={overlay.message}
             variant={overlay.variant}
+            confirmLabel={overlay.confirmLabel || 'CONFIRM'}
+            cancelLabel={overlay.cancelLabel || 'CLOSE'}
             onConfirm={overlay.onConfirm}
             onCancel={overlay.onCancel}
             themeClass={getThemeClass()}

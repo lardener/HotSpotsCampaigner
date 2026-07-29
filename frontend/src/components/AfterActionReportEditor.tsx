@@ -302,11 +302,12 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
         title="LOGISTICS LINK"
         message="SYNCHRONIZING OPERATIONAL PARAMETERS..."
         onConfirm={onClose}
-        confirmLabel="ABORT"
+        onCancel={onClose}
+        cancelLabel="CLOSE"
         themeClass="theme-red"
       >
         <div className="loading-intel pulse text-center" style={{ padding: '40px' }}>
-          &gt;&gt; ACCESSING COMSTAR RELAY...
+          {'>> ACCESSING COMSTAR RELAY...'}
         </div>
       </TerminalOverlay>
     )
@@ -682,8 +683,7 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
       title={`AFTER ACTION REPORT: ${(track.trackName ?? 'UNKNOWN').toUpperCase()}`}
       message="OPERATIONAL DEBRIEFING & LOGISTICS RECONCILIATION"
       onConfirm={handleFinalize}
-      onCancel={onClose}
-      confirmLabel={isFinalizing ? 'SYNCHRONIZING...' : 'CLOSE DEBRIEFING'}
+      confirmLabel={isFinalizing ? 'SYNCHRONIZING...' : 'CLOSE'}
       themeClass="theme-red"
       loading={isFinalizing}
       headerActions={
@@ -1380,6 +1380,8 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
           variant={overlay.variant}
           onConfirm={overlay.onConfirm}
           onCancel={overlay.onCancel}
+          confirmLabel="CONFIRM"
+          cancelLabel="CLOSE"
           themeClass="theme-red"
           showInputField={overlay.showInputField}
           inputPlaceholder={overlay.inputPlaceholder}
