@@ -49,7 +49,13 @@ export const MarketDashboard: React.FC<MarketDashboardProps> = ({
   const secondaryEmployer: string | undefined = campaign?.secondaryEmployer
 
   return (
-    <TerminalOverlay title="[ THEATER MARKET ]" message="" onConfirm={() => {}} onCancel={onClose} cancelLabel="CLOSE">
+    <TerminalOverlay
+      title="[ THEATER MARKET ]"
+      message=""
+      onConfirm={() => {}}
+      onCancel={onClose}
+      cancelLabel="CLOSE"
+    >
       <MarketBackground />
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
         <div
