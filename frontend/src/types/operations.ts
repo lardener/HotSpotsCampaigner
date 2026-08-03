@@ -161,6 +161,31 @@ export type LedgerEntryInput = {
 export type MarketType =
   'EMPLOYER' | 'FREE' | 'OPPOSITION_EMPLOYER' | 'PRIMARY_EMPLOYER' | 'SCRAPPERS'
 
+export type NegotiateContractInput = {
+  campaignId: string
+  commandRights: string | null | undefined
+  commandStepAdjustment: number | null | undefined
+  detachmentId: string
+  employerFactionId: string
+  negotiatedCommandStep: number | null | undefined
+  negotiatedPayStep: number | null | undefined
+  negotiatedSalvageStep: number | null | undefined
+  negotiatedSupportStep: number | null | undefined
+  negotiatedTransportStep: number | null | undefined
+  payStepAdjustment: number | null | undefined
+  resultingCommandRights: string | null | undefined
+  resultingPayTerms: string | null | undefined
+  resultingSalvageTerms: string | null | undefined
+  resultingSupportTerms: string | null | undefined
+  resultingTransportTerms: string | null | undefined
+  salvageStepAdjustment: number | null | undefined
+  salvageTerms: string | null | undefined
+  supportStepAdjustment: number | null | undefined
+  supportTerms: string | null | undefined
+  transportStepAdjustment: number | null | undefined
+  transportTerms: string | null | undefined
+}
+
 export type PilotUpdateInput = {
   asSkill: number | null | undefined
   detachmentId: string | null | undefined
@@ -196,6 +221,28 @@ export type TrackUpdateInput = {
   oppositionComplications: string | null | undefined
   sequenceOrder: number | null | undefined
   trackName: string | null | undefined
+}
+
+export type NewNegotiationFragment = {
+  id: string
+  campaignId: string
+  detachmentId: string
+  employerFactionId: string
+  payStepAdjustment: number | null
+  salvageStepAdjustment: number | null
+  supportStepAdjustment: number | null
+  transportStepAdjustment: number | null
+  commandStepAdjustment: number | null
+  negotiatedPayStep: number | null
+  negotiatedSalvageStep: number | null
+  negotiatedSupportStep: number | null
+  negotiatedTransportStep: number | null
+  negotiatedCommandStep: number | null
+  resultingPayTerms: string | null
+  resultingSalvageTerms: string | null
+  resultingSupportTerms: string | null
+  resultingTransportTerms: string | null
+  resultingCommandRights: string | null
 }
 
 export type GenerateUnitMarketLinkMutationVariables = Exact<{
@@ -1144,6 +1191,116 @@ export type DeletePilotMutationVariables = Exact<{
 
 export type DeletePilotMutation = { deletePilot: boolean | null }
 
+export type GetDetachmentContractNegotiationsQueryVariables = Exact<{
+  campaignId: string
+}>
+
+export type GetDetachmentContractNegotiationsQuery = {
+  getDetachmentContractNegotiations: Array<{
+    id: string
+    campaignId: string
+    detachmentId: string
+    employerFactionId: string
+    payStepAdjustment: number | null
+    salvageStepAdjustment: number | null
+    supportStepAdjustment: number | null
+    transportStepAdjustment: number | null
+    commandStepAdjustment: number | null
+    negotiatedPayStep: number | null
+    negotiatedSalvageStep: number | null
+    negotiatedSupportStep: number | null
+    negotiatedTransportStep: number | null
+    negotiatedCommandStep: number | null
+    resultingPayTerms: string | null
+    resultingSalvageTerms: string | null
+    resultingSupportTerms: string | null
+    resultingTransportTerms: string | null
+    resultingCommandRights: string | null
+    salvageTerms: string | null
+    supportTerms: string | null
+    transportTerms: string | null
+    commandRights: string | null
+  }>
+}
+
+export type NegotiateDetachmentContractMutationVariables = Exact<{
+  input: NegotiateContractInput
+}>
+
+export type NegotiateDetachmentContractMutation = {
+  negotiateDetachmentContract: {
+    id: string
+    campaignId: string
+    detachmentId: string
+    employerFactionId: string
+    payStepAdjustment: number | null
+    salvageStepAdjustment: number | null
+    supportStepAdjustment: number | null
+    transportStepAdjustment: number | null
+    commandStepAdjustment: number | null
+    negotiatedPayStep: number | null
+    negotiatedSalvageStep: number | null
+    negotiatedSupportStep: number | null
+    negotiatedTransportStep: number | null
+    negotiatedCommandStep: number | null
+    resultingPayTerms: string | null
+    resultingSalvageTerms: string | null
+    resultingSupportTerms: string | null
+    resultingTransportTerms: string | null
+    resultingCommandRights: string | null
+    salvageTerms: string | null
+    supportTerms: string | null
+    transportTerms: string | null
+    commandRights: string | null
+  }
+}
+
+export type DeleteDetachmentContractNegotiationMutationVariables = Exact<{
+  campaignId: string
+  detachmentId: string
+}>
+
+export type DeleteDetachmentContractNegotiationMutation = {
+  deleteDetachmentContractNegotiation: boolean | null
+}
+
+export const NewNegotiationFragmentDoc = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'FragmentDefinition',
+      name: { kind: 'Name', value: 'NewNegotiation' },
+      typeCondition: {
+        kind: 'NamedType',
+        name: { kind: 'Name', value: 'DetachmentContractNegotiation' },
+      },
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'campaignId' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'detachmentId' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'employerFactionId' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'payStepAdjustment' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'salvageStepAdjustment' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'supportStepAdjustment' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'transportStepAdjustment' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'commandStepAdjustment' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'negotiatedPayStep' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'negotiatedSalvageStep' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'negotiatedSupportStep' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'negotiatedTransportStep' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'negotiatedCommandStep' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'resultingPayTerms' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'resultingSalvageTerms' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'resultingSupportTerms' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'resultingTransportTerms' } },
+          { kind: 'Field', name: { kind: 'Name', value: 'resultingCommandRights' } },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<NewNegotiationFragment, unknown>
 export const CombatUnitFieldsFragmentDoc = {
   kind: 'Document',
   definitions: [
@@ -4271,3 +4428,189 @@ export const DeletePilotDocument = {
     },
   ],
 } as unknown as DocumentNode<DeletePilotMutation, DeletePilotMutationVariables>
+export const GetDetachmentContractNegotiationsDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'query',
+      name: { kind: 'Name', value: 'GetDetachmentContractNegotiations' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'campaignId' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'ID' } },
+          },
+        },
+      ],
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'getDetachmentContractNegotiations' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'campaignId' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'campaignId' } },
+              },
+            ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'campaignId' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'detachmentId' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'employerFactionId' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'payStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'salvageStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'supportStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'transportStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'commandStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedPayStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedSalvageStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedSupportStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedTransportStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedCommandStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingPayTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingSalvageTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingSupportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingTransportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingCommandRights' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'salvageTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'supportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'transportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'commandRights' } },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<
+  GetDetachmentContractNegotiationsQuery,
+  GetDetachmentContractNegotiationsQueryVariables
+>
+export const NegotiateDetachmentContractDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'mutation',
+      name: { kind: 'Name', value: 'NegotiateDetachmentContract' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'input' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'NegotiateContractInput' } },
+          },
+        },
+      ],
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'negotiateDetachmentContract' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'input' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'input' } },
+              },
+            ],
+            selectionSet: {
+              kind: 'SelectionSet',
+              selections: [
+                { kind: 'Field', name: { kind: 'Name', value: 'id' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'campaignId' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'detachmentId' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'employerFactionId' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'payStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'salvageStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'supportStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'transportStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'commandStepAdjustment' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedPayStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedSalvageStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedSupportStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedTransportStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'negotiatedCommandStep' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingPayTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingSalvageTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingSupportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingTransportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'resultingCommandRights' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'salvageTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'supportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'transportTerms' } },
+                { kind: 'Field', name: { kind: 'Name', value: 'commandRights' } },
+              ],
+            },
+          },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<
+  NegotiateDetachmentContractMutation,
+  NegotiateDetachmentContractMutationVariables
+>
+export const DeleteDetachmentContractNegotiationDocument = {
+  kind: 'Document',
+  definitions: [
+    {
+      kind: 'OperationDefinition',
+      operation: 'mutation',
+      name: { kind: 'Name', value: 'DeleteDetachmentContractNegotiation' },
+      variableDefinitions: [
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'campaignId' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'ID' } },
+          },
+        },
+        {
+          kind: 'VariableDefinition',
+          variable: { kind: 'Variable', name: { kind: 'Name', value: 'detachmentId' } },
+          type: {
+            kind: 'NonNullType',
+            type: { kind: 'NamedType', name: { kind: 'Name', value: 'ID' } },
+          },
+        },
+      ],
+      selectionSet: {
+        kind: 'SelectionSet',
+        selections: [
+          {
+            kind: 'Field',
+            name: { kind: 'Name', value: 'deleteDetachmentContractNegotiation' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'campaignId' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'campaignId' } },
+              },
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'detachmentId' },
+                value: { kind: 'Variable', name: { kind: 'Name', value: 'detachmentId' } },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+} as unknown as DocumentNode<
+  DeleteDetachmentContractNegotiationMutation,
+  DeleteDetachmentContractNegotiationMutationVariables
+>

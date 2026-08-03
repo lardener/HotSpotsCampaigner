@@ -2,9 +2,8 @@
 FROM maven:3.9-eclipse-temurin-25 AS builder
 WORKDIR /build
 COPY backend/pom.xml .
-RUN mvn dependency:go-offline
-
 COPY backend/src src/
+COPY backend/src/main/resources/db/migration/ db/
 RUN mvn clean package -DskipTests
 
 # Runtime stage - using eclipse-temurin slim for reduced vulnerabilities

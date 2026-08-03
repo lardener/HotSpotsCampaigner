@@ -27,6 +27,7 @@ import { DetachmentReadinessSummary } from './DetachmentReadinessSummary'
 import { RecruitmentOverlay } from './RecruitmentOverlay'
 import { MarketDashboard } from './MarketDashboard'
 import { TerminalOverlay } from './TerminalOverlay' // Import the shared TerminalOverlay
+import { DetachmentContractNegotiationForm } from './DetachmentContractNegotiationForm'
 import {
   UNIT_STATUS_OPTIONS as FALLBACK_STATUSES,
   UNIT_TYPES as FALLBACK_TYPES,
@@ -168,6 +169,7 @@ const useTheaterCampaignSync = (
       isParticipant: queryCampaign.isParticipant ?? localIsParticipant,
       id: queryCampaign.id || baseCampaign.id || selectedCampaignId || '',
       contracts: queryCampaign.contracts || baseCampaign.contracts || [],
+      factions: queryCampaign.factions || baseCampaign.factions || [],
     } as TheaterCampaign
   }, [managedData, campaignQueryData, selectedCampaignId, userCommands])
 
@@ -542,6 +544,24 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
   const [showAarForTrack, setShowAarForTrack] = useState<CampaignTrack | null>(null)
   const [showRecruitment, setShowRecruitment] = useState(false)
   const [showMarket, setShowMarket] = useState(false)
+  const [negotiationDetachment, setNegotiationDetachment] = useState<{
+    id: string
+    name: string
+    employerFactionId: string
+    employerFactionName: string
+    baselinePayStep: number
+    baselineSalvageStep: number
+    baselineSupportStep: number
+    baselineTransportStep: number
+    baselineCommandStep: number
+    opponentFactionId?: string
+    opponentFactionName?: string
+    opponentPayStep?: number
+    opponentSalvageStep?: number
+    opponentSupportStep?: number
+    opponentTransportStep?: number
+    opponentCommandStep?: number
+  } | null>(null)
   const [overlay, setOverlay] = useState<{
     // Use TerminalOverlayProps
     isOpen: boolean
@@ -586,6 +606,11 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     onRefresh,
     userCommands,
   )
+
+  const isUserCommandOwner = (detachment: Detachment): boolean => {
+    const command = userCommands?.find((cmd) => cmd.id === detachment.mercenaryCommandId)
+    return !!command && !!command.ownerId
+  }
 
   const {
     monthlyPay,
@@ -2611,7 +2636,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             pilots={(det.pilots || []).filter((p): p is Pilot => p != null)}
                           />
                         </div>
-                        {campaign.isManager && (
+                        {(campaign.isManager || isUserCommandOwner(det)) && (
                           <button
                             type="button"
                             className="mode-btn"
@@ -2628,6 +2653,90 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                             EJECT
                           </button>
                         )}
+                        {campaign.isManager || isUserCommandOwner(det) ? (
+                          <button
+                            type="button"
+                            className="mode-btn"
+                            style={{
+                              position: 'absolute',
+                              top: '5px',
+                              right: '70px',
+                              padding: '2px 5px',
+                              fontSize: '0.6rem',
+                              color: 'var(--terminal-amber)',
+                            }}
+                            onClick={async () => {
+                              // Force refetch to ensure fresh data
+                              await refetchCampaign()
+
+                              // Debug: log entire campaign structure
+                              console.log('=== DEBUG: Campaign Object ===')
+                              console.log('campaign:', campaign)
+                              console.log('campaign?.factions:', campaign?.factions)
+                              console.log('campaign?.primaryEmployer:', campaign?.primaryEmployer)
+                              console.log(
+                                'campaign?.secondaryEmployer:',
+                                campaign?.secondaryEmployer,
+                              )
+
+                              const employerFaction = campaign?.factions?.find((f: any) => {
+                                const factionName = (f.factionName || '').trim()
+                                const employer = campaign?.primaryEmployer || ''
+                                return (
+                                  employer.startsWith(factionName) ||
+                                  factionName.startsWith(employer)
+                                )
+                              })
+                              const opponentFaction = campaign?.factions?.find((f: any) => {
+                                const factionName = (f.factionName || '').trim()
+                                const opponent = campaign?.secondaryEmployer || ''
+                                return (
+                                  opponent.startsWith(factionName) ||
+                                  factionName.startsWith(opponent)
+                                )
+                              })
+                              const oppositionContract = opposition
+                              const employerFactionId = employerFaction?.id
+                              const opponentFactionId = opponentFaction?.id
+
+                              console.log('DEBUG: Faction data:', {
+                                employerFaction,
+                                opponentFaction,
+                                employerFactionId,
+                                opponentFactionId,
+                              })
+
+                              if (!employerFactionId) {
+                                console.error('Cannot negotiate: employer faction ID not found')
+                                alert(
+                                  'Employer faction information is not available. Please ensure the campaign has faction data loaded.',
+                                )
+                                return
+                              }
+
+                              setNegotiationDetachment({
+                                id: det.id,
+                                name: det.name || 'UNKNOWN DETACHMENT',
+                                employerFactionId: employerFactionId,
+                                employerFactionName: campaign?.primaryEmployer || 'UNKNOWN FACTION',
+                                baselinePayStep: campaign?.payStep ?? 5,
+                                baselineSalvageStep: campaign?.salvageStep ?? 3,
+                                baselineSupportStep: campaign?.supportStep ?? 4,
+                                baselineTransportStep: campaign?.transportStep ?? 2,
+                                baselineCommandStep: campaign?.commandStep ?? 1,
+                                opponentFactionId: opponentFactionId || undefined,
+                                opponentFactionName: campaign?.secondaryEmployer || '',
+                                opponentPayStep: oppositionContract?.payStep ?? 5,
+                                opponentSalvageStep: oppositionContract?.salvageStep ?? 3,
+                                opponentSupportStep: oppositionContract?.supportStep ?? 4,
+                                opponentTransportStep: oppositionContract?.transportStep ?? 2,
+                                opponentCommandStep: oppositionContract?.commandStep ?? 1,
+                              })
+                            }}
+                          >
+                            NEGOTIATE
+                          </button>
+                        ) : null}
                       </div>
                     ))}
                   {(!campaign?.participatingDetachments ||
@@ -2788,6 +2897,41 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
           }}
           userCommands={userCommands as any}
         />
+      )}
+
+      {negotiationDetachment && campaign && (
+        <TerminalOverlay
+          title="CONTRACT NEGOTIATION"
+          message={`NEGOTIATING TERMS FOR ${negotiationDetachment.name.toUpperCase()} WITH ${negotiationDetachment.employerFactionName.toUpperCase()}`}
+          onConfirm={() => setNegotiationDetachment(null)}
+          onCancel={() => setNegotiationDetachment(null)}
+          cancelLabel="CLOSE"
+          themeClass="theme-amber"
+        >
+          <DetachmentContractNegotiationForm
+            campaignId={campaign.id}
+            detachmentId={negotiationDetachment.id}
+            employerFactionId={negotiationDetachment.employerFactionId}
+            employerFactionName={negotiationDetachment.employerFactionName}
+            baselinePayStep={negotiationDetachment.baselinePayStep}
+            baselineSalvageStep={negotiationDetachment.baselineSalvageStep}
+            baselineSupportStep={negotiationDetachment.baselineSupportStep}
+            baselineTransportStep={negotiationDetachment.baselineTransportStep}
+            baselineCommandStep={negotiationDetachment.baselineCommandStep}
+            opponentFactionId={negotiationDetachment.opponentFactionId}
+            opponentFactionName={negotiationDetachment.opponentFactionName}
+            opponentPayStep={negotiationDetachment.opponentPayStep}
+            opponentSalvageStep={negotiationDetachment.opponentSalvageStep}
+            opponentSupportStep={negotiationDetachment.opponentSupportStep}
+            opponentTransportStep={negotiationDetachment.opponentTransportStep}
+            opponentCommandStep={negotiationDetachment.opponentCommandStep}
+            onNegotiationSaved={() => {
+              refetchCampaign()
+              if (onRefresh) onRefresh()
+              setNegotiationDetachment(null)
+            }}
+          />
+        </TerminalOverlay>
       )}
 
       <style>{`

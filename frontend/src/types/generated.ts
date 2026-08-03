@@ -386,6 +386,33 @@ export type Detachment = {
   units: Maybe<Array<Maybe<CombatUnit>>>
 }
 
+export type DetachmentContractNegotiation = {
+  __typename?: 'DetachmentContractNegotiation'
+  campaignId: Scalars['ID']['output']
+  commandRights: Maybe<Scalars['String']['output']>
+  commandStepAdjustment: Maybe<Scalars['Int']['output']>
+  detachmentId: Scalars['ID']['output']
+  employerFactionId: Scalars['ID']['output']
+  id: Scalars['ID']['output']
+  negotiatedCommandStep: Maybe<Scalars['Int']['output']>
+  negotiatedPayStep: Maybe<Scalars['Int']['output']>
+  negotiatedSalvageStep: Maybe<Scalars['Int']['output']>
+  negotiatedSupportStep: Maybe<Scalars['Int']['output']>
+  negotiatedTransportStep: Maybe<Scalars['Int']['output']>
+  payStepAdjustment: Maybe<Scalars['Int']['output']>
+  resultingCommandRights: Maybe<Scalars['String']['output']>
+  resultingPayTerms: Maybe<Scalars['String']['output']>
+  resultingSalvageTerms: Maybe<Scalars['String']['output']>
+  resultingSupportTerms: Maybe<Scalars['String']['output']>
+  resultingTransportTerms: Maybe<Scalars['String']['output']>
+  salvageStepAdjustment: Maybe<Scalars['Int']['output']>
+  salvageTerms: Maybe<Scalars['String']['output']>
+  supportStepAdjustment: Maybe<Scalars['Int']['output']>
+  supportTerms: Maybe<Scalars['String']['output']>
+  transportStepAdjustment: Maybe<Scalars['Int']['output']>
+  transportTerms: Maybe<Scalars['String']['output']>
+}
+
 export type EmployerMarket = {
   __typename?: 'EmployerMarket'
   factionId: Scalars['ID']['output']
@@ -495,6 +522,7 @@ export type Mutation = {
   createInvite: Maybe<CampaignInvite>
   deleteCommand: Maybe<Scalars['Boolean']['output']>
   deleteDetachment: Maybe<Scalars['Boolean']['output']>
+  deleteDetachmentContractNegotiation: Maybe<Scalars['Boolean']['output']>
   deleteInvite: Maybe<Scalars['Boolean']['output']>
   deletePilot: Maybe<Scalars['Boolean']['output']>
   deleteUnit: Maybe<Scalars['Boolean']['output']>
@@ -507,6 +535,7 @@ export type Mutation = {
   importUnitsToMarket: Scalars['String']['output']
   joinCampaign: Maybe<Scalars['Boolean']['output']>
   loginWithToken: Maybe<Scalars['Boolean']['output']>
+  negotiateDetachmentContract: DetachmentContractNegotiation
   reorderTracks: Array<CampaignTrack>
   rerollTrack: Maybe<CampaignTrack>
   saveMarketMarkdown: Scalars['Boolean']['output']
@@ -570,6 +599,11 @@ export type MutationDeleteDetachmentArgs = {
   detachmentId: Scalars['ID']['input']
 }
 
+export type MutationDeleteDetachmentContractNegotiationArgs = {
+  campaignId: Scalars['ID']['input']
+  detachmentId: Scalars['ID']['input']
+}
+
 export type MutationDeleteInviteArgs = {
   id: Scalars['ID']['input']
 }
@@ -626,6 +660,10 @@ export type MutationLoginWithTokenArgs = {
   token: Scalars['String']['input']
 }
 
+export type MutationNegotiateDetachmentContractArgs = {
+  input: NegotiateContractInput
+}
+
 export type MutationReorderTracksArgs = {
   campaignId: Scalars['ID']['input']
   trackIds: Array<Scalars['ID']['input']>
@@ -669,6 +707,31 @@ export type MutationUpdateTrackArgs = {
 
 export type MutationUpdateUserProfileArgs = {
   displayName: InputMaybe<Scalars['String']['input']>
+}
+
+export type NegotiateContractInput = {
+  campaignId: Scalars['ID']['input']
+  commandRights: InputMaybe<Scalars['String']['input']>
+  commandStepAdjustment: InputMaybe<Scalars['Int']['input']>
+  detachmentId: Scalars['ID']['input']
+  employerFactionId: Scalars['ID']['input']
+  negotiatedCommandStep: InputMaybe<Scalars['Int']['input']>
+  negotiatedPayStep: InputMaybe<Scalars['Int']['input']>
+  negotiatedSalvageStep: InputMaybe<Scalars['Int']['input']>
+  negotiatedSupportStep: InputMaybe<Scalars['Int']['input']>
+  negotiatedTransportStep: InputMaybe<Scalars['Int']['input']>
+  payStepAdjustment: InputMaybe<Scalars['Int']['input']>
+  resultingCommandRights: InputMaybe<Scalars['String']['input']>
+  resultingPayTerms: InputMaybe<Scalars['String']['input']>
+  resultingSalvageTerms: InputMaybe<Scalars['String']['input']>
+  resultingSupportTerms: InputMaybe<Scalars['String']['input']>
+  resultingTransportTerms: InputMaybe<Scalars['String']['input']>
+  salvageStepAdjustment: InputMaybe<Scalars['Int']['input']>
+  salvageTerms: InputMaybe<Scalars['String']['input']>
+  supportStepAdjustment: InputMaybe<Scalars['Int']['input']>
+  supportTerms: InputMaybe<Scalars['String']['input']>
+  transportStepAdjustment: InputMaybe<Scalars['Int']['input']>
+  transportTerms: InputMaybe<Scalars['String']['input']>
 }
 
 export type Pilot = {
@@ -741,6 +804,7 @@ export type Query = {
   generateTracks: Maybe<Array<Maybe<ProposedTrack>>>
   getCampaign: Maybe<Campaign>
   getCommand: Maybe<MercenaryCommand>
+  getDetachmentContractNegotiations: Array<DetachmentContractNegotiation>
   managedCampaigns: Maybe<Array<Maybe<Campaign>>>
   myCommands: Maybe<Array<Maybe<MercenaryCommand>>>
   participatingCampaigns: Maybe<Array<Maybe<Campaign>>>
@@ -778,6 +842,10 @@ export type QueryGetCampaignArgs = {
 
 export type QueryGetCommandArgs = {
   id: Scalars['ID']['input']
+}
+
+export type QueryGetDetachmentContractNegotiationsArgs = {
+  campaignId: Scalars['ID']['input']
 }
 
 export type QueryManagedCampaignsArgs = {

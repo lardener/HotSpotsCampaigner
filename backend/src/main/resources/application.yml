@@ -13,12 +13,19 @@ spring:
       validation-query: SELECT 1
       max-create-connection-time: 5s
       max-acquire-time: 30s
-  # Flyway database migrations (replaces destructive schema.sql init)
+
+  # Flyway is wired manually in FlywayConfig.java because DataSourceAutoConfiguration
+  # backs off when an R2DBC ConnectionFactory is present, preventing the normal
+  # FlywayAutoConfiguration from firing. The manual bean uses a short-lived HikariCP
+  # DataSource built from the JDBC URL below (used only during startup migrations).
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:BT_Campaigner}${MYSQL_PARAMS:}
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   flyway:
-    enabled: true
     locations: classpath:db/migration
-    # Baseline the existing OVH production DB so V1 is recorded without
-    # re-creating (and dropping) the already-populated schema.
     baseline-on-migrate: true
     baseline-version: 0
 
@@ -33,7 +40,7 @@ spring:
               - profile
               - email
             # Use the template to let Spring handle the base URL dynamically
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: '{baseUrl}/login/oauth2/code/{registrationId}'
         provider:
           google:
             authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
@@ -41,6 +48,7 @@ spring:
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
             user-name-attribute: email
+
 server:
   port: 8080
 

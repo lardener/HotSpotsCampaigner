@@ -1,0 +1,28 @@
+-- Detachment contract override negotiation terms
+CREATE TABLE IF NOT EXISTS detachment_contract_overrides (
+    id VARCHAR(36) PRIMARY KEY,
+    campaign_id VARCHAR(36) NOT NULL,
+    employer_faction_id VARCHAR(36) NOT NULL,
+    detachment_id VARCHAR(36) NOT NULL,
+    owner_user_id VARCHAR(36) NOT NULL,
+    pay_step_adjustment INT,
+    salvage_step_adjustment INT,
+    support_step_adjustment INT,
+    transport_step_adjustment INT,
+    command_step_adjustment INT,
+    salvage_terms VARCHAR(50),
+    support_terms VARCHAR(50),
+    transport_terms VARCHAR(50),
+    command_rights VARCHAR(50),
+    negotiated_pay_step INT,
+    negotiated_salvage_step INT,
+    negotiated_support_step INT,
+    negotiated_transport_step INT,
+    negotiated_command_step INT,
+    resulting_pay_terms VARCHAR(50),
+    resulting_salvage_terms VARCHAR(50),
+    resulting_support_terms VARCHAR(50),
+    resulting_transport_terms VARCHAR(50),
+    resulting_command_rights VARCHAR(50),
+    UNIQUE (campaign_id, detachment_id, employer_faction_id)
+);

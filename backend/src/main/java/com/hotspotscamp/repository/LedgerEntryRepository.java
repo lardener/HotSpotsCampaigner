@@ -32,4 +32,6 @@ public interface LedgerEntryRepository extends ReactiveCrudRepository<LedgerEntr
     Flux<LedgerEntry> findAllByDetachmentId(UUID detachmentId);
 
     Flux<LedgerEntry> findAllByCommandId(UUID commandId);
+
+    Flux<LedgerEntry> findAllByCampaignId(UUID campaignId);
 }

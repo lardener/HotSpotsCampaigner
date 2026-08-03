@@ -116,7 +116,9 @@
             <artifactId>r2dbc-mysql</artifactId>
         </dependency>
 
-        <!-- Flyway database migrations (replaces destructive schema.sql init) -->
+        <!-- Flyway database migrations: uses a minimal JDBC DataSource at startup only.
+             DataSourceAutoConfiguration backs off when R2DBC is present, so we wire
+             Flyway manually in FlywayConfig.java using a short-lived HikariCP pool. -->
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
@@ -124,6 +126,11 @@
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-mysql</artifactId>
+        </dependency>
+        <!-- HikariCP needed to build the DataSource Flyway uses during startup -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
         <!-- Lombok -->
@@ -175,10 +182,11 @@
             <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- mysql-connector-j (JDBC driver) used by Flyway at startup for schema migrations.
+             R2DBC (r2dbc-mysql) handles all reactive runtime queries. -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jsoup</groupId>

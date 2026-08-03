@@ -21,6 +21,7 @@ import {
   parseSupportTerms,
   parseNumericInput,
   isInputInvalid,
+  resolveStepValueWithGravity,
 } from '../util/contractUtils'
 
 describe('parseMultiplier', () => {
@@ -126,3 +127,61 @@ describe('isInputInvalid', () => {
     expect(isInputInvalid('abc')).toBe(true)
   })
 })
+
+describe('resolveStepValueWithGravity', () => {
+  const sampleSteps = {
+    7: {
+      payRate: '100%',
+      salvageRights: '40%',
+      supportRights: 'Straight/90%',
+      transportation: '50%',
+      commandRights: 'House',
+    },
+    8: {
+      payRate: '110%',
+      salvageRights: '50%',
+      supportRights: 'Straight/100%',
+      transportation: '75%',
+      commandRights: 'Liaison',
+    },
+    9: {
+      payRate: '120%',
+      salvageRights: '60%',
+      supportRights: 'Battle/10%',
+      transportation: '100%',
+      commandRights: '-',
+    },
+    10: {
+      payRate: '130%',
+      salvageRights: '70%',
+      supportRights: 'Battle/20%',
+      transportation: '-',
+      commandRights: '-',
+    },
+    11: {
+      payRate: '140%',
+      salvageRights: '80%',
+      supportRights: 'Battle/30%',
+      transportation: '-',
+      commandRights: 'Independent',
+    },
+  }
+
+  it('resolves exact values when present', () => {
+    expect(resolveStepValueWithGravity(11, 'supportRights', sampleSteps)).toBe('Battle/30%')
+    expect(resolveStepValueWithGravity(9, 'supportRights', sampleSteps)).toBe('Battle/10%')
+    expect(resolveStepValueWithGravity(11, 'payRate', sampleSteps)).toBe('140%')
+  })
+
+  it('applies gravity towards step 7 when value is dash', () => {
+    // Step 10 commandRights is '-', moves towards 7 -> step 9 is '-', step 8 is 'Liaison'
+    expect(resolveStepValueWithGravity(10, 'commandRights', sampleSteps)).toBe('Liaison')
+    // Step 10 transportation is '-', step 9 is '100%'
+    expect(resolveStepValueWithGravity(10, 'transportation', sampleSteps)).toBe('100%')
+  })
+
+  it('returns dash if step is missing from table', () => {
+    expect(resolveStepValueWithGravity(99, 'supportRights', sampleSteps)).toBe('-')
+  })
+})
+

@@ -1,21 +1,30 @@
 type Query {
-    myCommands: [MercenaryCommand]
-    activeCampaigns(page: Int, size: Int): [Campaign]
-    getCommand(id: ID!): MercenaryCommand
-    getCampaign(id: ID!): Campaign
-    managedCampaigns(status: String): [Campaign]
-    previewCampaign(input: CampaignCreateInput!): CampaignProposal
-    campaignMetadata: CampaignMetadata    
-    campaignMarket(campaignId: ID!): CampaignMarket    
-    participatingCampaigns(commandId: ID!): [Campaign]
-    generateTracks(mission: String!, commandRights: String!, oppCommandRights: String!, count: Int!, existing: [ProposedTrackInput]): [ProposedTrack]
-    commandAssets(commandId: ID!): CommandAssetsResponse
-    userProfile: UserProfile
+  myCommands: [MercenaryCommand]
+  activeCampaigns(page: Int, size: Int): [Campaign]
+  getCommand(id: ID!): MercenaryCommand
+  getCampaign(id: ID!): Campaign
+  managedCampaigns(status: String): [Campaign]
+  previewCampaign(input: CampaignCreateInput!): CampaignProposal
+  campaignMetadata: CampaignMetadata
+  campaignMarket(campaignId: ID!): CampaignMarket
+  participatingCampaigns(commandId: ID!): [Campaign]
+  generateTracks(
+    mission: String!
+    commandRights: String!
+    oppCommandRights: String!
+    count: Int!
+    existing: [ProposedTrackInput]
+  ): [ProposedTrack]
+  commandAssets(commandId: ID!): CommandAssetsResponse
+  userProfile: UserProfile
 
-    # Public Read-Only Access
-    publicActiveCampaigns(page: Int, size: Int): [Campaign]
-    publicCampaignMetadata: CampaignMetadata
-    publicPreviewCampaign(input: CampaignCreateInput!): CampaignProposal
+  # Public Read-Only Access
+  publicActiveCampaigns(page: Int, size: Int): [Campaign]
+  publicCampaignMetadata: CampaignMetadata
+  publicPreviewCampaign(input: CampaignCreateInput!): CampaignProposal
+
+  # Detachment Contract Negotiation
+  getDetachmentContractNegotiations(campaignId: ID!): [DetachmentContractNegotiation!]!
 }
 
 type CampaignMetadata {
@@ -54,574 +63,635 @@ type CampaignMetadata {
 }
 
 type MissionMetadata {
-    primary: [String]
-    opponent: [String]
+  primary: [String]
+  opponent: [String]
 }
 
 type ResolvedStepEntry {
-    step: Int
-    values: ResolvedStepValues
+  step: Int
+  values: ResolvedStepValues
 }
 
 type ResolvedStepValues {
-    payRate: String
-    salvageRights: String
-    supportRights: String
-    transportation: String
-    commandRights: String
+  payRate: String
+  salvageRights: String
+  supportRights: String
+  transportation: String
+  commandRights: String
 }
 
 type Subscription {
-    ledgerUpdated(commandId: ID!): MercenaryCommand
+  ledgerUpdated(commandId: ID!): MercenaryCommand
 }
 
 type Mutation {
-    # Command Management
-    establishCommand(input: CommandUpdateInput!): MercenaryCommand
-    updateCommand(id: ID!, input: CommandUpdateInput!): MercenaryCommand
-    deleteCommand(commandId: ID!, force: Boolean): Boolean
-    
-    # Campaign Management
-    createCampaign(input: CampaignCreateInput!): Campaign
-    updateCampaign(id: ID!, input: CampaignUpdateInput!): Campaign
-    rerollTrack(id: ID!): CampaignTrack
-    assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
-    
-    # Asset Management
-    importCombatUnitsFromLink(commandId: ID!, detachmentId: ID, link: String!): [CombatUnit]
-    updateTrack(id: ID!, input: TrackUpdateInput!): CampaignTrack
-    reorderTracks(campaignId: ID!, trackIds: [ID!]!): [CampaignTrack!]!
-    addCombatUnit(commandId: ID!, input: CombatUnitUpdateInput!): CombatUnit
-    updateCombatUnit(id: ID!, input: CombatUnitUpdateInput!): CombatUnit
-    deleteUnit(unitId: ID!): Boolean
-    hirePilot(commandId: ID!, input: PilotUpdateInput!): Pilot
-    updatePilot(id: ID!, input: PilotUpdateInput!): Pilot
-    deletePilot(pilotId: ID!): Boolean
+  # Command Management
+  establishCommand(input: CommandUpdateInput!): MercenaryCommand
+  updateCommand(id: ID!, input: CommandUpdateInput!): MercenaryCommand
+  deleteCommand(commandId: ID!, force: Boolean): Boolean
 
-    # Identity & Invites
-    loginWithToken(token: String!): Boolean
-    createInvite(campaignId: ID!, recipientName: String): CampaignInvite
-    assignDetachmentToContract(detachmentId: ID!, contractId: ID!, monthIndex: Int!): Boolean
-    deleteInvite(id: ID!): Boolean
-    assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
-    joinCampaign(token: String!, detachmentId: ID!): Boolean
-    updateUserProfile(displayName: String): UserProfile
-    
-    # Market Operations
-    importUnitsToMarket(campaignId: ID!, url: String!, marketType: MarketType!, factionId: ID): String!
-    saveMarketMarkdown(campaignId: ID!, marketType: MarketType!, markdown: String!, factionId: ID): Boolean!
-    generateUnitMarketLink(url: String!): String!
-    generatePilotMarketLink(url: String!): String!
-    generateRandomPilotLink(campaignId: ID!, weightClass: String!): String!
+  # Campaign Management
+  createCampaign(input: CampaignCreateInput!): Campaign
+  updateCampaign(id: ID!, input: CampaignUpdateInput!): Campaign
+  rerollTrack(id: ID!): CampaignTrack
+  assignDetachmentToCampaign(detachmentId: ID!, campaignId: ID): Boolean
 
-    # Ledger & Detachments
-    createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
-    deleteDetachment(detachmentId: ID!): Boolean
-    addLedgerEntry(
-        commandId: ID!,
-        detachmentId: ID, 
-        input: LedgerEntryInput!
-    ): LedgerEntry
+  # Asset Management
+  importCombatUnitsFromLink(commandId: ID!, detachmentId: ID, link: String!): [CombatUnit]
+  updateTrack(id: ID!, input: TrackUpdateInput!): CampaignTrack
+  reorderTracks(campaignId: ID!, trackIds: [ID!]!): [CampaignTrack!]!
+  addCombatUnit(commandId: ID!, input: CombatUnitUpdateInput!): CombatUnit
+  updateCombatUnit(id: ID!, input: CombatUnitUpdateInput!): CombatUnit
+  deleteUnit(unitId: ID!): Boolean
+  hirePilot(commandId: ID!, input: PilotUpdateInput!): Pilot
+  updatePilot(id: ID!, input: PilotUpdateInput!): Pilot
+  deletePilot(pilotId: ID!): Boolean
+
+  # Identity & Invites
+  loginWithToken(token: String!): Boolean
+  createInvite(campaignId: ID!, recipientName: String): CampaignInvite
+  assignDetachmentToContract(detachmentId: ID!, contractId: ID!, monthIndex: Int!): Boolean
+  deleteInvite(id: ID!): Boolean
+  assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
+  joinCampaign(token: String!, detachmentId: ID!): Boolean
+  updateUserProfile(displayName: String): UserProfile
+
+  # Market Operations
+  importUnitsToMarket(
+    campaignId: ID!
+    url: String!
+    marketType: MarketType!
+    factionId: ID
+  ): String!
+  saveMarketMarkdown(
+    campaignId: ID!
+    marketType: MarketType!
+    markdown: String!
+    factionId: ID
+  ): Boolean!
+  generateUnitMarketLink(url: String!): String!
+  generatePilotMarketLink(url: String!): String!
+  generateRandomPilotLink(campaignId: ID!, weightClass: String!): String!
+
+  # Ledger & Detachments
+  createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
+  deleteDetachment(detachmentId: ID!): Boolean
+  addLedgerEntry(commandId: ID!, detachmentId: ID, input: LedgerEntryInput!): LedgerEntry
+
+  # Detachment Contract Negotiation
+  negotiateDetachmentContract(input: NegotiateContractInput!): DetachmentContractNegotiation!
+  deleteDetachmentContractNegotiation(campaignId: ID!, detachmentId: ID!): Boolean
 }
 
 type MercenaryCommand {
-    id: ID!
-    name: String
-    ownerId: String
-    totalSupportPoints: Int
-    reputation: Int
-    commandingOfficer: String
-    units: [CombatUnit]
-    pilots: [Pilot]
-    detachments: [Detachment]
-    factionReputations: [FactionReputation]
-    allLedgerEntries: [LedgerEntry]
+  id: ID!
+  name: String
+  ownerId: String
+  totalSupportPoints: Int
+  reputation: Int
+  commandingOfficer: String
+  units: [CombatUnit]
+  pilots: [Pilot]
+  detachments: [Detachment]
+  factionReputations: [FactionReputation]
+  allLedgerEntries: [LedgerEntry]
 }
 
 type CombatUnit {
-    id: ID!
-    type: String  # BM, CV, PM, IM, BA, CI
-    model: String
-    variant: String
-    techBase: String
-    tonnage: Int
-    asSize: Int
-    bv: Int
-    pv: Int
-    status: String
-    detachmentId: ID
+  id: ID!
+  type: String # BM, CV, PM, IM, BA, CI
+  model: String
+  variant: String
+  techBase: String
+  tonnage: Int
+  asSize: Int
+  bv: Int
+  pv: Int
+  status: String
+  detachmentId: ID
 }
 
 type Pilot {
-    id: ID!
-    name: String
-    gunnery: Int
-    piloting: Int
-    asSkill: Int
-    edgeTokensSkill: Int
-    edgeAbilitySkill: Int
-    edgeAbilities: String
-    unitType: String
-    wounds: Int
-    handicap: Int
-    totalSpEarned: Int
-    gunnerySpEarned: Int
-    pilotingSpEarned: Int
-    edgeTokensSpEarned: Int
-    edgeAbilitySpEarned: Int
-    detachmentId: ID
+  id: ID!
+  name: String
+  gunnery: Int
+  piloting: Int
+  asSkill: Int
+  edgeTokensSkill: Int
+  edgeAbilitySkill: Int
+  edgeAbilities: String
+  unitType: String
+  wounds: Int
+  handicap: Int
+  totalSpEarned: Int
+  gunnerySpEarned: Int
+  pilotingSpEarned: Int
+  edgeTokensSpEarned: Int
+  edgeAbilitySpEarned: Int
+  detachmentId: ID
 }
 
 type Detachment {
-    id: ID!
-    name: String
-    callsign: String
-    mercenaryCommandId: ID
-    campaignId: ID
-    campaignName: String
-    contractAssignments: [ContractAssignment]
-    mercenaryCommandName: String
-    units: [CombatUnit]
-    pilots: [Pilot]
-    campaignRating: Int
+  id: ID!
+  name: String
+  callsign: String
+  mercenaryCommandId: ID
+  campaignId: ID
+  campaignName: String
+  contractAssignments: [ContractAssignment]
+  mercenaryCommandName: String
+  units: [CombatUnit]
+  pilots: [Pilot]
+  campaignRating: Int
 }
 
 type LedgerEntry {
-    id: ID!
-    commandId: ID
-    detachmentId: ID
-    amount: Int
-    description: String
-    timestamp: String
-    reputationChange: Int
-    campaignId: ID
-    campaignName: String
-    monthIndex: Int
+  id: ID!
+  commandId: ID
+  detachmentId: ID
+  amount: Int
+  description: String
+  timestamp: String
+  reputationChange: Int
+  campaignId: ID
+  campaignName: String
+  monthIndex: Int
 }
 
 type FactionReputation {
-    id: ID!
-    campaignFactionId: ID!
-    mercenaryCommandId: ID!
-    score: Int
-    standing: String
+  id: ID!
+  campaignFactionId: ID!
+  mercenaryCommandId: ID!
+  score: Int
+  standing: String
 }
 
 type ContractAssignment {
-    id: ID!
-    contractId: ID!
-    monthIndex: Int!
+  id: ID!
+  contractId: ID!
+  monthIndex: Int!
+}
+
+type DetachmentContractNegotiation {
+  id: ID!
+  campaignId: ID!
+  detachmentId: ID!
+  employerFactionId: ID!
+  payStepAdjustment: Int
+  salvageStepAdjustment: Int
+  supportStepAdjustment: Int
+  transportStepAdjustment: Int
+  commandStepAdjustment: Int
+  negotiatedPayStep: Int
+  negotiatedSalvageStep: Int
+  negotiatedSupportStep: Int
+  negotiatedTransportStep: Int
+  negotiatedCommandStep: Int
+  resultingPayTerms: String
+  resultingSalvageTerms: String
+  resultingSupportTerms: String
+  resultingTransportTerms: String
+  resultingCommandRights: String
+  salvageTerms: String
+  supportTerms: String
+  transportTerms: String
+  commandRights: String
 }
 
 type CommandAssetsResponse {
-    units: [CombatUnit]
-    pilots: [Pilot]
+  units: [CombatUnit]
+  pilots: [Pilot]
 }
 
 type UserProfile {
-    id: ID!
-    name: String
-    email: String
-    displayName: String
-    role: String
+  id: ID!
+  name: String
+  email: String
+  displayName: String
+  role: String
 }
 
 type User {
-    id: ID!
-    displayName: String
-    role: String
+  id: ID!
+  displayName: String
+  role: String
 }
 
 type CampaignInvite {
-    id: ID!
-    campaignId: ID!
-    token: String
-    recipientName: String
-    expiresAt: String
-    used: Boolean
+  id: ID!
+  campaignId: ID!
+  token: String
+  recipientName: String
+  expiresAt: String
+  used: Boolean
 }
 
 input ProposedTrackInput {
-    name: String
-    complication: String
-    oppositionComplication: String
+  name: String
+  complication: String
+  oppositionComplication: String
 }
 
 input CampaignCreateInput {
-    name: String
-    employer: String
-    opponent: String
-    mission: String
-    employerCategory: String
-    opponentCategory: String
-    oppMission: String
-    status: String
-    systemName: String
-    description: String
-    payRate: Float
-    salvageTerms: String
-    supportTerms: String
-    transportTerms: String
-    commandRights: String
-    payStep: Int
-    salvageStep: Int
-    supportStep: Int
-    transportStep: Int
-    commandStep: Int
-    oppPayRate: Float
-    oppPayStep: Int
-    oppSalvageTerms: String
-    oppSalvageStep: Int
-    oppSupportTerms: String
-    oppSupportStep: Int
-    oppTransportTerms: String
-    oppTransportStep: Int
-    oppCommandRights: String
-    oppCommandStep: Int
-    trackCount: Int
-    lengthInMonths: Int
-    monthlyPay: Int
-    monthlyMaintenance: Int
-    transportationCost: Int
-    combatPay: Int
-    armorMultiplier: Float
-    internalMultiplier: Float
-    crippledMultiplier: Float
-    destroyedMultiplier: Float
-    nonMechModifier: Float
-    mixedTechModifier: Float
-    clanTechModifier: Float
-    omnimechReconfigureModifier: Float
-    pvPurchaseUnitMultiplier: Int
-    pvSellUnitMultiplier: Int
-    rearmCostPerTon: Int
-    rearmCostPerTonAlphaStrike: Int
-    hireMechWarriorCost: Int
-    hireNamedPilotCost: Int
-    hireBattleArmorCost: Int
-    healMechWarriorPerWoundBoxCost: Int
-    healMechWarriorPerMonthLimit: Int
-    healBattleArmorCost: Int
-    trainFormationCommanderCost: Int
-    changeFormationTrainingCost: Int
-    learnCommandAbility1Cost: Int
-    learnCommandAbility2Cost: Int
-    learnCommandAbility3Cost: Int
-    replaceCommandAbilityCost: Int
-    tracks: [ProposedTrackInput]
+  name: String
+  employer: String
+  opponent: String
+  mission: String
+  employerCategory: String
+  opponentCategory: String
+  oppMission: String
+  status: String
+  systemName: String
+  description: String
+  payRate: Float
+  salvageTerms: String
+  supportTerms: String
+  transportTerms: String
+  commandRights: String
+  payStep: Int
+  salvageStep: Int
+  supportStep: Int
+  transportStep: Int
+  commandStep: Int
+  oppPayRate: Float
+  oppPayStep: Int
+  oppSalvageTerms: String
+  oppSalvageStep: Int
+  oppSupportTerms: String
+  oppSupportStep: Int
+  oppTransportTerms: String
+  oppTransportStep: Int
+  oppCommandRights: String
+  oppCommandStep: Int
+  trackCount: Int
+  lengthInMonths: Int
+  monthlyPay: Int
+  monthlyMaintenance: Int
+  transportationCost: Int
+  combatPay: Int
+  armorMultiplier: Float
+  internalMultiplier: Float
+  crippledMultiplier: Float
+  destroyedMultiplier: Float
+  nonMechModifier: Float
+  mixedTechModifier: Float
+  clanTechModifier: Float
+  omnimechReconfigureModifier: Float
+  pvPurchaseUnitMultiplier: Int
+  pvSellUnitMultiplier: Int
+  rearmCostPerTon: Int
+  rearmCostPerTonAlphaStrike: Int
+  hireMechWarriorCost: Int
+  hireNamedPilotCost: Int
+  hireBattleArmorCost: Int
+  healMechWarriorPerWoundBoxCost: Int
+  healMechWarriorPerMonthLimit: Int
+  healBattleArmorCost: Int
+  trainFormationCommanderCost: Int
+  changeFormationTrainingCost: Int
+  learnCommandAbility1Cost: Int
+  learnCommandAbility2Cost: Int
+  learnCommandAbility3Cost: Int
+  replaceCommandAbilityCost: Int
+  tracks: [ProposedTrackInput]
 }
 
 input LedgerEntryInput {
-    amount: Int!
-    description: String!
-    reputationChange: Int
-    campaignId: ID
-    campaignName: String
-    monthIndex: Int
+  amount: Int!
+  description: String!
+  reputationChange: Int
+  campaignId: ID
+  campaignName: String
+  monthIndex: Int
 }
 
 input CampaignUpdateInput {
-    name: String
-    status: String
-    systemName: String
-    description: String
-    employer: String
-    opponent: String
-    mission: String
-    employerCategory: String
-    opponentCategory: String
-    oppMission: String
-    monthlyPay: Int
-    monthlyMaintenance: Int
-    transportationCost: Int
-    combatPay: Int
-    armorMultiplier: Float
-    internalMultiplier: Float
-    crippledMultiplier: Float
-    destroyedMultiplier: Float
-    nonMechModifier: Float
-    mixedTechModifier: Float
-    clanTechModifier: Float
-    omnimechReconfigureModifier: Float
-    pvPurchaseUnitMultiplier: Int
-    pvSellUnitMultiplier: Int
-    rearmCostPerTon: Int
-    rearmCostPerTonAlphaStrike: Int
-    hireMechWarriorCost: Int
-    hireNamedPilotCost: Int
-    hireBattleArmorCost: Int
-    healMechWarriorPerWoundBoxCost: Int
-    healMechWarriorPerMonthLimit: Int
-    healBattleArmorCost: Int
-    trainFormationCommanderCost: Int
-    changeFormationTrainingCost: Int
-    learnCommandAbility1Cost: Int
-    learnCommandAbility2Cost: Int
-    learnCommandAbility3Cost: Int
-    replaceCommandAbilityCost: Int
-    lengthInMonths: Int
-    trackCount: Int
-    payRate: Float
-    payStep: Int
-    salvageTerms: String
-    salvageStep: Int
-    supportTerms: String
-    supportStep: Int
-    transportTerms: String
-    transportStep: Int
-    commandRights: String
-    commandStep: Int
-    oppPayRate: Float
-    oppPayStep: Int
-    oppSalvageTerms: String
-    oppSalvageStep: Int
-    oppSupportTerms: String
-    oppSupportStep: Int
-    oppTransportTerms: String
-    oppTransportStep: Int
-    oppCommandRights: String
-    oppCommandStep: Int
+  name: String
+  status: String
+  systemName: String
+  description: String
+  employer: String
+  opponent: String
+  mission: String
+  employerCategory: String
+  opponentCategory: String
+  oppMission: String
+  monthlyPay: Int
+  monthlyMaintenance: Int
+  transportationCost: Int
+  combatPay: Int
+  armorMultiplier: Float
+  internalMultiplier: Float
+  crippledMultiplier: Float
+  destroyedMultiplier: Float
+  nonMechModifier: Float
+  mixedTechModifier: Float
+  clanTechModifier: Float
+  omnimechReconfigureModifier: Float
+  pvPurchaseUnitMultiplier: Int
+  pvSellUnitMultiplier: Int
+  rearmCostPerTon: Int
+  rearmCostPerTonAlphaStrike: Int
+  hireMechWarriorCost: Int
+  hireNamedPilotCost: Int
+  hireBattleArmorCost: Int
+  healMechWarriorPerWoundBoxCost: Int
+  healMechWarriorPerMonthLimit: Int
+  healBattleArmorCost: Int
+  trainFormationCommanderCost: Int
+  changeFormationTrainingCost: Int
+  learnCommandAbility1Cost: Int
+  learnCommandAbility2Cost: Int
+  learnCommandAbility3Cost: Int
+  replaceCommandAbilityCost: Int
+  lengthInMonths: Int
+  trackCount: Int
+  payRate: Float
+  payStep: Int
+  salvageTerms: String
+  salvageStep: Int
+  supportTerms: String
+  supportStep: Int
+  transportTerms: String
+  transportStep: Int
+  commandRights: String
+  commandStep: Int
+  oppPayRate: Float
+  oppPayStep: Int
+  oppSalvageTerms: String
+  oppSalvageStep: Int
+  oppSupportTerms: String
+  oppSupportStep: Int
+  oppTransportTerms: String
+  oppTransportStep: Int
+  oppCommandRights: String
+  oppCommandStep: Int
 }
 
 input CommandUpdateInput {
-    name: String
-    commandingOfficer: String
+  name: String
+  commandingOfficer: String
 }
 
 input TrackUpdateInput {
-    trackName: String
-    sequenceOrder: Int
-    location: String
-    nextSession: String
-    attackerFactionId: ID
-    monthIndex: Int
-    complications: String
-    oppositionComplications: String
-    afterActionNarrative: String
+  trackName: String
+  sequenceOrder: Int
+  location: String
+  nextSession: String
+  attackerFactionId: ID
+  monthIndex: Int
+  complications: String
+  oppositionComplications: String
+  afterActionNarrative: String
 }
 
 type CampaignTrack {
-    id: ID!
-    campaignId: ID!
-    trackName: String
-    sequenceOrder: Int
-    location: String
-    nextSession: String
-    attackerFactionId: ID
-    monthIndex: Int
-    complications: String
-    oppositionComplications: String
-    afterActionNarrative: String
+  id: ID!
+  campaignId: ID!
+  trackName: String
+  sequenceOrder: Int
+  location: String
+  nextSession: String
+  attackerFactionId: ID
+  monthIndex: Int
+  complications: String
+  oppositionComplications: String
+  afterActionNarrative: String
 }
 
 input CombatUnitUpdateInput {
-    type: String
-    model: String
-    variant: String
-    techBase: String
-    tonnage: Int
-    asSize: Int
-    bv: Int
-    pv: Int
-    status: String
-    detachmentId: ID
+  type: String
+  model: String
+  variant: String
+  techBase: String
+  tonnage: Int
+  asSize: Int
+  bv: Int
+  pv: Int
+  status: String
+  detachmentId: ID
 }
 
 type CampaignFaction {
-    id: ID!
-    campaignId: ID!
-    factionName: String
-    offersContracts: Boolean
-    shortDescription: String
+  id: ID!
+  campaignId: ID!
+  factionName: String
+  offersContracts: Boolean
+  shortDescription: String
 }
 
 input PilotUpdateInput {
-    name: String
-    gunnery: Int
-    piloting: Int
-    asSkill: Int
-    edgeTokensSkill: Int
-    edgeAbilitySkill: Int
-    edgeAbilities: String
-    unitType: String
-    wounds: Int
-    handicap: Int
-    totalSpEarned: Int
-    gunnerySpEarned: Int
-    pilotingSpEarned: Int
-    edgeTokensSpEarned: Int
-    edgeAbilitySpEarned: Int
-    detachmentId: ID
+  name: String
+  gunnery: Int
+  piloting: Int
+  asSkill: Int
+  edgeTokensSkill: Int
+  edgeAbilitySkill: Int
+  edgeAbilities: String
+  unitType: String
+  wounds: Int
+  handicap: Int
+  totalSpEarned: Int
+  gunnerySpEarned: Int
+  pilotingSpEarned: Int
+  edgeTokensSpEarned: Int
+  edgeAbilitySpEarned: Int
+  detachmentId: ID
+}
+
+input NegotiateContractInput {
+  campaignId: ID!
+  detachmentId: ID!
+  employerFactionId: ID!
+  payStepAdjustment: Int
+  salvageStepAdjustment: Int
+  supportStepAdjustment: Int
+  transportStepAdjustment: Int
+  commandStepAdjustment: Int
+  negotiatedPayStep: Int
+  negotiatedSalvageStep: Int
+  negotiatedSupportStep: Int
+  negotiatedTransportStep: Int
+  negotiatedCommandStep: Int
+  resultingPayTerms: String
+  resultingSalvageTerms: String
+  resultingSupportTerms: String
+  resultingTransportTerms: String
+  resultingCommandRights: String
+  salvageTerms: String
+  supportTerms: String
+  transportTerms: String
+  commandRights: String
 }
 
 type ProposedTrack {
-    name: String
-    complication: String
-    oppositionComplication: String
+  name: String
+  complication: String
+  oppositionComplication: String
 }
 
 type CampaignProposal {
-    campaign: Campaign
-    contracts: [Contract]
-    tracks: [ProposedTrack]
-    armorMultiplier: Float
-    internalMultiplier: Float
-    crippledMultiplier: Float
-    destroyedMultiplier: Float
-    nonMechModifier: Float
-    mixedTechModifier: Float
-    clanTechModifier: Float
-    omnimechReconfigureModifier: Float
-    pvPurchaseUnitMultiplier: Int
-    pvSellUnitMultiplier: Int
-    rearmCostPerTon: Int
-    rearmCostPerTonAlphaStrike: Int
-    hireMechWarriorCost: Int
-    hireNamedPilotCost: Int
-    hireBattleArmorCost: Int
-    healMechWarriorPerWoundBoxCost: Int
-    healMechWarriorPerMonthLimit: Int
-    healBattleArmorCost: Int
-    trainFormationCommanderCost: Int
-    changeFormationTrainingCost: Int
-    learnCommandAbility1Cost: Int
-    learnCommandAbility2Cost: Int
-    learnCommandAbility3Cost: Int
-    replaceCommandAbilityCost: Int
+  campaign: Campaign
+  contracts: [Contract]
+  tracks: [ProposedTrack]
+  armorMultiplier: Float
+  internalMultiplier: Float
+  crippledMultiplier: Float
+  destroyedMultiplier: Float
+  nonMechModifier: Float
+  mixedTechModifier: Float
+  clanTechModifier: Float
+  omnimechReconfigureModifier: Float
+  pvPurchaseUnitMultiplier: Int
+  pvSellUnitMultiplier: Int
+  rearmCostPerTon: Int
+  rearmCostPerTonAlphaStrike: Int
+  hireMechWarriorCost: Int
+  hireNamedPilotCost: Int
+  hireBattleArmorCost: Int
+  healMechWarriorPerWoundBoxCost: Int
+  healMechWarriorPerMonthLimit: Int
+  healBattleArmorCost: Int
+  trainFormationCommanderCost: Int
+  changeFormationTrainingCost: Int
+  learnCommandAbility1Cost: Int
+  learnCommandAbility2Cost: Int
+  learnCommandAbility3Cost: Int
+  replaceCommandAbilityCost: Int
 }
 
 type Contract {
-    id: ID
-    employerCategory: String
-    missionType: String
-    payRate: Float
-    payStep: Int
-    salvageTerms: String
-    salvageStep: Int
-    supportTerms: String
-    supportStep: Int
-    transportTerms: String
-    transportStep: Int
-    commandRights: String
-    commandStep: Int
-    primaryContract: Boolean
-    trackCount: Int
+  id: ID
+  employerCategory: String
+  missionType: String
+  payRate: Float
+  payStep: Int
+  salvageTerms: String
+  salvageStep: Int
+  supportTerms: String
+  supportStep: Int
+  transportTerms: String
+  transportStep: Int
+  commandRights: String
+  commandStep: Int
+  primaryContract: Boolean
+  trackCount: Int
 }
 
 type Campaign {
-    id: ID!
-    name: String
-    systemName: String
-    description: String
-    status: String
-    trackCount: Int
-    lengthInMonths: Int
-    managerId: String
-    primaryEmployer: String
-    secondaryEmployer: String
-    contracts: [Contract]
-    tracks: [CampaignTrack]
-    factions: [CampaignFaction]
-    # Root 3: All detachments participating in this theater
-    participatingDetachments: [Detachment]
-    campaignInvites: [CampaignInvite]
-    payRate: Float
-    salvageTerms: String
-    supportTerms: String
-    transportTerms: String
-    commandRights: String
-    payStep: Int
-    salvageStep: Int
-    supportStep: Int
-    transportStep: Int
-    commandStep: Int
-    monthlyPay: Int
-    monthlyMaintenance: Int
-    transportationCost: Int
-    combatPay: Int
-    armorMultiplier: Float
-    internalMultiplier: Float
-    crippledMultiplier: Float
-    destroyedMultiplier: Float
-    nonMechModifier: Float
-    mixedTechModifier: Float
-    clanTechModifier: Float
-    omnimechReconfigureModifier: Float
-    pvPurchaseUnitMultiplier: Int
-    pvSellUnitMultiplier: Int
-    rearmCostPerTon: Int
-    rearmCostPerTonAlphaStrike: Int
-    hireMechWarriorCost: Int
-    hireNamedPilotCost: Int
-    hireBattleArmorCost: Int
-    healMechWarriorPerWoundBoxCost: Int
-    healMechWarriorPerMonthLimit: Int
-    healBattleArmorCost: Int
-    trainFormationCommanderCost: Int
-    changeFormationTrainingCost: Int
-    learnCommandAbility1Cost: Int
-    learnCommandAbility2Cost: Int
-    learnCommandAbility3Cost: Int
-    replaceCommandAbilityCost: Int
-    isManager: Boolean
-    isParticipant: Boolean
+  id: ID!
+  name: String
+  systemName: String
+  description: String
+  status: String
+  trackCount: Int
+  lengthInMonths: Int
+  managerId: String
+  primaryEmployer: String
+  secondaryEmployer: String
+  contracts: [Contract]
+  tracks: [CampaignTrack]
+  factions: [CampaignFaction]
+  # Root 3: All detachments participating in this theater
+  participatingDetachments: [Detachment]
+  campaignInvites: [CampaignInvite]
+  payRate: Float
+  salvageTerms: String
+  supportTerms: String
+  transportTerms: String
+  commandRights: String
+  payStep: Int
+  salvageStep: Int
+  supportStep: Int
+  transportStep: Int
+  commandStep: Int
+  monthlyPay: Int
+  monthlyMaintenance: Int
+  transportationCost: Int
+  combatPay: Int
+  armorMultiplier: Float
+  internalMultiplier: Float
+  crippledMultiplier: Float
+  destroyedMultiplier: Float
+  nonMechModifier: Float
+  mixedTechModifier: Float
+  clanTechModifier: Float
+  omnimechReconfigureModifier: Float
+  pvPurchaseUnitMultiplier: Int
+  pvSellUnitMultiplier: Int
+  rearmCostPerTon: Int
+  rearmCostPerTonAlphaStrike: Int
+  hireMechWarriorCost: Int
+  hireNamedPilotCost: Int
+  hireBattleArmorCost: Int
+  healMechWarriorPerWoundBoxCost: Int
+  healMechWarriorPerMonthLimit: Int
+  healBattleArmorCost: Int
+  trainFormationCommanderCost: Int
+  changeFormationTrainingCost: Int
+  learnCommandAbility1Cost: Int
+  learnCommandAbility2Cost: Int
+  learnCommandAbility3Cost: Int
+  replaceCommandAbilityCost: Int
+  isManager: Boolean
+  isParticipant: Boolean
 }
 
 enum MarketType {
-    FREE
-    EMPLOYER
-    PRIMARY_EMPLOYER
-    OPPOSITION_EMPLOYER
-    SCRAPPERS
+  FREE
+  EMPLOYER
+  PRIMARY_EMPLOYER
+  OPPOSITION_EMPLOYER
+  SCRAPPERS
 }
 
 type CampaignMarket {
-    id: ID!
-    campaignId: ID!
-    freeMarketMarkdown: String
-    scrapperMarketMarkdown: String
-    scrapperFee: Int!
-    employerMarkets: [EmployerMarket!]!
+  id: ID!
+  campaignId: ID!
+  freeMarketMarkdown: String
+  scrapperMarketMarkdown: String
+  scrapperFee: Int!
+  employerMarkets: [EmployerMarket!]!
 }
 
 type EmployerMarket {
-    factionId: ID!
-    markdown: String
+  factionId: ID!
+  markdown: String
 }
 
 type PurchaseResult {
-    success: Boolean!
-    unitId: ID
-    remainingCBills: Int!
-    message: String
+  success: Boolean!
+  unitId: ID
+  remainingCBills: Int!
+  message: String
 }
 
 input MarketPurchaseInput {
-    unitName: String!
-    model: String!
-    bv: Int!
-    pv: Int!
-    techBase: String!
-    condition: Int!
-    price: Int!
-    marketType: MarketType!
-    factionId: ID
-    campaignId: ID!
-    commandId: ID!
-    detachmentId: ID!
+  unitName: String!
+  model: String!
+  bv: Int!
+  pv: Int!
+  techBase: String!
+  condition: Int!
+  price: Int!
+  marketType: MarketType!
+  factionId: ID
+  campaignId: ID!
+  commandId: ID!
+  detachmentId: ID!
 }
 
 input MarketHireInput {
-    name: String!
-    unitType: String!
-    wounds: Int!
-    gunnerySpEarned: Int!
-    pilotingSpEarned: Int!
-    edgeTokensSpEarned: Int!
-    edgeAbilitySpEarned: Int!
-    edgeAbilities: String!
-    price: Int!
-    campaignId: ID!
-    commandId: ID!
-    detachmentId: ID!
+  name: String!
+  unitType: String!
+  wounds: Int!
+  gunnerySpEarned: Int!
+  pilotingSpEarned: Int!
+  edgeTokensSpEarned: Int!
+  edgeAbilitySpEarned: Int!
+  edgeAbilities: String!
+  price: Int!
+  campaignId: ID!
+  commandId: ID!
+  detachmentId: ID!
 }

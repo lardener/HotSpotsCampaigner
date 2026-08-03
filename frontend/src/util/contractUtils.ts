@@ -83,3 +83,40 @@ export const isInputInvalid = (val: NumericInput | undefined | null): boolean =>
   const s = val.toString()
   return s !== '' && s !== '-' && isNaN(Number(s))
 }
+
+export interface ResolvedStepValues {
+  payRate: string
+  salvageRights: string
+  supportRights: string
+  transportation: string
+  commandRights: string
+}
+
+/**
+ * Resolves a contract term for a given step with gravity towards Step 7.
+ * If a value is '-', null, or undefined at the given step, moves step-by-step
+ * towards Step 7 until a valid non-dash value is found.
+ */
+export const resolveStepValueWithGravity = (
+  step: number,
+  field: keyof ResolvedStepValues,
+  resolvedSteps: Record<number, ResolvedStepValues>,
+): string => {
+  if (!resolvedSteps || !resolvedSteps[step]) return '-'
+  const val = resolvedSteps[step][field]
+
+  if (val === '-' || val === null || val === undefined) {
+    let current = step
+    const target = 7
+    while (current !== target) {
+      current = current < target ? current + 1 : current - 1
+      const nextVal = resolvedSteps[current]?.[field]
+      if (nextVal !== '-' && nextVal !== null && nextVal !== undefined) {
+        return nextVal
+      }
+    }
+    return resolvedSteps[target]?.[field] || '-'
+  }
+  return val
+}
+
