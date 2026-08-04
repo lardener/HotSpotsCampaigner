@@ -2669,16 +2669,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                               // Force refetch to ensure fresh data
                               await refetchCampaign()
 
-                              // Debug: log entire campaign structure
-                              console.log('=== DEBUG: Campaign Object ===')
-                              console.log('campaign:', campaign)
-                              console.log('campaign?.factions:', campaign?.factions)
-                              console.log('campaign?.primaryEmployer:', campaign?.primaryEmployer)
-                              console.log(
-                                'campaign?.secondaryEmployer:',
-                                campaign?.secondaryEmployer,
-                              )
-
                               const employerFaction = campaign?.factions?.find((f: any) => {
                                 const factionName = (f.factionName || '').trim()
                                 const employer = campaign?.primaryEmployer || ''
@@ -2698,13 +2688,6 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                               const oppositionContract = opposition
                               const employerFactionId = employerFaction?.id
                               const opponentFactionId = opponentFaction?.id
-
-                              console.log('DEBUG: Faction data:', {
-                                employerFaction,
-                                opponentFaction,
-                                employerFactionId,
-                                opponentFactionId,
-                              })
 
                               if (!employerFactionId) {
                                 console.error('Cannot negotiate: employer faction ID not found')

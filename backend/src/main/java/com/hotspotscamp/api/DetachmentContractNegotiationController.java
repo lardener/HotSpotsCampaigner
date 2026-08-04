@@ -64,10 +64,8 @@ public class DetachmentContractNegotiationController {
         String userId = principal.getName();
         return userService.resolveOrCreateUser(userId)
                 .flatMapMany(user -> {
-                    UUID userIdObj = user.getId();
-                    return negotiationService.findByCampaignAndOwner(campaignId, userIdObj)
-                            .map(this::toNegotiationResponse)
-                            .flux();
+                    return negotiationService.findAllByCampaign(campaignId)
+                            .map(this::toNegotiationResponse);
                 });
     }
 

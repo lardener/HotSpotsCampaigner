@@ -13,6 +13,7 @@ import com.hotspotscamp.repository.DetachmentRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -36,8 +37,38 @@ public class DetachmentContractNegotiationService {
     @Transactional
     public Mono<DetachmentContractOverride> saveNegotiation(DetachmentContractOverride override) {
         validateOverride(override);
-        return overrideRepository.save(override).doOnNext(saved
-                -> log.info("Saved detachment contract negotiation: detachmentId={}, employerFactionId={}",
+        return findByDetachmentAndEmployer(
+                override.getDetachmentId(), override.getCampaignId(), override.getEmployerFactionId())
+                .flatMap(existing -> {
+                    // Update existing record's fields
+                    existing.setPayStepAdjustment(override.getPayStepAdjustment());
+                    existing.setSalvageStepAdjustment(override.getSalvageStepAdjustment());
+                    existing.setSupportStepAdjustment(override.getSupportStepAdjustment());
+                    existing.setTransportStepAdjustment(override.getTransportStepAdjustment());
+                    existing.setCommandStepAdjustment(override.getCommandStepAdjustment());
+                    existing.setNegotiatedPayStep(override.getNegotiatedPayStep());
+                    existing.setNegotiatedSalvageStep(override.getNegotiatedSalvageStep());
+                    existing.setNegotiatedSupportStep(override.getNegotiatedSupportStep());
+                    existing.setNegotiatedTransportStep(override.getNegotiatedTransportStep());
+                    existing.setNegotiatedCommandStep(override.getNegotiatedCommandStep());
+                    existing.setResultingPayTerms(override.getResultingPayTerms());
+                    existing.setResultingSalvageTerms(override.getResultingSalvageTerms());
+                    existing.setResultingSupportTerms(override.getResultingSupportTerms());
+                    existing.setResultingTransportTerms(override.getResultingTransportTerms());
+                    existing.setResultingCommandRights(override.getResultingCommandRights());
+                    existing.setSalvageTerms(override.getSalvageTerms());
+                    existing.setSupportTerms(override.getSupportTerms());
+                    existing.setTransportTerms(override.getTransportTerms());
+                    existing.setCommandRights(override.getCommandRights());
+                    existing.setNew(false);
+                    return overrideRepository.save(existing);
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    override.setNew(true);
+                    return overrideRepository.save(override);
+                }))
+                .doOnNext(saved
+                        -> log.info("Saved detachment contract negotiation: detachmentId={}, employerFactionId={}",
                         saved.getDetachmentId(), saved.getEmployerFactionId()));
     }
 
@@ -48,6 +79,13 @@ public class DetachmentContractNegotiationService {
             UUID detachmentId, UUID campaignId, UUID employerFactionId) {
         return overrideRepository
                 .findByDetachmentIdAndCampaignIdAndEmployerFactionId(detachmentId, campaignId, employerFactionId);
+    }
+
+    /**
+     * Find all negotiations for a campaign.
+     */
+    public Flux<DetachmentContractOverride> findAllByCampaign(UUID campaignId) {
+        return overrideRepository.findAllByCampaignId(campaignId);
     }
 
     /**

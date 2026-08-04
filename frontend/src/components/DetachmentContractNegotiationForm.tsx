@@ -464,8 +464,10 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
     >
       <ContractNegotiationBackground />
 
-      <h2 className="section-title">DETACHMENT CONTRACT NEGOTIATIONS</h2>
-      <p className="restricted-text">EMPLOYER: {employerFactionName.toUpperCase()}</p>
+      <h3 className="section-title" style={{ color: '#33ff33' }}>
+        DETACHMENT CONTRACT NEGOTIATIONS
+      </h3>
+      <p className="restricted-text">PRIMARY EMPLOYER: {employerFactionName.toUpperCase()}</p>
 
       {/* Primary Contract Panel */}
       <div style={{ maxHeight: '50vh', overflowY: 'auto', paddingRight: '10px' }}>
@@ -503,9 +505,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                   })}
                 </select>
               </div>
-              <div className="mt-5 sm-text" style={{ color: '#33ff33' }}>
-                Result: Step {finalPayStep} ({resultingPayRateText})
-              </div>
             </div>
 
             <div className="form-group">
@@ -535,9 +534,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                     )
                   })}
                 </select>
-              </div>
-              <div className="mt-5 sm-text" style={{ color: '#33ff33' }}>
-                Result: Step {finalSalvageStep} ({resultingSalvageText})
               </div>
             </div>
 
@@ -569,9 +565,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                   })}
                 </select>
               </div>
-              <div className="mt-5 sm-text" style={{ color: '#33ff33' }}>
-                Result: Step {finalSupportStep} ({resultingSupportText})
-              </div>
             </div>
 
             <div className="form-group">
@@ -601,9 +594,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                     )
                   })}
                 </select>
-              </div>
-              <div className="mt-5 sm-text" style={{ color: '#33ff33' }}>
-                Result: Step {finalTransportStep} ({resultingTransportText})
               </div>
             </div>
 
@@ -635,9 +625,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                   })}
                 </select>
               </div>
-              <div className="mt-5 sm-text" style={{ color: '#33ff33' }}>
-                Result: Step {finalCommandStep} ({resultingCommandText})
-              </div>
             </div>
           </div>
         </div>
@@ -646,8 +633,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
       {/* Opposition Contract Panel */}
       <div
         style={{
-          maxHeight: '50vh',
-          overflowY: 'auto',
           marginTop: '30px',
           borderTop: '2px solid #ff3333',
           paddingTop: '20px',
@@ -697,9 +682,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                     })}
                   </select>
                 </div>
-                <div className="mt-5 sm-text" style={{ color: '#ff3333' }}>
-                  Result: Step {oppFinalPayStep} ({oppResultingPayRateText})
-                </div>
               </div>
 
               <div className="form-group">
@@ -730,9 +712,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                     })}
                   </select>
                 </div>
-                <div className="mt-5 sm-text" style={{ color: '#ff3333' }}>
-                  Result: Step {oppFinalSalvageStep} ({oppResultingSalvageText})
-                </div>
               </div>
 
               <div className="form-group">
@@ -762,9 +741,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                       )
                     })}
                   </select>
-                </div>
-                <div className="mt-5 sm-text" style={{ color: '#ff3333' }}>
-                  Result: Step {oppFinalSupportStep} ({oppResultingSupportText})
                 </div>
               </div>
 
@@ -798,9 +774,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                     })}
                   </select>
                 </div>
-                <div className="mt-5 sm-text" style={{ color: '#ff3333' }}>
-                  Result: Step {oppFinalTransportStep} ({oppResultingTransportText})
-                </div>
               </div>
 
               <div className="form-group">
@@ -830,9 +803,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                       )
                     })}
                   </select>
-                </div>
-                <div className="mt-5 sm-text" style={{ color: '#ff3333' }}>
-                  Result: Step {oppFinalCommandStep} ({oppResultingCommandText})
                 </div>
               </div>
             </div>

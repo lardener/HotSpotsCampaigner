@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import com.hotspotscamp.entity.DetachmentContractOverride;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Repository
@@ -28,4 +29,6 @@ public interface DetachmentContractOverrideRepository
     Mono<DetachmentContractOverride> findByCampaignIdAndEmployerFactionId(
             UUID campaignId, UUID employerFactionId
     );
+
+    Flux<DetachmentContractOverride> findAllByCampaignId(UUID campaignId);
 }
