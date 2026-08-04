@@ -2847,7 +2847,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         (campaign.participatingDetachments || []).filter((d): d is Detachment => d != null).length >
           0 && (
           <MonthlyExpensesEditor
-            campaignDetails={campaign}
+            campaignDetails={campaign as Campaign}
             detachments={(campaign.participatingDetachments || []).filter(
               (d): d is Detachment => d != null,
             )}

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useReducer } from 'react'
+import React, { useState, useEffect, useReducer, useMemo } from 'react'
 import { ApolloCache } from '@apollo/client'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { TerminalOverlay } from './TerminalOverlay'
@@ -35,10 +35,13 @@ import { DetachmentAarState, NumericInput, UnitStatus, UnitType, TechBase } from
 import { useHscActionHandler } from './useHscActionHandler'
 import { UNIT_STATUS_OPTIONS as FALLBACK_STATUSES } from './Rules'
 import {
+  buildDetachmentNegotiationMap,
   parseMultiplier,
   parseSupportTerms,
   parseNumericInput,
   isInputInvalid,
+  resolveEffectiveContract,
+  selectDetachmentNegotiationOverride,
 } from '../util/contractUtils'
 import {
   calculatePilotFinancials,
@@ -62,6 +65,8 @@ import {
   DeleteUnitDocument,
   AddLedgerEntryDocument,
 } from '../types/operations'
+import { GET_DETACHMENT_CONTRACT_NEGOTIATIONS } from '../gql/operations/detachmentContract'
+import { DetachmentContractNegotiation } from '../types/detachmentContract'
 import { AarBackground } from './AarBackground'
 
 export interface AarDataState {
@@ -240,11 +245,49 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
       skip: !!propMetaData,
     },
   )
+  const { data: negotiationData } = useQuery(GET_DETACHMENT_CONTRACT_NEGOTIATIONS, {
+    variables: { campaignId: campaign.id },
+    fetchPolicy: 'cache-and-network',
+    skip: !campaign.id,
+  })
 
   const metaData = propMetaData || queryMetaData
   const unitStatuses =
     (metaData?.publicCampaignMetadata?.unitStatuses as UnitStatus[]) ||
     (FALLBACK_STATUSES as UnitStatus[])
+  const resolvedSteps = useMemo(() => {
+    const steps: Record<
+      number,
+      {
+        payRate: string
+        salvageRights: string
+        supportRights: string
+        transportation: string
+        commandRights: string
+      }
+    > = {}
+    metaData?.publicCampaignMetadata?.resolvedSteps?.forEach((entry) => {
+      if (entry?.step != null && entry.values) {
+        steps[entry.step] = entry.values as {
+          payRate: string
+          salvageRights: string
+          supportRights: string
+          transportation: string
+          commandRights: string
+        }
+      }
+    })
+    return steps
+  }, [metaData?.publicCampaignMetadata?.resolvedSteps])
+  const negotiationsByDetachment = useMemo(
+    () =>
+      buildDetachmentNegotiationMap(
+        ((negotiationData as any)?.getDetachmentContractNegotiations ??
+          []) as DetachmentContractNegotiation[],
+        campaign,
+      ),
+    [negotiationData, campaign],
+  )
   const [state, dispatch] = useAarState(campaign, track, unitStatuses)
   const [isEditingNarrative, setIsEditingNarrative] = useState(false)
   const [notices, setNotices] = useState<Record<string, string>>({})
@@ -334,15 +377,20 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
       salvageValue: 0,
       customAward: 0,
     }
-    const contract =
+    const baseContract =
       campaign.contracts
         ?.filter((c): c is Contract => c != null)
         .find((c) => c.id === detAar.selectedContractId) || campaign
+    const effectiveContract = resolveEffectiveContract(
+      baseContract,
+      selectDetachmentNegotiationOverride(negotiationsByDetachment[detId], baseContract),
+      resolvedSteps,
+    )
 
     return {
-      support: parseSupportTerms(contract.supportTerms || ''),
-      salvageCoverage: parseMultiplier(contract.salvageTerms || ''),
-      payRate: contract.payRate || 1.0,
+      support: parseSupportTerms(effectiveContract.supportTerms || ''),
+      salvageCoverage: parseMultiplier(effectiveContract.salvageTerms || ''),
+      payRate: effectiveContract.payRate || 1.0,
       ...detAar,
     }
   }
@@ -353,15 +401,20 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
 
     const noticeKey = `${detId}-award`
     // Resolve contract based on the current selection in the reducer state
-    const contract =
+    const baseContract =
       campaign.contracts
         ?.filter((c): c is Contract => c != null)
         .find((c) => c.id === detAar.selectedContractId) || campaign
+    const effectiveContract = resolveEffectiveContract(
+      baseContract,
+      selectDetachmentNegotiationOverride(negotiationsByDetachment[detId], baseContract),
+      resolvedSteps,
+    )
 
     const financials = calculateAwardFinancials(campaign, {
       ...detAar,
-      payRate: contract.payRate || 1.0,
-      salvageCoverage: parseMultiplier(contract.salvageTerms || ''),
+      payRate: effectiveContract.payRate || 1.0,
+      salvageCoverage: parseMultiplier(effectiveContract.salvageTerms || ''),
     })
     const total = financials.total
 
@@ -437,12 +490,17 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     if (!detAar) return
 
     const noticeKey = `${unit.id}-logistics`
-    const contract =
+    const baseContract =
       campaign.contracts
         ?.filter((c): c is Contract => c != null)
         .find((c) => c.id === detAar.selectedContractId) || campaign
+    const effectiveContract = resolveEffectiveContract(
+      baseContract,
+      selectDetachmentNegotiationOverride(negotiationsByDetachment[detId], baseContract),
+      resolvedSteps,
+    )
     const terms = {
-      support: parseSupportTerms(contract.supportTerms || ''),
+      support: parseSupportTerms(effectiveContract.supportTerms || ''),
       ...detAar,
     }
     const uState = state.unitStates[unit.id] || { status: unit.status || unitStatuses[0], ammo: 0 }
@@ -554,12 +612,17 @@ export const AfterActionReportEditor: React.FC<AfterActionReportEditorProps> = (
     if (!detAar || !cmdId) return
 
     const noticeKey = `${pilot.id}-medical`
-    const contract =
+    const baseContract =
       campaign.contracts
         ?.filter((c): c is Contract => c != null)
         .find((c) => c.id === detAar.selectedContractId) || campaign
+    const effectiveContract = resolveEffectiveContract(
+      baseContract,
+      selectDetachmentNegotiationOverride(negotiationsByDetachment[detId], baseContract),
+      resolvedSteps,
+    )
     const terms = {
-      support: parseSupportTerms(contract.supportTerms || ''),
+      support: parseSupportTerms(effectiveContract.supportTerms || ''),
       ...detAar,
     }
     const pState = state.pilotStates[pilot.id] || { injuries: 0, healed: 0 }

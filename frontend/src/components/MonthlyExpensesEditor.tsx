@@ -15,16 +15,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect } from 'react'
-import { useMutation } from '@apollo/client/react'
+import React, { useMemo, useState, useEffect } from 'react'
+import { useMutation, useQuery } from '@apollo/client/react'
 import { TerminalOverlay } from './TerminalOverlay'
-import { Detachment } from '../types/generated'
-import { CampaignDetailSummary, NumericInput } from '../types/helpers'
-import { AddLedgerEntryDocument as ADD_LEDGER_ENTRY } from '../types/operations'
-import { parseMultiplier, parseNumericInput, isInputInvalid } from '../util/contractUtils' // This was already correct
+import { Campaign, Contract, Detachment } from '../types/generated'
+import { NumericInput } from '../types/helpers'
+import {
+  AddLedgerEntryDocument as ADD_LEDGER_ENTRY,
+  GetCampaignMetadataDocument,
+  GetCampaignMetadataQuery,
+} from '../types/operations'
+import { GET_DETACHMENT_CONTRACT_NEGOTIATIONS } from '../gql/operations/detachmentContract'
+import { DetachmentContractNegotiation } from '../types/detachmentContract'
+import {
+  buildDetachmentNegotiationMap,
+  parseMultiplier,
+  parseNumericInput,
+  isInputInvalid,
+  resolveEffectiveContract,
+  selectDetachmentNegotiationOverride,
+} from '../util/contractUtils'
 
 interface MonthlyExpensesEditorProps {
-  campaignDetails: CampaignDetailSummary // Use CampaignDetailSummary
+  campaignDetails: Campaign
   detachments: Detachment[]
   currentMonthIndex: number
   onClose: () => void
@@ -54,6 +67,98 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
   const [detachmentForms, setDetachmentForms] = useState<DetachmentFormState[]>([])
   const [addLedgerEntry] = useMutation(ADD_LEDGER_ENTRY)
   const [notices, setNotices] = useState<Record<string, string>>({})
+  const { data: metadataQuery } = useQuery<GetCampaignMetadataQuery>(GetCampaignMetadataDocument, {
+    skip: !campaignDetails.id,
+  })
+  const { data: negotiationData } = useQuery(GET_DETACHMENT_CONTRACT_NEGOTIATIONS, {
+    variables: { campaignId: campaignDetails.id },
+    fetchPolicy: 'cache-and-network',
+    skip: !campaignDetails.id,
+  })
+
+  const resolvedSteps = useMemo(() => {
+    const steps: Record<
+      number,
+      {
+        payRate: string
+        salvageRights: string
+        supportRights: string
+        transportation: string
+        commandRights: string
+      }
+    > = {}
+    metadataQuery?.publicCampaignMetadata?.resolvedSteps?.forEach((entry) => {
+      if (entry?.step != null && entry.values) {
+        steps[entry.step] = entry.values as {
+          payRate: string
+          salvageRights: string
+          supportRights: string
+          transportation: string
+          commandRights: string
+        }
+      }
+    })
+    return steps
+  }, [metadataQuery?.publicCampaignMetadata?.resolvedSteps])
+
+  const negotiationsByDetachment = useMemo(
+    () =>
+      buildDetachmentNegotiationMap(
+        ((negotiationData as any)?.getDetachmentContractNegotiations ??
+          []) as DetachmentContractNegotiation[],
+        campaignDetails,
+      ),
+    [negotiationData, campaignDetails],
+  )
+
+  const computedFormValues = useMemo(() => {
+    return detachmentForms.reduce(
+      (acc, form) => {
+        if (form.chargeType === 'Freeform Entry') {
+          acc[form.detachmentId] = {
+            amount: form.amount,
+            description: form.description,
+          }
+          return acc
+        }
+
+        const baseContract = campaignDetails.contracts
+          ?.filter((c): c is Contract => c != null)
+          .find((c) => c.id === form.selectedContractId)
+        const effectiveContract = resolveEffectiveContract(
+          baseContract,
+          selectDetachmentNegotiationOverride(
+            negotiationsByDetachment[form.detachmentId],
+            baseContract,
+          ),
+          resolvedSteps,
+        )
+        const levelMult = form.selectedLevel
+        let amount = 0
+        let termsLabel = ''
+
+        if (form.chargeType === 'Monthly Pay & Expenses') {
+          const pRate = effectiveContract.payRate || 1.0
+          const grossPay = (campaignDetails.monthlyPay || 0) * pRate
+          const baseExpenses = campaignDetails.monthlyMaintenance || 0
+          amount = Math.round((grossPay - baseExpenses) * levelMult)
+          termsLabel = `PAY: ${Math.round(pRate * 100)}%`
+        } else if (form.chargeType === 'Transport') {
+          const tBase = (campaignDetails.transportationCost || 0) * levelMult
+          const tMult = parseMultiplier(effectiveContract.transportTerms)
+          amount = -Math.round(tBase * (1 - tMult))
+          termsLabel = effectiveContract.transportTerms || 'NONE'
+        }
+
+        acc[form.detachmentId] = {
+          amount,
+          description: `${form.chargeType.toUpperCase()}: ${campaignDetails.name} (MO ${currentMonthIndex}) [LVL ${levelMult}] [TERMS: ${termsLabel}]`,
+        }
+        return acc
+      },
+      {} as Record<string, { amount: number | string; description: string }>,
+    )
+  }, [detachmentForms, campaignDetails, currentMonthIndex, negotiationsByDetachment, resolvedSteps])
 
   const addNotice = (key: string, msg: string) => {
     setNotices((prev) => ({ ...prev, [key]: msg }))
@@ -70,15 +175,23 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     chargeType: DetachmentFormState['chargeType'],
     level: number,
     contractId: string,
+    detachmentId: string,
   ) => {
-    const contract = campaignDetails.contracts?.find((c) => c != null && c.id === contractId)
+    const baseContract = campaignDetails.contracts
+      ?.filter((c): c is Contract => c != null)
+      .find((c) => c.id === contractId)
+    const effectiveContract = resolveEffectiveContract(
+      baseContract,
+      selectDetachmentNegotiationOverride(negotiationsByDetachment[detachmentId], baseContract),
+      resolvedSteps,
+    )
     const levelMult = level
     let amount = 0
     let termsLabel = ''
 
     switch (chargeType) {
       case 'Monthly Pay & Expenses': {
-        const pRate = contract?.payRate || 1.0
+        const pRate = effectiveContract.payRate || 1.0
         const grossPay = (campaignDetails.monthlyPay || 0) * pRate
         const baseExpenses = campaignDetails.monthlyMaintenance || 0
         amount = Math.round((grossPay - baseExpenses) * levelMult)
@@ -87,9 +200,9 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
       }
       case 'Transport': {
         const tBase = (campaignDetails.transportationCost || 0) * levelMult
-        const tMult = parseMultiplier(contract?.transportTerms)
+        const tMult = parseMultiplier(effectiveContract.transportTerms)
         amount = -Math.round(tBase * (1 - tMult))
-        termsLabel = contract?.transportTerms || 'NONE'
+        termsLabel = effectiveContract.transportTerms || 'NONE'
         break
       }
       case 'Freeform Entry':
@@ -117,6 +230,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
           'Monthly Pay & Expenses',
           1,
           defaultContractId,
+          det.id,
         )
         return {
           detachmentId: det.id,
@@ -137,21 +251,28 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
   const handleFormChange = (detachmentId: string, field: keyof DetachmentFormState, value: any) => {
     setDetachmentForms((prevForms) =>
       prevForms.map((form) => {
-        if (form.detachmentId === detachmentId) {
-          const updatedForm = { ...form, [field]: value }
+        if (form.detachmentId !== detachmentId) return form
 
-          if (['chargeType', 'selectedContractId', 'selectedLevel'].includes(field)) {
-            const { amount, description } = calculateFormDefaults(
-              updatedForm.chargeType,
-              updatedForm.selectedLevel,
-              updatedForm.selectedContractId,
-            )
-            updatedForm.amount = amount
-            updatedForm.description = description
+        const updatedForm = { ...form, [field]: value }
+        if (['chargeType', 'selectedContractId', 'selectedLevel'].includes(field)) {
+          if (updatedForm.chargeType === 'Freeform Entry') {
+            return updatedForm
           }
-          return updatedForm
+
+          const computed = calculateFormDefaults(
+            updatedForm.chargeType,
+            updatedForm.selectedLevel,
+            updatedForm.selectedContractId,
+            detachmentId,
+          )
+          return {
+            ...updatedForm,
+            amount: computed.amount,
+            description: computed.description,
+          }
         }
-        return form
+
+        return updatedForm
       }),
     )
   }
@@ -166,14 +287,24 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
       ),
     )
 
+    const computed = computedFormValues[detachmentId]
+    const amountToCommit =
+      form.chargeType === 'Freeform Entry'
+        ? parseNumericInput(form.amount)
+        : parseNumericInput(computed?.amount)
+    const descriptionToCommit =
+      form.chargeType === 'Freeform Entry'
+        ? form.description
+        : computed?.description || form.description
+
     try {
       await addLedgerEntry({
         variables: {
           commandId: form.mercenaryCommandId, // Use detachment's commandId
           detachmentId: form.detachmentId,
           input: {
-            amount: parseNumericInput(form.amount),
-            description: form.description,
+            amount: amountToCommit,
+            description: descriptionToCommit,
             campaignId: campaignDetails.id,
             campaignName: campaignDetails.name,
             monthIndex: currentMonthIndex,
@@ -316,11 +447,16 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                       type="number"
                       className="table-input text-right"
                       style={{ border: 'none' }}
-                      value={form.amount}
+                      value={
+                        form.chargeType === 'Freeform Entry'
+                          ? form.amount
+                          : (computedFormValues[form.detachmentId]?.amount ?? form.amount)
+                      }
                       onChange={(e) =>
                         handleFormChange(form.detachmentId, 'amount', e.target.value)
                       }
                       title="Amount in Support Points"
+                      readOnly={form.chargeType !== 'Freeform Entry'}
                     />
                   </div>
                 </td>
@@ -330,7 +466,11 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
                       type="text"
                       className="table-input"
                       style={{ border: 'none' }}
-                      value={form.description}
+                      value={
+                        form.chargeType === 'Freeform Entry'
+                          ? form.description
+                          : (computedFormValues[form.detachmentId]?.description ?? form.description)
+                      }
                       onChange={(e) =>
                         handleFormChange(form.detachmentId, 'description', e.target.value)
                       }

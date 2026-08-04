@@ -16,12 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 import { describe, it, expect } from 'vitest'
+import { DetachmentContractNegotiation } from '../types/detachmentContract'
 import {
+  buildDetachmentNegotiationMap,
   parseMultiplier,
   parseSupportTerms,
   parseNumericInput,
   isInputInvalid,
   resolveStepValueWithGravity,
+  resolveEffectiveContract,
+  selectDetachmentNegotiationOverride,
 } from '../util/contractUtils'
 
 describe('parseMultiplier', () => {
@@ -128,6 +132,247 @@ describe('isInputInvalid', () => {
   })
 })
 
+describe('resolveEffectiveContract', () => {
+  const sampleSteps = {
+    1: {
+      payRate: '100%',
+      salvageRights: 'Full',
+      supportRights: 'Straight/50%',
+      transportation: 'Free',
+      commandRights: 'Independent',
+    },
+    3: {
+      payRate: '110%',
+      salvageRights: 'Shared',
+      supportRights: 'Battle/25%',
+      transportation: 'Discounted',
+      commandRights: 'Liaison',
+    },
+    4: {
+      payRate: '120%',
+      salvageRights: 'None',
+      supportRights: 'None',
+      transportation: 'Market Rate',
+      commandRights: 'House',
+    },
+  }
+
+  it('applies negotiated adjustments and resolves new contract terms', () => {
+    const baseContract = {
+      payStep: 1,
+      salvageStep: 1,
+      supportStep: 1,
+      transportStep: 1,
+      commandStep: 1,
+      payRate: 1,
+      salvageTerms: 'Original',
+      supportTerms: 'Original',
+      transportTerms: 'Original',
+      commandRights: 'Original',
+    }
+
+    const effective = resolveEffectiveContract(
+      baseContract,
+      {
+        payStepAdjustment: 2,
+        salvageStepAdjustment: 2,
+        supportStepAdjustment: 2,
+        transportStepAdjustment: 2,
+        commandStepAdjustment: 2,
+      },
+      sampleSteps as any,
+    )
+
+    expect(effective.payStep).toBe(3)
+    expect(effective.payRate).toBe(1.1)
+    expect(effective.salvageTerms).toBe('Shared')
+    expect(effective.supportTerms).toBe('Battle/25%')
+    expect(effective.transportTerms).toBe('Discounted')
+    expect(effective.commandRights).toBe('Liaison')
+  })
+
+  it('uses negotiated steps when present', () => {
+    const effective = resolveEffectiveContract(
+      { payStep: 1, salvageStep: 1, supportStep: 1, transportStep: 1, commandStep: 1, payRate: 1 },
+      {
+        negotiatedPayStep: 4,
+        negotiatedSalvageStep: 4,
+        negotiatedSupportStep: 4,
+        negotiatedTransportStep: 4,
+        negotiatedCommandStep: 4,
+      },
+      sampleSteps as any,
+    )
+
+    expect(effective.payStep).toBe(4)
+    expect(effective.salvageTerms).toBe('None')
+    expect(effective.supportTerms).toBe('None')
+    expect(effective.transportTerms).toBe('Market Rate')
+    expect(effective.commandRights).toBe('House')
+  })
+
+  it('computes a distinct effective contract per detachment for primary and opposition baselines', () => {
+    const primaryContract = {
+      id: 'primary-contract',
+      payStep: 2,
+      salvageStep: 2,
+      supportStep: 2,
+      transportStep: 2,
+      commandStep: 2,
+      payRate: 1,
+      salvageTerms: 'Original',
+      supportTerms: 'Original',
+      transportTerms: 'Original',
+      commandRights: 'Original',
+    }
+
+    const oppositionContract = {
+      id: 'opposition-contract',
+      payStep: 5,
+      salvageStep: 5,
+      supportStep: 5,
+      transportStep: 5,
+      commandStep: 5,
+      payRate: 1,
+      salvageTerms: 'Original',
+      supportTerms: 'Original',
+      transportTerms: 'Original',
+      commandRights: 'Original',
+    }
+
+    const primaryEffective = resolveEffectiveContract(
+      primaryContract,
+      {
+        payStepAdjustment: 1,
+        salvageStepAdjustment: 1,
+        supportStepAdjustment: 1,
+        transportStepAdjustment: 1,
+        commandStepAdjustment: 1,
+      },
+      sampleSteps as any,
+    )
+
+    const oppositionEffective = resolveEffectiveContract(
+      oppositionContract,
+      {
+        negotiatedPayStep: 4,
+        negotiatedSalvageStep: 4,
+        negotiatedSupportStep: 4,
+        negotiatedTransportStep: 4,
+        negotiatedCommandStep: 4,
+      },
+      sampleSteps as any,
+    )
+
+    expect(primaryEffective.payStep).toBe(3)
+    expect(primaryEffective.payRate).toBe(1.1)
+    expect(primaryEffective.supportTerms).toBe('Battle/25%')
+
+    expect(oppositionEffective.payStep).toBe(4)
+    expect(oppositionEffective.salvageTerms).toBe('None')
+    expect(oppositionEffective.supportTerms).toBe('None')
+    expect(oppositionEffective.transportTerms).toBe('Market Rate')
+    expect(oppositionEffective.commandRights).toBe('House')
+  })
+})
+
+describe('buildDetachmentNegotiationMap and selectDetachmentNegotiationOverride', () => {
+  it('buckets negotiations by detachment and employer type', () => {
+    const campaign = {
+      factions: [
+        { id: 'primary-faction', factionName: 'Primary Employer' },
+        { id: 'secondary-faction', factionName: 'Opposition Employer' },
+      ],
+      primaryEmployer: 'Primary Employer',
+      secondaryEmployer: 'Opposition Employer',
+    } as any
+
+    const negotiations = [
+      {
+        detachmentId: 'det-1',
+        employerFactionId: 'primary-faction',
+        negotiatedPayStep: 3,
+      },
+      {
+        detachmentId: 'det-1',
+        employerFactionId: 'secondary-faction',
+        negotiatedPayStep: 5,
+      },
+      {
+        detachmentId: 'det-1',
+        employerFactionId: 'other-faction',
+        negotiatedPayStep: 7,
+      },
+    ] as any
+
+    const map = buildDetachmentNegotiationMap(negotiations, campaign)
+    expect(map['det-1'].primary?.negotiatedPayStep).toBe(3)
+    expect(map['det-1'].opposition?.negotiatedPayStep).toBe(5)
+    expect(map['det-1'].default?.negotiatedPayStep).toBe(7)
+  })
+
+  it('selects the correct negotiation override for primary and opposition contracts', () => {
+    const bucket = {
+      primary: {
+        id: 'primary-1',
+        campaignId: 'camp',
+        detachmentId: 'det-1',
+        employerFactionId: 'primary-faction',
+        payStepAdjustment: null,
+        salvageStepAdjustment: null,
+        supportStepAdjustment: null,
+        transportStepAdjustment: null,
+        commandStepAdjustment: null,
+        salvageTerms: null,
+        supportTerms: null,
+        transportTerms: null,
+        commandRights: null,
+        negotiatedPayStep: 3,
+      } as DetachmentContractNegotiation,
+      opposition: {
+        id: 'opposition-1',
+        campaignId: 'camp',
+        detachmentId: 'det-1',
+        employerFactionId: 'secondary-faction',
+        payStepAdjustment: null,
+        salvageStepAdjustment: null,
+        supportStepAdjustment: null,
+        transportStepAdjustment: null,
+        commandStepAdjustment: null,
+        salvageTerms: null,
+        supportTerms: null,
+        transportTerms: null,
+        commandRights: null,
+        negotiatedPayStep: 5,
+      } as DetachmentContractNegotiation,
+      default: {
+        id: 'default-1',
+        campaignId: 'camp',
+        detachmentId: 'det-1',
+        employerFactionId: 'other-faction',
+        payStepAdjustment: null,
+        salvageStepAdjustment: null,
+        supportStepAdjustment: null,
+        transportStepAdjustment: null,
+        commandStepAdjustment: null,
+        salvageTerms: null,
+        supportTerms: null,
+        transportTerms: null,
+        commandRights: null,
+        negotiatedPayStep: 7,
+      } as DetachmentContractNegotiation,
+    }
+
+    expect(selectDetachmentNegotiationOverride(bucket, { primaryContract: true })).toBe(
+      bucket.primary,
+    )
+    expect(selectDetachmentNegotiationOverride(bucket, { primaryContract: false })).toBe(
+      bucket.opposition,
+    )
+    expect(selectDetachmentNegotiationOverride(bucket, { id: 'fallback' })).toBe(bucket.default)
+  })
+})
+
 describe('resolveStepValueWithGravity', () => {
   const sampleSteps = {
     7: {
@@ -184,4 +429,3 @@ describe('resolveStepValueWithGravity', () => {
     expect(resolveStepValueWithGravity(99, 'supportRights', sampleSteps)).toBe('-')
   })
 })
-
