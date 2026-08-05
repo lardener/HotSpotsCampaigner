@@ -540,6 +540,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
   // --- State ---
   const saveTimeoutRef = useRef<Record<string, number>>({})
   const [isEditingDescription, setIsEditingDescription] = useState(false)
+  const [hasNegotiation, setHasNegotiation] = useState(false)
+  const [negotiationSaveFn, setNegotiationSaveFn] = useState<(() => Promise<void>) | null>(null)
   const [showMonthlyExpensesEditor, setShowMonthlyExpensesEditor] = useState<number | null>(null) // Stores month index
   const [showAarForTrack, setShowAarForTrack] = useState<CampaignTrack | null>(null)
   const [showRecruitment, setShowRecruitment] = useState(false)
@@ -2885,10 +2887,25 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
       {negotiationDetachment && campaign && (
         <TerminalOverlay
           title="CONTRACT NEGOTIATION"
-          message={`NEGOTIATING TERMS FOR ${negotiationDetachment.name.toUpperCase()} WITH ${negotiationDetachment.employerFactionName.toUpperCase()}`}
-          onConfirm={() => setNegotiationDetachment(null)}
+          message={`NEGOTIATING TERMS FOR ${negotiationDetachment.name.toUpperCase()} IN ${campaign?.name?.toUpperCase()}`}
+          onConfirm={async () => {
+            // Invoke form save if registered. If it fails, keep the overlay open.
+            if (negotiationSaveFn) {
+              try {
+                await negotiationSaveFn()
+              } catch (err) {
+                console.error('Negotiation save failed:', err)
+                return
+              }
+            }
+
+            await refetchCampaign()
+            if (onRefresh) await onRefresh()
+            setNegotiationDetachment(null)
+          }}
           onCancel={() => setNegotiationDetachment(null)}
           cancelLabel="CLOSE"
+          confirmLabel={hasNegotiation ? 'UPDATE' : 'SAVE'}
           themeClass="theme-amber"
         >
           <DetachmentContractNegotiationForm
@@ -2911,8 +2928,9 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
             onNegotiationSaved={() => {
               refetchCampaign()
               if (onRefresh) onRefresh()
-              setNegotiationDetachment(null)
             }}
+            registerSave={(fn) => setNegotiationSaveFn(() => fn)}
+            onNegotiationStatusChange={(has) => setHasNegotiation(has)}
           />
         </TerminalOverlay>
       )}

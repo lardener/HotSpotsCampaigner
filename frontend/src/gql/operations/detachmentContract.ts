@@ -78,8 +78,4 @@ export const NEGOTIATE_DETACHMENT_CONTRACT = gql`
   }
 `
 
-export const DELETE_DETACHMENT_CONTRACT_NEGOTIATION = gql`
-  mutation DeleteDetachmentContractNegotiation($campaignId: ID!, $detachmentId: ID!) {
-    deleteDetachmentContractNegotiation(campaignId: $campaignId, detachmentId: $detachmentId)
-  }
-`
+

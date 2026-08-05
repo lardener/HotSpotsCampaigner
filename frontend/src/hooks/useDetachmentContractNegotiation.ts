@@ -19,7 +19,6 @@ import { useMutation, useQuery } from '@apollo/client/react'
 import {
   GET_DETACHMENT_CONTRACT_NEGOTIATIONS,
   NEGOTIATE_DETACHMENT_CONTRACT,
-  DELETE_DETACHMENT_CONTRACT_NEGOTIATION,
 } from '../gql/operations/detachmentContract'
 import { DetachmentContractNegotiation, NegotiateContractInput } from '../types/detachmentContract'
 
@@ -56,20 +55,4 @@ export function useNegotiateDetachmentContract() {
   }
 
   return { negotiate, loading, error }
-}
-
-/**
- * Hook for deleting a detachment contract negotiation.
- */
-export function useDeleteDetachmentContractNegotiation() {
-  const [mutate, { loading, error }] = useMutation(DELETE_DETACHMENT_CONTRACT_NEGOTIATION)
-
-  const deleteNegotiation = async (campaignId: string, detachmentId: string) => {
-    const result = await mutate({
-      variables: { campaignId, detachmentId },
-    })
-    return (result.data as any)?.deleteDetachmentContractNegotiation ?? false
-  }
-
-  return { deleteNegotiation, loading, error }
 }

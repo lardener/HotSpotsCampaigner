@@ -21,7 +21,6 @@ import { gql } from '@apollo/client'
 import {
   GET_DETACHMENT_CONTRACT_NEGOTIATIONS,
   NEGOTIATE_DETACHMENT_CONTRACT,
-  DELETE_DETACHMENT_CONTRACT_NEGOTIATION,
 } from '../gql/operations/detachmentContract'
 import { GetCampaignMetadataDocument, GetCampaignMetadataQuery } from '../types/operations'
 import {
@@ -50,6 +49,8 @@ interface Props {
   opponentTransportStep?: number
   opponentCommandStep?: number
   onNegotiationSaved?: () => void
+  registerSave?: (fn: () => Promise<void>) => void
+  onNegotiationStatusChange?: (hasNegotiation: boolean) => void
 }
 
 export const DetachmentContractNegotiationForm: React.FC<Props> = ({
@@ -70,6 +71,8 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
   opponentTransportStep = 2,
   opponentCommandStep = 1,
   onNegotiationSaved,
+  registerSave,
+  onNegotiationStatusChange,
 }) => {
   // Primary contract state
   const [payStepAdj, setPayStepAdj] = useState<number | null>(null)
@@ -108,7 +111,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
   })
 
   const [negotiateContract] = useMutation(NEGOTIATE_DETACHMENT_CONTRACT)
-  const [deleteNegotiation] = useMutation(DELETE_DETACHMENT_CONTRACT_NEGOTIATION)
 
   // Find existing negotiation for this detachment + employer
   const existingNegotiation = (existingData as any)?.getDetachmentContractNegotiations?.find(
@@ -121,6 +123,11 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
     (n: DetachmentContractNegotiation) =>
       n.detachmentId === detachmentId && n.employerFactionId === opponentFactionId,
   )
+
+  // Notify parent of negotiation existence
+  useEffect(() => {
+    onNegotiationStatusChange?.(!!(existingNegotiation || existingOppNegotiation))
+  }, [existingNegotiation, existingOppNegotiation, onNegotiationStatusChange])
 
   // Populate primary form with existing values
   useEffect(() => {
@@ -165,23 +172,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
   const resultingSupportText = getResolvedValue(finalSupportStep, 'supportRights')
   const resultingTransportText = getResolvedValue(finalTransportStep, 'transportation')
   const resultingCommandText = getResolvedValue(finalCommandStep, 'commandRights')
-
-  const handleDelete = async () => {
-    try {
-      await deleteNegotiation({
-        variables: { campaignId, detachmentId },
-      })
-      setPayStepAdj(null)
-      setSalvageStepAdj(null)
-      setSupportStepAdj(null)
-      setTransportStepAdj(null)
-      setCommandStepAdj(null)
-      onNegotiationSaved?.()
-      refetch()
-    } catch (error) {
-      console.error('Failed to delete negotiation:', error)
-    }
-  }
 
   const handleOppSave = async () => {
     // Validate required fields - check for both null/undefined AND empty strings
@@ -267,23 +257,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
       setSaveError(errorMessage)
       console.error('Failed to save opposition negotiation:', error)
       throw error
-    }
-  }
-
-  const handleOppDelete = async () => {
-    try {
-      await deleteNegotiation({
-        variables: { campaignId, detachmentId },
-      })
-      setOppPayStepAdj(null)
-      setOppSalvageStepAdj(null)
-      setOppSupportStepAdj(null)
-      setOppTransportStepAdj(null)
-      setOppCommandStepAdj(null)
-      onNegotiationSaved?.()
-      refetch()
-    } catch (error) {
-      console.error('Failed to delete opposition negotiation:', error)
     }
   }
 
@@ -404,14 +377,6 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
   const oppResultingTransportText = getResolvedValue(oppFinalTransportStep, 'transportation')
   const oppResultingCommandText = getResolvedValue(oppFinalCommandStep, 'commandRights')
 
-  const isDirty =
-    hasActiveOverrides ||
-    oppPayStepAdj !== null ||
-    oppSalvageStepAdj !== null ||
-    oppSupportStepAdj !== null ||
-    oppTransportStepAdj !== null ||
-    oppCommandStepAdj !== null
-
   const handleSaveAll = async () => {
     setSaveError(null)
     let saveErrors = 0
@@ -442,25 +407,26 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
     }
 
     if (saveErrors > 0) {
-      setSaveError('One or more negotiations failed to save. Please try again.')
-    } else {
-      onNegotiationSaved?.()
-      refetch()
+      throw new Error('Failed to save negotiations')
     }
   }
 
-  const handleCancel = () => {
-    setOppPayStepAdj(null)
-    setOppSalvageStepAdj(null)
-    setOppSupportStepAdj(null)
-    setOppTransportStepAdj(null)
-    setOppCommandStepAdj(null)
-  }
+  // Register combined save handler with parent (so parent overlay can invoke it)
+  useEffect(() => {
+    if (registerSave) {
+      try {
+        registerSave(handleSaveAll)
+      } catch (err) {
+        // ignore registration errors
+      }
+    }
+  }, [registerSave, handleSaveAll])
 
   return (
     <section
       className="dashboard-section generator-panel"
       style={{ position: 'relative', overflow: 'hidden' }}
+      data-has-negotiation={!!(existingNegotiation || existingOppNegotiation)}
     >
       <ContractNegotiationBackground />
 
@@ -839,59 +805,7 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Single Save/Cancel Bar - Fixed at bottom of scroll */}
-      <div
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          backgroundColor: 'rgba(5, 7, 5, 0.95)',
-          backdropFilter: 'blur(5px)',
-          borderTop: '1px solid #444',
-          padding: '15px 0',
-          display: 'flex',
-          gap: '10px',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button
-          className="mode-btn"
-          onClick={handleCancel}
-          style={{ backgroundColor: '#444', color: 'white' }}
-        >
-          CANCEL
-        </button>
-        <button
-          className="mode-btn theme-green"
-          onClick={handleSaveAll}
-          disabled={!isDirty}
-          style={{
-            backgroundColor: isDirty ? '#33ff33' : '#444',
-            color: 'black',
-            fontWeight: 'bold',
-            cursor: isDirty ? 'pointer' : 'default',
-          }}
-        >
-          {existingNegotiation || existingOppNegotiation
-            ? 'UPDATE NEGOTIATIONS'
-            : 'SAVE NEGOTIATIONS'}
-        </button>
-        {(existingNegotiation || existingOppNegotiation) && (
-          <button
-            className="mode-btn theme-red"
-            onClick={() => {
-              if (window.confirm('Are you sure you want to remove all negotiations?')) {
-                handleDelete()
-                handleOppDelete()
-                onNegotiationSaved?.()
-                refetch()
-              }
-            }}
-            style={{ backgroundColor: '#ff3333', color: 'black' }}
-          >
-            REMOVE ALL
-          </button>
-        )}
-      </div>
+      {/* Save is performed via parent TerminalOverlay confirm action; no inline save button here */}
 
       <style>{`
         .theme-green .cursor-pointer:hover { background-color: rgba(51, 255, 51, 0.15); box-shadow: 0 0 5px rgba(51, 255, 51, 0.1); }
