@@ -212,7 +212,7 @@ public class CampaignGraphQLController {
         }
         return userService.resolveOrCreateUser(principal.getName())
                 .flatMap(user -> commandService.isParticipantInCampaign(campaign.getId(), user.getId().toString(),
-                        principal.getName()))
+                principal.getName()))
                 .defaultIfEmpty(false);
     }
 
@@ -334,6 +334,29 @@ public class CampaignGraphQLController {
         log.trace("[TRACE] Entering joinCampaign: detachmentId={}", detachmentId);
         return campaignService.joinCampaign(token, detachmentId)
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting joinCampaign"));
+    }
+
+    @MutationMapping
+    public Mono<Boolean> autoJoinCampaign(@Argument UUID campaignId, @Argument @NonNull UUID detachmentId, Principal principal) {
+        log.trace("[TRACE] Entering autoJoinCampaign: campaignId={}, detachmentId={}", campaignId, detachmentId);
+        if (campaignId == null) {
+            return Mono.error(new IllegalArgumentException("Campaign ID is required"));
+        }
+        if (principal == null) {
+            return Mono.error(new RuntimeException("Authentication required to join campaign"));
+        }
+        return campaignService.joinCampaignAuto(campaignId, detachmentId, principal.getName())
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting autoJoinCampaign"));
+    }
+
+    @MutationMapping
+    public Mono<Boolean> cancelJoinCampaign(@Argument String token) {
+        log.trace("[TRACE] Entering cancelJoinCampaign");
+        if (token == null || token.isBlank()) {
+            return Mono.just(false);
+        }
+        return campaignService.cancelAutoJoinToken(token)
+                .doOnTerminate(() -> log.trace("[TRACE] Exiting cancelJoinCampaign"));
     }
 
     @MutationMapping

@@ -24,9 +24,13 @@ import { ActiveCampaignsBackground } from './ActiveCampaignsBackground'
 
 interface ActiveCampaignsListProps {
   onSelectCampaign?: (id: string) => void
+  onJoinCampaign?: (id: string) => void
 }
 
-export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSelectCampaign }) => {
+export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({
+  onSelectCampaign,
+  onJoinCampaign,
+}) => {
   const { loading, error, data } = useQuery<GetActiveCampaignsQuery>(GetActiveCampaignsDocument, {
     variables: { page: 0, size: 10 },
     fetchPolicy: 'cache-and-network',
@@ -126,12 +130,25 @@ export const ActiveCampaignsList: React.FC<ActiveCampaignsListProps> = ({ onSele
                 className={`campaign-card tactical-panel mb-15 bg-dark-card ${onSelectCampaign ? 'cursor-pointer' : ''}`}
                 onClick={() => onSelectCampaign?.(c.id)}
                 title={onSelectCampaign ? 'Click to view theater intel' : undefined}
+                style={{ position: 'relative' }}
               >
                 <div className="flex-between">
                   <h3 style={{ color: 'var(--accent-primary)' }}>{c.name}</h3>
                   <span className="status-tag" style={{ color: 'var(--accent-primary)' }}>
                     [ ACTIVE ]
                   </span>
+                  {onJoinCampaign && (
+                    <button
+                      className="mode-btn theme-green sm-text"
+                      style={{ padding: '4px 12px' }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onJoinCampaign(c.id)
+                      }}
+                    >
+                      JOIN THEATER
+                    </button>
+                  )}
                 </div>
                 <div className="flex flex-gap-20 fs-09em accent-dim-text">
                   <span>

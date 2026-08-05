@@ -517,6 +517,8 @@ export type Mutation = {
   assignAsset: Maybe<Scalars['Boolean']['output']>;
   assignDetachmentToCampaign: Maybe<Scalars['Boolean']['output']>;
   assignDetachmentToContract: Maybe<Scalars['Boolean']['output']>;
+  autoJoinCampaign: Maybe<Scalars['Boolean']['output']>;
+  cancelJoinCampaign: Maybe<Scalars['Boolean']['output']>;
   createCampaign: Maybe<Campaign>;
   createDetachment: Maybe<Detachment>;
   createInvite: Maybe<CampaignInvite>;
@@ -578,6 +580,17 @@ export type MutationAssignDetachmentToContractArgs = {
   contractId: Scalars['ID']['input'];
   detachmentId: Scalars['ID']['input'];
   monthIndex: Scalars['Int']['input'];
+};
+
+
+export type MutationAutoJoinCampaignArgs = {
+  campaignId: Scalars['ID']['input'];
+  detachmentId: Scalars['ID']['input'];
+};
+
+
+export type MutationCancelJoinCampaignArgs = {
+  token: Scalars['String']['input'];
 };
 
 

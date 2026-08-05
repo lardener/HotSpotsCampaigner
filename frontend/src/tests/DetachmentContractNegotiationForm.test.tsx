@@ -23,6 +23,7 @@ import { DetachmentContractNegotiationForm } from '../components/DetachmentContr
 import { GetCampaignMetadataDocument } from '../types/operations'
 import { GET_DETACHMENT_CONTRACT_NEGOTIATIONS } from '../gql/operations/detachmentContract'
 import { describe, it, expect } from 'vitest'
+import { Maybe } from '../types/generated'
 
 const metadataMock = {
   request: {
@@ -57,6 +58,9 @@ const metadataMock = {
             },
           },
         ],
+        unitStatuses: ['Operational', 'Under Repair', 'Decommissioned'] as Array<Maybe<string>>,
+        unitTypes: ['BM', 'CV', 'PM', 'IM', 'BA', 'CI'] as Array<Maybe<string>>,
+        techBases: ['Inner Sphere', 'Clan', 'Freebirth'] as Array<Maybe<string>>,
       },
     },
   },

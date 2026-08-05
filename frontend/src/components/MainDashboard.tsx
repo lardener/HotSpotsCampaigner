@@ -26,10 +26,11 @@ import { LedgerDashboard } from './LedgerDashboard'
 import { CommandDashboard } from './CommandDashboard'
 import { PublicCampaignTheaterView } from './PublicCampaignTheaterView'
 import { Sidebar } from './Sidebar'
-import { Campaign, UserProfile, MercenaryCommand } from '../types/generated'
+import { Campaign, UserProfile, MercenaryCommand, Detachment } from '../types/generated'
 import { GetMyCommandsQuery, GetManagedCampaignsQuery } from '../types/operations'
 import { MercenaryRegistryBackground } from './MercenaryRegistryBackground'
 import { MyDeploymentsList } from './MyDeploymentsList'
+import { JoinCampaignDialog } from './JoinCampaignDialog'
 import { TerminalOverlay } from './TerminalOverlay'
 
 // Code-split heavy views so they are loaded on demand, shrinking the initial bundle.
@@ -92,6 +93,12 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   const [isChildSyncing, setIsChildSyncing] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [publicViewingCampaignId, setPublicViewingCampaignId] = useState<string | null>(null)
+  const [showJoinDialog, setShowJoinDialog] = useState(false)
+  const [joinDialogCampaign, setJoinDialogCampaign] = useState<{
+    id: string
+    name: string
+    systemName: string | null
+  } | null>(null)
 
   const [overlay, setOverlay] = useState<{
     title: string
@@ -145,6 +152,17 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
         onConfirm: () => setOverlay(null),
       })
     }
+  }
+
+  const handleJoinCampaign = (campaignId: string) => {
+    // Find campaign data from managed campaigns or active campaigns
+    const managed = managedData?.managedCampaigns?.find((c) => c?.id === campaignId)
+    setJoinDialogCampaign({
+      id: campaignId,
+      name: managed?.name || 'UNKNOWN THEATER',
+      systemName: managed?.systemName || null,
+    })
+    setShowJoinDialog(true)
   }
 
   const scheduleNextInactivityCheck = useCallback(() => {
@@ -860,7 +878,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               <h1 className="terminal-text">AVAILABLE CAMPAIGNS</h1>
             </header>{' '}
             {/* Added title to button */}
-            <ActiveCampaignsList onSelectCampaign={setPublicViewingCampaignId} />
+            <ActiveCampaignsList
+              onSelectCampaign={setPublicViewingCampaignId}
+              onJoinCampaign={(campId) => handleJoinCampaign(campId)}
+            />
           </div>
         )
       case 'my-deployments':
@@ -983,6 +1004,25 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             inputInitialValue={overlay.inputInitialValue}
             inputType={overlay.inputType}
             inputLabel={overlay.inputLabel}
+          />
+        )}
+        {showJoinDialog && joinDialogCampaign && (
+          <JoinCampaignDialog
+            campaignId={joinDialogCampaign.id}
+            campaignName={joinDialogCampaign.name}
+            systemName={joinDialogCampaign.systemName}
+            onClose={() => setShowJoinDialog(false)}
+            onSuccess={() => {
+              setShowJoinDialog(false)
+              setJoinDialogCampaign(null)
+              handleManualRefresh()
+            }}
+            userCommands={(commands || [])
+              .filter((cmd): cmd is NonNullable<typeof cmd> => cmd != null)
+              .map((cmd) => ({
+                detachments: (cmd.detachments || []).filter((d): d is Detachment => d != null) as
+                  Detachment[] | null,
+              }))}
           />
         )}
       </main>

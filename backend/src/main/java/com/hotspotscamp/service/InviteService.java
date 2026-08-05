@@ -45,10 +45,11 @@ import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
-
 public class InviteService {
 
     private static final Logger log = LoggerFactory.getLogger(InviteService.class);
+
+    public static final String AUTO_JOIN_RECIPIENT_PREFIX = "AUTO:";
 
     private final CampaignInviteRepository inviteRepository;
     private final UserRepository userRepository;
@@ -153,6 +154,85 @@ public class InviteService {
                 })
                 .switchIfEmpty(Mono.error(new RuntimeException("INVALID INVITATION KEY")))
                 .doOnTerminate(() -> log.trace("[TRACE] Finished validateAndConsumeInvite"));
+    }
+
+    /**
+     * Generates an automated join token for a campaign. These tokens are
+     * short-lived (5 minutes) and tied to an authenticated user. The recipient
+     * name is prefixed with "AUTO:" to distinguish from manual invites.
+     *
+     * @param campaignId the campaign to generate a join token for
+     * @param userId the authenticated user generating the token
+     * @return a Mono emitting the generated CampaignInvite with the raw token
+     */
+    public Mono<CampaignInvite> autoGenerateJoinToken(UUID campaignId, String userId) {
+        log.trace("[TRACE] Starting autoGenerateJoinToken: campaignId={}, userId={}", campaignId, userId);
+        if (campaignId == null) {
+            return Mono.error(new IllegalArgumentException("Campaign ID is required"));
+        }
+        if (userId == null || userId.isBlank()) {
+            return Mono.error(new IllegalArgumentException("User ID is required"));
+        }
+
+        String rawToken = RandomStringUtils.secure().nextAlphanumeric(12).toUpperCase();
+        String hashedToken = hashToken(rawToken);
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(5); // 5 minutes validity
+        String autoRecipient = AUTO_JOIN_RECIPIENT_PREFIX + userId;
+
+        return inviteRepository.save(Objects.requireNonNull(CampaignInvite.builder()
+                .id(UUID.randomUUID())
+                .campaignId(campaignId)
+                .token(hashedToken)
+                .recipientName(autoRecipient)
+                .expiresAt(expiry)
+                .used(false)
+                .build()))
+                .map(saved -> CampaignInvite.builder()
+                .id(saved.getId())
+                .campaignId(campaignId)
+                .token(rawToken)
+                .recipientName(autoRecipient)
+                .expiresAt(expiry)
+                .used(false)
+                .build())
+                .doOnNext(invite -> log.debug("[AUTO-JOIN] Generated auto-join token for campaign {}: recipient='{}', tokenHash={}, expiresAt={}",
+                campaignId, autoRecipient, hashedToken.substring(0, 8) + "...", expiry))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished autoGenerateJoinToken"));
+    }
+
+    /**
+     * Finds and deletes an auto-generated join token by its raw value. Used
+     * when a user cancels before joining.
+     *
+     * @param token the raw token to cancel
+     * @return true if the token was found and deleted, false otherwise
+     */
+    public Mono<Boolean> cancelAutoJoinToken(String token) {
+        log.trace("[TRACE] Starting cancelAutoJoinToken");
+        if (token == null || token.isBlank()) {
+            return Mono.just(false);
+        }
+
+        String normalizedToken = token.trim().toUpperCase();
+        String hashedToken = hashToken(normalizedToken);
+
+        return inviteRepository.findByToken(hashedToken)
+                .flatMap(invite -> {
+                    // Only cancel tokens that are auto-generated and unused
+                    if (invite.getRecipientName() != null
+                            && invite.getRecipientName().startsWith(AUTO_JOIN_RECIPIENT_PREFIX)
+                            && !Boolean.TRUE.equals(invite.getUsed())) {
+                        log.info("[AUTO-JOIN] Canceling auto-join token for campaign {}", invite.getCampaignId());
+                        return inviteRepository.delete(invite).then(Mono.just(true));
+                    }
+                    log.warn("[AUTO-JOIN] Attempted to cancel non-auto or already-used token");
+                    return Mono.just(false);
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.debug("[AUTO-JOIN] Token not found in DB, nothing to cancel");
+                    return Mono.just(false);
+                }))
+                .doOnTerminate(() -> log.trace("[TRACE] Finished cancelAutoJoinToken"));
     }
 
     private String hashToken(String token) {

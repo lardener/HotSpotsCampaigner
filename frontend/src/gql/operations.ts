@@ -489,6 +489,18 @@ export const JOIN_CAMPAIGN = gql`
   }
 `
 
+export const AUTO_JOIN_CAMPAIGN = gql`
+  mutation AutoJoinCampaign($campaignId: ID!, $detachmentId: ID!) {
+    autoJoinCampaign(campaignId: $campaignId, detachmentId: $detachmentId)
+  }
+`
+
+export const CANCEL_JOIN_CAMPAIGN = gql`
+  mutation CancelJoinCampaign($token: String!) {
+    cancelJoinCampaign(token: $token)
+  }
+`
+
 export const GET_CAMPAIGN_DETAILS = gql`
   query GetCampaignDetails($campaignId: ID!) {
     getCampaign(id: $campaignId) {

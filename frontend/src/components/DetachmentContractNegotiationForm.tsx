@@ -531,6 +531,11 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
                   })}
                 </select>
               </div>
+
+              {/* Support Step Result Display */}
+              <div style={{ marginTop: '8px', fontSize: '0.8rem', color: '#33ff33' }}>
+                Result: Step {finalSupportStep} ({resultingSupportText})
+              </div>
             </div>
 
             <div className="form-group">

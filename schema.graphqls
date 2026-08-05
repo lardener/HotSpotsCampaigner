@@ -114,6 +114,8 @@ type Mutation {
   deleteInvite(id: ID!): Boolean
   assignAsset(assetType: String!, assetId: ID!, detachmentId: ID): Boolean
   joinCampaign(token: String!, detachmentId: ID!): Boolean
+  autoJoinCampaign(campaignId: ID!, detachmentId: ID!): Boolean
+  cancelJoinCampaign(token: String!): Boolean
   updateUserProfile(displayName: String): UserProfile
 
   # Market Operations

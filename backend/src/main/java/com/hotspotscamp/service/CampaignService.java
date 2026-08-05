@@ -255,6 +255,39 @@ public class CampaignService {
                 .transformDeferred(transactionalOperator::transactional);
     }
 
+    /**
+     * Automated join flow: generates a one-time token server-side, validates
+     * it, and assigns the detachment to the campaign in a single operation.
+     * This is used by authenticated users who browse and join campaigns
+     * directly.
+     *
+     * @param campaignId the campaign to join
+     * @param detachmentId the detachment to deploy
+     * @param userId the authenticated user (used for token recipient naming)
+     * @return true if the detachment was successfully assigned
+     */
+    public Mono<Boolean> joinCampaignAuto(@NonNull UUID campaignId, @NonNull UUID detachmentId, String userId) {
+        log.trace("[TRACE] Starting joinCampaignAuto: campaignId={}, detachmentId={}, userId={}", campaignId, detachmentId, userId);
+        return inviteService.autoGenerateJoinToken(campaignId, userId)
+                .flatMap(invite -> {
+                    String rawToken = invite.getToken();
+                    log.debug("[AUTO-JOIN] Token generated, validating and joining...");
+                    return inviteService.validateAndConsumeInvite(rawToken)
+                            .flatMap(validatedInvite -> detachmentRepository.findById(detachmentId)
+                            .flatMap(det -> {
+                                det.setNew(false);
+                                det.setCampaignId(validatedInvite.getCampaignId());
+                                log.info("[AUTO-JOIN] Detachment {} assigned to campaign {} by user {}",
+                                        detachmentId, validatedInvite.getCampaignId(), userId);
+                                return detachmentRepository.save(det).thenReturn(true);
+                            })
+                            .switchIfEmpty(Mono.error(new RuntimeException("DETACHMENT NOT FOUND")))
+                            );
+                })
+                .switchIfEmpty(Mono.error(new RuntimeException("UNABLE TO GENERATE JOIN TOKEN")))
+                .transformDeferred(transactionalOperator::transactional);
+    }
+
     public Mono<Boolean> deleteInvite(@NonNull UUID inviteId, String userId) {
         return userService.resolveOrCreateUser(userId).flatMap(user -> campaignInviteRepository.findById(inviteId)
                 .flatMap(invite -> campaignRepository.findById(Objects.requireNonNull(invite.getCampaignId()))
@@ -262,6 +295,10 @@ public class CampaignService {
                 ? campaignInviteRepository.delete(invite).thenReturn(true)
                 : Mono.error(new RuntimeException("Access Denied")))))
                 .transformDeferred(transactionalOperator::transactional);
+    }
+
+    public Mono<Boolean> cancelAutoJoinToken(String token) {
+        return inviteService.cancelAutoJoinToken(token);
     }
 
     public Mono<CampaignTrack> rerollTrack(@NonNull UUID trackId, String managerId) {
