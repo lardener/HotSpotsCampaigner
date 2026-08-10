@@ -1,182 +1,530 @@
 {
-    "groupDiceCount": 1,
-    "groupDiceSides": 6,
-    "entryDiceCount": 1,
-    "entryDiceSides": 6,
-    "groups": [
+  "groupDiceCount": 1,
+  "groupDiceSides": 18,
+  "entryDiceCount": 1,
+  "entryDiceSides": 6,
+  "groups": [
+    {
+      "roll": 1,
+      "entries": [
         {
-            "roll": 1,
-            "entries": [
-                {
-                    "roll": 1,
-                    "name": "Almotacen"
-                },
-                {
-                    "roll": 2,
-                    "name": "Alyina"
-                },
-                {
-                    "roll": 3,
-                    "name": "Antares"
-                },
-                {
-                    "roll": 4,
-                    "name": "Arcadia"
-                },
-                {
-                    "roll": 5,
-                    "name": "Borghese"
-                },
-                {
-                    "roll": 6,
-                    "name": "Butler"
-                }
-            ]
+          "roll": 1,
+          "name": "Almotacen"
         },
         {
-            "roll": 2,
-            "entries": [
-                {
-                    "roll": 1,
-                    "name": "Chahar"
-                },
-                {
-                    "roll": 2,
-                    "name": "Colmar"
-                },
-                {
-                    "roll": 3,
-                    "name": "Domain"
-                },
-                {
-                    "roll": 4,
-                    "name": "Eckert"
-                },
-                {
-                    "roll": 5,
-                    "name": "Erellon"
-                },
-                {
-                    "roll": 6,
-                    "name": "Gorgon"
-                }
-            ]
+          "roll": 2,
+          "name": "Alyina"
         },
         {
-            "roll": 3,
-            "entries": [
-                {
-                    "roll": 1,
-                    "name": "Graus"
-                },
-                {
-                    "roll": 2,
-                    "name": "Heidelberg"
-                },
-                {
-                    "roll": 3,
-                    "name": "Hot Springs"
-                },
-                {
-                    "roll": 4,
-                    "name": "Kentyre"
-                },
-                {
-                    "roll": 5,
-                    "name": "Koniz"
-                },
-                {
-                    "roll": 6,
-                    "name": "La Grave"
-                }
-            ]
+          "roll": 3,
+          "name": "Antares"
         },
         {
-            "roll": 4,
-            "entries": [
-                {
-                    "roll": 1,
-                    "name": "Madiun"
-                },
-                {
-                    "roll": 2,
-                    "name": "Malibu"
-                },
-                {
-                    "roll": 3,
-                    "name": "Meltz"
-                },
-                {
-                    "roll": 4,
-                    "name": "Nox"
-                },
-                {
-                    "roll": 5,
-                    "name": "Obeedull"
-                },
-                {
-                    "roll": 6,
-                    "name": "Parakoila"
-                }
-            ]
+          "roll": 4,
+          "name": "Arcadia"
         },
         {
-            "roll": 5,
-            "entries": [
-                {
-                    "roll": 1,
-                    "name": "Quisqualis"
-                },
-                {
-                    "roll": 2,
-                    "name": "Ramsau"
-                },
-                {
-                    "roll": 3,
-                    "name": "Satalice"
-                },
-                {
-                    "roll": 4,
-                    "name": "Sudeten"
-                },
-                {
-                    "roll": 5,
-                    "name": "Tamar"
-                },
-                {
-                    "roll": 6,
-                    "name": "Tharkad"
-                }
-            ]
+          "roll": 5,
+          "name": "Borghese"
         },
         {
-            "roll": 6,
-            "entries": [
-                {
-                    "roll": 1,
-                    "name": "Tukayyid"
-                },
-                {
-                    "roll": 2,
-                    "name": "Twycross"
-                },
-                {
-                    "roll": 3,
-                    "name": "Verthandi"
-                },
-                {
-                    "roll": 4,
-                    "name": "Viper's Pit"
-                },
-                {
-                    "roll": 5,
-                    "name": "Waldorff"
-                },
-                {
-                    "roll": 6,
-                    "name": "Zanderij"
-                }
-            ]
+          "roll": 6,
+          "name": "Butler"
         }
-    ]
+      ]
+    },
+    {
+      "roll": 2,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Chahar"
+        },
+        {
+          "roll": 2,
+          "name": "Colmar"
+        },
+        {
+          "roll": 3,
+          "name": "Domain"
+        },
+        {
+          "roll": 4,
+          "name": "Eckert"
+        },
+        {
+          "roll": 5,
+          "name": "Erellon"
+        },
+        {
+          "roll": 6,
+          "name": "Gorgon"
+        }
+      ]
+    },
+    {
+      "roll": 3,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Graus"
+        },
+        {
+          "roll": 2,
+          "name": "Heidelberg"
+        },
+        {
+          "roll": 3,
+          "name": "Hot Springs"
+        },
+        {
+          "roll": 4,
+          "name": "Kentyre"
+        },
+        {
+          "roll": 5,
+          "name": "Koniz"
+        },
+        {
+          "roll": 6,
+          "name": "La Grave"
+        }
+      ]
+    },
+    {
+      "roll": 4,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Madiun"
+        },
+        {
+          "roll": 2,
+          "name": "Malibu"
+        },
+        {
+          "roll": 3,
+          "name": "Meltz"
+        },
+        {
+          "roll": 4,
+          "name": "Nox"
+        },
+        {
+          "roll": 5,
+          "name": "Obeedull"
+        },
+        {
+          "roll": 6,
+          "name": "Parakoila"
+        }
+      ]
+    },
+    {
+      "roll": 5,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Quisqualis"
+        },
+        {
+          "roll": 2,
+          "name": "Ramsau"
+        },
+        {
+          "roll": 3,
+          "name": "Satalice"
+        },
+        {
+          "roll": 4,
+          "name": "Sudeten"
+        },
+        {
+          "roll": 5,
+          "name": "Tamar"
+        },
+        {
+          "roll": 6,
+          "name": "Tharkad"
+        }
+      ]
+    },
+    {
+      "roll": 6,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Tukayyid"
+        },
+        {
+          "roll": 2,
+          "name": "Twycross"
+        },
+        {
+          "roll": 3,
+          "name": "Verthandi"
+        },
+        {
+          "roll": 4,
+          "name": "Viper's Pit"
+        },
+        {
+          "roll": 5,
+          "name": "Waldorff"
+        },
+        {
+          "roll": 6,
+          "name": "Zanderij"
+        }
+      ]
+    },
+    {
+      "roll": 7,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Tikonov"
+        },
+        {
+          "roll": 2,
+          "name": "Rio"
+        },
+        {
+          "roll": 3,
+          "name": "Basalt"
+        },
+        {
+          "roll": 4,
+          "name": "Caselton"
+        },
+        {
+          "roll": 5,
+          "name": "Deneb Kaitos"
+        },
+        {
+          "roll": 6,
+          "name": "Addicks"
+        }
+      ]
+    },
+    {
+      "roll": 8,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Helen"
+        },
+        {
+          "roll": 2,
+          "name": "Small World"
+        },
+        {
+          "roll": 3,
+          "name": "Markab"
+        },
+        {
+          "roll": 4,
+          "name": "Galatia"
+        },
+        {
+          "roll": 5,
+          "name": "Cylene"
+        },
+        {
+          "roll": 6,
+          "name": "Edwards"
+        }
+      ]
+    },
+    {
+      "roll": 9,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Mara"
+        },
+        {
+          "roll": 2,
+          "name": "Elbar"
+        },
+        {
+          "roll": 3,
+          "name": "Cartago"
+        },
+        {
+          "roll": 4,
+          "name": "Chesterton"
+        },
+        {
+          "roll": 5,
+          "name": "New Hessen"
+        },
+        {
+          "roll": 6,
+          "name": "Ruchbah"
+        }
+      ]
+    },
+    {
+      "roll": 10,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Skat"
+        },
+        {
+          "roll": 2,
+          "name": "Halstead Station"
+        },
+        {
+          "roll": 3,
+          "name": "Fellanin II"
+        },
+        {
+          "roll": 4,
+          "name": "Marlette"
+        },
+        {
+          "roll": 5,
+          "name": "Johnsdale"
+        },
+        {
+          "roll": 6,
+          "name": "Olancha"
+        }
+      ]
+    },
+    {
+      "roll": 11,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Al Na'îr"
+        },
+        {
+          "roll": 2,
+          "name": "Raman"
+        },
+        {
+          "roll": 3,
+          "name": "David"
+        },
+        {
+          "roll": 4,
+          "name": "Lapida II"
+        },
+        {
+          "roll": 5,
+          "name": "Ancha"
+        },
+        {
+          "roll": 6,
+          "name": "Kentares IV"
+        }
+      ]
+    },
+    {
+      "roll": 12,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Klathandu IV"
+        },
+        {
+          "roll": 2,
+          "name": "Proserpina"
+        },
+        {
+          "roll": 3,
+          "name": "Clovis"
+        },
+        {
+          "roll": 4,
+          "name": "Sadalbari"
+        },
+        {
+          "roll": 5,
+          "name": "Exeter"
+        },
+        {
+          "roll": 6,
+          "name": "Shinonoi"
+        }
+      ]
+    },
+    {
+      "roll": 13,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Sadalbari"
+        },
+        {
+          "roll": 2,
+          "name": "Raman"
+        },
+        {
+          "roll": 3,
+          "name": "Raman"
+        },
+        {
+          "roll": 4,
+          "name": "David"
+        },
+        {
+          "roll": 5,
+          "name": "Fellanin II"
+        },
+        {
+          "roll": 6,
+          "name": "Klathandu"
+        }
+      ]
+    },
+    {
+      "roll": 14,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Sadalbari"
+        },
+        {
+          "roll": 2,
+          "name": "Raman"
+        },
+        {
+          "roll": 3,
+          "name": "Raman"
+        },
+        {
+          "roll": 4,
+          "name": "David"
+        },
+        {
+          "roll": 5,
+          "name": "Fellanin II"
+        },
+        {
+          "roll": 6,
+          "name": "Klathandu"
+        }
+      ]
+    },
+    {
+      "roll": 15,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Lapida II"
+        },
+        {
+          "roll": 2,
+          "name": "Mara"
+        },
+        {
+          "roll": 3,
+          "name": "Cartago"
+        },
+        {
+          "roll": 4,
+          "name": "Kentares IV"
+        },
+        {
+          "roll": 5,
+          "name": "Olancha"
+        },
+        {
+          "roll": 6,
+          "name": "Exeter"
+        }
+      ]
+    },
+    {
+      "roll": 16,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Johnsdale"
+        },
+        {
+          "roll": 2,
+          "name": "Cylene"
+        },
+        {
+          "roll": 3,
+          "name": "Elbar"
+        },
+        {
+          "roll": 4,
+          "name": "Clovis"
+        },
+        {
+          "roll": 5,
+          "name": "Skat"
+        },
+        {
+          "roll": 6,
+          "name": "Galatia"
+        }
+      ]
+    },
+    {
+      "roll": 17,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Marlette"
+        },
+        {
+          "roll": 2,
+          "name": "Marlette"
+        },
+        {
+          "roll": 3,
+          "name": "Edwards"
+        },
+        {
+          "roll": 4,
+          "name": "Caselton"
+        },
+        {
+          "roll": 5,
+          "name": "Addicks"
+        },
+        {
+          "roll": 6,
+          "name": "Addicks"
+        }
+      ]
+    },
+    {
+      "roll": 18,
+      "entries": [
+        {
+          "roll": 1,
+          "name": "Shinonoi"
+        },
+        {
+          "roll": 2,
+          "name": "Ancha"
+        },
+        {
+          "roll": 3,
+          "name": "Halstead Station"
+        },
+        {
+          "roll": 4,
+          "name": "Al Na'îr"
+        },
+        {
+          "roll": 5,
+          "name": "Helen"
+        },
+        {
+          "roll": 6,
+          "name": "Deneb Kaitos"
+        }
+      ]
+    }
+  ]
 }
