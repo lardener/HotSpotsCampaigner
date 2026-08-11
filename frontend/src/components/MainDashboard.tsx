@@ -850,7 +850,10 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <CommandDashboard
             commandId={selectedCommandId}
             detachmentId={selectedDetachmentId || undefined}
-            isManagerView={selectedNodeId?.startsWith('camp-det-')}
+            isManagerView={
+              selectedNodeId?.startsWith('camp-det-') ||
+              !commands.some((cmd) => cmd.id === selectedCommandId)
+            }
             onViewCampaign={(campaignId) => {
               setSelectedCampaignId(campaignId)
               setActiveTab('my-campaigns')
@@ -868,6 +871,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
             <PublicCampaignTheaterView
               campaignId={publicViewingCampaignId}
               onBack={() => setPublicViewingCampaignId(null)}
+              onSelectDetachment={handleTreeSelect}
             />
           )
         }
@@ -896,6 +900,7 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           <PublicCampaignTheaterView
             campaignId={publicViewingCampaignId}
             onBack={() => setPublicViewingCampaignId(null)}
+            onSelectDetachment={handleTreeSelect}
           />
         ) : (
           <div

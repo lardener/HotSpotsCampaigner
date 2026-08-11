@@ -178,9 +178,23 @@ public class LedgerService {
     }
 
     private Mono<Boolean> isAuthorizedForCommand(@NonNull UUID commandId, String userId) {
-        return commandRepository.findById(commandId)
-                .flatMap(cmd -> userService.resolveOrCreateUser(userId)
-                .map(user -> cmd.getOwnerId().equals(user.getId().toString())));
+        return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
+            String internalId = user.getId().toString();
+            String sql = "SELECT EXISTS ("
+                    + "  SELECT 1 FROM mercenary_commands mc "
+                    + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
+                    + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
+                    + "  WHERE mc.id = :cmdId "
+                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
+                    + ")";
+            var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);
+            spec = SqlUtils.bindString(spec, "userId", internalId);
+            spec = SqlUtils.bindString(spec, "externalId", userId);
+            return spec.map((row, metadata) -> row.get(0, Number.class))
+                    .one()
+                    .map(n -> n != null && n.longValue() > 0)
+                    .defaultIfEmpty(false);
+        });
     }
 
     public Mono<MercenaryCommand> syncTotalSupportPoints(@NonNull UUID commandId) {

@@ -83,7 +83,7 @@ public class CommandGraphQLController {
             return Mono.empty();
         }
         String userId = principal.getName();
-        return detachmentService.isAuthorizedForCommand(id, userId)
+        return commandService.isAuthorizedForCommand(id, userId)
                 .flatMap(authorized -> authorized ? commandService.getCommandById(id) : Mono.empty())
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting getCommand"));
     }

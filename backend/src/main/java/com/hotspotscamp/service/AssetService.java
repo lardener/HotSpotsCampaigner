@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.reactive.TransactionalOperator;
 
@@ -36,6 +37,7 @@ import com.hotspotscamp.mapper.PilotMapper;
 import com.hotspotscamp.repository.CombatUnitRepository;
 import com.hotspotscamp.repository.MercenaryCommandRepository;
 import com.hotspotscamp.repository.PilotRepository;
+import com.hotspotscamp.util.SqlUtils;
 
 import lombok.NonNull;
 import reactor.core.publisher.Mono;
@@ -54,6 +56,7 @@ public class AssetService {
     private final CombatUnitMapper combatUnitMapper;
     private final PilotMapper pilotMapper;
     private final TransactionalOperator transactionalOperator;
+    private final DatabaseClient databaseClient;
 
     public AssetService(
             CombatUnitRepository combatUnitRepository,
@@ -63,7 +66,8 @@ public class AssetService {
             Sinks.Many<MercenaryCommand> commandSink,
             CombatUnitMapper combatUnitMapper,
             PilotMapper pilotMapper,
-            TransactionalOperator transactionalOperator) {
+            TransactionalOperator transactionalOperator,
+            DatabaseClient databaseClient) {
         this.combatUnitRepository = combatUnitRepository;
         this.pilotRepository = pilotRepository;
         this.commandRepository = commandRepository;
@@ -72,6 +76,31 @@ public class AssetService {
         this.combatUnitMapper = combatUnitMapper;
         this.pilotMapper = pilotMapper;
         this.transactionalOperator = transactionalOperator;
+        this.databaseClient = databaseClient;
+    }
+
+    /**
+     * Checks if the user is the command owner or the campaign manager
+     * for any campaign where this command has a deployed detachment.
+     */
+    private Mono<Boolean> isOwnerOrCampaignManager(@NonNull UUID commandId, String userId) {
+        return userService.resolveOrCreateUser(userId).<Boolean>flatMap(user -> {
+            String internalId = user.getId().toString();
+            String sql = "SELECT EXISTS ("
+                    + "  SELECT 1 FROM mercenary_commands mc "
+                    + "  LEFT JOIN detachments d ON d.mercenary_command_id = mc.id "
+                    + "  LEFT JOIN campaigns c ON d.campaign_id = c.id "
+                    + "  WHERE mc.id = :cmdId "
+                    + "  AND (mc.owner_id = :userId OR c.manager_id = :userId OR c.manager_id = :externalId)"
+                    + ")";
+            var spec = SqlUtils.bindUuid(databaseClient.sql(sql), "cmdId", commandId);
+            spec = SqlUtils.bindString(spec, "userId", internalId);
+            spec = SqlUtils.bindString(spec, "externalId", userId);
+            return spec.map((row, metadata) -> row.get(0, Number.class))
+                    .one()
+                    .map(n -> n != null && n.longValue() > 0)
+                    .defaultIfEmpty(false);
+        });
     }
 
     /**
@@ -86,14 +115,13 @@ public class AssetService {
                     if (commandId == null) {
                         return Mono.<Void>error(new RuntimeException("Unit record is corrupted: No command ID"));
                     }
-                    return commandRepository.findById(commandId)
-                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
-                            .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> {
-                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                    return isOwnerOrCampaignManager(commandId, userId)
+                            .<Void>flatMap(authorized -> {
+                        if (!authorized) {
                             return Mono.<Void>error(new RuntimeException("Access Denied"));
                         }
                         return combatUnitRepository.delete(unit);
-                    }));
+                    });
                 })
                 .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deleteCombatUnit"));
@@ -111,14 +139,13 @@ public class AssetService {
                     if (commandId == null) {
                         return Mono.<Void>error(new RuntimeException("Pilot record is corrupted: No command ID"));
                     }
-                    return commandRepository.findById(commandId)
-                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
-                            .<Void>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Void>flatMap(user -> {
-                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                    return isOwnerOrCampaignManager(commandId, userId)
+                            .<Void>flatMap(authorized -> {
+                        if (!authorized) {
                             return Mono.<Void>error(new RuntimeException("Access Denied"));
                         }
                         return pilotRepository.delete(pilot);
-                    }));
+                    });
                 })
                 .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished deletePilot"));
@@ -136,10 +163,9 @@ public class AssetService {
                     if (commandId == null) {
                         return Mono.<CombatUnit>error(new RuntimeException("Unit record is corrupted: No command ID"));
                     }
-                    return commandRepository.findById(commandId)
-                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
-                            .<CombatUnit>flatMap(cmd -> userService.resolveOrCreateUser(userId).<CombatUnit>flatMap(user -> {
-                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                    return isOwnerOrCampaignManager(commandId, userId)
+                            .<CombatUnit>flatMap(authorized -> {
+                        if (!authorized) {
                             return Mono.<CombatUnit>error(new RuntimeException("Access Denied"));
                         }
                         unit.setNew(false);
@@ -149,7 +175,7 @@ public class AssetService {
                                 .doOnNext(commandSink::tryEmitNext)
                                 .thenReturn(u))
                                 .onErrorResume(DuplicateKeyException.class, e -> combatUnitRepository.findById(unitId));
-                    }));
+                    });
                 })
                 .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updateCombatUnit"));
@@ -167,10 +193,9 @@ public class AssetService {
                     if (commandId == null) {
                         return Mono.<Pilot>error(new RuntimeException("Pilot record is corrupted: No command ID"));
                     }
-                    return commandRepository.findById(commandId)
-                            .switchIfEmpty(Mono.<MercenaryCommand>error(new RuntimeException("Command not found")))
-                            .<Pilot>flatMap(cmd -> userService.resolveOrCreateUser(userId).<Pilot>flatMap(user -> {
-                        if (!cmd.getOwnerId().equals(user.getId().toString())) {
+                    return isOwnerOrCampaignManager(commandId, userId)
+                            .<Pilot>flatMap(authorized -> {
+                        if (!authorized) {
                             return Mono.<Pilot>error(new RuntimeException("Access Denied"));
                         }
                         pilot.setNew(false);
@@ -180,7 +205,7 @@ public class AssetService {
                                 .doOnNext(commandSink::tryEmitNext)
                                 .thenReturn(p))
                                 .onErrorResume(DuplicateKeyException.class, e -> pilotRepository.findById(pilotId));
-                    }));
+                    });
                 })
                 .transformDeferred(transactionalOperator::transactional)
                 .doOnTerminate(() -> log.trace("[TRACE] Finished updatePilot"));

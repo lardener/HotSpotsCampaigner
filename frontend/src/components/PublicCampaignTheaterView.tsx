@@ -27,14 +27,18 @@ import {
 import { CampaignTrack } from '../types/generated'
 import { CampaignTheaterBackground } from './CampaignTheaterBackground'
 
+import { TreeItem } from './NavigationTree'
+
 interface PublicCampaignTheaterViewProps {
   campaignId: string
   onBack: () => void
+  onSelectDetachment?: (item: TreeItem) => void
 }
 
 export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps> = ({
   campaignId,
   onBack,
+  onSelectDetachment,
 }) => {
   const { loading, error, data } = useQuery<GetCampaignDetailsQuery>(GET_PUBLIC_CAMPAIGN_DETAILS, {
     variables: { campaignId },
@@ -198,7 +202,24 @@ export const PublicCampaignTheaterView: React.FC<PublicCampaignTheaterViewProps>
           {(campaign.participatingDetachments || [])
             .filter((det: any): det is NonNullable<typeof det> => det != null)
             .map((det: any) => (
-              <div key={det.id} className="asset-card">
+              <div
+                key={det.id}
+                className="asset-card"
+                style={{ cursor: onSelectDetachment ? 'pointer' : 'default' }}
+                onClick={() =>
+                  onSelectDetachment?.({
+                    id: `camp-det-${det.id}`,
+                    label: det.name || 'UNKNOWN DETACHMENT',
+                    type: 'DETACHMENT',
+                    metadata: {
+                      detachmentId: det.id,
+                      commandId: det.mercenaryCommandId,
+                      campaignId: campaign?.id,
+                      managerView: true,
+                    },
+                  })
+                }
+              >
                 <div className="asset-type">
                   {det.mercenaryCommandName?.toUpperCase() || 'MERCENARY COMMAND'}
                 </div>

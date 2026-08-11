@@ -90,4 +90,30 @@ public class CommandSecurityIntegrationTest {
                 .execute()
                 .path("establishCommand.name").entity(String.class).isEqualTo("Hansen's Roughriders");
     }
+
+    @Test
+    @WithMockUser(username = "participant_user", roles = "AUTHENTICATED")
+    void participantUser_ShouldBeAllowedToGetCommand() {
+        java.util.UUID cmdId = java.util.UUID.randomUUID();
+        String query = """
+            query GetCommand($id: ID!) {
+              getCommand(id: $id) {
+                id
+                name
+              }
+            }
+            """;
+
+        com.hotspotscamp.entity.MercenaryCommand mock = new com.hotspotscamp.entity.MercenaryCommand();
+        mock.setId(cmdId);
+        mock.setName("21st Centauri Lancers");
+
+        when(mercenaryCommandService.isAuthorizedForCommand(any(), any())).thenReturn(Mono.just(true));
+        when(mercenaryCommandService.getCommandById(any())).thenReturn(Mono.just(mock));
+
+        graphQlTester.document(query)
+                .variable("id", cmdId.toString())
+                .execute()
+                .path("getCommand.name").entity(String.class).isEqualTo("21st Centauri Lancers");
+    }
 }

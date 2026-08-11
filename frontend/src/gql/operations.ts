@@ -107,6 +107,7 @@ export const FRAGMENT_COMMAND = gql`
     commandingOfficer
     totalSupportPoints
     reputation
+    ownerId
   }
 `
 
@@ -527,6 +528,9 @@ export const GET_CAMPAIGN_DETAILS = gql`
       transportStep
       commandRights
       commandStep
+      contracts {
+        ...ContractFields
+      }
       factions {
         id
         factionName
@@ -552,6 +556,7 @@ export const GET_CAMPAIGN_DETAILS = gql`
       }
     }
   }
+  ${FRAGMENT_CONTRACT}
   ${FRAGMENT_TRACK}
   ${FRAGMENT_COMBAT_UNIT}
   ${FRAGMENT_PILOT}
