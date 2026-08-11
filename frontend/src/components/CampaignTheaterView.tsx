@@ -1249,32 +1249,30 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
                           </button>
                         </div>
                       )}
-                      {campaign.isManager && (
-                        <div
+                      <div
+                        style={{
+                          gridColumn: 'span 2',
+                          display: 'flex',
+                          alignItems: 'flex-end',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="mode-btn theme-amber"
                           style={{
-                            gridColumn: 'span 2',
+                            height: '24px',
+                            fontSize: '0.65rem',
                             display: 'flex',
-                            alignItems: 'flex-end',
+                            alignItems: 'center',
                             justifyContent: 'center',
                           }}
+                          onClick={() => setShowMarket(true)}
+                          title="Open unit market"
                         >
-                          <button
-                            type="button"
-                            className="mode-btn theme-amber"
-                            style={{
-                              height: '24px',
-                              fontSize: '0.65rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                            onClick={() => setShowMarket(true)}
-                            title="Open unit market"
-                          >
-                            [ THEATER MARKET ]
-                          </button>
-                        </div>
-                      )}
+                          [ THEATER MARKET ]
+                        </button>
+                      </div>
                     </div>
                   </div>
 

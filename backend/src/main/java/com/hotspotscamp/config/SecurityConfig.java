@@ -75,7 +75,7 @@ public class SecurityConfig {
                 .authorizedClientRepository(authorizedClientRepository)
                 )
                 .logout(logout -> logout
-                .logoutUrl("/api/logout")
+                .logoutUrl("/logout")
                 .logoutHandler(new WebSessionServerLogoutHandler()) // Explicitly invalidate the WebSession
                 .logoutSuccessHandler(logoutSuccessHandler())
                 );

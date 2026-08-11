@@ -50,7 +50,7 @@ export function App() {
 
   const handleLogout = async () => {
     try {
-      await fetch(API_BASE_URL ? `${API_BASE_URL}/api/logout` : '/api/logout', {
+      await fetch(API_BASE_URL ? `${API_BASE_URL}/logout` : '/logout', {
         method: 'POST',
         credentials: 'include',
       })

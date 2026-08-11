@@ -256,22 +256,24 @@ export const MarketView: React.FC<MarketViewProps> = ({
                 ? `[ ${campaign.secondaryEmployer?.toUpperCase() || 'OPPOSITION EMPLOYER'} MARKET ]`
                 : "[ SCRAPPERS' YARD ]"}
         </h3>
-        <button
-          className="mode-btn theme-amber"
-          onClick={() => {
-            if (isEditing) {
-              handleSave()
-            } else {
-              setIsEditing(true)
-            }
-          }}
-          style={{ fontSize: '0.6rem' }}
-        >
-          {isEditing ? '[ CLOSE ]' : '[ EDIT ]'}
-        </button>
+        {campaign.isManager && (
+          <button
+            className="mode-btn theme-amber"
+            onClick={() => {
+              if (isEditing) {
+                handleSave()
+              } else {
+                setIsEditing(true)
+              }
+            }}
+            style={{ fontSize: '0.6rem' }}
+          >
+            {isEditing ? '[ CLOSE ]' : '[ EDIT ]'}
+          </button>
+        )}
       </div>
 
-      {isEditing ? (
+      {isEditing && campaign.isManager ? (
         <div
           className="edit-mode"
           style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
