@@ -43,6 +43,7 @@ const MercenaryRegistryView = lazy(() =>
 import {
   GetMyCommandsDocument,
   GetManagedCampaignsDocument,
+  GetCampaignDetailsDocument,
   UpdateUserProfileDocument,
   LoginWithTokenDocument,
   DeleteCommandDocument, // This was already correct
@@ -154,13 +155,35 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
     }
   }
 
-  const handleJoinCampaign = (campaignId: string) => {
-    // Find campaign data from managed campaigns or active campaigns
+  const handleJoinCampaign = async (campaignId: string) => {
+    // First try to find in managed campaigns (filtered by status)
     const managed = managedData?.managedCampaigns?.find((c) => c?.id === campaignId)
+
+    let campaignName = managed?.name
+    let systemName = managed?.systemName
+
+    // If not found in managed campaigns (different status), fetch by ID using getCampaign
+    if (!campaignName) {
+      try {
+        const result = await client.query({
+          query: GetCampaignDetailsDocument,
+          variables: { campaignId },
+          fetchPolicy: 'network-only',
+        })
+        const campaign = result.data?.getCampaign
+        if (campaign) {
+          campaignName = campaign.name
+          systemName = campaign.systemName
+        }
+      } catch (err) {
+        console.error('Failed to fetch campaign details:', err)
+      }
+    }
+
     setJoinDialogCampaign({
       id: campaignId,
-      name: managed?.name || 'UNKNOWN THEATER',
-      systemName: managed?.systemName || null,
+      name: campaignName || 'UNKNOWN THEATER',
+      systemName: systemName || null,
     })
     setShowJoinDialog(true)
   }
