@@ -28,6 +28,7 @@ import org.springframework.stereotype.Controller;
 
 import com.hotspotscamp.dto.EmployerMarket;
 import com.hotspotscamp.entity.CampaignMarket;
+import com.hotspotscamp.entity.CombatUnit;
 import com.hotspotscamp.enums.MarketType;
 import com.hotspotscamp.enums.RuleSet;
 import com.hotspotscamp.service.MarketService;
@@ -88,5 +89,10 @@ public class MarketGraphQLController {
     @MutationMapping
     public Mono<String> generateRandomPilotLink(@Argument UUID campaignId, @Argument String weightClass) {
         return Mono.just(marketService.generatePilotHireLink(campaignId, weightClass));
+    }
+
+    @MutationMapping
+    public Mono<CombatUnit> scrapperDraw(@Argument UUID campaignId) {
+        return marketService.scrapperDraw(campaignId);
     }
 }

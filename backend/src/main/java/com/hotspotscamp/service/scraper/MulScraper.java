@@ -51,13 +51,13 @@ public class MulScraper implements UnitScraper {
         String twTargetUrl = "http://masterunitlist.info/Unit/Details/" + unitId;
         String asTargetUrl = "http://masterunitlist.info/Tools/CustomCard/" + unitId;
 
-        log.info("TW Target URL: {}", twTargetUrl);
-        log.info("AS Target URL: {}", asTargetUrl);
+        log.debug("TW Target URL: {}", twTargetUrl);
+        log.debug("AS Target URL: {}", asTargetUrl);
 
         return Mono.fromCallable(() -> {
-            log.info("Fetching TW document from: {}", twTargetUrl);
+            log.debug("Fetching TW document from: {}", twTargetUrl);
             Document twDoc = Jsoup.connect(twTargetUrl).get();
-            log.info("Fetching AS document from: {}", asTargetUrl);
+            log.debug("Fetching AS document from: {}", asTargetUrl);
             Document asDoc = Jsoup.connect(asTargetUrl).get();
             CombatUnit unit = initializeUnit(twDoc);
             // Phase 1: Core Technical Data

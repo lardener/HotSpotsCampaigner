@@ -20,9 +20,7 @@ package com.hotspotscamp.service;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -91,7 +89,7 @@ public class MarketService {
     public Mono<CampaignMarket> getMarket(UUID campaignId) {
         log.info("[START] getMarket: campaignId={}", campaignId);
         return marketRepository.findByCampaignId(campaignId)
-                .doOnSuccess(m -> log.info("[END] getMarket: Successfully retrieved market for campaignId={}, market={}", campaignId, m))
+                .doOnSuccess(m -> log.debug("[END] getMarket: Successfully retrieved market for campaignId={}", campaignId))
                 .doOnError(e -> log.error("[ERROR] getMarket: Failed to retrieve market for campaignId={}: {}", campaignId, e.getMessage()));
     }
 
@@ -151,7 +149,7 @@ public class MarketService {
                 }))
                 .flatMap(marketRepository::save)
                 .transformDeferred(transactionalOperator::transactional)
-                .doOnSuccess(m -> log.info("[END] saveMarketMarkdown: Successfully saved markdown for campaignId={}, marketType={}, market={}", campaignId, marketType, m))
+                .doOnSuccess(m -> log.debug("[END] saveMarketMarkdown: Successfully saved markdown for campaignId={}, marketType={}", campaignId, marketType))
                 .doOnError(e -> log.error("[ERROR] saveMarketMarkdown: Failed to save markdown for campaignId={}, marketType={}: {}", campaignId, marketType, e.getMessage()));
     }
 
@@ -199,15 +197,17 @@ public class MarketService {
                         return Mono.error(new RuntimeException("Scrapper pool is empty"));
                     }
 
-                    List<CombatUnit> pool = formatter.parseUnitTable(poolMarkdown);
-                    if (pool.isEmpty()) {
+                    CombatUnit unit = formatter.selectRandomUnitWithCondition(poolMarkdown);
+                    if (unit == null) {
                         return Mono.error(new RuntimeException("No units in scrapper pool"));
                     }
 
-                    return Mono.just(pool.get(new Random().nextInt(pool.size())));
+                    return Mono.just(unit);
                 })
-                .doOnSuccess(unit -> log.info("[END] scrapperDraw: Successfully drew unit {} from scrapper pool for campaignId={}", unit.getModel(), campaignId))
-                .doOnError(e -> log.error("[ERROR] scrapperDraw: Failed to draw from scrapper pool for campaignId={}: {}", campaignId, e.getMessage()));
+                .doOnSuccess(unit -> log.info("[END] scrapperDraw: Successfully drew unit {} {} from scrapper pool for campaignId={}",
+                unit.getModel(), unit.getVariant(), campaignId))
+                .doOnError(e -> log.error("[ERROR] scrapperDraw: Failed to draw from scrapper pool for campaignId={}: {}",
+                campaignId, e.getMessage()));
     }
 
     private Mono<String> saveMarkdownField(UUID campaignId, MarketType marketType, String markdown, UUID factionId) {

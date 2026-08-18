@@ -541,6 +541,7 @@ export type Mutation = {
   reorderTracks: Array<CampaignTrack>;
   rerollTrack: Maybe<CampaignTrack>;
   saveMarketMarkdown: Scalars['Boolean']['output'];
+  scrapperDraw: Maybe<CombatUnit>;
   updateCampaign: Maybe<Campaign>;
   updateCombatUnit: Maybe<CombatUnit>;
   updateCommand: Maybe<MercenaryCommand>;
@@ -718,6 +719,11 @@ export type MutationSaveMarketMarkdownArgs = {
   factionId: InputMaybe<Scalars['ID']['input']>;
   markdown: Scalars['String']['input'];
   marketType: MarketType;
+};
+
+
+export type MutationScrapperDrawArgs = {
+  campaignId: Scalars['ID']['input'];
 };
 
 

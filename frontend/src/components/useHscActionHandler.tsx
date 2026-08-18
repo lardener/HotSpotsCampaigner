@@ -162,20 +162,94 @@ export const useHscActionHandler = ({
           }
           selectDetachmentAndOpenEditor(pilot, 'hire')
         } else if (urlObj.host === 'market' && urlObj.pathname === '/scrappers/draw') {
+          // Perform weighted random draw from scrapper market
+          const campaignId = urlObj.searchParams.get('campaign')
+          if (!campaignId) {
+            setOverlay({
+              title: 'ERROR',
+              message: 'NO CAMPAIGN SPECIFIED FOR SCRAPPED DRAW.',
+              variant: 'alert',
+              onConfirm: () => setOverlay(null),
+            })
+            return
+          }
+
           setOverlay({
             title: 'SCRAP HEAP DRAW',
             message: 'ACCESSING CAMPAIGN MARKET DATA... ROLLING FOR SALVAGE...',
             onConfirm: () => {
               setOverlay(null)
-              // Note: This requires a backend mutation to actually perform the draw.
-              // For now, we simulate the 'reveal' and redirect to procurement.
-              console.log(
-                'Scrapper draw triggered for campaign:',
-                urlObj.searchParams.get('campaign'),
-              )
             },
             variant: 'info',
           })
+
+          // Inner async function to perform the draw
+          const performScrapperDraw = async () => {
+            try {
+              const response = await fetch('/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  query: `
+                    mutation ScrapperDraw($campaignId: ID!) {
+                      scrapperDraw(campaignId: $campaignId) {
+                        id
+                        type
+                        model
+                        variant
+                        techBase
+                        tonnage
+                        asSize
+                        bv
+                        pv
+                        status
+                      }
+                    }
+                  `,
+                  variables: { campaignId },
+                }),
+              })
+
+              const result = await response.json()
+
+              if (result.errors) {
+                throw new Error(result.errors[0].message)
+              }
+
+              const unit = result.data?.scrapperDraw
+              if (unit) {
+                const asset: ProcureAssetData = {
+                  model: unit.model || 'UNKNOWN UNIT',
+                  variant: unit.variant || '',
+                  bv: unit.bv || 0,
+                  pv: unit.pv || 0,
+                  asSize: unit.asSize || 0,
+                  type: unit.type || 'BM',
+                  techBase: unit.techBase || 'Inner Sphere',
+                  tonnage: unit.tonnage || 0,
+                }
+                selectDetachmentAndOpenEditor(asset, 'procure')
+              } else {
+                setOverlay({
+                  title: 'DRAW FAILED',
+                  message: 'NO UNITS AVAILABLE IN SCRAPPERS MARKET.',
+                  variant: 'alert',
+                  onConfirm: () => setOverlay(null),
+                })
+              }
+            } catch (error) {
+              console.error('Scrapper draw failed:', error)
+              setOverlay({
+                title: 'DRAW ERROR',
+                message: `FAILED TO DRAW FROM SCRAPPERS: ${error instanceof Error ? error.message : 'UNKNOWN ERROR'}`,
+                variant: 'alert',
+                onConfirm: () => setOverlay(null),
+              })
+            }
+          }
+
+          // Call the async function
+          performScrapperDraw()
         } else {
           setOverlay({
             title: 'UNKNOWN ACTION',

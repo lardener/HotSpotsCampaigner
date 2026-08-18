@@ -22,9 +22,9 @@ import java.util.List;
 /**
  * Centralized constants for Battletech Campaign rulesets. Defaults aligned with
  * Chaos Campaign: Hinterlands and Hot Spots: Draconis Reach.
- * 
- * NOTE: Multipliers and Costs are being migrated to RuleConfigurationService
- * to support dynamic rulesets and external configuration.
+ *
+ * NOTE: Multipliers and Costs are being migrated to RuleConfigurationService to
+ * support dynamic rulesets and external configuration.
  */
 public class RulesConstants {
 
@@ -72,4 +72,6 @@ public class RulesConstants {
     public static final List<String> UNIT_STATUS_OPTIONS = List.of(
             "OPERATIONAL", "ARMOR DAMAGE", "INTERNAL DAMAGE", "CRIPPLED", "DESTROYED", "TRULY DESTROYED"
     );
+    // Special status in scrapper market markdown: roll 2D6 for condition
+    public static final String SCRAPPER_CONDITION_RANDOM = "RANDOM";
 }

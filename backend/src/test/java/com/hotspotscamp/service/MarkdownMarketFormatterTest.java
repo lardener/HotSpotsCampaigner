@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -161,11 +162,106 @@ class MarkdownMarketFormatterTest {
     }
 
     @Test
-    void parseUnitTable_ignoresMalformedLines() {
+    void parseUnitTable_requiresHeaderRow() {
+        // No header + separator row, so no table can be resolved
         String md = "| Only | Two | Columns |\n"
                 + "| Atlas | AS7-D | 100 [10] | Clan | OPERATIONAL | 123,456 | [Buy](x) |\n";
         List<CombatUnit> parsed = formatter.parseUnitTable(md);
+        assertTrue(parsed.isEmpty());
+    }
+
+    @Test
+    void parseUnitTable_toleratesShortDataRows() {
+        String md = "| Model | Variant | BV [PV] | Tech | Condition |\n"
+                + "|-------|---------|---------|------|-----------|\n"
+                + "| Atlas |\n"
+                + "| |\n";
+        List<CombatUnit> parsed = formatter.parseUnitTable(md);
         assertEquals(1, parsed.size());
-        assertFalse(parsed.isEmpty());
+        assertEquals("Atlas", parsed.get(0).getModel());
+        assertTrue(parsed.get(0).getVariant().isEmpty());
+    }
+
+    @Test
+    void parseUnitTableWithWeights_readsWeightColumnAndLinkLabels() {
+        String md = "## Scrapper Pool\n\n"
+                + "| Model | Variant | BV [PV] | Tech | Condition | Weight | Source |\n"
+                + "| ----- | ------- | ------- | ---- | --------- | ------ | ------ |\n"
+                + "| [Tian-Zong](https://mekbay.com/?shareUnit=BMTianZong_TNZN3Jasminda&tab=Sheet) | TNZ-N3 'Jasminda' | 1826 [39] | Inner Sphere | RANDOM | 1 | https://mekbay.com/?shareUnit=BMTianZong_TNZN3Jasminda&tab=Sheet |\n"
+                + "| [Griffin](https://mekbay.com/?q=griff&shareUnit=BMGriffin_GRF3N&tab=General&expanded=true) | GRF-3N | 1560 [34] | Inner Sphere | RANDOM | 3 | https://mekbay.com/?q=griff&shareUnit=BMGriffin_GRF3N&tab=General&expanded=true |\n";
+
+        List<MarkdownMarketFormatter.WeightedUnit> parsed = formatter.parseUnitTableWithWeights(md);
+        assertEquals(2, parsed.size());
+
+        // Linkified model cells parse back to the plain label text
+        assertEquals("Tian-Zong", parsed.get(0).unit().getModel());
+        assertEquals("TNZ-N3 'Jasminda'", parsed.get(0).unit().getVariant());
+        assertEquals(1826, parsed.get(0).unit().getBv());
+        assertEquals(39, parsed.get(0).unit().getPv());
+        assertEquals(1, parsed.get(0).weight());
+        assertTrue(parsed.get(0).randomCondition());
+
+        assertEquals("Griffin", parsed.get(1).unit().getModel());
+        assertEquals(1560, parsed.get(1).unit().getBv());
+        assertEquals(3, parsed.get(1).weight());
+    }
+
+    @Test
+    void parseUnitTableWithWeights_defaultsWeightTo1WhenColumnAbsent() {
+        String md = "| Model | Variant | BV [PV] | Tech | Condition |\n"
+                + "| ----- | ------- | ------- | ---- | --------- |\n"
+                + "| Atlas | AS7-D | 100 [10] | Clan | RANDOM |\n";
+
+        List<MarkdownMarketFormatter.WeightedUnit> parsed = formatter.parseUnitTableWithWeights(md);
+        assertEquals(1, parsed.size());
+        assertEquals(1, parsed.get(0).weight());
+        assertTrue(parsed.get(0).randomCondition());
+    }
+
+    @Test
+    void parseUnitTableWithWeights_handlesAnyColumnOrderAndInvalidWeight() {
+        String md = "| Weight | Model | Variant | BV [PV] | Condition | Source |\n"
+                + "| ------ | ----- | ------- | ------- | --------- | ------ |\n"
+                + "| 2 | Griffin | GRF-3N | 1560 [34] | CRIPPLED | https://mekbay.com/?shareUnit=BMGriffin_GRF3N |\n"
+                + "| abc | Atlas | AS7-D | 100 [10] | RANDOM | https://mekbay.com/?shareUnit=BMAxman_AXM2R |\n";
+
+        List<MarkdownMarketFormatter.WeightedUnit> parsed = formatter.parseUnitTableWithWeights(md);
+        assertEquals(2, parsed.size());
+        assertEquals("Griffin", parsed.get(0).unit().getModel());
+        assertEquals(2, parsed.get(0).weight());
+        assertEquals("CRIPPLED", parsed.get(0).unit().getStatus());
+        assertFalse(parsed.get(0).randomCondition());
+        assertEquals(1, parsed.get(1).weight()); // invalid weight falls back to 1
+        assertTrue(parsed.get(1).randomCondition());
+    }
+
+    @Test
+    void parseUnitTable_skipsNonUnitTables() {
+        String md = "## Available Units\n\n"
+                + "| Model | Variant | BV [PV] | Tech | Condition | Price | Action |\n"
+                + "|-------|---------|---------|------|-----------|-------|--------|\n"
+                + "| Atlas | AS7-D | 100 [10] | Clan | OPERATIONAL | 123,456 | [Buy](x) |\n\n"
+                + "## Available Pilots\n\n"
+                + "| Name | Unit Type | Gunnery | Piloting | Wounds | Price | Action |\n"
+                + "|------|-----------|---------|----------|--------|-------|--------|\n"
+                + "| Jane Doe | BM | 4 | 5 | 0 | 20000 | [Hire](x) |\n";
+
+        List<CombatUnit> parsed = formatter.parseUnitTable(md);
+        assertEquals(1, parsed.size());
+        assertEquals("Atlas", parsed.get(0).getModel());
+    }
+
+    @Test
+    void selectRandomUnitWithCondition_returnsDrawnUnit() {
+        String md = "| Model | Variant | BV [PV] | Tech | Condition | Weight |\n"
+                + "| ----- | ------- | ------- | ---- | --------- | ------ |\n"
+                + "| Griffin | GRF-3N | 1560 [34] | Inner Sphere | RANDOM | 3 |\n"
+                + "| Atlas | AS7-D | 100 [10] | Clan | RANDOM | 1 |\n";
+
+        CombatUnit drawn = formatter.selectRandomUnitWithCondition(md);
+        assertNotNull(drawn);
+        // 2d6 roll always lands in DESTROYED or CRIPPLED
+        assertTrue("DESTROYED".equals(drawn.getStatus()) || "CRIPPLED".equals(drawn.getStatus()));
+        assertTrue("Griffin".equals(drawn.getModel()) || "Atlas".equals(drawn.getModel()));
     }
 }

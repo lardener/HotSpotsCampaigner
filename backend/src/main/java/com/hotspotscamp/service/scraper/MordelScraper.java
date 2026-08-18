@@ -19,6 +19,7 @@ package com.hotspotscamp.service.scraper;
 
 import java.io.IOException;
 import java.util.Objects;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -64,9 +65,9 @@ public class MordelScraper implements UnitScraper {
             log.warn("Mordel Scraper: Target element '#trocell' not found at URL: {}", url);
         }
         String troContent = troCell != null ? troCell.text() : "";
-        log.info("TRO content: {}", troContent.substring(0, 200));
+        log.debug("TRO content: {}", troContent.substring(0, 200));
         String model = Objects.requireNonNullElse(extractRegex(troContent, "Name/Model:\\s*(.+?)(?=\\s*Designer:|$)"), "UNKNOWN MODEL").trim();
-        log.info("model extracted: {}", model);
+        log.debug("model extracted: {}", model);
         String variant = "";
 
         // Mordel titles usually follow "Model Variant" pattern, e.g., "Catapult CPLT-C1"

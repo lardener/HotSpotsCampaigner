@@ -135,6 +135,9 @@ type Mutation {
   generatePilotMarketLink(url: String!): String!
   generateRandomPilotLink(campaignId: ID!, weightClass: String!): String!
 
+  # Scrapper Draw
+  scrapperDraw(campaignId: ID!): CombatUnit
+
   # Ledger & Detachments
   createDetachment(commandId: ID!, campaignId: ID, name: String!): Detachment
   deleteDetachment(detachmentId: ID!): Boolean

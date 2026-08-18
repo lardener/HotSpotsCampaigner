@@ -42,8 +42,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * Scraper for units hosted on mekbay.com.
- * Extracts unit statistics by retrieving data from MekBay's underlying unit database.
+ * Scraper for units hosted on mekbay.com. Extracts unit statistics by
+ * retrieving data from MekBay's underlying unit database.
  */
 @Component
 public class MekbayScraper implements UnitScraper {
@@ -58,6 +58,7 @@ public class MekbayScraper implements UnitScraper {
     private final AtomicReference<CachedDatabase> unitCache = new AtomicReference<>(null);
 
     private record CachedDatabase(Map<String, CombatUnit> units, long loadedAtEpochMs) {
+
         boolean isExpired(long ttlMs) {
             return System.currentTimeMillis() - loadedAtEpochMs > ttlMs;
         }
@@ -116,7 +117,7 @@ public class MekbayScraper implements UnitScraper {
         if (unit == null) {
             throw new IllegalArgumentException("Unit not found in MekBay database for key: " + unitKey);
         }
-        log.info("Finished scraping MekBay unit key: {}, model: {}, variant: {}, type: {}, tonnage: {}, bv: {}, pv: {}",
+        log.debug("Finished scraping MekBay unit key: {}, model: {}, variant: {}, type: {}, tonnage: {}, bv: {}, pv: {}",
                 unitKey, unit.getModel(), unit.getVariant(), unit.getType(), unit.getTonnage(), unit.getBv(), unit.getPv());
         return unit;
     }
