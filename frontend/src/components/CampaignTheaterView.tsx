@@ -202,7 +202,10 @@ const useTheaterCampaignSync = (
     return () => Object.values(timeouts).forEach(clearTimeout)
   }, [])
 
-  // Sync local input states with campaign data on load/refetch
+  // Sync local input states with campaign data on campaign switch or metadata load.
+  // NOTE: 'campaign' is intentionally excluded from dependencies — it is derived from
+  // server data and changes on every refetch/save. Including it would cause the effect to
+  // overwrite user-edited values with stale server data before the save completes.
   useEffect(() => {
     if (!campaign || !selectedCampaignId) return
 
@@ -330,7 +333,7 @@ const useTheaterCampaignSync = (
         (metaData?.publicCampaignMetadata as any)?.replaceCommandAbilityCost ??
         250,
     )
-  }, [campaign, selectedCampaignId, metaData])
+  }, [selectedCampaignId, metaData])
 
   const handleUpdate = (field: string, value: string | number) => {
     const targetId = selectedCampaignId
