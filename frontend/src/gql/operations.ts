@@ -379,6 +379,30 @@ export const CREATE_CAMPAIGN = gql`
       monthlyMaintenance
       transportationCost
       combatPay
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthLimit
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       status
       payRate
       payStep
@@ -394,6 +418,7 @@ export const CREATE_CAMPAIGN = gql`
   }
 `
 
+
 export const UPDATE_CAMPAIGN = gql`
   mutation UpdateCampaign($id: ID!, $input: CampaignUpdateInput!) {
     updateCampaign(id: $id, input: $input) {
@@ -407,6 +432,30 @@ export const UPDATE_CAMPAIGN = gql`
       monthlyMaintenance
       transportationCost
       combatPay
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthLimit
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       status
       payRate
       payStep
@@ -433,6 +482,34 @@ export const GET_MANAGED_CAMPAIGNS = gql`
       trackCount
       primaryEmployer
       secondaryEmployer
+      monthlyPay
+      monthlyMaintenance
+      transportationCost
+      combatPay
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthLimit
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       payRate
       salvageTerms
       supportTerms
@@ -518,6 +595,30 @@ export const GET_CAMPAIGN_DETAILS = gql`
       monthlyMaintenance
       transportationCost
       combatPay
+      armorMultiplier
+      internalMultiplier
+      crippledMultiplier
+      destroyedMultiplier
+      nonMechModifier
+      mixedTechModifier
+      clanTechModifier
+      omnimechReconfigureModifier
+      pvPurchaseUnitMultiplier
+      pvSellUnitMultiplier
+      rearmCostPerTon
+      rearmCostPerTonAlphaStrike
+      hireMechWarriorCost
+      hireNamedPilotCost
+      hireBattleArmorCost
+      healMechWarriorPerWoundBoxCost
+      healMechWarriorPerMonthLimit
+      healBattleArmorCost
+      trainFormationCommanderCost
+      changeFormationTrainingCost
+      learnCommandAbility1Cost
+      learnCommandAbility2Cost
+      learnCommandAbility3Cost
+      replaceCommandAbilityCost
       payRate
       payStep
       salvageTerms

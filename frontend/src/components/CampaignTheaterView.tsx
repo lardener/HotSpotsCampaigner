@@ -202,12 +202,10 @@ const useTheaterCampaignSync = (
     return () => Object.values(timeouts).forEach(clearTimeout)
   }, [])
 
-  // Sync local input states with campaign data on campaign switch or metadata load.
-  // NOTE: 'campaign' is intentionally excluded from dependencies — it is derived from
-  // server data and changes on every refetch/save. Including it would cause the effect to
-  // overwrite user-edited values with stale server data before the save completes.
+  // Sync local input states with campaign data on campaign switch, metadata load, or detailed campaign query load.
   useEffect(() => {
     if (!campaign || !selectedCampaignId) return
+    if (Object.keys(saveTimeoutRef.current).length > 0) return
 
     setCampaignLengthInMonths(campaign?.lengthInMonths || 1)
     setCampaignTrackCount(campaign?.trackCount || 0)
@@ -333,7 +331,7 @@ const useTheaterCampaignSync = (
         (metaData?.publicCampaignMetadata as any)?.replaceCommandAbilityCost ??
         250,
     )
-  }, [selectedCampaignId, metaData])
+  }, [selectedCampaignId, metaData, campaignQueryData?.getCampaign])
 
   const handleUpdate = (field: string, value: string | number) => {
     const targetId = selectedCampaignId
@@ -344,28 +342,32 @@ const useTheaterCampaignSync = (
     saveTimeoutRef.current[key] = setTimeout(async () => {
       if (selectedCampaignId !== targetId) return
       setIsSyncing(true)
-      let valToUse = value
-      const numericFields = [
-        'trackCount',
-        'lengthInMonths',
-        'monthlyPay',
-        'monthlyMaintenance',
-        'transportationCost',
-        'combatPay',
-      ]
-      if (numericFields.includes(field)) {
-        const parsed = parseInt(value as string) || 0
-        valToUse =
-          field === 'trackCount' || field === 'lengthInMonths'
-            ? Math.max(1, parsed)
-            : Math.max(0, parsed)
+      try {
+        let valToUse = value
+        const numericFields = [
+          'trackCount',
+          'lengthInMonths',
+          'monthlyPay',
+          'monthlyMaintenance',
+          'transportationCost',
+          'combatPay',
+        ]
+        if (numericFields.includes(field)) {
+          const parsed = parseInt(value as string) || 0
+          valToUse =
+            field === 'trackCount' || field === 'lengthInMonths'
+              ? Math.max(1, parsed)
+              : Math.max(0, parsed)
+        }
+        const input = { [field]: valToUse } as unknown as CampaignUpdateInput
+        await updateCampaign({ variables: { id: targetId, input } })
+        await refetchCampaign()
+        if (onRefresh) await onRefresh()
+      } finally {
+        delete saveTimeoutRef.current[key]
+        setIsSyncing(false)
       }
-      const input = { [field]: valToUse } as unknown as CampaignUpdateInput
-      await updateCampaign({ variables: { id: targetId, input } })
-      await refetchCampaign()
-      if (onRefresh) await onRefresh()
-      setIsSyncing(false)
-    }, 5000) as unknown as number
+    }, 500) as unknown as number
   }
 
   const handleRepairRuleUpdate = (field: string, value: string | number) => {
@@ -377,12 +379,18 @@ const useTheaterCampaignSync = (
     saveTimeoutRef.current[key] = setTimeout(async () => {
       if (selectedCampaignId !== targetId) return
       setIsSyncing(true)
-      const input = { [field]: parseFloat(value as string) || 0 } as unknown as CampaignUpdateInput
+      try {
+        const val = parseFloat(value as string)
+        const valToUse = isNaN(val) ? 0 : val
+        const input = { [field]: valToUse } as unknown as CampaignUpdateInput
 
-      await updateCampaign({ variables: { id: targetId, input } })
-      await refetchCampaign()
-      setIsSyncing(false)
-    }, 5000) as unknown as number
+        await updateCampaign({ variables: { id: targetId, input } })
+        await refetchCampaign()
+      } finally {
+        delete saveTimeoutRef.current[key]
+        setIsSyncing(false)
+      }
+    }, 500) as unknown as number
   }
 
   const handleActivityCostUpdate = (field: string, value: string | number) => {
@@ -394,14 +402,18 @@ const useTheaterCampaignSync = (
     saveTimeoutRef.current[key] = setTimeout(async () => {
       if (selectedCampaignId !== targetId) return
       setIsSyncing(true)
-      const isFloat = field === 'omnimechReconfigureModifier'
-      const val = isFloat ? parseFloat(value as string) : parseInt(value as string)
-      const input = { [field]: isNaN(val) ? 0 : val } as unknown as CampaignUpdateInput
+      try {
+        const isFloat = field === 'omnimechReconfigureModifier'
+        const val = isFloat ? parseFloat(value as string) : parseInt(value as string)
+        const input = { [field]: isNaN(val) ? 0 : val } as unknown as CampaignUpdateInput
 
-      await updateCampaign({ variables: { id: targetId, input } })
-      await refetchCampaign()
-      setIsSyncing(false)
-    }, 5000) as unknown as number
+        await updateCampaign({ variables: { id: targetId, input } })
+        await refetchCampaign()
+      } finally {
+        delete saveTimeoutRef.current[key]
+        setIsSyncing(false)
+      }
+    }, 500) as unknown as number
   }
 
   const handleReroll = async (trackId: string) => {
