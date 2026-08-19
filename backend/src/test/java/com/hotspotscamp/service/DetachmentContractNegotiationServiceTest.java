@@ -97,6 +97,8 @@ class DetachmentContractNegotiationServiceTest {
                     .isNew(false)
                     .build();
 
+            when(overrideRepository.findByDetachmentIdAndCampaignIdAndEmployerFactionId(any(), any(), any()))
+                    .thenReturn(Mono.empty());
             when(overrideRepository.save(any(DetachmentContractOverride.class)))
                     .thenReturn(Mono.just(savedOverride));
 
@@ -116,6 +118,8 @@ class DetachmentContractNegotiationServiceTest {
             DetachmentContractOverride override = createTestOverride();
             override.setPayStepAdjustment(null);
 
+            when(overrideRepository.findByDetachmentIdAndCampaignIdAndEmployerFactionId(any(), any(), any()))
+                    .thenReturn(Mono.empty());
             when(overrideRepository.save(any(DetachmentContractOverride.class)))
                     .thenReturn(Mono.just(override));
 

@@ -62,14 +62,18 @@ public class UserService {
 
         log.debug("[AUTH] Attempting to resolve identity: {}", identity);
         return userRepository.findByExternalId(identity)
-                .doOnNext(u -> log.debug("[AUTH] Found User via External ID: {} (UUID: {})", identity, u.getId()))
+                .doOnNext(u -> {
+                    u.setNew(false);
+                    log.debug("[AUTH] Found User via External ID: {} (UUID: {})", identity, u.getId());
+                })
                 .switchIfEmpty(Mono.defer(() -> {
                     if (!identity.contains("-") || identity.length() != 36) {
                         return Mono.empty();
                     }
                     log.debug("[AUTH] Identity not found in external_id, checking internal UUIDs for: {}", identity);
                     try {
-                        return userRepository.findById(Objects.requireNonNull(UUID.fromString(identity)));
+                        return userRepository.findById(Objects.requireNonNull(UUID.fromString(identity)))
+                                .doOnNext(u -> u.setNew(false));
                     } catch (IllegalArgumentException e) {
                         return Mono.empty();
                     }
@@ -78,6 +82,7 @@ public class UserService {
                     if (user.getRole() == null || user.getRole().isBlank()) {
                         log.info("[AUTH] Repairing missing role for user: {}", user.getId());
                         user.setRole(role);
+                        user.setNew(false);
                         return userRepository.save(user);
                     }
                     return Mono.just(user);

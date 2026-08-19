@@ -4,8 +4,13 @@ MYSQL_PASSWORD: test
 CORS_ALLOWED_ORIGINS: http://localhost
 
 spring:
+    datasource:
+        url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MYSQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DATABASE_TO_LOWER=TRUE
+        username: sa
+        password: ""
+        driver-class-name: org.h2.Driver
     r2dbc:
-        url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MYSQL
+        url: r2dbc:h2:mem:///testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MYSQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DATABASE_TO_LOWER=TRUE
         username: sa
         password: ""
         pool:
@@ -15,7 +20,7 @@ spring:
         init:
             continue-on-error: true
             mode: always
-            schema-locations: classpath:db/migration/V1__init_schema.sql
+            schema-locations: classpath:schema.sql
             encoding: UTF-8
     flyway:
         enabled: true

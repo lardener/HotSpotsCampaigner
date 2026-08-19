@@ -6,9 +6,9 @@ A web application for managing mercenary campaigns in a tactical combat game, fe
 
 ## Architecture
 
-### Backend (Java 25 + Spring Boot 3.5.14)
+### Backend (Java 25 + Spring Boot 4.1.0)
 
-- **Framework**: Spring Boot 3.5.14 with Spring Data R2DBC (reactive database access)
+- **Framework**: Spring Boot 4.1.0 with Spring Data R2DBC (reactive database access)
 - **API**: GraphQL API layer
 - **Reactive Stack**: Project Reactor for async/non-blocking operations
 - **Build**: Maven (see `backend/pom.xml`)
