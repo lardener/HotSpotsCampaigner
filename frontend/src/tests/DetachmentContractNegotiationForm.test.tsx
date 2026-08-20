@@ -99,9 +99,7 @@ describe('DetachmentContractNegotiationForm', () => {
 
     // Verify title and baseline support step display
     await waitFor(() => {
-      expect(
-        screen.getByText(/DETACHMENT CONTRACT NEGOTIATIONS/i),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/DETACHMENT CONTRACT NEGOTIATIONS/i)).toBeInTheDocument()
       expect(screen.getByText(/Baseline: Step 11/i)).toBeInTheDocument()
     })
 

@@ -77,5 +77,3 @@ export const NEGOTIATE_DETACHMENT_CONTRACT = gql`
     }
   }
 `
-
-

@@ -418,7 +418,6 @@ export const CREATE_CAMPAIGN = gql`
   }
 `
 
-
 export const UPDATE_CAMPAIGN = gql`
   mutation UpdateCampaign($id: ID!, $input: CampaignUpdateInput!) {
     updateCampaign(id: $id, input: $input) {
