@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client/react'
 import {
   CampaignCreateInput,
@@ -82,26 +82,29 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     }
   }, [metadataData, setPrimaryMissions, setOpponentMissions, setTrackTypes, setResolvedSteps])
 
-  const resolveStepValueWithGravity = (step: number, field: keyof ResolvedStepValues): string => {
-    if (!resolvedSteps[step]) return '-'
-    const val = resolvedSteps[step][field]
+  const resolveStepValueWithGravity = useCallback(
+    (step: number, field: keyof ResolvedStepValues): string => {
+      if (!resolvedSteps[step]) return '-'
+      const val = resolvedSteps[step][field]
 
-    // If the result is '-', we must move toward Step 7 to find the nearest valid entry
-    if (val === '-' || val === null || val === undefined) {
-      let current = step
-      const target = 7
-      while (current !== target) {
-        current = current < target ? current + 1 : current - 1
-        const nextVal = resolvedSteps[current]?.[field]
-        if (nextVal !== '-' && nextVal !== null && nextVal !== undefined) {
-          return nextVal
+      // If the result is '-', we must move toward Step 7 to find the nearest valid entry
+      if (val === '-' || val === null || val === undefined) {
+        let current = step
+        const target = 7
+        while (current !== target) {
+          current = current < target ? current + 1 : current - 1
+          const nextVal = resolvedSteps[current]?.[field]
+          if (nextVal !== '-' && nextVal !== null && nextVal !== undefined) {
+            return nextVal
+          }
         }
+        // Fallback to whatever is at Step 7 if everything else fails
+        return resolvedSteps[target]?.[field] || '-'
       }
-      // Fallback to whatever is at Step 7 if everything else fails
-      return resolvedSteps[target]?.[field] || '-'
-    }
-    return val
-  }
+      return val
+    },
+    [resolvedSteps],
+  )
 
   const [getPreview, { loading: previewLoading, error: previewErrorStatus, data: previewData }] =
     useLazyQuery<GenerateCampaignQuery>(GenerateCampaignDocument, {

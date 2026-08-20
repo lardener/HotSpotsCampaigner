@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation } from '@apollo/client/react'
 import { TacticalMarkdown } from './TacticalMarkdown'
 import { useHscActionHandler } from './useHscActionHandler'
@@ -141,38 +141,41 @@ export const MarketView: React.FC<MarketViewProps> = ({
     }
   }, [data, marketType, campaign])
 
-  const handleSave = async (value?: string) => {
-    const markdownToSave = value ?? markdown
-    try {
-      // For employer markets, find the CampaignFaction UUID by matching the employer name
-      let factionId: string | null = null
-      if (marketType === 'PRIMARY_EMPLOYER' && campaign.primaryEmployer) {
-        const faction = (campaign.factions || []).find(
-          (f: any) => f.factionName === campaign.primaryEmployer,
-        )
-        factionId = faction?.id || null
-      } else if (marketType === 'OPPOSITION_EMPLOYER' && campaign.secondaryEmployer) {
-        const faction = (campaign.factions || []).find(
-          (f: any) => f.factionName === campaign.secondaryEmployer,
-        )
-        factionId = faction?.id || null
-      }
+  const handleSave = useCallback(
+    async (value?: string) => {
+      const markdownToSave = value ?? markdown
+      try {
+        // For employer markets, find the CampaignFaction UUID by matching the employer name
+        let factionId: string | null = null
+        if (marketType === 'PRIMARY_EMPLOYER' && campaign.primaryEmployer) {
+          const faction = (campaign.factions || []).find(
+            (f: any) => f.factionName === campaign.primaryEmployer,
+          )
+          factionId = faction?.id || null
+        } else if (marketType === 'OPPOSITION_EMPLOYER' && campaign.secondaryEmployer) {
+          const faction = (campaign.factions || []).find(
+            (f: any) => f.factionName === campaign.secondaryEmployer,
+          )
+          factionId = faction?.id || null
+        }
 
-      await saveMarkdown({
-        variables: {
-          campaignId,
-          marketType: marketType.toUpperCase() as any,
-          markdown: markdownToSave,
-          factionId,
-        },
-      })
-      if (!value) {
-        setIsEditing(false)
+        await saveMarkdown({
+          variables: {
+            campaignId,
+            marketType: marketType.toUpperCase() as any,
+            markdown: markdownToSave,
+            factionId,
+          },
+        })
+        if (!value) {
+          setIsEditing(false)
+        }
+      } catch (e) {
+        console.error('Failed to save market markdown:', e)
       }
-    } catch (e) {
-      console.error('Failed to save market markdown:', e)
-    }
-  }
+    },
+    [campaign, marketType, saveMarkdown, markdown],
+  )
 
   // Cleanup effect to save any pending changes when the component unmounts or marketType changes
   useEffect(() => {

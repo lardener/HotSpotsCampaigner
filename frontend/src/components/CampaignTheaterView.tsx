@@ -331,7 +331,7 @@ const useTheaterCampaignSync = (
         (metaData?.publicCampaignMetadata as any)?.replaceCommandAbilityCost ??
         250,
     )
-  }, [selectedCampaignId, metaData, campaignQueryData?.getCampaign])
+  }, [selectedCampaignId, metaData, campaignQueryData?.getCampaign, campaign])
 
   const handleUpdate = (field: string, value: string | number) => {
     const targetId = selectedCampaignId

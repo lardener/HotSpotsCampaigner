@@ -246,7 +246,7 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
         }
       })
     })
-  }, [detachments, campaignDetails, currentMonthIndex])
+  }, [detachments, campaignDetails, currentMonthIndex, calculateFormDefaults])
 
   const handleFormChange = (detachmentId: string, field: keyof DetachmentFormState, value: any) => {
     setDetachmentForms((prevForms) =>

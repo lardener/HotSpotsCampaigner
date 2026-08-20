@@ -174,7 +174,7 @@ export const CommandDashboardBackground: React.FC<CommandDashboardBackgroundProp
       baseList = sets[hash % sets.length]
     }
     return [...baseList].sort(() => Math.random() - 0.5)
-  }, [detachmentId])
+  }, [detachmentId, interceptSets])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const [scrollDuration, setScrollDuration] = useState(80)

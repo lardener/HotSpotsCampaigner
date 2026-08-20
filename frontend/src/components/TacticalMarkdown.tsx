@@ -30,7 +30,7 @@ export const TacticalMarkdown: React.FC<TacticalMarkdownProps> = ({ content, onA
       remarkPlugins={[remarkGfm]}
       urlTransform={(url) => (url.startsWith('hsc://') ? url : url)}
       components={{
-        a: ({ node, href, children, ...props }: any) => {
+        a: ({ href, children, ...props }: any) => {
           // Handle custom HSC action protocol by intercepting the click
           if (href?.startsWith('hsc://')) {
             return (

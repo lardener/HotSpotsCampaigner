@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { gql } from '@apollo/client'
 import {
@@ -377,7 +377,7 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
   const oppResultingTransportText = getResolvedValue(oppFinalTransportStep, 'transportation')
   const oppResultingCommandText = getResolvedValue(oppFinalCommandStep, 'commandRights')
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = useCallback(async () => {
     setSaveError(null)
     let saveErrors = 0
 
@@ -409,14 +409,24 @@ export const DetachmentContractNegotiationForm: React.FC<Props> = ({
     if (saveErrors > 0) {
       throw new Error('Failed to save negotiations')
     }
-  }
+  }, [
+    handleSave,
+    handleOppSave,
+    hasActiveOverrides,
+    opponentFactionId,
+    oppPayStepAdj,
+    oppSalvageStepAdj,
+    oppSupportStepAdj,
+    oppTransportStepAdj,
+    oppCommandStepAdj,
+  ])
 
   // Register combined save handler with parent (so parent overlay can invoke it)
   useEffect(() => {
     if (registerSave) {
       try {
         registerSave(handleSaveAll)
-      } catch (err) {
+      } catch (_err) {
         // ignore registration errors
       }
     }

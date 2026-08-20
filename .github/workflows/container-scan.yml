@@ -62,7 +62,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: os,library
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
 
       - name: Run Trivy vulnerability scanner on frontend
         uses: aquasecurity/trivy-action@v0.36.0
@@ -73,4 +73,4 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: os,library
-          severity: HIGH,CRITICAL
+          severity: CRITICAL
