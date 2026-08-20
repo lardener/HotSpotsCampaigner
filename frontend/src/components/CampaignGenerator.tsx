@@ -148,7 +148,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
       }
       setProposal(prop)
     }
-  }, [previewData, resolvedSteps, metadataData])
+  }, [previewData, resolvedSteps, metadataData, resolveStepValueWithGravity])
 
   // Monitor track count changes to fetch additional tracks if needed
   useEffect(() => {
@@ -195,7 +195,7 @@ export const CampaignGenerator: React.FC<Props> = ({ user, onSaveSuccess }) => {
     if (!metadataLoading && Object.keys(resolvedSteps).length > 0 && !proposal) {
       handlePreview()
     }
-  }, [metadataLoading, resolvedSteps, proposal])
+  }, [metadataLoading, resolvedSteps, proposal, handlePreview])
 
   const getSaveParams = (): CampaignCreateInput => {
     if (!proposal || !proposal.contracts[0] || !proposal.contracts[1]) {

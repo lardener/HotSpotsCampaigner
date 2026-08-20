@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useMutation } from '@apollo/client/react'
 import { TerminalOverlay } from './TerminalOverlay'
 import { Pilot, PilotUpdateInput } from '../types/generated'
@@ -58,25 +58,28 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
 }) => {
   const UNIT_TYPES = ['BM', 'CV', 'PM', 'IM', 'BA', 'CI']
 
-  const createDefaultPilot = (): Pilot => ({
-    id: '',
-    name: 'NEW PILOT',
-    gunnery: 4,
-    piloting: 5,
-    asSkill: 4,
-    edgeTokensSkill: 1,
-    edgeAbilitySkill: 0,
-    edgeAbilities: '',
-    unitType: 'BM',
-    wounds: 0,
-    handicap: 0,
-    totalSpEarned: 0,
-    gunnerySpEarned: 0,
-    pilotingSpEarned: 0,
-    edgeTokensSpEarned: 0,
-    edgeAbilitySpEarned: 0,
-    detachmentId: detachmentId ?? null,
-  })
+  const createDefaultPilot = useCallback(
+    (): Pilot => ({
+      id: '',
+      name: 'NEW PILOT',
+      gunnery: 4,
+      piloting: 5,
+      asSkill: 4,
+      edgeTokensSkill: 1,
+      edgeAbilitySkill: 0,
+      edgeAbilities: '',
+      unitType: 'BM',
+      wounds: 0,
+      handicap: 0,
+      totalSpEarned: 0,
+      gunnerySpEarned: 0,
+      pilotingSpEarned: 0,
+      edgeTokensSpEarned: 0,
+      edgeAbilitySpEarned: 0,
+      detachmentId: detachmentId ?? null,
+    }),
+    [detachmentId],
+  )
 
   const [formData, setFormData] = useState<Pilot>(() =>
     recalcDerived(
@@ -107,7 +110,7 @@ export const PilotEditor: React.FC<PilotEditorProps> = ({
           : createDefaultPilot(),
       ),
     )
-  }, [pilot, detachmentId, mode])
+  }, [pilot, detachmentId, mode, createDefaultPilot])
 
   const pilotOriginalTotalSp = useMemo(() => {
     if (!pilot) return 0

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useMutation, useQuery } from '@apollo/client/react'
 import { TerminalOverlay } from './TerminalOverlay'
 import { Campaign, Contract, Detachment } from '../types/generated'
@@ -171,47 +171,50 @@ export const MonthlyExpensesEditor: React.FC<MonthlyExpensesEditorProps> = ({
     }, 5000)
   }
 
-  const calculateFormDefaults = (
-    chargeType: DetachmentFormState['chargeType'],
-    level: number,
-    contractId: string,
-    detachmentId: string,
-  ) => {
-    const baseContract = campaignDetails.contracts
-      ?.filter((c): c is Contract => c != null)
-      .find((c) => c.id === contractId)
-    const effectiveContract = resolveEffectiveContract(
-      baseContract,
-      selectDetachmentNegotiationOverride(negotiationsByDetachment[detachmentId], baseContract),
-      resolvedSteps,
-    )
-    const levelMult = level
-    let amount = 0
-    let termsLabel = ''
+  const calculateFormDefaults = useCallback(
+    (
+      chargeType: DetachmentFormState['chargeType'],
+      level: number,
+      contractId: string,
+      detachmentId: string,
+    ) => {
+      const baseContract = campaignDetails.contracts
+        ?.filter((c): c is Contract => c != null)
+        .find((c) => c.id === contractId)
+      const effectiveContract = resolveEffectiveContract(
+        baseContract,
+        selectDetachmentNegotiationOverride(negotiationsByDetachment[detachmentId], baseContract),
+        resolvedSteps,
+      )
+      const levelMult = level
+      let amount = 0
+      let termsLabel = ''
 
-    switch (chargeType) {
-      case 'Monthly Pay & Expenses': {
-        const pRate = effectiveContract.payRate || 1.0
-        const grossPay = (campaignDetails.monthlyPay || 0) * pRate
-        const baseExpenses = campaignDetails.monthlyMaintenance || 0
-        amount = Math.round((grossPay - baseExpenses) * levelMult)
-        termsLabel = `PAY: ${Math.round(pRate * 100)}%`
-        break
+      switch (chargeType) {
+        case 'Monthly Pay & Expenses': {
+          const pRate = effectiveContract.payRate || 1.0
+          const grossPay = (campaignDetails.monthlyPay || 0) * pRate
+          const baseExpenses = campaignDetails.monthlyMaintenance || 0
+          amount = Math.round((grossPay - baseExpenses) * levelMult)
+          termsLabel = `PAY: ${Math.round(pRate * 100)}%`
+          break
+        }
+        case 'Transport': {
+          const tBase = (campaignDetails.transportationCost || 0) * levelMult
+          const tMult = parseMultiplier(effectiveContract.transportTerms)
+          amount = -Math.round(tBase * (1 - tMult))
+          termsLabel = effectiveContract.transportTerms || 'NONE'
+          break
+        }
+        case 'Freeform Entry':
+          return { amount: 0, description: '' }
       }
-      case 'Transport': {
-        const tBase = (campaignDetails.transportationCost || 0) * levelMult
-        const tMult = parseMultiplier(effectiveContract.transportTerms)
-        amount = -Math.round(tBase * (1 - tMult))
-        termsLabel = effectiveContract.transportTerms || 'NONE'
-        break
-      }
-      case 'Freeform Entry':
-        return { amount: 0, description: '' }
-    }
 
-    const description = `${chargeType.toUpperCase()}: ${campaignDetails.name} (MO ${currentMonthIndex}) [LVL ${level}] [TERMS: ${termsLabel}]`
-    return { amount, description }
-  }
+      const description = `${chargeType.toUpperCase()}: ${campaignDetails.name} (MO ${currentMonthIndex}) [LVL ${level}] [TERMS: ${termsLabel}]`
+      return { amount, description }
+    },
+    [campaignDetails, negotiationsByDetachment, resolvedSteps],
+  )
 
   useEffect(() => {
     setDetachmentForms((prevForms) => {

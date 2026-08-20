@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
@@ -34,7 +34,7 @@ jobs:
 
       - name: Upload Surefire reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: backend-surefire-reports
           path: backend/target/surefire-reports/**

@@ -24,6 +24,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIf;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.graphql.test.autoconfigure.tester.AutoConfigureGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +47,10 @@ import reactor.core.publisher.Mono;
 @AutoConfigureGraphQlTester
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@EnabledIf(
+        value = "org.springframework.boot.testcontainers.service.connection.TestcontainersServiceConnectionCondition#isDockerAvailable",
+        disabledReason = "Docker is not available"
+)
 class CampaignLifecycleIntegrationTest {
 
     @Container
