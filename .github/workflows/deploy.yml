@@ -72,7 +72,6 @@ jobs:
           cp ovhcloud-frontend-deployment.yaml staging/
           cp ovhcloud-backend-ingress.yaml staging/
           cp ovhcloud-frontend-ingress.yaml staging/
-          cp ovhcloud-ingress.yaml staging/
 
       - name: Install kubectl
         id: kubectl-install
