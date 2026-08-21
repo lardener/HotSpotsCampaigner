@@ -24,7 +24,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -89,8 +88,23 @@ class CampaignE2ETest {
 
     private HttpGraphQlTester graphQlTester;
 
-    @BeforeAll
-    void initSchema() {
+    private boolean schemaInitialized = false;
+
+    @BeforeEach
+    void setUp() {
+        // Initialize schema only once per test class
+        if (!schemaInitialized) {
+            initSchema();
+            schemaInitialized = true;
+        }
+        
+        webTestClientWithBase = webTestClient.mutate()
+                .baseUrl("http://localhost:" + port + "/graphql")
+                .build();
+        this.graphQlTester = HttpGraphQlTester.create(webTestClientWithBase);
+    }
+
+    private void initSchema() {
         try {
             FileSystemResource schemaResource = new FileSystemResource(
                     "src/main/resources/db/migration/V1__init_schema.sql");
@@ -102,14 +116,6 @@ class CampaignE2ETest {
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize database schema for E2E test", e);
         }
-    }
-
-    @BeforeEach
-    void setUp() {
-        webTestClientWithBase = webTestClient.mutate()
-                .baseUrl("http://localhost:" + port + "/graphql")
-                .build();
-        this.graphQlTester = HttpGraphQlTester.create(webTestClientWithBase);
     }
 
     @Test
