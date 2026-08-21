@@ -32,7 +32,7 @@ jobs:
       IMAGE_TAG: ${{ github.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.3.0
@@ -45,7 +45,7 @@ jobs:
           password: ${{ secrets.OVH_REGISTRY_PASSWORD }}
 
       - name: Build & push backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.backend
@@ -53,7 +53,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/hotspotscampaigner-backend:${{ env.IMAGE_TAG }}
 
       - name: 'Build & push frontend image (K8s config: empty VITE_API_BASE_URL -> /api fallback)'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.frontend
