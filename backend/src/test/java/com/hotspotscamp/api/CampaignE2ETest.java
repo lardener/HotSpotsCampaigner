@@ -24,7 +24,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -33,9 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
-import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 import org.springframework.security.test.context.support.WithMockUser;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -43,13 +40,11 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import io.r2dbc.spi.ConnectionFactory;
-
 /**
- * End-to-end test for the HotSpots: Campaigner backend. This test initializes
- * an ephemeral MySQL database using Testcontainers, simulates an authenticated
- * Campaign Manager, and exercises the campaign generation lifecycle via
- * GraphQL.
+ * End-to-end test for the HotSpots: Campaigner backend. This test spins up an
+ * ephemeral MySQL database using Testcontainers (migrations are applied at
+ * startup by FlywayConfig), simulates an authenticated Campaign Manager, and
+ * exercises the campaign generation lifecycle via GraphQL.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -84,25 +79,7 @@ class CampaignE2ETest {
 
     private WebTestClient webTestClientWithBase;
 
-    @Autowired
-    private ConnectionFactory connectionFactory;
-
     private HttpGraphQlTester graphQlTester;
-
-    @BeforeAll
-    void initSchema() {
-        try {
-            FileSystemResource schemaResource = new FileSystemResource(
-                    "src/main/resources/db/migration/V1__init_schema.sql");
-            if (!schemaResource.exists()) {
-                schemaResource = new FileSystemResource(
-                        "../backend/src/main/resources/db/migration/V1__init_schema.sql");
-            }
-            new ResourceDatabasePopulator(schemaResource).populate(connectionFactory).block();
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to initialize database schema for E2E test", e);
-        }
-    }
 
     @BeforeEach
     void setUp() {
