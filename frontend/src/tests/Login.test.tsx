@@ -24,9 +24,9 @@ describe('Login Component', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders the Google login button', () => {
+  it('renders the login button', () => {
     render(<Login />)
-    const button = screen.getByRole('button', { name: /login with google/i })
+    const button = screen.getByRole('button', { name: /^login$/i })
     expect(button).toBeInTheDocument()
     expect(button).toHaveClass('mode-btn')
     expect(button).toHaveClass('theme-red')
@@ -36,7 +36,7 @@ describe('Login Component', () => {
     // The Login component uses window.location.href for navigation
     // We can verify the click handler exists and the button is clickable
     render(<Login />)
-    const button = screen.getByRole('button', { name: /login with google/i })
+    const button = screen.getByRole('button', { name: /^login$/i })
     expect(button).toBeInTheDocument()
     // Verify the button has an onClick handler by checking it doesn't throw
     fireEvent.click(button)

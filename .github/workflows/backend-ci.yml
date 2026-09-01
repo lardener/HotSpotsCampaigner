@@ -13,10 +13,12 @@ on:
       - '.github/workflows/backend-ci.yml'
 
 jobs:
-  backend:
-    name: Build & Test (Maven)
+  baseline:
+    name: Build & Test (unit/service, no Docker)
     runs-on: ubuntu-latest
-    # ubuntu-latest runners already have Docker available for Testcontainers
+    # The default `mvn test` excludes the Docker-based integration tests
+    # (CampaignE2ETest, CampaignLifecycleIntegrationTest), so this job runs
+    # without needing a Docker daemon.
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -37,5 +39,38 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: backend-surefire-reports
+          path: backend/target/surefire-reports/**
+          if-no-files-found: ignore
+
+  integration:
+    name: Integration Tests (Docker / Testcontainers)
+    # Integration tests (CampaignE2ETest, CampaignLifecycleIntegrationTest)
+    # spin up an ephemeral MySQL container, so they need Docker. They are
+    # excluded from the default mvn test and run only under the it-tests
+    # Maven profile below.
+    runs-on: ubuntu-latest
+    needs: baseline
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # GitHub-hosted ubuntu runners ship a Docker daemon, which Testcontainers
+      # needs to pull mysql:8.0.x and spin up the ephemeral database.
+      - name: Run integration tests (it-tests profile)
+        working-directory: backend
+        run: mvn -B -P it-tests test
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-it-surefire-reports
           path: backend/target/surefire-reports/**
           if-no-files-found: ignore

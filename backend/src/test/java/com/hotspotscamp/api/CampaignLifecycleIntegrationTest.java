@@ -17,38 +17,38 @@
  */
 package com.hotspotscamp.api;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.graphql.test.autoconfigure.tester.AutoConfigureGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.graphql.test.tester.GraphQlTester;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import io.r2dbc.spi.Batch;
-import io.r2dbc.spi.Connection;
-import io.r2dbc.spi.ConnectionFactories;
-import io.r2dbc.spi.ConnectionFactory;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
+/**
+ * Integration test for the HotSpots: Campaigner backend. This test spins up an
+ * ephemeral MySQL database using Testcontainers (migrations are applied at
+ * startup by FlywayConfig via @ServiceConnection), and exercises the full
+ * campaign lifecycle — campaign creation, command establishment, detachment,
+ * invite, join, and read-back — via GraphQL.
+ */
 @SpringBootTest
 @AutoConfigureGraphQlTester
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CampaignLifecycleIntegrationTest {
 
+    // Start an ephemeral MySQL instance. @ServiceConnection automatically
+    // configures both the R2DBC connection and the JDBC datasource, so that
+    // FlywayConfig runs the migrations at startup.
     @Container
+    @ServiceConnection
     private static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.36")
             .withDatabaseName("BT_Campaigner")
             .withUsername("test")
@@ -56,48 +56,6 @@ class CampaignLifecycleIntegrationTest {
 
     @Autowired
     private GraphQlTester graphQlTester;
-
-    @DynamicPropertySource
-    static void registerProperties(DynamicPropertyRegistry registry) {
-        if (!mysql.isRunning()) {
-            mysql.start();
-        }
-
-        registry.add("spring.r2dbc.url", ()
-                -> String.format("r2dbc:mysql://%s:%d/%s?allowMultiQueries=true",
-                        mysql.getHost(), mysql.getFirstMappedPort(), mysql.getDatabaseName()));
-        registry.add("spring.r2dbc.username", mysql::getUsername);
-        registry.add("spring.r2dbc.password", mysql::getPassword);
-    }
-
-    @BeforeAll
-    void initializeDatabase() throws Exception {
-        Path schemaPath = Path.of("src/main/resources/db/migration/V1__init_schema.sql");
-        if (!Files.exists(schemaPath)) {
-            schemaPath = Path.of("../backend/src/main/resources/db/migration/V1__init_schema.sql");
-        }
-        if (!Files.exists(schemaPath)) {
-            throw new IllegalStateException("Expected V1 migration at: " + schemaPath.toAbsolutePath());
-        }
-
-        String schemaSql = Files.readString(schemaPath);
-        String url = String.format("r2dbc:mysql://%s:%s@%s:%d/%s?allowMultiQueries=true",
-                mysql.getUsername(), mysql.getPassword(), mysql.getHost(), mysql.getFirstMappedPort(), mysql.getDatabaseName());
-
-        ConnectionFactory connectionFactory = ConnectionFactories.get(url);
-        Mono.from(connectionFactory.create())
-                .flatMapMany(connection -> executeSchema(connection, schemaSql)
-                .doFinally(signal -> Mono.from(connection.close())))
-                .then()
-                .block();
-    }
-
-    private static Flux<Long> executeSchema(Connection connection, String schemaSql) {
-        Batch batch = connection.createBatch();
-        batch.add(schemaSql);
-        return Flux.from(batch.execute())
-                .flatMap(result -> result.getRowsUpdated());
-    }
 
     @Test
     @WithMockUser(username = "manager_user", roles = "AUTHENTICATED")

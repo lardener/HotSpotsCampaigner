@@ -28,6 +28,8 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.graphql.data.method.annotation.SchemaMapping;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 
 import com.hotspotscamp.dto.CampaignCreateInput;
@@ -81,7 +83,7 @@ public class CampaignGraphQLController {
             log.debug("[GQL] Exiting managedCampaigns (anonymous)");
             return Flux.empty();
         }
-        return userService.resolveOrCreateUser(identity)
+        return userService.resolveOrCreateUser(identity, "ROLE_AUTHENTICATED", verifiedEmail(principal))
                 .flatMapMany(user -> {
                     String internalId = user.getId().toString();
                     if (status != null && !status.isEmpty() && !status.equals("ALL")) {
@@ -200,7 +202,7 @@ public class CampaignGraphQLController {
         if (isAnonymous(principal)) {
             return Mono.just(false);
         }
-        return userService.resolveOrCreateUser(principal.getName())
+        return userService.resolveOrCreateUser(principal.getName(), "ROLE_AUTHENTICATED", verifiedEmail(principal))
                 .map(user -> campaign.getManagerId().equals(user.getId().toString()))
                 .defaultIfEmpty(false);
     }
@@ -210,7 +212,7 @@ public class CampaignGraphQLController {
         if (isAnonymous(principal)) {
             return Mono.just(false);
         }
-        return userService.resolveOrCreateUser(principal.getName())
+        return userService.resolveOrCreateUser(principal.getName(), "ROLE_AUTHENTICATED", verifiedEmail(principal))
                 .flatMap(user -> commandService.isParticipantInCampaign(campaign.getId(), user.getId().toString(),
                 principal.getName()))
                 .defaultIfEmpty(false);
@@ -287,6 +289,26 @@ public class CampaignGraphQLController {
         return principal == null || "anonymousUser".equals(principal.getName());
     }
 
+    /**
+     * Extracts the IdP-verified email from the principal when available, so
+     * UserService can lazily migrate legacy Google-keyed accounts.
+     */
+    private String verifiedEmail(Principal principal) {
+        OAuth2User oauth2User = null;
+        if (principal instanceof OAuth2User o) {
+            oauth2User = o;
+        } else if (principal instanceof Authentication auth && auth.getPrincipal() instanceof OAuth2User o) {
+            oauth2User = o;
+        }
+        if (oauth2User != null) {
+            Object email = oauth2User.getAttributes().get("email");
+            if (email != null) {
+                return email.toString();
+            }
+        }
+        return null;
+    }
+
     @MutationMapping
     public Mono<Campaign> createCampaign(@Argument CampaignCreateInput input, Principal principal) {
         log.trace("[TRACE] Entering createCampaign: name={}", input.name());
@@ -294,7 +316,7 @@ public class CampaignGraphQLController {
             return Mono.error(new RuntimeException("Authentication required to create campaign"));
         }
 
-        return userService.resolveOrCreateUser(principal.getName())
+        return userService.resolveOrCreateUser(principal.getName(), "ROLE_AUTHENTICATED", verifiedEmail(principal))
                 .<Campaign>flatMap(user -> {
                     String internalId = user.getId().toString();
                     return campaignService.generateDoblessCampaign(internalId, input);

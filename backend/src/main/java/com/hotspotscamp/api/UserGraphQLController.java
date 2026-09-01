@@ -53,34 +53,47 @@ public class UserGraphQLController {
             return Mono.empty();
         }
 
-        // Resolve the user to get the internal DB UUID
-        return userService.resolveOrCreateUser(identity)
-                .map(user -> {
-                    String name = "Mercenary Commander";
-                    String email = "unknown@merc.net";
+        // Safely extract attributes regardless of the principal wrapper
+        OAuth2User oauth2User = null;
+        if (principal instanceof OAuth2User o) {
+            oauth2User = o;
+        } else if (principal instanceof Authentication auth && auth.getPrincipal() instanceof OAuth2User o) {
+            oauth2User = o;
+        }
 
-                    // Safely extract attributes regardless of the principal wrapper
-                    OAuth2User oauth2User = null;
-                    if (principal instanceof OAuth2User o) {
-                        oauth2User = o;
-                    } else if (principal instanceof Authentication auth && auth.getPrincipal() instanceof OAuth2User o) {
-                        oauth2User = o;
-                    }
+        String name = "Mercenary Commander";
+        String email = null;
+        if (oauth2User != null) {
+            Map<String, Object> attrs = oauth2User.getAttributes();
+            Object nameAttr = attrs.get("name");
+            Object nicknameAttr = attrs.get("nickname");
+            Object usernameAttr = attrs.get("preferred_username");
+            Object emailAttr = attrs.get("email");
+            if (nameAttr != null && !nameAttr.toString().isBlank()) {
+                name = nameAttr.toString();
+            } else if (nicknameAttr != null && !nicknameAttr.toString().isBlank()) {
+                name = nicknameAttr.toString();
+            } else if (usernameAttr != null && !usernameAttr.toString().isBlank()) {
+                name = usernameAttr.toString();
+            }
+            if (emailAttr != null && !emailAttr.toString().isBlank()) {
+                email = emailAttr.toString();
+            }
+        }
 
-                    if (oauth2User != null) {
-                        Map<String, Object> attrs = oauth2User.getAttributes();
-                        name = attrs.getOrDefault("name", name).toString();
-                        email = attrs.getOrDefault("email", email).toString();
-                    }
+        final String resolvedName = name;
+        final String verifiedEmail = email;
 
-                    return new UserProfile(
-                            user.getId().toString(),
-                            name,
-                            email,
-                            user.getDisplayName(),
-                            user.getRole()
-                    );
-                })
+        // Resolve the user to get the internal DB UUID; verified email enables
+        // lazy migration of legacy accounts to Auth0 identities.
+        return userService.resolveOrCreateUser(identity, "ROLE_AUTHENTICATED", verifiedEmail)
+                .map(user -> new UserProfile(
+                user.getId().toString(),
+                user.getDisplayName() != null && !user.getDisplayName().isBlank() ? user.getDisplayName() : resolvedName,
+                user.getEmail() != null ? user.getEmail() : (verifiedEmail != null ? verifiedEmail : "unknown@merc.net"),
+                user.getDisplayName(),
+                user.getRole()
+        ))
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting userProfile"));
     }
 

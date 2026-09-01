@@ -634,9 +634,9 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
               type="button"
               className="mode-btn theme-red"
               onClick={() =>
-                (window.location.href = `${API_BASE_URL}/login/oauth2/authorization/google`)
+                (window.location.href = `${API_BASE_URL}/login/oauth2/authorization/auth0`)
               }
-              title="Login with your Google account"
+              title="Login with your SSO provider (Google, Microsoft, GitHub, ...)"
               style={{
                 height: '36px',
                 padding: '0 25px',

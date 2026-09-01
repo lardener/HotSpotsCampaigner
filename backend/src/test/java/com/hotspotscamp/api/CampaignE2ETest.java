@@ -50,11 +50,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
             "spring.main.allow-circular-references=true",
-            "spring.security.oauth2.client.registration.google.client-id=test-id",
-            "spring.security.oauth2.client.registration.google.client-secret=test-secret",
-            "spring.security.oauth2.client.provider.google.authorization-uri=http://localhost/auth",
-            "spring.security.oauth2.client.provider.google.token-uri=http://localhost/token",
-            "spring.security.oauth2.client.provider.google.jwk-set-uri=http://localhost/jwks"
+            "spring.security.oauth2.client.registration.auth0.client-id=test-id",
+            "spring.security.oauth2.client.registration.auth0.client-secret=test-secret",
+            "spring.security.oauth2.client.provider.auth0.issuer-uri=https://test-tenant.us.auth0.com/"
         }
 )
 @AutoConfigureWebTestClient

@@ -47,15 +47,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <!-- Spring Boot Web & Security -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-json</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
@@ -113,6 +104,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
+        <!-- WebFlux (required by WebFlux-based error handler and reactive endpoints) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
         <!-- Spring Data R2DBC for reactive database access -->
@@ -224,6 +221,48 @@
         </dependency>
     </dependencies>
 
+    <!--
+      Integration tests that require Docker (Testcontainers MySQL).
+
+      The classes CampaignE2ETest and CampaignLifecycleIntegrationTest spin up
+      an ephemeral MySQL container and therefore need a working Docker daemon.
+      They are excluded from the base `mvn test` (see the maven-surefire-plugin
+      <excludes> in the <build> block) so that the fast unit/service test suite
+      passes anywhere — including CI runners without Docker.
+
+      Run them explicitly where Docker is available:
+
+          mvn -B -P it-tests test
+
+      The GitHub Actions `backend-ci.yml` runs this profile in a separate job
+      on a Docker-enabled runner.
+    -->
+    <profiles>
+        <profile>
+            <id>it-tests</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- Re-include the integration tests that the base
+                                 suite excludes, then run only those. -->
+                            <excludes combine.self="remove"/>
+                            <includes>
+                                <include>**/CampaignE2ETest.java</include>
+                                <include>**/CampaignLifecycleIntegrationTest.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <!-- Source: https://mvnrepository.com/artifact/org.jsoup/jsoup -->
 
 
@@ -273,6 +312,17 @@
                     <systemPropertyVariables>
                         <spring.classformat.ignore>true</spring.classformat.ignore>
                     </systemPropertyVariables>
+                    <!--
+                      Skip integration tests that require Docker (Testcontainers).
+                      These are the only tests that spin up a MySQL container, so
+                      excluding them by default lets `mvn test` pass on any
+                      machine/runner without a Docker daemon. Enable the
+                      `it-tests` profile to run them explicitly.
+                    -->
+                    <excludes>
+                        <exclude>**/CampaignE2ETest.java</exclude>
+                        <exclude>**/CampaignLifecycleIntegrationTest.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
             <plugin>

@@ -17,14 +17,33 @@
  */
 package com.hotspotscamp.repository;
 
-import com.hotspotscamp.entity.User;
+import java.util.UUID;
+
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
+
+import com.hotspotscamp.entity.User;
+
 import reactor.core.publisher.Mono;
-import java.util.UUID;
 
 @Repository
 public interface UserRepository extends ReactiveCrudRepository<User, UUID> {
 
     Mono<User> findByExternalId(String externalId);
+
+    Mono<User> findByEmail(String email);
+
+    @Query("SELECT * FROM app_users WHERE LOWER(external_id) = LOWER(:externalId) LIMIT 1")
+    Mono<User> findByExternalIdIgnoreCase(String externalId);
+
+    @Query("SELECT * FROM app_users WHERE LOWER(email) = LOWER(:email) LIMIT 1")
+    Mono<User> findByEmailIgnoreCase(String email);
+
+    @Query("SELECT * FROM app_users WHERE display_name = :displayName LIMIT 1")
+    Mono<User> findByDisplayName(String displayName);
+
+    @Query("SELECT * FROM app_users WHERE LOWER(display_name) = LOWER(:displayName) LIMIT 1")
+    Mono<User> findByDisplayNameIgnoreCase(String displayName);
 }
+
