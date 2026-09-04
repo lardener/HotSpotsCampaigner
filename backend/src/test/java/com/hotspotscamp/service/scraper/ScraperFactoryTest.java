@@ -41,12 +41,17 @@ class ScraperFactoryTest {
     @Test
     void getScraper_returnsMatchingScraper() {
         UnitScraper mul = mockScraper("masterunitlist.info");
+        UnitScraper mulBtl = mockScraper("masterunitlist.battletech.com");
         UnitScraper mordel = mockScraper("mordel.net");
         UnitScraper mekbay = mockScraper("mekbay.com");
-        ScraperFactory factory = new ScraperFactory(List.of(mul, mordel, mekbay));
+        ScraperFactory factory = new ScraperFactory(List.of(mul, mulBtl, mordel, mekbay));
 
         StepVerifier.create(factory.getScraper("https://masterunitlist.info/Unit/Details/123"))
                 .assertNext(s -> assertSame(mul, s))
+                .verifyComplete();
+
+        StepVerifier.create(factory.getScraper("https://masterunitlist.battletech.com/units/marauder-mad-9m2"))
+                .assertNext(s -> assertSame(mulBtl, s))
                 .verifyComplete();
 
         StepVerifier.create(factory.getScraper("https://mekbay.com/?shareUnit=BMAxman_AXM2R&tab=General"))

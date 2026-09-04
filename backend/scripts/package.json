@@ -1,0 +1,13 @@
+{
+  "name": "mul-data-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generates a normalized mul-units.json snapshot from the Master Unit List site (masterunitlist.battletech.com) by driving a real browser through a Cloudflare challenge.",
+  "main": "gen_mul_data.js",
+  "scripts": {
+    "generate": "node gen_mul_data.js"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

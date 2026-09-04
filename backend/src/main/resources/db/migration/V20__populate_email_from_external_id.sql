@@ -1,3 +1,4 @@
+-- SQLBook: Code
 -- Populate missing email column from legacy external_id values
 -- This migration copies external_id into email for accounts where the
 -- external_id appears to be an email address (contains '@') and the
@@ -13,5 +14,7 @@ SET email = LOWER(TRIM(external_id))
 WHERE email IS NULL
   AND external_id LIKE '%@%';
 
--- Report affected rows (for manual verification when running interactively)
-SELECT ROW_COUNT() AS rows_updated;
+-- NOTE: the previous diagnostic `SELECT ROW_COUNT() AS rows_updated;` was
+-- removed because ROW_COUNT() is a MySQL-specific function that does not exist
+-- in H2's MySQL mode, which broke Flyway validation under tests. The UPDATE
+-- above is idempotent and safe to leave in place.

@@ -52,7 +52,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
             "spring.main.allow-circular-references=true",
             "spring.security.oauth2.client.registration.auth0.client-id=test-id",
             "spring.security.oauth2.client.registration.auth0.client-secret=test-secret",
-            "spring.security.oauth2.client.provider.auth0.issuer-uri=https://test-tenant.us.auth0.com/"
+            "spring.security.oauth2.client.provider.auth0.authorization-uri=https://test-tenant.us.auth0.com/authorize",
+            "spring.security.oauth2.client.provider.auth0.token-uri=https://test-tenant.us.auth0.com/oauth/token",
+            "spring.security.oauth2.client.provider.auth0.user-info-uri=https://test-tenant.us.auth0.com/userinfo"
         }
 )
 @AutoConfigureWebTestClient

@@ -42,5 +42,9 @@ spring:
               - email
         provider:
           auth0:
-            issuer-uri: https://test-tenant.us.auth0.com/
+            # Explicit endpoints instead of issuer-uri so Spring does not attempt
+            # OIDC discovery (which would fail against the fake test tenant).
+            authorization-uri: https://test-tenant.us.auth0.com/authorize
+            token-uri: https://test-tenant.us.auth0.com/oauth/token
+            user-info-uri: https://test-tenant.us.auth0.com/userinfo
             user-name-attribute: sub
