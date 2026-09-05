@@ -81,7 +81,7 @@ public class CampaignService {
                 configService.getEmployerTableConfig().entries().stream().map(EmployerEntry::type).distinct().sorted().toList(),
                 configService.getResolvedStepsTable().entrySet().stream().map(e -> new ResolvedStepEntry(e.getKey(), e.getValue())).toList(),
                 RulesConstants.UNIT_TYPES, RulesConstants.TECH_BASES, RulesConstants.UNIT_STATUS_OPTIONS,
-                configService.getRepairMultiplier("armor"), configService.getRepairMultiplier("internal"), configService.getRepairMultiplier("crippled"), configService.getRepairMultiplier("destroyed"),
+                configService.getRepairMultiplier("armor"), configService.getRepairMultiplier("internal"), configService.getRepairMultiplier("crippled"), configService.getRepairMultiplier("destroy[...]
                 configService.getRepairMultiplier("nonMech"), configService.getRepairMultiplier("mixedTech"), configService.getRepairMultiplier("clanTech"),
                 configService.getActivityCost("omnimechReconfigure"),
                 configService.getActivityCostInt("purchaseUnit"),
@@ -217,10 +217,10 @@ public class CampaignService {
                                         return contractRepository.save(c);
                                     });
 
-                                    java.util.function.IntSupplier monthSupplier = trackManagementService.getMonthSupplier(configService.getTrackIntensityTable(), saved.getLengthInMonths(), saved.getTrackCount());
+                                    java.util.function.IntSupplier monthSupplier = trackManagementService.getMonthSupplier(configService.getTrackIntensityTable(), saved.getLengthInMonths(), saved[...]
                                     return conFlux.thenMany(Flux.fromIterable(proposal.tracks()).index())
                                             .concatMap(t -> campaignTrackRepository.save(Objects.requireNonNull(CampaignTrack.builder()
-                                            .id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().oppositionComplication())
+                                            .id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().[...]
                                             .attackerFactionId(trackManagementService.primaryIsAttacker(proposal.contracts().get(0).getMissionType(), t.getT2().name()) ? f1.getId() : f2.getId())
                                             .sequenceOrder(t.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
                                             .then(Mono.just(saved));
@@ -237,11 +237,26 @@ public class CampaignService {
     }
 
     public Mono<CampaignInvite> createInvite(@NonNull UUID campaignId, String recipientName, String userId) {
-        return userService.resolveOrCreateUser(userId).flatMap(user -> campaignRepository.findById(campaignId)
-                .flatMap(camp -> camp.getManagerId().equals(user.getId().toString())
-                ? inviteService.generateInvite(campaignId, recipientName)
-                : Mono.error(new RuntimeException("Access Denied"))))
-                .transformDeferred(transactionalOperator::transactional);
+        log.trace("[TRACE] Starting createInvite: campaignId={}, recipientName={}, userId={}", campaignId, recipientName, userId);
+        return userService.resolveOrCreateUser(userId)
+                .flatMap(user -> {
+                    log.debug("[INVITE] Resolved user: id={}, externalId={}", user.getId(), user.getExternalId());
+                    return campaignRepository.findById(campaignId)
+                            .flatMap(camp -> {
+                                String managerId = camp.getManagerId();
+                                String userId_str = user.getId().toString();
+                                log.debug("[INVITE] Comparing managerId={} with userId={}", managerId, userId_str);
+                                
+                                if (managerId.equals(userId_str)) {
+                                    return inviteService.generateInvite(campaignId, recipientName);
+                                } else {
+                                    log.warn("[INVITE] Access Denied: managerId {} does not match userId {}", managerId, userId_str);
+                                    return Mono.error(new RuntimeException("Access Denied"));
+                                }
+                            });
+                })
+                .transformDeferred(transactionalOperator::transactional)
+                .doOnTerminate(() -> log.trace("[TRACE] Finished createInvite"));
     }
 
     public Mono<Boolean> joinCampaign(String token, @NonNull UUID detachmentId) {
