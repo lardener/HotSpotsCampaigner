@@ -19,14 +19,17 @@ package com.hotspotscamp.api;
 
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.graphql.test.autoconfigure.tester.AutoConfigureGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.graphql.test.tester.HttpGraphQlTester;
 import org.springframework.security.test.context.support.WithMockUser;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockUser;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -38,8 +41,17 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * campaign lifecycle — campaign creation, command establishment, detachment,
  * invite, join, and read-back — via GraphQL.
  */
-@SpringBootTest
-@AutoConfigureGraphQlTester
+@SpringBootTest(
+        properties = {
+            "spring.main.allow-circular-references=true",
+            "spring.security.oauth2.client.registration.auth0.client-id=test-id",
+            "spring.security.oauth2.client.registration.auth0.client-secret=test-secret",
+            "spring.security.oauth2.client.provider.auth0.authorization-uri=https://test-tenant.us.auth0.com/authorize",
+            "spring.security.oauth2.client.provider.auth0.token-uri=https://test-tenant.us.auth0.com/oauth/token",
+            "spring.security.oauth2.client.provider.auth0.user-info-uri=https://test-tenant.us.auth0.com/userinfo"
+        }
+)
+@AutoConfigureWebTestClient
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CampaignLifecycleIntegrationTest {
@@ -49,13 +61,24 @@ class CampaignLifecycleIntegrationTest {
     // FlywayConfig runs the migrations at startup.
     @Container
     @ServiceConnection
-    private static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.36")
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0.40")
             .withDatabaseName("BT_Campaigner")
             .withUsername("test")
             .withPassword("test");
 
     @Autowired
-    private GraphQlTester graphQlTester;
+    private WebTestClient webTestClient;
+
+    private HttpGraphQlTester graphQlTester;
+
+    @BeforeEach
+    void setUp() {
+        WebTestClient webTestClientWithBase = webTestClient.mutate()
+                .baseUrl("/graphql")
+                .build();
+        this.graphQlTester = HttpGraphQlTester.create(
+                webTestClientWithBase.mutateWith(mockUser("manager_user").roles("AUTHENTICATED")));
+    }
 
     @Test
     @WithMockUser(username = "manager_user", roles = "AUTHENTICATED")

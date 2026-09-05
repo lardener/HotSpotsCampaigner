@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.graphql.test.tester.HttpGraphQlTester;
@@ -47,7 +46,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * exercises the campaign generation lifecycle via GraphQL.
  */
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
             "spring.main.allow-circular-references=true",
             "spring.security.oauth2.client.registration.auth0.client-id=test-id",
@@ -71,9 +69,6 @@ class CampaignE2ETest {
             .withUsername("test")
             .withPassword("test");
 
-    @LocalServerPort
-    private int port;
-
     @Autowired
     private WebTestClient webTestClient;
 
@@ -84,9 +79,10 @@ class CampaignE2ETest {
     @BeforeEach
     void setUp() {
         webTestClientWithBase = webTestClient.mutate()
-                .baseUrl("http://localhost:" + port + "/graphql")
+                .baseUrl("/graphql")
                 .build();
-        this.graphQlTester = HttpGraphQlTester.create(webTestClientWithBase);
+        this.graphQlTester = HttpGraphQlTester.create(
+                webTestClientWithBase.mutateWith(mockUser("commander@mercs.com").roles("AUTHENTICATED")));
     }
 
     @Test

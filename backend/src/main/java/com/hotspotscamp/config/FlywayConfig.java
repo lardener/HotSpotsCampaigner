@@ -20,7 +20,9 @@ package com.hotspotscamp.config;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.jdbc.autoconfigure.JdbcConnectionDetails;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -64,17 +66,26 @@ public class FlywayConfig {
     @Value("${spring.flyway.baseline-on-migrate:false}")
     private boolean baselineOnMigrate;
 
-    @Value("${spring.flyway.baseline-version:1}")
+    @Value("${spring.flyway.baseline-version:0}")
     private String baselineVersion;
 
     @Bean(initMethod = "migrate")
-    public Flyway flyway() {
-        log.info("Running Flyway migrations via manual JDBC DataSource — locations: {}", locations);
+    public Flyway flyway(ObjectProvider<JdbcConnectionDetails> connectionDetailsProvider) {
+        JdbcConnectionDetails details = connectionDetailsProvider.getIfAvailable();
+        String url = (details != null) ? details.getJdbcUrl() : jdbcUrl;
+        String user = (details != null) ? details.getUsername() : username;
+        String pass = (details != null) ? details.getPassword() : password;
+        String driver = (details != null) ? details.getDriverClassName() : null;
+
+        log.info("Running Flyway migrations via manual JDBC DataSource — url: {}, locations: {}", url, locations);
 
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(jdbcUrl);
-        hikariConfig.setUsername(username);
-        hikariConfig.setPassword(password);
+        hikariConfig.setJdbcUrl(url);
+        hikariConfig.setUsername(user);
+        hikariConfig.setPassword(pass);
+        if (driver != null && !driver.isBlank()) {
+            hikariConfig.setDriverClassName(driver);
+        }
         hikariConfig.setMinimumIdle(1);
         hikariConfig.setMaximumPoolSize(3);
         hikariConfig.setPoolName("flyway-migration-pool");
