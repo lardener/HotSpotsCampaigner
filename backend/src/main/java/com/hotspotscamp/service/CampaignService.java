@@ -81,7 +81,7 @@ public class CampaignService {
                 configService.getEmployerTableConfig().entries().stream().map(EmployerEntry::type).distinct().sorted().toList(),
                 configService.getResolvedStepsTable().entrySet().stream().map(e -> new ResolvedStepEntry(e.getKey(), e.getValue())).toList(),
                 RulesConstants.UNIT_TYPES, RulesConstants.TECH_BASES, RulesConstants.UNIT_STATUS_OPTIONS,
-                configService.getRepairMultiplier("armor"), configService.getRepairMultiplier("internal"), configService.getRepairMultiplier("crippled"), configService.getRepairMultiplier("destroy[...]
+                configService.getRepairMultiplier("armor"), configService.getRepairMultiplier("internal"), configService.getRepairMultiplier("crippled"), configService.getRepairMultiplier("destroyed"),
                 configService.getRepairMultiplier("nonMech"), configService.getRepairMultiplier("mixedTech"), configService.getRepairMultiplier("clanTech"),
                 configService.getActivityCost("omnimechReconfigure"),
                 configService.getActivityCostInt("purchaseUnit"),
@@ -217,12 +217,13 @@ public class CampaignService {
                                         return contractRepository.save(c);
                                     });
 
-                                    java.util.function.IntSupplier monthSupplier = trackManagementService.getMonthSupplier(configService.getTrackIntensityTable(), saved.getLengthInMonths(), saved[...]
+                                    java.util.function.IntSupplier monthSupplier = trackManagementService.getMonthSupplier(configService.getTrackIntensityTable(), saved.getLengthInMonths(), saved.getTrackCount());
                                     return conFlux.thenMany(Flux.fromIterable(proposal.tracks()).index())
                                             .concatMap(t -> campaignTrackRepository.save(Objects.requireNonNull(CampaignTrack.builder()
-                                            .id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().[...]
+                                            .id(UUID.randomUUID()).campaignId(saved.getId()).trackName(t.getT2().name()).complications(t.getT2().complication()).oppositionComplications(t.getT2().oppositionComplication())
                                             .attackerFactionId(trackManagementService.primaryIsAttacker(proposal.contracts().get(0).getMissionType(), t.getT2().name()) ? f1.getId() : f2.getId())
-                                            .sequenceOrder(t.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build())))
+                                            .sequenceOrder(t.getT1().intValue()).monthIndex(monthSupplier.getAsInt()).isNew(true).build()
+                                    )))
                                             .then(Mono.just(saved));
                                 });
                     });
@@ -246,7 +247,7 @@ public class CampaignService {
                                 String managerId = camp.getManagerId();
                                 String userId_str = user.getId().toString();
                                 log.debug("[INVITE] Comparing managerId={} with userId={}", managerId, userId_str);
-                                
+
                                 if (managerId.equals(userId_str)) {
                                     return inviteService.generateInvite(campaignId, recipientName);
                                 } else {
