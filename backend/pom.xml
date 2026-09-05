@@ -155,6 +155,13 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
+        <!-- Nullness annotations -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -274,6 +281,7 @@
                 <configuration>
                     <release>25</release>
                     <parameters>true</parameters>
+                    <showDeprecation>true</showDeprecation>
                     <compilerArgs>
                         <arg>--add-opens</arg>
                         <arg>jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>

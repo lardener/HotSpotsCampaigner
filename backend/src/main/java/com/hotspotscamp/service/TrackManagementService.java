@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.IntSupplier;
 
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
