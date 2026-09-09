@@ -44,11 +44,12 @@
 
 .tree-node {
   display: flex;
-  align-items: center;
-  height: 30px;
+  align-items: flex-start;
+  min-height: 30px;
+  height: auto;
   cursor: pointer;
   font-size: 13px;
-  padding-left: 8px;
+  padding: 5px 8px 5px 8px;
   position: relative;
 }
 
@@ -78,6 +79,12 @@
   cursor: default;
   letter-spacing: 0.1em;
   border-left: none !important;
+}
+
+.label {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 /* Tactical Type Colors */
@@ -120,14 +127,16 @@
   position: absolute;
   left: -18px;
   display: block;
-  top: 50%;
+  top: 15px;
 }
 
 .toggle-arrow {
   font-size: 7px;
   margin-right: 6px;
+  margin-top: 2px;
   transition: transform 0.2s;
   width: 12px;
+  flex-shrink: 0;
   text-align: center;
   color: var(--terminal-amber);
   opacity: 0.6;
@@ -140,6 +149,7 @@
 .toggle-spacer {
   width: 12px;
   margin-right: 6px;
+  flex-shrink: 0;
 }
 
 .node-icon {
@@ -147,6 +157,8 @@
   align-items: center;
   justify-content: center;
   margin-right: 8px;
+  margin-top: 1px;
+  flex-shrink: 0;
   color: inherit;
   opacity: 0.7;
 }
