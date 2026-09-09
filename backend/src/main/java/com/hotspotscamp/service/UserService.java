@@ -123,9 +123,24 @@ public class UserService {
     private Mono<User> migrateLegacyUserByIdentity(String identity, String role, String email) {
         return findLegacyCandidate(identity, email)
                 .flatMap(user -> {
-                    log.info("[AUTH] Migrated legacy user {} (display_name='{}', old_external_id='{}') to identity '{}'",
-                            user.getId(), user.getDisplayName(), user.getExternalId(), identity);
-                    user.setExternalId(identity);
+                    // Never overwrite an external_id that already holds a real
+                    // provider sub (e.g. "google-oauth2|..."). Overwriting it would
+                    // detach the account from its provider identity and let a later
+                    // login by a different user clobber the same internal row via
+                    // the email path. If the stored sub already matches the identity,
+                    // just treat the migration as already complete.
+                    String currentExternalId = user.getExternalId();
+                    if (currentExternalId != null && currentExternalId.contains("|")) {
+                        if (currentExternalId.equals(identity)) {
+                            log.info("[AUTH] User {} already migrated to identity '{}'", user.getId(), identity);
+                        } else {
+                            log.warn("[AUTH] User {} already holds provider sub '{}' (not '{}'); leaving external_id unchanged to avoid clobbering", user.getId(), currentExternalId, identity);
+                        }
+                    } else {
+                        log.info("[AUTH] Migrated legacy user {} (display_name='{}', old_external_id='{}') to identity '{}'",
+                                user.getId(), user.getDisplayName(), currentExternalId, identity);
+                        user.setExternalId(identity);
+                    }
                     if (email != null && !email.isBlank()) {
                         user.setEmail(email.trim().toLowerCase());
                     }
@@ -152,7 +167,10 @@ public class UserService {
         // 2. Email match (exact and case-insensitive against email and external_id)
         if (email != null && !email.isBlank()) {
             String normalizedEmail = email.trim().toLowerCase();
-            lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findByEmail(normalizedEmail)))
+            // Prefer a row that already holds a real provider sub so that, when
+            // multiple rows share an email, we migrate the legacy one and never
+            // overwrite the canonical account's external_id.
+            lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findEmailUserPreferringSub(normalizedEmail)))
                            .switchIfEmpty(Mono.defer(() -> userRepository.findByEmailIgnoreCase(normalizedEmail)))
                            .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalId(normalizedEmail)))
                            .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(normalizedEmail)));

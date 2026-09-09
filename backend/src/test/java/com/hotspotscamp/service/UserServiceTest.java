@@ -101,7 +101,7 @@ class UserServiceTest {
         User saved = user(legacyId, auth0Identity, "commander@merc.net", "Commander", "ROLE_AUTHENTICATED");
 
         when(userRepository.findByExternalId(auth0Identity)).thenReturn(Mono.empty());
-        when(userRepository.findByEmail("commander@merc.net")).thenReturn(Mono.just(legacy));
+        when(userRepository.findEmailUserPreferringSub("commander@merc.net")).thenReturn(Mono.just(legacy));
         when(userRepository.save(any(User.class))).thenReturn(Mono.just(saved));
 
         StepVerifier.create(userService.resolveOrCreateUser(auth0Identity, "ROLE_AUTHENTICATED", "Commander@Merc.net"))
@@ -122,6 +122,7 @@ class UserServiceTest {
         User saved = user(legacyId, auth0Identity, email, "desersharkey", "ROLE_AUTHENTICATED");
 
         when(userRepository.findByExternalId(auth0Identity)).thenReturn(Mono.empty());
+        when(userRepository.findEmailUserPreferringSub("desersharkey@gmail.com")).thenReturn(Mono.empty());
         when(userRepository.findByExternalId("desersharkey")).thenReturn(Mono.just(legacy));
         when(userRepository.save(any(User.class))).thenReturn(Mono.just(saved));
 
@@ -159,6 +160,7 @@ class UserServiceTest {
         String identity = "auth0|66f1e2c3a4b5c6d7e8f9a0b1";
 
         when(userRepository.findByExternalId(identity)).thenReturn(Mono.empty());
+        when(userRepository.findEmailUserPreferringSub("newbie@merc.net")).thenReturn(Mono.empty());
         when(userRepository.save(any(User.class)))
                 .thenAnswer(inv -> Mono.just(inv.getArgument(0, User.class)));
 

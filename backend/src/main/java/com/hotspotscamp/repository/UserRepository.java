@@ -34,6 +34,17 @@ public interface UserRepository extends ReactiveCrudRepository<User, UUID> {
 
     Mono<User> findByEmail(String email);
 
+    // Deterministic email lookup used during legacy migration. Prefers a row that
+    // already holds a real provider sub (external_id contains '|'). This makes the
+    // lookup stable when multiple rows share an email: a fresh login migrates the
+    // legacy (non-sub) row, never an account that is already correctly keyed by its
+    // provider identity. LIMIT 1 guarantees a single result.
+    @Query(
+        "SELECT * FROM app_users "
+        + "WHERE LOWER(email) = LOWER(:email) "
+        + "ORDER BY (external_id LIKE '%|%') DESC, id ASC LIMIT 1")
+    Mono<User> findEmailUserPreferringSub(String email);
+
     @Query("SELECT * FROM app_users WHERE LOWER(external_id) = LOWER(:externalId) LIMIT 1")
     Mono<User> findByExternalIdIgnoreCase(String externalId);
 
