@@ -40,9 +40,9 @@ public interface UserRepository extends ReactiveCrudRepository<User, UUID> {
     // legacy (non-sub) row, never an account that is already correctly keyed by its
     // provider identity. LIMIT 1 guarantees a single result.
     @Query(
-        "SELECT * FROM app_users "
-        + "WHERE LOWER(email) = LOWER(:email) "
-        + "ORDER BY (external_id LIKE '%|%') DESC, id ASC LIMIT 1")
+            "SELECT * FROM app_users "
+            + "WHERE LOWER(email) = LOWER(:email) "
+            + "ORDER BY (external_id LIKE '%|%') DESC, id ASC LIMIT 1")
     Mono<User> findEmailUserPreferringSub(String email);
 
     @Query("SELECT * FROM app_users WHERE LOWER(external_id) = LOWER(:externalId) LIMIT 1")
@@ -57,4 +57,3 @@ public interface UserRepository extends ReactiveCrudRepository<User, UUID> {
     @Query("SELECT * FROM app_users WHERE LOWER(display_name) = LOWER(:displayName) LIMIT 1")
     Mono<User> findByDisplayNameIgnoreCase(String displayName);
 }
-

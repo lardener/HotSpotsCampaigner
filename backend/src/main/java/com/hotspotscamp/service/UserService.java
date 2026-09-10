@@ -58,10 +58,11 @@ public class UserService {
     }
 
     /**
-     * Resolves an external identity to a User, using a multi-tier lazy migration
-     * strategy for legacy users (keyed by raw Google sub, username, display name,
-     * or email). When a legacy record is found, its external_id is rewritten to the
-     * current identity so the same internal UUID is preserved.
+     * Resolves an external identity to a User, using a multi-tier lazy
+     * migration strategy for legacy users (keyed by raw Google sub, username,
+     * display name, or email). When a legacy record is found, its external_id
+     * is rewritten to the current identity so the same internal UUID is
+     * preserved.
      */
     public Mono<User> resolveOrCreateUser(String identity, String role, String email) {
         log.trace("[TRACE] Starting resolveOrCreateUser: identity={}, role={}, email={}", identity, role, email);
@@ -160,7 +161,7 @@ public class UserService {
             String rawSub = identity.substring(identity.indexOf('|') + 1).trim();
             if (!rawSub.isBlank()) {
                 lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findByExternalId(rawSub)))
-                               .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(rawSub)));
+                        .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(rawSub)));
             }
         }
 
@@ -171,18 +172,18 @@ public class UserService {
             // multiple rows share an email, we migrate the legacy one and never
             // overwrite the canonical account's external_id.
             lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findEmailUserPreferringSub(normalizedEmail)))
-                           .switchIfEmpty(Mono.defer(() -> userRepository.findByEmailIgnoreCase(normalizedEmail)))
-                           .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalId(normalizedEmail)))
-                           .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(normalizedEmail)));
+                    .switchIfEmpty(Mono.defer(() -> userRepository.findByEmailIgnoreCase(normalizedEmail)))
+                    .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalId(normalizedEmail)))
+                    .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(normalizedEmail)));
 
             // 3. Email username prefix match (e.g. desersharkey@gmail.com -> desersharkey)
             if (normalizedEmail.contains("@")) {
                 String prefix = normalizedEmail.substring(0, normalizedEmail.indexOf('@')).trim();
                 if (!prefix.isBlank()) {
                     lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findByExternalId(prefix)))
-                                   .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(prefix)))
-                                   .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayName(prefix)))
-                                   .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayNameIgnoreCase(prefix)));
+                            .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(prefix)))
+                            .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayName(prefix)))
+                            .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayNameIgnoreCase(prefix)));
                 }
             }
         }
@@ -192,15 +193,15 @@ public class UserService {
             String suffix = identity.substring(identity.indexOf('|') + 1).trim();
             if (!suffix.isBlank()) {
                 lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayName(suffix)))
-                               .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayNameIgnoreCase(suffix)))
-                               .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(suffix)));
+                        .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayNameIgnoreCase(suffix)))
+                        .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(suffix)));
             }
         }
 
         lookup = lookup.switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayName(identity)))
-                       .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayNameIgnoreCase(identity)))
-                       .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(identity)))
-                       .switchIfEmpty(Mono.defer(() -> findByUuidIfApplicable(identity)));
+                .switchIfEmpty(Mono.defer(() -> userRepository.findByDisplayNameIgnoreCase(identity)))
+                .switchIfEmpty(Mono.defer(() -> userRepository.findByExternalIdIgnoreCase(identity)))
+                .switchIfEmpty(Mono.defer(() -> findByUuidIfApplicable(identity)));
 
         return lookup.doOnNext(u -> u.setNew(false));
     }

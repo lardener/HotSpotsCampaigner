@@ -584,6 +584,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     isOpen: boolean
     title: string
     message: string
+    confirmLabel?: string
     children?: React.ReactNode
     variant?: 'alert' | 'info'
     onConfirm: (val?: string) => void | Promise<void>
@@ -699,6 +700,8 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
     setOverlay({
       isOpen: true,
       title: isCurrentlyActive ? 'DEACTIVATE THEATER' : 'ACTIVATE THEATER',
+      variant: isCurrentlyActive ? 'alert' : 'info',
+      confirmLabel: isCurrentlyActive ? 'DEACTIVATE' : 'ACTIVATE',
       message: isCurrentlyActive
         ? 'WARNING: DEACTIVATING THEATER WILL EJECT ALL DEPLOYED DETACHMENTS. PROCEED?'
         : 'RESTORE THEATER TO ACTIVE RECRUITMENT STATUS?',
@@ -2753,6 +2756,7 @@ export const CampaignTheaterView: React.FC<CampaignTheaterViewProps> = ({
         <TerminalOverlay
           title={overlay.title}
           message={overlay.message}
+          confirmLabel={overlay.confirmLabel}
           variant={overlay.variant}
           onConfirm={overlay.onConfirm}
           onCancel={() => setOverlay((prev) => ({ ...prev, isOpen: false }))}
