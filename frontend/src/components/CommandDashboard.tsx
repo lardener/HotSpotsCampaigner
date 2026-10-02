@@ -538,7 +538,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
       className="container unit-profile theme-amber"
       style={{
         position: 'relative',
-        overflow: 'hidden',
+        overflow: 'visible',
         background: 'transparent',
         minHeight: '100%',
       }}
@@ -844,6 +844,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                 </div>
               )}
             </div>
+            <div className="table-scroll-wrapper">
             <table className="tactical-table">
               <thead>
                 <tr>
@@ -923,6 +924,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                 ))}
               </tbody>
             </table>
+            </div>
           </section>
 
           <section className="dashboard-section tactical-panel" data-id="PERS-BARR">
@@ -947,6 +949,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                 </button>
               )}
             </div>
+            <div className="table-scroll-wrapper">
             <table className="tactical-table">
               <thead>
                 <tr>
@@ -1026,6 +1029,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                 ))}
               </tbody>
             </table>
+            </div>
           </section>
         </main>
 
@@ -1063,6 +1067,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
               />
             </div>
 
+            <div className="table-scroll-wrapper">
             <table className="tactical-table">
               <thead>
                 <tr>
@@ -1129,6 +1134,7 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
                 )}
               </tbody>
             </table>
+            </div>
 
             {sortedLedger.length > entriesPerPage && (
               <div
