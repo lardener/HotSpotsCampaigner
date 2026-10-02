@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import './navigation-tree.css'
 
 export type NodeType = 'ROOT' | 'DEPLOYMENT' | 'COMMAND' | 'DETACHMENT' | 'CAMPAIGN' | 'INTEL'
@@ -34,6 +34,20 @@ export interface TreeItem {
   children?: TreeItem[]
   initiallyExpanded?: boolean
   metadata?: TreeItemMetadata
+}
+
+export const hasSelectedDescendant = (item: TreeItem, selectedId?: string): boolean => {
+  if (!selectedId || !item.children || item.children.length === 0) return false
+  return item.children.some(
+    (child) => child.id === selectedId || hasSelectedDescendant(child, selectedId),
+  )
+}
+
+export const isIdInTree = (items: TreeItem[], id?: string): boolean => {
+  if (!id) return false
+  return items.some(
+    (item) => item.id === id || (item.children ? isIdInTree(item.children, id) : false),
+  )
 }
 
 const getNodeIcon = (type: NodeType) => {
@@ -128,28 +142,148 @@ interface TreeNodeProps {
   level: number
   onSelect: (item: TreeItem) => void
   selectedId?: string
+  isFirstItem?: boolean
+  hasAnySelected?: boolean
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ item, level, onSelect, selectedId }) => {
+const focusAdjacentNode = (currentEl: HTMLElement, direction: 1 | -1) => {
+  const treeRoot = currentEl.closest('[role="tree"]')
+  if (!treeRoot) return
+  const visibleNodes = Array.from(treeRoot.querySelectorAll<HTMLElement>('[role="treeitem"]'))
+  const currentIndex = visibleNodes.indexOf(currentEl)
+  if (currentIndex === -1) return
+  const targetIndex = currentIndex + direction
+  if (targetIndex >= 0 && targetIndex < visibleNodes.length) {
+    visibleNodes[targetIndex].focus()
+  }
+}
+
+const TreeNode: React.FC<TreeNodeProps> = ({
+  item,
+  level,
+  onSelect,
+  selectedId,
+  isFirstItem = false,
+  hasAnySelected = false,
+}) => {
   const [isOpen, setIsOpen] = useState(item.initiallyExpanded ?? false)
-  const hasChildren = item.children && item.children.length > 0
+  const hasChildren = Boolean(item.children && item.children.length > 0)
   const isSelected = selectedId === item.id
   const isRoot = item.type === 'ROOT'
+  const isFocusable = isSelected || (!hasAnySelected && isFirstItem)
+
+  const prevInitiallyExpandedRef = useRef(item.initiallyExpanded)
+  useEffect(() => {
+    if (item.initiallyExpanded !== prevInitiallyExpandedRef.current) {
+      prevInitiallyExpandedRef.current = item.initiallyExpanded
+      if (item.initiallyExpanded !== undefined) {
+        setIsOpen(item.initiallyExpanded)
+      }
+    }
+  }, [item.initiallyExpanded])
 
   useEffect(() => {
-    setIsOpen(item.initiallyExpanded ?? false)
-  }, [item.initiallyExpanded])
+    if (selectedId && hasSelectedDescendant(item, selectedId)) {
+      setIsOpen(true)
+    }
+  }, [selectedId, item])
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setIsOpen(!isOpen)
+    setIsOpen((prev) => !prev)
   }
+
+  const handleNodeClick = () => {
+    onSelect(item)
+    if (isRoot && hasChildren) {
+      setIsOpen((prev) => !prev)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return
+
+    switch (e.key) {
+      case 'Enter':
+      case ' ': {
+        e.preventDefault()
+        handleNodeClick()
+        break
+      }
+      case 'ArrowRight': {
+        e.preventDefault()
+        if (hasChildren) {
+          if (!isOpen) {
+            setIsOpen(true)
+          } else {
+            const nextNode = e.currentTarget.parentElement?.querySelector(
+              '.children-container > .tree-node-wrapper > .tree-node',
+            ) as HTMLElement | null
+            nextNode?.focus()
+          }
+        }
+        break
+      }
+      case 'ArrowLeft': {
+        e.preventDefault()
+        if (hasChildren && isOpen) {
+          setIsOpen(false)
+        } else {
+          const parentWrapper = e.currentTarget
+            .closest('.children-container')
+            ?.closest('.tree-node-wrapper')
+          const parentNode = parentWrapper?.querySelector(
+            ':scope > .tree-node',
+          ) as HTMLElement | null
+          parentNode?.focus()
+        }
+        break
+      }
+      case 'ArrowDown': {
+        e.preventDefault()
+        focusAdjacentNode(e.currentTarget, 1)
+        break
+      }
+      case 'ArrowUp': {
+        e.preventDefault()
+        focusAdjacentNode(e.currentTarget, -1)
+        break
+      }
+      case 'Home': {
+        e.preventDefault()
+        const treeRoot = e.currentTarget.closest('[role="tree"]')
+        const firstNode = treeRoot?.querySelector('[role="treeitem"]') as HTMLElement | null
+        firstNode?.focus()
+        break
+      }
+      case 'End': {
+        e.preventDefault()
+        const treeRoot = e.currentTarget.closest('[role="tree"]')
+        const allNodes = treeRoot?.querySelectorAll<HTMLElement>('[role="treeitem"]')
+        if (allNodes && allNodes.length > 0) {
+          allNodes[allNodes.length - 1]?.focus()
+        }
+        break
+      }
+    }
+  }
+
+  const childCount = item.children?.length ?? 0
+  const showBadge =
+    (isRoot && item.children !== undefined) ||
+    ((item.type === 'COMMAND' || item.type === 'CAMPAIGN') && childCount > 0)
 
   return (
     <div className="tree-node-wrapper">
       <div
+        role="treeitem"
+        aria-expanded={hasChildren ? isOpen : undefined}
+        aria-selected={isSelected}
+        aria-level={level + 1}
+        tabIndex={isFocusable ? 0 : -1}
         className={`tree-node ${isSelected ? 'selected' : ''} ${isRoot ? 'root-node' : ''}`}
-        onClick={() => onSelect(item)}
+        onClick={handleNodeClick}
+        onKeyDown={handleKeyDown}
         title={item.label}
       >
         {hasChildren ? (
@@ -161,9 +295,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ item, level, onSelect, selectedId }
         )}
         {!isRoot && <span className="node-icon">{getNodeIcon(item.type)}</span>}
         <span className={`label type-${item.type.toLowerCase()}`}>{item.label}</span>
+        {showBadge && (
+          <span className="node-badge" aria-label={`${childCount} items`}>
+            [{childCount}]
+          </span>
+        )}
       </div>
       {hasChildren && isOpen && (
-        <div className="children-container">
+        <div role="group" className="children-container">
           {item.children!.map((child) => (
             <TreeNode
               key={child.id}
@@ -171,6 +310,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({ item, level, onSelect, selectedId }
               level={level + 1}
               onSelect={onSelect}
               selectedId={selectedId}
+              isFirstItem={false}
+              hasAnySelected={hasAnySelected}
             />
           ))}
         </div>
@@ -184,10 +325,25 @@ export const NavigationTree: React.FC<{
   onSelect: (item: TreeItem) => void
   selectedId?: string
 }> = ({ data, onSelect, selectedId }) => {
+  const hasAnySelected = useMemo(() => isIdInTree(data, selectedId), [data, selectedId])
+
   return (
-    <div style={{ padding: '0 10px' }}>
-      {data.map((item) => (
-        <TreeNode key={item.id} item={item} level={0} onSelect={onSelect} selectedId={selectedId} />
+    <div
+      role="tree"
+      aria-label="Tactical Navigation Tree"
+      className="navigation-tree"
+      style={{ padding: '0 10px' }}
+    >
+      {data.map((item, index) => (
+        <TreeNode
+          key={item.id}
+          item={item}
+          level={0}
+          onSelect={onSelect}
+          selectedId={selectedId}
+          isFirstItem={index === 0}
+          hasAnySelected={hasAnySelected}
+        />
       ))}
     </div>
   )

@@ -90,4 +90,87 @@ describe('NavigationTree', () => {
     expect(screen.getByText('Root One')).toBeInTheDocument()
     expect(screen.getByText('Root Two')).toBeInTheDocument()
   })
+
+  it('auto-expands collapsed parent when selectedId targets a descendant', () => {
+    const collapsedParentTree: TreeItem[] = [
+      {
+        id: 'root-1',
+        label: 'My Commands',
+        type: 'ROOT',
+        initiallyExpanded: false,
+        children: [
+          {
+            id: 'cmd-1',
+            label: "Wolf's Dragoons",
+            type: 'COMMAND',
+            initiallyExpanded: false,
+            children: [{ id: 'det-target', label: 'Target Lance', type: 'DETACHMENT' }],
+          },
+        ],
+      },
+    ]
+    render(<NavigationTree data={collapsedParentTree} onSelect={() => {}} selectedId="det-target" />)
+    expect(screen.getByText('Target Lance')).toBeInTheDocument()
+    const targetNode = screen.getByText('Target Lance').closest('.tree-node')
+    expect(targetNode?.classList).toContain('selected')
+  })
+
+  it('toggles root node expansion when root row is clicked', () => {
+    const rootTree: TreeItem[] = [
+      {
+        id: 'root-1',
+        label: 'Mercenary Commands',
+        type: 'ROOT',
+        initiallyExpanded: true,
+        children: [{ id: 'cmd-1', label: "Eridani Light Horse", type: 'COMMAND' }],
+      },
+    ]
+    render(<NavigationTree data={rootTree} onSelect={() => {}} />)
+    expect(screen.getByText('Eridani Light Horse')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Mercenary Commands'))
+    expect(screen.queryByText('Eridani Light Horse')).toBeNull()
+    fireEvent.click(screen.getByText('Mercenary Commands'))
+    expect(screen.getByText('Eridani Light Horse')).toBeInTheDocument()
+  })
+
+  it('renders tactical count badges for root sections and commands with children', () => {
+    render(<NavigationTree data={tree} onSelect={() => {}} />)
+    expect(screen.getByLabelText('1 items')).toBeInTheDocument()
+    expect(screen.getByLabelText('2 items')).toBeInTheDocument()
+  })
+
+  it('includes proper WAI-ARIA tree roles and attributes', () => {
+    render(<NavigationTree data={tree} onSelect={() => {}} selectedId="det-1" />)
+    expect(screen.getByRole('tree')).toBeInTheDocument()
+    const items = screen.getAllByRole('treeitem')
+    expect(items.length).toBeGreaterThan(0)
+    const selectedItem = screen.getByText('Alpha Lance').closest('[role="treeitem"]')
+    expect(selectedItem).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('supports keyboard navigation via ArrowDown, ArrowUp, ArrowRight, ArrowLeft, and Enter', () => {
+    const onSelect = vi.fn()
+    render(<NavigationTree data={tree} onSelect={onSelect} />)
+    const firstItem = screen.getByText('My Commands').closest('[role="treeitem"]') as HTMLElement
+    firstItem.focus()
+
+    // ArrowDown should move focus to Wolf's Dragoons
+    fireEvent.keyDown(firstItem, { key: 'ArrowDown' })
+    const cmdItem = screen.getByText("Wolf's Dragoons").closest('[role="treeitem"]') as HTMLElement
+    expect(document.activeElement).toBe(cmdItem)
+
+    // ArrowLeft on open command collapses it
+    fireEvent.keyDown(cmdItem, { key: 'ArrowLeft' })
+    expect(screen.queryByText('Alpha Lance')).toBeNull()
+
+    // ArrowRight expands it back
+    fireEvent.keyDown(cmdItem, { key: 'ArrowRight' })
+    expect(screen.getByText('Alpha Lance')).toBeInTheDocument()
+
+    // Enter triggers selection
+    fireEvent.keyDown(cmdItem, { key: 'Enter' })
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'cmd-1', type: 'COMMAND' }),
+    )
+  })
 })
