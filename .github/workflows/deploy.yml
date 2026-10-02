@@ -120,8 +120,8 @@ jobs:
         run: |
           set -euo pipefail
           kubectl --kubeconfig="${{ steps.kubeconfig.outputs.kubeconfig }}" -n "$NAMESPACE" apply -f staging/
-          kubectl --kubeconfig="${{ steps.kubeconfig.outputs.kubeconfig }}" -n "$NAMESPACE" rollout status deployment/backend-deployment --timeout=300s
-          kubectl --kubeconfig="${{ steps.kubeconfig.outputs.kubeconfig }}" -n "$NAMESPACE" rollout status deployment/frontend-deployment --timeout=300s
+          kubectl --kubeconfig="${{ steps.kubeconfig.outputs.kubeconfig }}" -n "$NAMESPACE" rollout status deployment/backend-deployment --timeout=600s
+          kubectl --kubeconfig="${{ steps.kubeconfig.outputs.kubeconfig }}" -n "$NAMESPACE" rollout status deployment/frontend-deployment --timeout=600s
 
       - name: Rollback on failure
         if: failure()
