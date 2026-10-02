@@ -109,7 +109,9 @@ describe('NavigationTree', () => {
         ],
       },
     ]
-    render(<NavigationTree data={collapsedParentTree} onSelect={() => {}} selectedId="det-target" />)
+    render(
+      <NavigationTree data={collapsedParentTree} onSelect={() => {}} selectedId="det-target" />,
+    )
     expect(screen.getByText('Target Lance')).toBeInTheDocument()
     const targetNode = screen.getByText('Target Lance').closest('.tree-node')
     expect(targetNode?.classList).toContain('selected')
@@ -122,7 +124,7 @@ describe('NavigationTree', () => {
         label: 'Mercenary Commands',
         type: 'ROOT',
         initiallyExpanded: true,
-        children: [{ id: 'cmd-1', label: "Eridani Light Horse", type: 'COMMAND' }],
+        children: [{ id: 'cmd-1', label: 'Eridani Light Horse', type: 'COMMAND' }],
       },
     ]
     render(<NavigationTree data={rootTree} onSelect={() => {}} />)
@@ -169,8 +171,6 @@ describe('NavigationTree', () => {
 
     // Enter triggers selection
     fireEvent.keyDown(cmdItem, { key: 'Enter' })
-    expect(onSelect).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'cmd-1', type: 'COMMAND' }),
-    )
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'cmd-1', type: 'COMMAND' }))
   })
 })

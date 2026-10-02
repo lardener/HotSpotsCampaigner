@@ -69,7 +69,7 @@ public class FlywayConfig {
     @Value("${spring.flyway.baseline-version:0}")
     private String baselineVersion;
 
-    @Bean(initMethod = "migrate")
+    @Bean
     public Flyway flyway(ObjectProvider<JdbcConnectionDetails> connectionDetailsProvider) {
         JdbcConnectionDetails details = connectionDetailsProvider.getIfAvailable();
         String url = (details != null) ? details.getJdbcUrl() : jdbcUrl;
@@ -93,11 +93,19 @@ public class FlywayConfig {
 
         HikariDataSource dataSource = new HikariDataSource(hikariConfig);
 
-        return Flyway.configure()
+        Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
                 .locations(locations)
                 .baselineOnMigrate(baselineOnMigrate)
                 .baselineVersion(baselineVersion)
                 .load();
+
+        if (url == null || !url.startsWith("jdbc:h2:")) {
+            flyway.migrate();
+        } else {
+            log.info("H2 in-memory test database detected; schema is initialized via schema.sql. Skipping Flyway migrations.");
+        }
+
+        return flyway;
     }
 }
