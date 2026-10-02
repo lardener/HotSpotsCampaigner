@@ -845,85 +845,85 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
               )}
             </div>
             <div className="table-scroll-wrapper">
-            <table className="tactical-table">
-              <thead>
-                <tr>
-                  <th title="Chassis of the unit (ex. Shadow Hawk)">MODEL</th>
-                  <th className="text-center" title="Variant of the unit (ex. SHD-2K)">
-                    VARIANT
-                  </th>
-                  <th className="text-center">VALUE (BV [PV])</th>
-                  <th className="text-center">STATUS</th>
-                  {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
-                  <th className="text-center"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUnits.map((u: CombatUnit) => (
-                  <tr key={u.id}>
-                    <td>{u.model}</td>
-                    <td className="text-center">{u.variant || '---'}</td>
-                    <td className="text-center">
-                      {u.bv} [{u.pv}]
-                    </td>
-                    <td className="text-center">{u.status}</td>
-                    {!selectedDetachmentId && (
-                      <td className="text-center">
-                        <div
-                          className="status-bar theme-amber"
-                          style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}
-                        >
-                          <select
-                            className="table-input"
-                            style={{ border: 'none' }}
-                            title="Assign to Detachment"
-                            value={u.detachmentId || ''}
-                            onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
-                          >
-                            <option value="">[ HANGAR ]</option>
-                            {detachments.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </td>
-                    )}
-                    {!isManagerView && (
-                      <td className="text-center">
-                        <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
-                          <button
-                            className="mode-btn"
-                            style={{
-                              padding: '2px 8px',
-                              color: 'var(--terminal-green)',
-                              borderColor: 'var(--terminal-green)',
-                              fontSize: '0.65rem',
-                            }}
-                            onClick={() => handleEditUnit(u)}
-                            title="Edit unit record"
-                          >
-                            EDIT
-                          </button>
-                          <button
-                            className="mode-btn"
-                            style={{
-                              padding: '2px 8px',
-                              color: 'var(--terminal-alert)',
-                              borderColor: 'var(--terminal-alert)',
-                            }}
-                            onClick={() => handleDeleteUnit(u.id)}
-                          >
-                            X
-                          </button>
-                        </div>
-                      </td>
-                    )}
+              <table className="tactical-table">
+                <thead>
+                  <tr>
+                    <th title="Chassis of the unit (ex. Shadow Hawk)">MODEL</th>
+                    <th className="text-center" title="Variant of the unit (ex. SHD-2K)">
+                      VARIANT
+                    </th>
+                    <th className="text-center">VALUE (BV [PV])</th>
+                    <th className="text-center">STATUS</th>
+                    {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
+                    <th className="text-center"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredUnits.map((u: CombatUnit) => (
+                    <tr key={u.id}>
+                      <td>{u.model}</td>
+                      <td className="text-center">{u.variant || '---'}</td>
+                      <td className="text-center">
+                        {u.bv} [{u.pv}]
+                      </td>
+                      <td className="text-center">{u.status}</td>
+                      {!selectedDetachmentId && (
+                        <td className="text-center">
+                          <div
+                            className="status-bar theme-amber"
+                            style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}
+                          >
+                            <select
+                              className="table-input"
+                              style={{ border: 'none' }}
+                              title="Assign to Detachment"
+                              value={u.detachmentId || ''}
+                              onChange={(e) => handleAssignAsset('UNIT', u.id, e.target.value)}
+                            >
+                              <option value="">[ HANGAR ]</option>
+                              {detachments.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      )}
+                      {!isManagerView && (
+                        <td className="text-center">
+                          <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                            <button
+                              className="mode-btn"
+                              style={{
+                                padding: '2px 8px',
+                                color: 'var(--terminal-green)',
+                                borderColor: 'var(--terminal-green)',
+                                fontSize: '0.65rem',
+                              }}
+                              onClick={() => handleEditUnit(u)}
+                              title="Edit unit record"
+                            >
+                              EDIT
+                            </button>
+                            <button
+                              className="mode-btn"
+                              style={{
+                                padding: '2px 8px',
+                                color: 'var(--terminal-alert)',
+                                borderColor: 'var(--terminal-alert)',
+                              }}
+                              onClick={() => handleDeleteUnit(u.id)}
+                            >
+                              X
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
 
@@ -950,85 +950,85 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
               )}
             </div>
             <div className="table-scroll-wrapper">
-            <table className="tactical-table">
-              <thead>
-                <tr>
-                  <th>NAME</th>
-                  <th className="text-center">SKILL (G/P [AS])</th>
-                  <th className="text-center">UNIT SPECIALTY</th>
-                  <th className="text-center">WOUNDS</th>
-                  <th className="text-center">HANDICAP</th>
-                  {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
-                  <th className="text-center"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPilots.map((p: Pilot) => (
-                  <tr key={p.id}>
-                    <td>{p.name}</td>
-                    <td className="text-center">
-                      {p.gunnery}/{p.piloting} [{p.asSkill}]
-                    </td>
-                    <td className="text-center">{p.unitType}</td>
-                    <td className="text-center">{p.wounds}</td>
-                    <td className="text-center">{p.handicap}</td>
-                    {!selectedDetachmentId && (
-                      <td className="text-center">
-                        <div
-                          className="status-bar theme-amber"
-                          style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}
-                        >
-                          <select
-                            className="table-input"
-                            style={{ border: 'none' }}
-                            title="Assign to Barracks/Detachment"
-                            value={p.detachmentId || ''}
-                            onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
-                          >
-                            <option value="">[ BARRACKS ]</option>
-                            {detachments.map((d) => (
-                              <option key={d.id} value={d.id}>
-                                {d.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </td>
-                    )}
-                    {!isManagerView && (
-                      <td className="text-center">
-                        <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
-                          <button
-                            className="mode-btn"
-                            style={{
-                              padding: '2px 8px',
-                              color: 'var(--terminal-green)',
-                              borderColor: 'var(--terminal-green)',
-                              fontSize: '0.65rem',
-                            }}
-                            onClick={() => handleEditPilot(p)}
-                            title="Edit pilot record"
-                          >
-                            EDIT
-                          </button>
-                          <button
-                            className="mode-btn"
-                            style={{
-                              padding: '2px 8px',
-                              color: 'var(--terminal-alert)',
-                              borderColor: 'var(--terminal-alert)',
-                            }}
-                            onClick={() => handleDeletePilot(p.id)}
-                          >
-                            X
-                          </button>
-                        </div>
-                      </td>
-                    )}
+              <table className="tactical-table">
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th className="text-center">SKILL (G/P [AS])</th>
+                    <th className="text-center">UNIT SPECIALTY</th>
+                    <th className="text-center">WOUNDS</th>
+                    <th className="text-center">HANDICAP</th>
+                    {!selectedDetachmentId && <th className="text-center">DETACHMENT</th>}
+                    <th className="text-center"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredPilots.map((p: Pilot) => (
+                    <tr key={p.id}>
+                      <td>{p.name}</td>
+                      <td className="text-center">
+                        {p.gunnery}/{p.piloting} [{p.asSkill}]
+                      </td>
+                      <td className="text-center">{p.unitType}</td>
+                      <td className="text-center">{p.wounds}</td>
+                      <td className="text-center">{p.handicap}</td>
+                      {!selectedDetachmentId && (
+                        <td className="text-center">
+                          <div
+                            className="status-bar theme-amber"
+                            style={{ padding: '0 5px', display: 'flex', alignItems: 'center' }}
+                          >
+                            <select
+                              className="table-input"
+                              style={{ border: 'none' }}
+                              title="Assign to Barracks/Detachment"
+                              value={p.detachmentId || ''}
+                              onChange={(e) => handleAssignAsset('PILOT', p.id, e.target.value)}
+                            >
+                              <option value="">[ BARRACKS ]</option>
+                              {detachments.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  {d.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                      )}
+                      {!isManagerView && (
+                        <td className="text-center">
+                          <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                            <button
+                              className="mode-btn"
+                              style={{
+                                padding: '2px 8px',
+                                color: 'var(--terminal-green)',
+                                borderColor: 'var(--terminal-green)',
+                                fontSize: '0.65rem',
+                              }}
+                              onClick={() => handleEditPilot(p)}
+                              title="Edit pilot record"
+                            >
+                              EDIT
+                            </button>
+                            <button
+                              className="mode-btn"
+                              style={{
+                                padding: '2px 8px',
+                                color: 'var(--terminal-alert)',
+                                borderColor: 'var(--terminal-alert)',
+                              }}
+                              onClick={() => handleDeletePilot(p.id)}
+                            >
+                              X
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         </main>
@@ -1068,72 +1068,72 @@ export const CommandDashboard: React.FC<CommandDashboardProps> = ({
             </div>
 
             <div className="table-scroll-wrapper">
-            <table className="tactical-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '10%' }}>DATE</th>
-                  <th style={{ width: '35%' }}>DESCRIPTION</th>
-                  <th className="text-right" style={{ width: '10%' }}>
-                    SP (+/-)
-                  </th>
-                  <th className="text-right" style={{ width: '10%' }}>
-                    REP (+/-)
-                  </th>
-                  <th className="text-center" style={{ width: '25%' }}>
-                    CONTRACT
-                  </th>
-                  <th className="text-center" style={{ width: '10%' }}>
-                    MO
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedLedger.length > 0 ? (
-                  paginatedLedger.map((entry) => (
-                    <tr key={entry.id}>
-                      <td>{new Date(entry.timestamp || '').toLocaleDateString()}</td>
-                      <td>{entry.description}</td>
-                      <td
-                        className="text-right"
-                        style={{
-                          color:
-                            (entry.amount || 0) >= 0
-                              ? 'var(--terminal-green)'
-                              : 'var(--terminal-alert)',
-                        }}
-                      >
-                        {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
-                      </td>
-                      <td
-                        className="text-right"
-                        style={{
-                          color:
-                            (entry.reputationChange || 0) > 0
-                              ? 'var(--terminal-green)'
-                              : (entry.reputationChange || 0) < 0
-                                ? 'var(--terminal-alert)'
-                                : 'inherit',
-                        }}
-                      >
-                        {entry.reputationChange != null && entry.reputationChange !== 0
-                          ? entry.reputationChange > 0
-                            ? `+${entry.reputationChange}`
-                            : entry.reputationChange
-                          : '-'}
-                      </td>
-                      <td className="text-center">{entry.campaignName || '-'}</td>
-                      <td className="text-center">{entry.monthIndex || '-'}</td>
-                    </tr>
-                  ))
-                ) : (
+              <table className="tactical-table">
+                <thead>
                   <tr>
-                    <td colSpan={6} className="text-center restricted-text">
-                      NO TRANSACTIONS RECORDED
-                    </td>
+                    <th style={{ width: '10%' }}>DATE</th>
+                    <th style={{ width: '35%' }}>DESCRIPTION</th>
+                    <th className="text-right" style={{ width: '10%' }}>
+                      SP (+/-)
+                    </th>
+                    <th className="text-right" style={{ width: '10%' }}>
+                      REP (+/-)
+                    </th>
+                    <th className="text-center" style={{ width: '25%' }}>
+                      CONTRACT
+                    </th>
+                    <th className="text-center" style={{ width: '10%' }}>
+                      MO
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {paginatedLedger.length > 0 ? (
+                    paginatedLedger.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>{new Date(entry.timestamp || '').toLocaleDateString()}</td>
+                        <td>{entry.description}</td>
+                        <td
+                          className="text-right"
+                          style={{
+                            color:
+                              (entry.amount || 0) >= 0
+                                ? 'var(--terminal-green)'
+                                : 'var(--terminal-alert)',
+                          }}
+                        >
+                          {(entry.amount || 0) > 0 ? `+${entry.amount}` : entry.amount}
+                        </td>
+                        <td
+                          className="text-right"
+                          style={{
+                            color:
+                              (entry.reputationChange || 0) > 0
+                                ? 'var(--terminal-green)'
+                                : (entry.reputationChange || 0) < 0
+                                  ? 'var(--terminal-alert)'
+                                  : 'inherit',
+                          }}
+                        >
+                          {entry.reputationChange != null && entry.reputationChange !== 0
+                            ? entry.reputationChange > 0
+                              ? `+${entry.reputationChange}`
+                              : entry.reputationChange
+                            : '-'}
+                        </td>
+                        <td className="text-center">{entry.campaignName || '-'}</td>
+                        <td className="text-center">{entry.monthIndex || '-'}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="text-center restricted-text">
+                        NO TRANSACTIONS RECORDED
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {sortedLedger.length > entriesPerPage && (
