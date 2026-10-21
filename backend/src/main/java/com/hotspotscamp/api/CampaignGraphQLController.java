@@ -317,10 +317,7 @@ public class CampaignGraphQLController {
         }
 
         return userService.resolveOrCreateUser(principal.getName(), "ROLE_AUTHENTICATED", verifiedEmail(principal))
-                .<Campaign>flatMap(user -> {
-                    String internalId = user.getId().toString();
-                    return campaignService.generateDoblessCampaign(internalId, input);
-                })
+                .<Campaign>flatMap(user -> campaignService.generateDoblessCampaign(principal.getName(), input))
                 .doOnTerminate(() -> log.trace("[TRACE] Exiting createCampaign"));
     }
 

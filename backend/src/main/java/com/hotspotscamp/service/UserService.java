@@ -137,6 +137,9 @@ public class UserService {
                         } else {
                             log.warn("[AUTH] User {} already holds provider sub '{}' (not '{}'); leaving external_id unchanged to avoid clobbering", user.getId(), currentExternalId, identity);
                         }
+                    } else if (identity.equals(user.getId().toString())) {
+                        log.debug("[AUTH] User {} resolved by internal UUID; preserving external_id '{}'",
+                                user.getId(), currentExternalId);
                     } else {
                         log.info("[AUTH] Migrated legacy user {} (display_name='{}', old_external_id='{}') to identity '{}'",
                                 user.getId(), user.getDisplayName(), currentExternalId, identity);

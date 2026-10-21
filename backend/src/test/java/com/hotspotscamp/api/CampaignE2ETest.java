@@ -189,6 +189,7 @@ class CampaignE2ETest {
     }
 
     @Test
+    @WithMockUser(username = "commander@mercs.com", roles = {"AUTHENTICATED"})
     void testMultipleInvitedUsersFullLifecycle() {
         // 1. Manager Setup: Create Campaign and Invites
         HttpGraphQlTester managerTester = HttpGraphQlTester.create(
@@ -225,6 +226,7 @@ class CampaignE2ETest {
     }
 
     @Test
+    @WithMockUser(username = "commander@mercs.com", roles = {"AUTHENTICATED"})
     void testAutomatedRearmCalculationBasedOnTonnage() {
         HttpGraphQlTester managerTester = HttpGraphQlTester.create(
                 webTestClientWithBase.mutateWith(mockUser("commander@mercs.com").roles("AUTHENTICATED")));
